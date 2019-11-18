@@ -28,6 +28,12 @@ Facets:
 
 
 - Transitions
+   - How are states identified?  By key/string?  Or by type?
+   onMessage(MessageContext ctx) {
+      return GoTo('state 2')
+      return GoTo<State2>()
+   }
+
    - Can we prefefine transitions
       state1.transitionsTo(State2)
    or
