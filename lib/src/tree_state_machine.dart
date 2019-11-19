@@ -1,22 +1,44 @@
+import 'dart:async';
+
+import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 
-class _StateTreeNode {
-  final TreeState state;
-  final _StateTreeNode parent;
-  final List<_StateTreeNode> children;
-  _StateTreeNode(this.state, this.parent, this.children) {}
+class CurrentState {
+  sendMessage(Object message) {}
 }
+
+class Transition {}
 
 class TreeStateMachine {
-  Map<Type, _StateTreeNode> nodesByType;
-  TreeState _currentState;
-  StateHandler _currentHandler;
+  final TreeNode _rootNode;
+  final StreamController<Transition> _transitions;
+  Stream<Transition> _transitionsStream;
+  bool _isStarted = false;
+  CurrentState _currentState;
 
-  get currentState => _currentState;
+  bool get isStarted => _isStarted;
+  CurrentState get currentState => _currentState;
+  Stream<Transition> get transitions => _transitionsStream;
 
-  Future<MessageResult> send(Object message) async {
-    var ctx = MessageContext(message);
-    var msgResult = await _currentHandler.onMessage(ctx);
-    return msgResult;
+  TreeStateMachine._(this._rootNode, this._transitions) {
+    _transitionsStream = _transitions.stream.asBroadcastStream();
+  }
+
+  factory TreeStateMachine.forRoot(BuildRoot buildRoot) {
+    if (buildRoot == null) throw ArgumentError.notNull('buildRoot');
+    var buildCtx = BuildContext(null);
+    var rootNode = buildRoot(buildCtx);
+    return TreeStateMachine._(rootNode, StreamController());
+  }
+
+  factory TreeStateMachine.forLeaves(List<BuildLeaf> buildLeaves) {
+    if (buildLeaves == null) throw ArgumentError.notNull('buildLeaves');
+    var rootBuilder = BuildRoot(state: _RootState(), children: buildLeaves);
+    var buildCtx = BuildContext(null);
+    var rootNode = rootBuilder(buildCtx);
+    return TreeStateMachine._(rootNode, StreamController());
   }
 }
+
+// Root state for wrapping 'flat' leaf states.
+class _RootState extends TreeState {}
