@@ -2,13 +2,15 @@ import 'package:test/test.dart';
 import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 
-class SimpleState extends TreeState {}
+class SimpleState extends TreeState {
+  SimpleState(String name) : super(StateKey.named(name)) {}
+}
 
 void main() {
-  var state = SimpleState();
-  var childState1 = SimpleState();
-  var childState2 = SimpleState();
-  var parentState = SimpleState();
+  var state = SimpleState("state");
+  var childState1 = SimpleState("childState1");
+  var childState2 = SimpleState("childState2");
+  var parentState = SimpleState("parentState");
   var parentNode = TreeNode(parentState, null);
 
   group('BuildLeaf', () {
@@ -29,7 +31,8 @@ void main() {
     test("builds an interior node", () {
       var buildCtx = BuildContext(parentNode);
 
-      var builder = BuildInterior(state: state, children: [BuildLeaf(childState1), BuildLeaf(childState2)]);
+      var builder =
+          BuildInterior(state: state, children: [BuildLeaf(childState1), BuildLeaf(childState2)]);
       var interiorNode = builder(buildCtx);
 
       expect(interiorNode, isNotNull);
@@ -46,7 +49,8 @@ void main() {
     test("builds a root node", () {
       var buildCtx = BuildContext(null);
 
-      var builder = BuildRoot(state: state, children: [BuildLeaf(childState1), BuildLeaf(childState2)]);
+      var builder =
+          BuildRoot(state: state, children: [BuildLeaf(childState1), BuildLeaf(childState2)]);
       var rootNode = builder(buildCtx);
 
       expect(rootNode, isNotNull);
@@ -61,7 +65,8 @@ void main() {
     test("throws if built with a parent node", () {
       var buildCtx = BuildContext(parentNode);
 
-      var builder = BuildRoot(state: state, children: [BuildLeaf(childState1), BuildLeaf(childState2)]);
+      var builder =
+          BuildRoot(state: state, children: [BuildLeaf(childState1), BuildLeaf(childState2)]);
       expect(() => builder(buildCtx), throwsArgumentError);
     });
   });

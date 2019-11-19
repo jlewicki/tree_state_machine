@@ -3,22 +3,25 @@ import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 import 'package:tree_state_machine/src/tree_state_machine.dart';
 
-class SimpleState extends TreeState {}
+class SimpleState extends TreeState {
+  SimpleState(String name) : super(StateKey.named(name)) {}
+}
 
 void main() {
   group('TreeStateMachine', () {
+    var state = SimpleState("state");
     test("is not started when created", () {
-      var sm = TreeStateMachine.forLeaves([BuildLeaf(SimpleState())]);
+      var sm = TreeStateMachine.forLeaves([BuildLeaf(state)]);
       expect(sm.isStarted, equals(false));
     });
 
     test("has no current state when created", () {
-      var sm = TreeStateMachine.forLeaves([BuildLeaf(SimpleState())]);
+      var sm = TreeStateMachine.forLeaves([BuildLeaf(state)]);
       expect(sm.currentState, equals(null));
     });
 
     test("has transitions stream when created", () {
-      var sm = TreeStateMachine.forLeaves([BuildLeaf(SimpleState())]);
+      var sm = TreeStateMachine.forLeaves([BuildLeaf(state)]);
       expect(sm.transitions, isNotNull);
     });
 

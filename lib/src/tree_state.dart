@@ -1,13 +1,42 @@
-import 'package:meta/meta.dart';
-import 'package:tree_state_machine/src/lazy.dart';
+// import 'package:meta/meta.dart';
+// import 'package:tree_state_machine/src/lazy.dart';
 
 abstract class StateKey {
-  factory StateKey.named(String name) {
-    throw UnimplementedError();
+  StateKey._() {}
+  static StateKey named(String name) => ValueKey<String>(name);
+  static StateKey forClass<T>() => ValueKey<Type>(_TypeLiteral<T>().type);
+}
+
+class ValueKey<T> extends StateKey {
+  final T value;
+  ValueKey(this.value) : super._() {}
+
+  @override
+  bool operator ==(dynamic other) {
+    if (other.runtimeType != runtimeType) return false;
+    final ValueKey<T> typedOther = other;
+    return value == typedOther.value;
+  }
+
+  @override
+  int get hashCode {
+    int hash = 7;
+    hash = 31 * hash + runtimeType.hashCode;
+    hash = 31 * hash + value.hashCode;
+    return hash;
   }
 }
 
-class TreeState {}
+class _TypeLiteral<T> {
+  Type get type => T;
+}
+
+class TreeState {
+  final StateKey key;
+  TreeState(this.key) {
+    if (key == null) throw ArgumentError.notNull("key");
+  }
+}
 
 // /**
 //  * Represents a state within a tree (i.e. hierarchical) state machine.
