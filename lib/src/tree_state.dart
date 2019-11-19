@@ -1,6 +1,12 @@
 import 'package:meta/meta.dart';
 import 'package:tree_state_machine/src/lazy.dart';
 
+abstract class StateKey {
+  factory StateKey.named(String name) {
+    throw UnimplementedError();
+  }
+}
+
 class TreeState {}
 
 // /**
