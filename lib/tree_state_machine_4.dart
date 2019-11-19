@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:meta/meta.dart';
 
 class CurrentState {
   sendMessage(Object message) {}
@@ -21,16 +22,19 @@ class TreeStateMachine {
     _transitionsStream = _transitions.stream.asBroadcastStream();
   }
 
-  factory TreeStateMachine.forRoot(TreeNode rootState) {
-    if (rootState == null) throw ArgumentError.notNull('rootState');
-    return TreeStateMachine._(rootState, StreamController());
+  factory TreeStateMachine.forRoot(BuildRoot buildRoot) {
+    if (buildRoot == null) throw ArgumentError.notNull('buildRoot');
+    var buildCtx = BuildContext(null);
+    var rootNode = buildRoot(buildCtx);
+    return TreeStateMachine._(rootNode, StreamController());
   }
 
-  factory TreeStateMachine.forLeaves(List<TreeNode> leafStates) {
-    if (leafStates == null) throw ArgumentError.notNull('leafStates');
-    var root = TreeNode(TreeState(), null);
-    root.children = List.unmodifiable(leafStates);
-    return TreeStateMachine._(root, StreamController());
+  factory TreeStateMachine.forLeaves(List<BuildLeaf> buildLeaves) {
+    if (buildLeaves == null) throw ArgumentError.notNull('buildLeaves');
+    var rootBuilder = BuildRoot(state: TreeState(), children: buildLeaves);
+    var buildCtx = BuildContext(null);
+    var rootNode = rootBuilder(buildCtx);
+    return TreeStateMachine._(rootNode, StreamController());
   }
 }
 
@@ -45,37 +49,138 @@ class TreeNode {
   TreeNode(this.state, this.parent) {}
 }
 
-class NodeContext {
+class BuildContext {
   TreeNode parentNode;
-  NodeContext(this.parentNode) {}
+  BuildContext(this.parentNode) {}
+  BuildContext childContext(TreeNode newParentNode) {
+    // TODO: copy other values to new context as they are introduced
+    return BuildContext(newParentNode);
+  }
 }
 
-TreeNode root(TreeState state, List<NodeBuilder> childNodes) {
-  var root = TreeNode(state, null);
-  root.children = childNodes.map((childBuilder) => childBuilder(NodeContext(root)));
-  return root;
+abstract class BuildNode2 {
+  TreeNode call(BuildContext ctx);
 }
 
-typedef TreeNode NodeBuilder(NodeContext parentNode);
-NodeBuilder leaf(TreeState state) => (ctx) => TreeNode(state, ctx.parentNode);
-NodeBuilder interior({TreeState state, List<NodeBuilder> childNodes}) {
-  return (ctx) {
+abstract class BuildChildNode extends BuildNode2 {}
+
+//
+//
+// Another variant
+//
+//
+class BuildRoot {
+  final TreeState state;
+  final List<BuildChildNode> children;
+
+  BuildRoot({this.state, @required this.children}) {
+    if (state == null) throw ArgumentError.notNull('state');
+    if (children == null) throw ArgumentError.notNull('children');
+    if (children.length == 0) throw ArgumentError.value(children, 'children', 'Must have at least one item');
+  }
+
+  TreeNode call(BuildContext ctx) {
+    var root = TreeNode(state, null);
+    var childContext = ctx.childContext(root);
+    root.children = children.map((childBuilder) => childBuilder(childContext);
+    return root;
+  }
+}
+
+class BuildInterior implements BuildChildNode {
+  final TreeState state;
+  final List<BuildChildNode> children;
+
+  BuildInterior({this.state, @required this.children}) {
+    if (state == null) throw ArgumentError.notNull('state');
+    if (children == null) throw ArgumentError.notNull('children');
+    if (children.length == 0) throw ArgumentError.value(children, 'children', 'Must have at least one item');
+  }
+
+  TreeNode call(BuildContext ctx) {
     var interior = TreeNode(state, ctx.parentNode);
-    interior.children = childNodes.map((childBuilder) => childBuilder(NodeContext(interior)));
+    var childContext = ctx.childContext(interior);
+    interior.children = children.map((childBuilder) => childBuilder(childContext));
     return interior;
-  };
+  }
 }
 
-var exampleLeaf = leaf(TreeState());
-var exampleInterior = interior(
+class BuildLeaf implements BuildChildNode {
+  TreeState _state;
+
+  BuildLeaf(this._state) {}
+
+  TreeNode call(BuildContext ctx) {
+    return TreeNode(_state, ctx.parentNode);
+  }
+}
+
+var exampleLeaf2 = BuildLeaf(TreeState());
+var exampleInterior2 = BuildInterior(
   state: TreeState(),
-  childNodes: [
-    interior(
+  children: [
+    BuildInterior(
       state: TreeState(),
-      childNodes: [
-        leaf(TreeState()),
-        leaf(TreeState()),
+      children: [
+        BuildLeaf(TreeState()),
+        BuildLeaf(TreeState()),
       ],
     ),
   ],
 );
+
+// typedef TreeNode BuildNode(BuildContext parentNode);
+
+// class BuildTree {
+//   final BuildNode buildNode;
+//   BuildTree._(this.buildNode) {}
+
+//   TreeNode call(BuildContext ctx) {
+//     return this.buildNode(ctx);
+//   }
+// }
+
+// class BuildRoot extends BuildTree {
+//   BuildRoot._(BuildNode buildNode) : super._(buildNode) {}
+
+//   factory BuildRoot.node({TreeState state, List<BuildTree> children}) {
+//     return BuildRoot._((ctx) {
+//       var root = TreeNode(state, null);
+//       root.children = children.map((childBuilder) => childBuilder(BuildContext(root)));
+//       return root;
+//     });
+//   }
+// }
+
+// class BuildInterior extends BuildTree {
+//   BuildInterior._(BuildNode buildNode) : super._(buildNode) {}
+
+//   factory BuildInterior.node({TreeState state, List<BuildTree> children}) {
+//     return BuildInterior._((ctx) {
+//       var root = TreeNode(state, null);
+//       root.children = children.map((childBuilder) => childBuilder(BuildContext(root)));
+//       return root;
+//     });
+//   }
+// }
+
+// class BuildLeaf extends BuildTree {
+//   BuildLeaf._(BuildNode buildNode) : super._(buildNode) {}
+//   factory BuildLeaf.node(TreeState state) {
+//     return BuildLeaf._((ctx) => TreeNode(state, ctx.parentNode));
+//   }
+// }
+
+// var exampleLeaf = BuildLeaf.node(TreeState());
+// var exampleInterior = BuildInterior.node(
+//   state: TreeState(),
+//   children: [
+//     BuildInterior.node(
+//       state: TreeState(),
+//       children: [
+//         BuildLeaf.node(TreeState()),
+//         BuildLeaf.node(TreeState()),
+//       ],
+//     ),
+//   ],
+// );

@@ -6,17 +6,17 @@ class SimpleState extends TreeState {}
 void main() {
   group('TreeStateMachine', () {
     test("is not started when created", () {
-      var sm = TreeStateMachine.forLeaves([leaf(SimpleState())]);
+      var sm = TreeStateMachine.forLeaves([BuildLeaf(SimpleState())]);
       expect(sm.isStarted, equals(false));
     });
 
     test("has no current state when created", () {
-      var sm = TreeStateMachine.forRoot(SimpleState());
+      var sm = TreeStateMachine.forLeaves([BuildLeaf(SimpleState())]);
       expect(sm.currentState, equals(null));
     });
 
     test("has transitions stream when created", () {
-      var sm = TreeStateMachine.forRoot(SimpleState());
+      var sm = TreeStateMachine.forLeaves([BuildLeaf(SimpleState())]);
       expect(sm.transitions, isNotNull);
     });
 
