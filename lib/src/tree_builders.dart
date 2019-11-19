@@ -34,6 +34,9 @@ class BuildRoot implements BuildNode {
   }
 
   TreeNode call(BuildContext ctx) {
+    if (ctx.parentNode != null) {
+      throw ArgumentError.value(ctx, "ctx", "Unexpected parent node for root node");
+    }
     var root = TreeNode(state, null);
     var childContext = ctx.childContext(root);
     root.children = children.map((childBuilder) => childBuilder(childContext));
