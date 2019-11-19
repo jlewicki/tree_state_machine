@@ -1,4 +1,3 @@
-import 'package:tree_state_machine/src/lazy.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 
 //
@@ -46,9 +45,6 @@ class GameInProgressState extends DataTreeState<GameInProgressData> {
 class GameState extends TreeState {
   @override
   StateHandler createHandler() {
-    // TODO: implement createHandler
     return null;
   }
 }
-
-Type _typeOf<T>() => T;
