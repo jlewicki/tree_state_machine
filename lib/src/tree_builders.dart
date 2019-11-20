@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:meta/meta.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 
@@ -9,18 +11,24 @@ class TreeNode {
 }
 
 class BuildContext {
-  TreeNode parentNode;
-  BuildContext(this.parentNode) {}
-  BuildContext childContext(TreeNode newParentNode) {
-    // TODO: copy other values to new context as they are introduced
-    return BuildContext(newParentNode);
-  }
+  final TreeNode parentNode;
+  final HashMap<StateKey, TreeNode> nodes;
+
+  BuildContext._(this.parentNode, this.nodes) {}
+  factory BuildContext(TreeNode parentNode) => BuildContext._(parentNode, HashMap());
+
+  BuildContext childContext(TreeNode newParentNode) => BuildContext._(newParentNode, nodes);
+
+  void addNode(TreeNode node) => nodes[node.state.key] = node;
 }
 
 abstract class BuildNode {
   TreeNode call(BuildContext ctx);
 }
 
+/**
+ * Builder for non-root nodes.
+ */
 abstract class BuildChildNode extends BuildNode {}
 
 class BuildRoot implements BuildNode {
@@ -30,7 +38,9 @@ class BuildRoot implements BuildNode {
   BuildRoot({this.state, @required this.children}) {
     if (state == null) throw ArgumentError.notNull('state');
     if (children == null) throw ArgumentError.notNull('children');
-    if (children.length == 0) throw ArgumentError.value(children, 'children', 'Must have at least one item');
+    if (children.length == 0) {
+      throw ArgumentError.value(children, 'children', 'Must have at least one item');
+    }
   }
 
   TreeNode call(BuildContext ctx) {
@@ -40,6 +50,7 @@ class BuildRoot implements BuildNode {
     var root = TreeNode(state, null);
     var childContext = ctx.childContext(root);
     root.children = children.map((childBuilder) => childBuilder(childContext));
+    ctx.addNode(root);
     return root;
   }
 }
@@ -51,13 +62,15 @@ class BuildInterior implements BuildChildNode {
   BuildInterior({this.state, @required this.children}) {
     if (state == null) throw ArgumentError.notNull('state');
     if (children == null) throw ArgumentError.notNull('children');
-    if (children.length == 0) throw ArgumentError.value(children, 'children', 'Must have at least one item');
+    if (children.length == 0)
+      throw ArgumentError.value(children, 'children', 'Must have at least one item');
   }
 
   TreeNode call(BuildContext ctx) {
     var interior = TreeNode(state, ctx.parentNode);
     var childContext = ctx.childContext(interior);
     interior.children = children.map((childBuilder) => childBuilder(childContext));
+    ctx.addNode(interior);
     return interior;
   }
 }
@@ -68,6 +81,8 @@ class BuildLeaf implements BuildChildNode {
   BuildLeaf(this._state) {}
 
   TreeNode call(BuildContext ctx) {
-    return TreeNode(_state, ctx.parentNode);
+    var leaf = TreeNode(_state, ctx.parentNode);
+    ctx.addNode(leaf);
+    return leaf;
   }
 }

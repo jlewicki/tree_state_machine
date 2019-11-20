@@ -3,7 +3,7 @@ import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 import 'package:tree_state_machine/src/tree_state_machine.dart';
 
-class SimpleState extends TreeState {
+class SimpleState extends EmptyTreeState {
   SimpleState(String name) : super(StateKey.named(name)) {}
 }
 

@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 
-class SimpleState extends TreeState {
+class SimpleState extends EmptyTreeState {
   SimpleState(String name) : super(StateKey.named(name)) {}
 }
 
@@ -25,6 +25,15 @@ void main() {
       expect(leafNode.parent, same(parentNode));
       expect(leafNode.children, isEmpty);
     });
+
+    test("adds node to context", () {
+      var buildCtx = BuildContext(parentNode);
+
+      var builder = BuildLeaf(state);
+      var leafNode = builder(buildCtx);
+
+      expect(buildCtx.nodes[state.key], equals(leafNode));
+    });
   });
 
   group('BuildInterior', () {
@@ -41,6 +50,19 @@ void main() {
       expect(interiorNode.children, hasLength(2));
       interiorNode.children.forEach((c) {
         expect(c.parent, interiorNode);
+      });
+    });
+
+    test("adds node to context", () {
+      var buildCtx = BuildContext(parentNode);
+
+      var builder =
+          BuildInterior(state: state, children: [BuildLeaf(childState1), BuildLeaf(childState2)]);
+      var interiorNode = builder(buildCtx);
+
+      expect(buildCtx.nodes[state.key], equals(interiorNode));
+      interiorNode.children.forEach((c) {
+        expect(buildCtx.nodes[c.state.key], equals(c));
       });
     });
   });
@@ -68,6 +90,19 @@ void main() {
       var builder =
           BuildRoot(state: state, children: [BuildLeaf(childState1), BuildLeaf(childState2)]);
       expect(() => builder(buildCtx), throwsArgumentError);
+    });
+
+    test("adds node to context", () {
+      var buildCtx = BuildContext(null);
+
+      var builder =
+          BuildRoot(state: state, children: [BuildLeaf(childState1), BuildLeaf(childState2)]);
+      var rootNode = builder(buildCtx);
+
+      expect(buildCtx.nodes[state.key], equals(rootNode));
+      rootNode.children.forEach((c) {
+        expect(buildCtx.nodes[c.state.key], equals(c));
+      });
     });
   });
 }

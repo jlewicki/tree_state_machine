@@ -1,50 +1,30 @@
-// import 'package:tree_state_machine/src/tree_state.dart';
+import 'package:tree_state_machine/tree_state_machine.dart';
 
-// //
-// // Game Starting
-// //
-// class GameStartingData extends StateData {
-//   String selectedScenario = null;
-//   String selectedUBoat = null;
-// }
+class GameRootState extends EmptyTreeState {
+  GameRootState() : super(StateKey.forClass<GameRootState>()) {}
+}
 
-// class GameStartingState extends DataTreeState<GameStartingData> {
-//   @override
-//   StateHandler createHandler() => createMessageHandler(onMessage: _onMessage, onEnter: _onEnter);
+class GameStartingState extends EmptyTreeState {
+  GameStartingState() : super(StateKey.forClass<GameStartingState>()) {}
+}
 
-//   Future _onEnter(TransitionContext transitionContext) {
-//     return Future.value(1);
-//   }
+class ChooseScenarioState extends EmptyTreeState {
+  ChooseScenarioState() : super(StateKey.forClass<ChooseScenarioState>()) {}
+}
 
-//   Future<MessageResult> _onMessage(MessageContext1<GameStartingMessage> msgCtx) async {
-//     return msgCtx.goTo(() => GameInProgressState());
-//   }
-// }
+class ChooseSpaceshipState extends EmptyTreeState {
+  ChooseSpaceshipState() : super(StateKey.forClass<ChooseSpaceshipState>()) {}
+}
 
-// class GameStartingMessage {}
-
-// //
-// // Game In Progress
-// //
-// class GameInProgressData extends StateData {
-//   String uboat;
-// }
-
-// class GameInProgressState extends DataTreeState<GameInProgressData> {
-//   @override
-//   StateHandler createHandler() => StateHandler.noOp;
-
-//   // List<Lazy<StateHandler>> childStates = [
-//   //   Lazy(() => new))
-//   // ]
-// }
-
-// //
-// // GameRoot
-// //
-// class GameState extends TreeState {
-//   @override
-//   StateHandler createHandler() {
-//     return null;
-//   }
-// }
+var gameTree = BuildRoot(
+  state: GameRootState(),
+  children: [
+    BuildInterior(
+      state: GameStartingState(),
+      children: [
+        BuildLeaf(ChooseScenarioState()),
+        BuildLeaf(ChooseSpaceshipState()),
+      ],
+    ),
+  ],
+);

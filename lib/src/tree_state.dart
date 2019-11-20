@@ -1,6 +1,10 @@
 // import 'package:meta/meta.dart';
 // import 'package:tree_state_machine/src/lazy.dart';
 
+//
+// Keys
+//
+
 abstract class StateKey {
   StateKey._() {}
   static StateKey named(String name) => ValueKey<String>(name);
@@ -27,16 +31,45 @@ class ValueKey<T> extends StateKey {
   }
 }
 
+// Wacky: https://github.com/dart-lang/sdk/issues/33297
 class _TypeLiteral<T> {
   Type get type => T;
 }
 
-class TreeState {
-  final StateKey key;
-  TreeState(this.key) {
+//
+// States
+//
+
+abstract class TreeState {
+  final StateKey _key;
+  TreeState(this._key) {
     if (key == null) throw ArgumentError.notNull("key");
   }
+  StateKey get key => _key;
+  StateHandler createHandler();
 }
+
+class EmptyTreeState extends TreeState {
+  EmptyTreeState(StateKey key) : super(key) {}
+  @override
+  StateHandler createHandler() => StateHandler.noOp;
+}
+
+class StateHandler {
+  static final StateHandler noOp = StateHandler();
+}
+
+// class StateData {}
+
+// /**
+//  * Represents a state within a tree (i.e. hierarchical) state machine that has associated state data of type [D].
+//  */
+// abstract class DataTreeState<D extends StateData> implements TreeState {
+//   final StateKey key;
+//   DataTreeState(this.key) {
+//     if (key == null) throw ArgumentError.notNull("key");
+//   }
+// }
 
 // /**
 //  * Represents a state within a tree (i.e. hierarchical) state machine.

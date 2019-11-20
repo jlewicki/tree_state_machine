@@ -41,6 +41,6 @@ class TreeStateMachine {
 }
 
 // Root state for wrapping 'flat' leaf states.
-class _RootState extends TreeState {
+class _RootState extends EmptyTreeState {
   _RootState() : super(StateKey.forClass<_RootState>()) {}
 }
