@@ -31,7 +31,7 @@ class TreeStateMachine {
     return TreeStateMachine._(rootNode, StreamController());
   }
 
-  factory TreeStateMachine.forLeaves(List<BuildLeaf> buildLeaves) {
+  factory TreeStateMachine.forLeaves(Iterable<BuildLeaf> buildLeaves) {
     if (buildLeaves == null) throw ArgumentError.notNull('buildLeaves');
     var rootBuilder = BuildRoot(state: _RootState(), children: buildLeaves);
     var buildCtx = BuildContext(null);
@@ -42,5 +42,5 @@ class TreeStateMachine {
 
 // Root state for wrapping 'flat' leaf states.
 class _RootState extends EmptyTreeState {
-  _RootState() : super(StateKey.forClass<_RootState>()) {}
+  _RootState() : super(StateKey.forState<_RootState>()) {}
 }

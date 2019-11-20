@@ -86,3 +86,15 @@ class BuildLeaf implements BuildChildNode {
     return leaf;
   }
 }
+
+// class BuildLeaf2 {
+//   TreeState Function() _state;
+
+//   BuildLeaf2(this._state) {}
+
+//   TreeNode call(BuildContext ctx) {
+//     var leaf = TreeNode(_state, ctx.parentNode);
+//     ctx.addNode(leaf);
+//     return leaf;
+//   }
+// }

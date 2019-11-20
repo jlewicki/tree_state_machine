@@ -5,10 +5,12 @@
 // Keys
 //
 
+import 'package:tree_state_machine/tree_state_machine.dart';
+
 abstract class StateKey {
   StateKey._() {}
   static StateKey named(String name) => ValueKey<String>(name);
-  static StateKey forClass<T>() => ValueKey<Type>(_TypeLiteral<T>().type);
+  static StateKey forState<T extends TreeState>() => ValueKey<Type>(_TypeLiteral<T>().type);
 }
 
 class ValueKey<T> extends StateKey {
@@ -31,6 +33,28 @@ class ValueKey<T> extends StateKey {
   }
 }
 
+// class StateTypeKey<T extends TreeState> extends StateKey {
+//   final Type type;
+//   StateTypeKey()
+//       : type = _TypeLiteral<T>().type,
+//         super._() {}
+
+//   @override
+//   bool operator ==(dynamic other) {
+//     if (other.runtimeType != runtimeType) return false;
+//     final StateTypeKey<T> typedOther = other;
+//     return type == typedOther.type;
+//   }
+
+//   @override
+//   int get hashCode {
+//     int hash = 7;
+//     hash = 31 * hash + runtimeType.hashCode;
+//     hash = 31 * hash + type.hashCode;
+//     return hash;
+//   }
+// }
+
 // Wacky: https://github.com/dart-lang/sdk/issues/33297
 class _TypeLiteral<T> {
   Type get type => T;
@@ -52,12 +76,35 @@ abstract class TreeState {
 class EmptyTreeState extends TreeState {
   EmptyTreeState(StateKey key) : super(key) {}
   @override
-  StateHandler createHandler() => StateHandler.noOp;
+  StateHandler createHandler() => EmptyHandler.value;
 }
 
-class StateHandler {
-  static final StateHandler noOp = StateHandler();
+abstract class StateHandler {
+  Future<MessageResult> onMessage(MessageContext ctx);
 }
+
+class EmptyHandler implements StateHandler {
+  static final value = EmptyHandler();
+  @override
+  Future<MessageResult> onMessage(MessageContext ctx) => Future.value(UnhandledResult.value);
+}
+
+//
+// Message Results
+//
+abstract class MessageResult {}
+
+class GoToResult extends MessageResult {
+  final StateKey stateKey;
+  GoToResult(this.stateKey) {}
+}
+
+class UnhandledResult extends MessageResult {
+  static final UnhandledResult value = UnhandledResult._();
+  UnhandledResult._() {}
+}
+
+class MessageContext {}
 
 // class StateData {}
 

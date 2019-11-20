@@ -1,18 +1,29 @@
-typedef T Factory<T>();
+typedef Evaluator<T> = T Function<T>();
 
-// Adapted from https://stackoverflow.com/a/33219409
 class Lazy<T> {
-  static final _cache = new Expando();
-  final Factory<T> _factory;
-  
-  const Lazy(this._factory);
+  _LazyValue<T> _value;
+
+  Lazy(Evaluator<T> evaluator) {
+    _value = _Deferred(evaluator);
+  }
 
   T get value {
-    var result = _cache[this];
-    if (identical(this, result)) return null;
-    if (result != null) return result;
-    result = _factory();
-    _cache[this] = (result == null) ? this : result;
-    return result;
+    if (_value is _Deferred<T>) {
+      _value = (_value as _Deferred<T>).eval();
+    }
+    return (_value as _Evaluated<T>).value;
   }
+}
+
+abstract class _LazyValue<T> {}
+
+class _Deferred<T> implements _LazyValue<T> {
+  final Evaluator<T> evaluator;
+  _Deferred(this.evaluator) {}
+  _Evaluated<T> eval() => _Evaluated(evaluator());
+}
+
+class _Evaluated<T> implements _LazyValue<T> {
+  final T value;
+  _Evaluated(this.value) {}
 }
