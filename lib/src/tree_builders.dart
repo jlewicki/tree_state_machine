@@ -1,16 +1,32 @@
 import 'dart:collection';
-
-import 'package:meta/meta.dart';
 import 'package:tree_state_machine/src/lazy.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 
 class TreeNode {
-  static final List<TreeNode> _emptyNodes = List<TreeNode>.from([], growable: false);
-  final Lazy<TreeState> lazyState;
+  final Lazy<TreeState> _lazyState;
+  final Lazy<StateHandler> _lazyHandler;
   final StateKey key;
   final TreeNode parent;
-  Iterable<TreeNode> children = _emptyNodes;
-  TreeNode(this.key, TreeState createState(), this.parent) : lazyState = Lazy<TreeState>(createState);
+  final List<TreeNode> children = [];
+
+  TreeNode._(this.key, TreeState createState(), this.parent, this._lazyState, this._lazyHandler);
+
+  factory TreeNode(StateKey key, TreeState createState(), TreeNode parent) {
+    var lazyState = Lazy(createState);
+    var lazyHandler = Lazy(() => lazyState.value.createHandler());
+    return TreeNode._(key, createState, parent, lazyState, lazyHandler);
+  }
+
+  TreeState state() => _lazyState.value;
+  StateHandler handler() => _lazyHandler.value;
+
+  Iterable<TreeNode> ancestors() sync* {
+    var nextAncestor = parent;
+    while (nextAncestor != null) {
+      yield nextAncestor;
+      nextAncestor = nextAncestor.parent;
+    }
+  }
 }
 
 class BuildContext {
@@ -65,7 +81,7 @@ class BuildRoot<T extends TreeState> implements BuildChildNode {
     }
     var root = TreeNode(key, state, null);
     var childContext = ctx.childContext(root);
-    root.children = children.map((childBuilder) => childBuilder(childContext));
+    root.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
     ctx.addNode(root);
     return root;
   }
@@ -93,7 +109,7 @@ class BuildInterior<T extends TreeState> implements BuildChildNode {
   TreeNode call(BuildContext ctx) {
     var interior = TreeNode(key, state, ctx.parentNode);
     var childContext = ctx.childContext(interior);
-    interior.children = children.map((childBuilder) => childBuilder(childContext));
+    interior.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
     ctx.addNode(interior);
     return interior;
   }

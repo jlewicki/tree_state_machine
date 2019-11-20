@@ -23,7 +23,7 @@ void main() {
       var leafNode = builder(buildCtx);
 
       expect(leafNode, isNotNull);
-      expect(leafNode.lazyState.value, same(state));
+      expect(leafNode.state(), same(state));
       expect(leafNode.parent, same(parentNode));
       expect(leafNode.children, isEmpty);
     });
@@ -55,7 +55,7 @@ void main() {
       var interiorNode = buildInterior(buildCtx);
 
       expect(interiorNode, isNotNull);
-      expect(interiorNode.lazyState.value, same(state));
+      expect(interiorNode.state(), same(state));
       expect(interiorNode.parent, same(parentNode));
       expect(interiorNode.children, hasLength(2));
       interiorNode.children.forEach((c) {
@@ -91,7 +91,7 @@ void main() {
       var rootNode = buildRoot(buildCtx);
 
       expect(rootNode, isNotNull);
-      expect(rootNode.lazyState.value, same(state));
+      expect(rootNode.state(), same(state));
       expect(rootNode.parent, isNull);
       expect(rootNode.children, hasLength(2));
       rootNode.children.forEach((c) {

@@ -42,19 +42,31 @@ abstract class TreeState {
 }
 
 class EmptyTreeState extends TreeState {
+  static final value = EmptyTreeState();
   @override
   StateHandler createHandler() => EmptyHandler.value;
 }
 
 abstract class StateHandler {
+  Future<void> onEnter(TransitionContext ctx) => Future.value();
   Future<MessageResult> onMessage(MessageContext ctx);
+  Future<void> onExit(TransitionContext ctx) => Future.value();
 }
 
-class EmptyHandler implements StateHandler {
-  static final value = EmptyHandler();
+class EmptyHandler extends StateHandler {
+  static final value = EmptyHandler._();
+  EmptyHandler._();
   @override
   Future<MessageResult> onMessage(MessageContext ctx) => Future.value(UnhandledResult.value);
 }
+
+class MessageContext {
+  MessageResult goTo(StateKey targetStateKey) {
+    return GoToResult(targetStateKey);
+  }
+}
+
+class TransitionContext {}
 
 //
 // Message Results
@@ -62,16 +74,14 @@ class EmptyHandler implements StateHandler {
 abstract class MessageResult {}
 
 class GoToResult extends MessageResult {
-  final StateKey stateKey;
-  GoToResult(this.stateKey) {}
+  final StateKey targetStateKey;
+  GoToResult(this.targetStateKey) {}
 }
 
 class UnhandledResult extends MessageResult {
   static final UnhandledResult value = UnhandledResult._();
   UnhandledResult._() {}
 }
-
-class MessageContext {}
 
 // class StateData {}
 
