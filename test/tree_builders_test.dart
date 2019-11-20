@@ -2,26 +2,28 @@ import 'package:test/test.dart';
 import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 
-class SimpleState extends EmptyTreeState {
-  SimpleState(String name) : super(StateKey.named(name)) {}
-}
+class SimpleState extends EmptyTreeState {}
 
 void main() {
-  var state = SimpleState("state");
-  var childState1 = SimpleState("childState1");
-  var childState2 = SimpleState("childState2");
-  var parentState = SimpleState("parentState");
-  var parentNode = TreeNode(parentState, null);
+  var state = SimpleState();
+  var stateKey = StateKey.named('state');
+  var childState1 = SimpleState();
+  var childState1Key = StateKey.named('childState1');
+  var childState2 = SimpleState();
+  var childState2Key = StateKey.named('childState2');
+  var parentState = SimpleState();
+  var parentKey = StateKey.named('parent');
+  var parentNode = TreeNode(parentKey, () => parentState, null);
 
   group('BuildLeaf', () {
     test("builds a leaf node", () {
       var buildCtx = BuildContext(parentNode);
 
-      var builder = BuildLeaf(state);
+      var builder = BuildLeaf(() => state);
       var leafNode = builder(buildCtx);
 
       expect(leafNode, isNotNull);
-      expect(leafNode.state, same(state));
+      expect(leafNode.lazyState.value, same(state));
       expect(leafNode.parent, same(parentNode));
       expect(leafNode.children, isEmpty);
     });
@@ -29,23 +31,31 @@ void main() {
     test("adds node to context", () {
       var buildCtx = BuildContext(parentNode);
 
-      var builder = BuildLeaf(state);
+      var builder = BuildLeaf(() => state);
       var leafNode = builder(buildCtx);
 
-      expect(buildCtx.nodes[state.key], equals(leafNode));
+      var key = StateKey.forState<SimpleState>();
+      expect(buildCtx.nodes[key], equals(leafNode));
     });
   });
 
   group('BuildInterior', () {
+    var buildInterior = BuildInterior.keyed(
+      key: stateKey,
+      state: () => state,
+      children: [
+        BuildLeaf.keyed(childState1Key, () => childState1),
+        BuildLeaf.keyed(childState2Key, () => childState2),
+      ],
+    );
+
     test("builds an interior node", () {
       var buildCtx = BuildContext(parentNode);
 
-      var builder =
-          BuildInterior(state: state, children: [BuildLeaf(childState1), BuildLeaf(childState2)]);
-      var interiorNode = builder(buildCtx);
+      var interiorNode = buildInterior(buildCtx);
 
       expect(interiorNode, isNotNull);
-      expect(interiorNode.state, same(state));
+      expect(interiorNode.lazyState.value, same(state));
       expect(interiorNode.parent, same(parentNode));
       expect(interiorNode.children, hasLength(2));
       interiorNode.children.forEach((c) {
@@ -56,27 +66,32 @@ void main() {
     test("adds node to context", () {
       var buildCtx = BuildContext(parentNode);
 
-      var builder =
-          BuildInterior(state: state, children: [BuildLeaf(childState1), BuildLeaf(childState2)]);
-      var interiorNode = builder(buildCtx);
+      var interiorNode = buildInterior(buildCtx);
 
-      expect(buildCtx.nodes[state.key], equals(interiorNode));
+      expect(buildCtx.nodes[stateKey], equals(interiorNode));
       interiorNode.children.forEach((c) {
-        expect(buildCtx.nodes[c.state.key], equals(c));
+        expect(buildCtx.nodes[c.key], equals(c));
       });
     });
   });
 
   group('BuildRoot', () {
+    var buildRoot = BuildRoot.keyed(
+      key: stateKey,
+      state: () => state,
+      children: [
+        BuildLeaf.keyed(childState1Key, () => childState1),
+        BuildLeaf.keyed(childState2Key, () => childState2),
+      ],
+    );
+
     test("builds a root node", () {
       var buildCtx = BuildContext(null);
 
-      var builder =
-          BuildRoot(state: state, children: [BuildLeaf(childState1), BuildLeaf(childState2)]);
-      var rootNode = builder(buildCtx);
+      var rootNode = buildRoot(buildCtx);
 
       expect(rootNode, isNotNull);
-      expect(rootNode.state, same(state));
+      expect(rootNode.lazyState.value, same(state));
       expect(rootNode.parent, isNull);
       expect(rootNode.children, hasLength(2));
       rootNode.children.forEach((c) {
@@ -86,23 +101,30 @@ void main() {
 
     test("throws if built with a parent node", () {
       var buildCtx = BuildContext(parentNode);
-
-      var builder =
-          BuildRoot(state: state, children: [BuildLeaf(childState1), BuildLeaf(childState2)]);
-      expect(() => builder(buildCtx), throwsArgumentError);
+      expect(() => buildRoot(buildCtx), throwsArgumentError);
     });
 
     test("adds node to context", () {
       var buildCtx = BuildContext(null);
 
-      var builder =
-          BuildRoot(state: state, children: [BuildLeaf(childState1), BuildLeaf(childState2)]);
-      var rootNode = builder(buildCtx);
+      var rootNode = buildRoot(buildCtx);
 
-      expect(buildCtx.nodes[state.key], equals(rootNode));
+      expect(buildCtx.nodes[stateKey], equals(rootNode));
       rootNode.children.forEach((c) {
-        expect(buildCtx.nodes[c.state.key], equals(c));
+        expect(buildCtx.nodes[c.key], equals(c));
       });
+    });
+  });
+
+  group("BuildContext", () {
+    test("throws if node with duplicate key is added", () {
+      var buildCtx = BuildContext(parentNode);
+      var key = StateKey.named("Foo");
+      var builder = BuildLeaf.keyed(key, () => state);
+
+      builder(buildCtx);
+
+      expect(() => builder(buildCtx), throwsArgumentError);
     });
   });
 }

@@ -1,4 +1,4 @@
-typedef Evaluator<T> = T Function<T>();
+typedef Evaluator<T> = T Function();
 
 class Lazy<T> {
   _LazyValue<T> _value;

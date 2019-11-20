@@ -1,11 +1,6 @@
-// import 'package:meta/meta.dart';
-// import 'package:tree_state_machine/src/lazy.dart';
-
 //
 // Keys
 //
-
-import 'package:tree_state_machine/tree_state_machine.dart';
 
 abstract class StateKey {
   StateKey._() {}
@@ -33,28 +28,6 @@ class ValueKey<T> extends StateKey {
   }
 }
 
-// class StateTypeKey<T extends TreeState> extends StateKey {
-//   final Type type;
-//   StateTypeKey()
-//       : type = _TypeLiteral<T>().type,
-//         super._() {}
-
-//   @override
-//   bool operator ==(dynamic other) {
-//     if (other.runtimeType != runtimeType) return false;
-//     final StateTypeKey<T> typedOther = other;
-//     return type == typedOther.type;
-//   }
-
-//   @override
-//   int get hashCode {
-//     int hash = 7;
-//     hash = 31 * hash + runtimeType.hashCode;
-//     hash = 31 * hash + type.hashCode;
-//     return hash;
-//   }
-// }
-
 // Wacky: https://github.com/dart-lang/sdk/issues/33297
 class _TypeLiteral<T> {
   Type get type => T;
@@ -65,16 +38,10 @@ class _TypeLiteral<T> {
 //
 
 abstract class TreeState {
-  final StateKey _key;
-  TreeState(this._key) {
-    if (key == null) throw ArgumentError.notNull("key");
-  }
-  StateKey get key => _key;
   StateHandler createHandler();
 }
 
 class EmptyTreeState extends TreeState {
-  EmptyTreeState(StateKey key) : super(key) {}
   @override
   StateHandler createHandler() => EmptyHandler.value;
 }

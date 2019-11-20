@@ -1,29 +1,21 @@
 import 'package:tree_state_machine/tree_state_machine.dart';
 
-class GameRootState extends EmptyTreeState {
-  GameRootState() : super(StateKey.forState<GameRootState>()) {}
-}
+class GameRootState extends EmptyTreeState {}
 
-class GameStartingState extends EmptyTreeState {
-  GameStartingState() : super(StateKey.forState<GameStartingState>()) {}
-}
+class GameStartingState extends EmptyTreeState {}
 
-class ChooseScenarioState extends EmptyTreeState {
-  ChooseScenarioState() : super(StateKey.forState<ChooseScenarioState>()) {}
-}
+class ChooseScenarioState extends EmptyTreeState {}
 
-class ChooseSpaceshipState extends EmptyTreeState {
-  ChooseSpaceshipState() : super(StateKey.forState<ChooseSpaceshipState>()) {}
-}
+class ChooseSpaceshipState extends EmptyTreeState {}
 
 var gameTree = BuildRoot(
-  state: GameRootState(),
+  state: () => GameRootState(),
   children: [
     BuildInterior(
-      state: GameStartingState(),
+      state: () => GameStartingState(),
       children: [
-        BuildLeaf(ChooseScenarioState()),
-        BuildLeaf(ChooseSpaceshipState()),
+        BuildLeaf(() => ChooseScenarioState()),
+        BuildLeaf(() => ChooseSpaceshipState()),
       ],
     ),
   ],
