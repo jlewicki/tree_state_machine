@@ -2,26 +2,31 @@
 // Keys
 //
 
+import 'dart:async';
+
+import 'package:meta/meta.dart';
+
 abstract class StateKey {
-  StateKey._() {}
+  StateKey._();
   static StateKey named(String name) => ValueKey<String>(name);
   static StateKey forState<T extends TreeState>() => ValueKey<Type>(_TypeLiteral<T>().type);
 }
 
+@immutable
 class ValueKey<T> extends StateKey {
   final T value;
-  ValueKey(this.value) : super._() {}
+  ValueKey(this.value) : super._();
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     if (other.runtimeType != runtimeType) return false;
-    final ValueKey<T> typedOther = other;
+    final typedOther = other as ValueKey<T>;
     return value == typedOther.value;
   }
 
   @override
   int get hashCode {
-    int hash = 7;
+    var hash = 7;
     hash = 31 * hash + runtimeType.hashCode;
     hash = 31 * hash + value.hashCode;
     return hash;
@@ -48,25 +53,28 @@ class EmptyTreeState extends TreeState {
 }
 
 abstract class StateHandler {
-  Future<void> onEnter(TransitionContext ctx) => Future.value();
-  Future<MessageResult> onMessage(MessageContext ctx);
-  Future<void> onExit(TransitionContext ctx) => Future.value();
+  FutureOr<void> onEnter(TransitionContext ctx) {}
+  FutureOr<MessageResult> onMessage(MessageContext ctx);
+  FutureOr<void> onExit(TransitionContext ctx) {}
 }
 
 class EmptyHandler extends StateHandler {
-  static final value = EmptyHandler._();
   EmptyHandler._();
+  static final value = EmptyHandler._();
   @override
-  Future<MessageResult> onMessage(MessageContext ctx) => Future.value(UnhandledResult.value);
+  FutureOr<MessageResult> onMessage(MessageContext ctx) => UnhandledResult.value;
 }
 
 class MessageContext {
-  MessageResult goTo(StateKey targetStateKey) {
-    return GoToResult(targetStateKey);
-  }
+  MessageResult goTo(StateKey targetStateKey) => GoToResult(targetStateKey);
 }
 
 class TransitionContext {}
+
+class _TransitionContext {
+  //Future<void>
+
+}
 
 //
 // Message Results
@@ -74,13 +82,13 @@ class TransitionContext {}
 abstract class MessageResult {}
 
 class GoToResult extends MessageResult {
+  GoToResult(this.targetStateKey);
   final StateKey targetStateKey;
-  GoToResult(this.targetStateKey) {}
 }
 
 class UnhandledResult extends MessageResult {
+  UnhandledResult._();
   static final UnhandledResult value = UnhandledResult._();
-  UnhandledResult._() {}
 }
 
 // class StateData {}

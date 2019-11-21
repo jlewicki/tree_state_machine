@@ -19,11 +19,11 @@ abstract class _LazyValue<T> {}
 
 class _Deferred<T> implements _LazyValue<T> {
   final Evaluator<T> evaluator;
-  _Deferred(this.evaluator) {}
+  _Deferred(this.evaluator);
   _Evaluated<T> eval() => _Evaluated(evaluator());
 }
 
 class _Evaluated<T> implements _LazyValue<T> {
   final T value;
-  _Evaluated(this.value) {}
+  _Evaluated(this.value);
 }
