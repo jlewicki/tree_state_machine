@@ -87,15 +87,15 @@ class BuildRoot<T extends TreeState> implements BuildChildNode {
   final StateKey key;
   final StateCreator<T> state;
   final Iterable<BuildChildNode> children;
-  final InitialChild entryTransition;
+  final InitialChild initialChild;
 
-  BuildRoot._(this.key, this.state, this.children, this.entryTransition) {
-    if (state == null) throw ArgumentError.notNull('state');
-    if (children == null) throw ArgumentError.notNull('children');
+  BuildRoot._(this.key, this.state, this.children, this.initialChild) {
+    ArgumentError.checkNotNull(state, 'state');
+    ArgumentError.checkNotNull(children, 'children');
+    ArgumentError.checkNotNull(initialChild, 'initialChild');
     if (children.isEmpty == 0) {
       throw ArgumentError.value(children, 'children', 'Must have at least one item');
     }
-    if (entryTransition == null) throw ArgumentError.notNull('entryTransition');
   }
 
   factory BuildRoot({
@@ -118,7 +118,7 @@ class BuildRoot<T extends TreeState> implements BuildChildNode {
     if (ctx.parentNode != null) {
       throw ArgumentError.value(ctx, 'ctx', 'Unexpected parent node for root node');
     }
-    final root = TreeNode(key, state, null, entryTransition);
+    final root = TreeNode(key, state, null, initialChild);
     final childContext = ctx.childContext(root);
     root.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
     ctx.addNode(root);
@@ -133,10 +133,12 @@ class BuildInterior<T extends TreeState> implements BuildChildNode {
   final InitialChild initialChild;
 
   BuildInterior._(this.key, this.state, this.children, this.initialChild) {
-    if (state == null) throw ArgumentError.notNull('state');
-    if (children == null) throw ArgumentError.notNull('children');
-    if (children.isEmpty) throw ArgumentError.value(children, 'children', 'Must have at least one item');
-    if (initialChild == null) throw ArgumentError.notNull('initialChild');
+    ArgumentError.checkNotNull(state, 'state');
+    ArgumentError.checkNotNull(children, 'children');
+    ArgumentError.checkNotNull(initialChild, 'initialChild');
+    if (children.isEmpty) {
+      throw ArgumentError.value(children, 'children', 'Must have at least one item');
+    }
   }
 
   factory BuildInterior({

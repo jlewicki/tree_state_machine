@@ -60,6 +60,13 @@ class MessageContext {
   MessageResult unhandled() => UnhandledResult.value;
 }
 
+class TreeStateRef {
+  final StateKey key;
+  TreeStateRef(this.key) {
+    ArgumentError.checkNotNull(key, "key");
+  }
+}
+
 abstract class TransitionContext {
   TreeState sourceState;
 }

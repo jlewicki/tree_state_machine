@@ -21,9 +21,7 @@ class TreeStateMachine {
   }
 
   factory TreeStateMachine.forRoot(BuildRoot buildRoot) {
-    if (buildRoot == null) {
-      throw ArgumentError.notNull('buildRoot');
-    }
+    ArgumentError.checkNotNull(buildRoot, 'buildRoot');
 
     final buildCtx = BuildContext(null);
     final rootNode = buildRoot(buildCtx);
@@ -32,12 +30,8 @@ class TreeStateMachine {
   }
 
   factory TreeStateMachine.forLeaves(Iterable<BuildLeaf> buildLeaves, StateKey initialState) {
-    if (buildLeaves == null) {
-      throw ArgumentError.notNull('buildLeaves');
-    }
-    if (initialState == null) {
-      throw ArgumentError.notNull('initialState');
-    }
+    ArgumentError.checkNotNull(buildLeaves, 'buildLeaves');
+    ArgumentError.checkNotNull(initialState, 'initialState');
 
     final rootBuilder = BuildRoot(
       state: (key) => _RootState(),
@@ -55,9 +49,8 @@ class TreeStateMachine {
   Stream<Transition> get transitions => _transitionsStream;
 
   void start([StateKey initialStateKey]) {
-    if (initialStateKey == null) {
-      throw ArgumentError.notNull('initialStateKey');
-    }
+    ArgumentError.checkNotNull(initialStateKey, 'initialStateKey');
+
     if (_isStarted) {
       throw StateError('This TreeStateMachine has already been started.');
     }
