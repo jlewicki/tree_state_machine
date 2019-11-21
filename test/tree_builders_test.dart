@@ -13,13 +13,13 @@ void main() {
   var childState2Key = StateKey.named('childState2');
   var parentState = SimpleState();
   var parentKey = StateKey.named('parent');
-  var parentNode = TreeNode(parentKey, () => parentState, null);
+  var parentNode = TreeNode(parentKey, (key) => parentState, null);
 
   group('BuildLeaf', () {
     test("builds a leaf node", () {
       var buildCtx = BuildContext(parentNode);
 
-      var builder = BuildLeaf.keyed(stateKey, () => state);
+      var builder = BuildLeaf.keyed(stateKey, (key) => state);
       var leafNode = builder(buildCtx);
 
       expect(leafNode, isNotNull);
@@ -33,7 +33,7 @@ void main() {
     test("builds a leaf node with type-based state key", () {
       var buildCtx = BuildContext(parentNode);
 
-      var builder = BuildLeaf(() => state);
+      var builder = BuildLeaf((key) => state);
       var leafNode = builder(buildCtx);
       expect(leafNode.key, equals(StateKey.forState<SimpleState>()));
     });
@@ -41,7 +41,7 @@ void main() {
     test("adds node to context", () {
       var buildCtx = BuildContext(parentNode);
 
-      var builder = BuildLeaf.keyed(stateKey, () => state);
+      var builder = BuildLeaf.keyed(stateKey, (key) => state);
       var leafNode = builder(buildCtx);
 
       expect(buildCtx.nodes[stateKey], equals(leafNode));
@@ -51,12 +51,12 @@ void main() {
   group('BuildInterior', () {
     var buildInterior = BuildInterior.keyed(
       key: stateKey,
-      state: () => state,
+      state: (key) => state,
       children: [
-        BuildLeaf.keyed(childState1Key, () => childState1),
-        BuildLeaf.keyed(childState2Key, () => childState2),
+        BuildLeaf.keyed(childState1Key, (key) => childState1),
+        BuildLeaf.keyed(childState2Key, (key) => childState2),
       ],
-      entryTransition: (_) => childState1Key,
+      initialChild: (_) => childState1Key,
     );
 
     test("builds an interior node", () {
@@ -79,12 +79,12 @@ void main() {
       var buildCtx = BuildContext(parentNode);
 
       var buildInterior = BuildInterior(
-        state: () => state,
+        state: (key) => state,
         children: [
-          BuildLeaf.keyed(childState1Key, () => childState1),
-          BuildLeaf.keyed(childState2Key, () => childState2),
+          BuildLeaf.keyed(childState1Key, (key) => childState1),
+          BuildLeaf.keyed(childState2Key, (key) => childState2),
         ],
-        entryTransition: (_) => childState1Key,
+        initialChild: (_) => childState1Key,
       );
 
       var interiorNode = buildInterior(buildCtx);
@@ -106,12 +106,12 @@ void main() {
   group('BuildRoot', () {
     var buildRoot = BuildRoot.keyed(
       key: stateKey,
-      state: () => state,
+      state: (key) => state,
       children: [
-        BuildLeaf.keyed(childState1Key, () => childState1),
-        BuildLeaf.keyed(childState2Key, () => childState2),
+        BuildLeaf.keyed(childState1Key, (key) => childState1),
+        BuildLeaf.keyed(childState2Key, (key) => childState2),
       ],
-      entryTransition: (_) => childState1Key,
+      initialChild: (_) => childState1Key,
     );
 
     test("builds a root node", () {
@@ -134,12 +134,12 @@ void main() {
       var buildCtx = BuildContext(null);
 
       var buildRoot = BuildRoot(
-        state: () => state,
+        state: (key) => state,
         children: [
-          BuildLeaf.keyed(childState1Key, () => childState1),
-          BuildLeaf.keyed(childState2Key, () => childState2),
+          BuildLeaf.keyed(childState1Key, (key) => childState1),
+          BuildLeaf.keyed(childState2Key, (key) => childState2),
         ],
-        entryTransition: (_) => childState1Key,
+        initialChild: (_) => childState1Key,
       );
 
       var rootNode = buildRoot(buildCtx);
@@ -167,7 +167,7 @@ void main() {
     test("throws if node with duplicate key is added", () {
       var buildCtx = BuildContext(parentNode);
       var key = StateKey.named("Foo");
-      var builder = BuildLeaf.keyed(key, () => state);
+      var builder = BuildLeaf.keyed(key, (key) => state);
 
       builder(buildCtx);
 

@@ -1,10 +1,9 @@
+import 'dart:async';
+import 'package:meta/meta.dart';
+
 //
 // Keys
 //
-
-import 'dart:async';
-
-import 'package:meta/meta.dart';
 
 abstract class StateKey {
   StateKey._();
@@ -42,38 +41,27 @@ class _TypeLiteral<T> {
 // States
 //
 
+typedef TransitionHandler = FutureOr<void> Function(TransitionContext ctx);
+typedef MessageHandler = FutureOr<MessageResult> Function(MessageContext ctx);
+
 abstract class TreeState {
-  StateHandler createHandler();
-}
-
-class EmptyTreeState extends TreeState {
-  static final value = EmptyTreeState();
-  @override
-  StateHandler createHandler() => EmptyHandler.value;
-}
-
-abstract class StateHandler {
   FutureOr<void> onEnter(TransitionContext ctx) {}
   FutureOr<MessageResult> onMessage(MessageContext ctx);
   FutureOr<void> onExit(TransitionContext ctx) {}
 }
 
-class EmptyHandler extends StateHandler {
-  EmptyHandler._();
-  static final value = EmptyHandler._();
+class EmptyTreeState extends TreeState {
   @override
-  FutureOr<MessageResult> onMessage(MessageContext ctx) => UnhandledResult.value;
+  FutureOr<MessageResult> onMessage(MessageContext ctx) => ctx.unhandled();
 }
 
 class MessageContext {
   MessageResult goTo(StateKey targetStateKey) => GoToResult(targetStateKey);
+  MessageResult unhandled() => UnhandledResult.value;
 }
 
-class TransitionContext {}
-
-class _TransitionContext {
-  //Future<void>
-
+abstract class TransitionContext {
+  TreeState sourceState;
 }
 
 //

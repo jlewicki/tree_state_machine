@@ -4,11 +4,10 @@ import 'package:tree_state_machine/src/lazy.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 
 typedef InitialChild = StateKey Function(TransitionContext ctx);
-typedef Creator<T> = T Function();
+typedef StateCreator<T> = T Function(StateKey key);
 
 class TreeNode {
   final Lazy<TreeState> _lazyState;
-  final Lazy<StateHandler> _lazyHandler;
   final StateKey key;
   final TreeNode parent;
   final List<TreeNode> children = [];
@@ -18,22 +17,18 @@ class TreeNode {
     this.key,
     this.parent,
     this._lazyState,
-    this._lazyHandler,
     this.initialChild,
   );
 
-  factory TreeNode(StateKey key, TreeState createState(), TreeNode parent,
-      [InitialChild entryTransition]) {
-    final lazyState = Lazy(createState);
-    final lazyHandler = Lazy(() => lazyState.value.createHandler());
-    return TreeNode._(key, parent, lazyState, lazyHandler, entryTransition);
+  factory TreeNode(StateKey key, StateCreator createState, TreeNode parent, [InitialChild entryTransition]) {
+    final lazyState = Lazy<TreeState>(() => createState(key));
+    return TreeNode._(key, parent, lazyState, entryTransition);
   }
 
   bool get isRoot => parent == null;
   bool get isLeaf => children.isEmpty;
   bool get isInterior => !isRoot && !isLeaf;
   TreeState state() => _lazyState.value;
-  StateHandler handler() => _lazyHandler.value;
 
   Iterable<TreeNode> selfAndAncestors() sync* {
     yield this;
@@ -54,7 +49,7 @@ class BuildContext {
   final HashMap<StateKey, TreeNode> nodes;
 
   BuildContext._(this.parentNode, this.nodes);
-  factory BuildContext(TreeNode parentNode) => BuildContext._(parentNode, HashMap());
+  factory BuildContext([TreeNode parentNode]) => BuildContext._(parentNode, HashMap());
 
   BuildContext childContext(TreeNode newParentNode) => BuildContext._(newParentNode, nodes);
 
@@ -90,7 +85,7 @@ abstract class BuildChildNode extends BuildNode {}
 
 class BuildRoot<T extends TreeState> implements BuildChildNode {
   final StateKey key;
-  final TreeState Function() state;
+  final StateCreator<T> state;
   final Iterable<BuildChildNode> children;
   final InitialChild entryTransition;
 
@@ -104,19 +99,19 @@ class BuildRoot<T extends TreeState> implements BuildChildNode {
   }
 
   factory BuildRoot({
-    @required T state(),
+    @required StateCreator<T> state,
     @required Iterable<BuildChildNode> children,
-    @required InitialChild entryTransition,
+    @required InitialChild initialChild,
   }) =>
-      BuildRoot._(StateKey.forState<T>(), state, children, entryTransition);
+      BuildRoot._(StateKey.forState<T>(), state, children, initialChild);
 
   factory BuildRoot.keyed({
     @required StateKey key,
-    @required T Function() state,
+    @required StateCreator<T> state,
     @required Iterable<BuildChildNode> children,
-    @required InitialChild entryTransition,
+    @required InitialChild initialChild,
   }) =>
-      BuildRoot._(key, state, children, entryTransition);
+      BuildRoot._(key, state, children, initialChild);
 
   @override
   TreeNode call(BuildContext ctx) {
@@ -133,36 +128,35 @@ class BuildRoot<T extends TreeState> implements BuildChildNode {
 
 class BuildInterior<T extends TreeState> implements BuildChildNode {
   final StateKey key;
-  final Creator<T> state;
+  final StateCreator<T> state;
   final Iterable<BuildChildNode> children;
-  final InitialChild entryTransition;
+  final InitialChild initialChild;
 
-  BuildInterior._(this.key, this.state, this.children, this.entryTransition) {
+  BuildInterior._(this.key, this.state, this.children, this.initialChild) {
     if (state == null) throw ArgumentError.notNull('state');
     if (children == null) throw ArgumentError.notNull('children');
-    if (children.isEmpty)
-      throw ArgumentError.value(children, 'children', 'Must have at least one item');
-    if (entryTransition == null) throw ArgumentError.notNull('entryTransition');
+    if (children.isEmpty) throw ArgumentError.value(children, 'children', 'Must have at least one item');
+    if (initialChild == null) throw ArgumentError.notNull('initialChild');
   }
 
   factory BuildInterior({
-    @required Creator<T> state,
+    @required StateCreator<T> state,
     @required Iterable<BuildChildNode> children,
-    @required InitialChild entryTransition,
+    @required InitialChild initialChild,
   }) =>
-      BuildInterior._(StateKey.forState<T>(), state, children, entryTransition);
+      BuildInterior._(StateKey.forState<T>(), state, children, initialChild);
 
   factory BuildInterior.keyed({
     @required StateKey key,
-    @required T state(),
+    @required StateCreator<T> state,
     @required Iterable<BuildChildNode> children,
-    @required InitialChild entryTransition,
+    @required InitialChild initialChild,
   }) =>
-      BuildInterior._(key, state, children, entryTransition);
+      BuildInterior._(key, state, children, initialChild);
 
   @override
   TreeNode call(BuildContext ctx) {
-    final interior = TreeNode(key, state, ctx.parentNode, entryTransition);
+    final interior = TreeNode(key, state, ctx.parentNode, initialChild);
     final childContext = ctx.childContext(interior);
     interior.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
     ctx.addNode(interior);
@@ -172,13 +166,13 @@ class BuildInterior<T extends TreeState> implements BuildChildNode {
 
 class BuildLeaf<T extends TreeState> implements BuildChildNode {
   final StateKey key;
-  final T Function() createState;
+  final StateCreator<T> createState;
 
   BuildLeaf._(this.key, this.createState);
 
-  factory BuildLeaf(T Function() createState) => BuildLeaf._(StateKey.forState<T>(), createState);
+  factory BuildLeaf(StateCreator<T> createState) => BuildLeaf._(StateKey.forState<T>(), createState);
 
-  factory BuildLeaf.keyed(StateKey key, T Function() createState) => BuildLeaf._(key, createState);
+  factory BuildLeaf.keyed(StateKey key, StateCreator<T> createState) => BuildLeaf._(key, createState);
 
   @override
   TreeNode call(BuildContext ctx) {
