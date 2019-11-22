@@ -3,10 +3,6 @@ import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 import 'package:tree_state_machine/src/tree_state_machine_impl.dart';
 
-class CurrentState {
-  void sendMessage(Object message) {}
-}
-
 class Transition {}
 
 class TreeStateMachine {
@@ -50,16 +46,25 @@ class TreeStateMachine {
   CurrentState get currentState => _currentState;
   Stream<Transition> get transitions => _transitionsStream;
 
-  void start([StateKey initialStateKey]) {
+  Future<TransitionContext> start([StateKey initialStateKey]) async {
     if (_isStarted) {
       throw StateError('This TreeStateMachine has already been started.');
     }
 
-    _machine.enterInitialState(initialStateKey);
-
+    final result = await _machine.enterInitialState(initialStateKey);
+    _currentState = CurrentState(result.toState.key);
     _isStarted = true;
+    return result;
   }
 }
 
 // Root state for wrapping 'flat' leaf states.
 class _RootState extends EmptyTreeState {}
+
+class CurrentState {
+  final StateKey key;
+  CurrentState(this.key) {
+    ArgumentError.notNull('key');
+  }
+  void sendMessage(Object message) {}
+}
