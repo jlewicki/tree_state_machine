@@ -63,7 +63,7 @@ void main() {
       final machine = Machine(rootNode, buildCtx.nodes);
 
       test('should follow initial children when starting at root', () async {
-        final MachineTransitionContext transCtx = await machine.enterInitialState(rootNode);
+        final MachineTransitionContext transCtx = await machine.enterInitialState(rootNode.key);
 
         expect(transCtx.fromState.key, equals(r_key));
 
@@ -76,7 +76,7 @@ void main() {
 
       test('should descend to initial state when initial state is a leaf', () async {
         final leafNode = buildCtx.nodes[r_b_1_key];
-        final MachineTransitionContext transCtx = await machine.enterInitialState(leafNode);
+        final MachineTransitionContext transCtx = await machine.enterInitialState(leafNode.key);
 
         expect(transCtx.fromState.key, equals(r_key));
         expect(transCtx.toState.key, equals(leafNode.key));
@@ -90,7 +90,7 @@ void main() {
           'should descend to initial state, then follow initial children, when initial state an interior',
           () async {
         final interiorNode = buildCtx.nodes[r_a_a_key];
-        final MachineTransitionContext transCtx = await machine.enterInitialState(interiorNode);
+        final MachineTransitionContext transCtx = await machine.enterInitialState(interiorNode.key);
 
         expect(transCtx.fromState.key, equals(r_key));
         expect(transCtx.toState.key, equals(r_a_a_2_key));
@@ -109,7 +109,7 @@ void main() {
         final rootNode = buildTree(buildCtx);
         final machine = Machine(rootNode, buildCtx.nodes);
 
-        expect(() => machine.enterInitialState(rootNode), throwsStateError);
+        expect(() => machine.enterInitialState(rootNode.key), throwsStateError);
       });
 
       test('should throw if initialChild references a state that is not a child', () {
@@ -124,7 +124,7 @@ void main() {
         final rootNode = buildTree(buildCtx);
         final machine = Machine(rootNode, buildCtx.nodes);
 
-        expect(() => machine.enterInitialState(rootNode), throwsStateError);
+        expect(() => machine.enterInitialState(rootNode.key), throwsStateError);
       });
     });
   });

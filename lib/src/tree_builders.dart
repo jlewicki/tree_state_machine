@@ -93,6 +93,8 @@ abstract class BuildChildNode extends BuildNode {}
 // https://github.com/dart-lang/sdk/issues/38596). Which means currently it possible for consumers to leave off required
 // arguments. Maybe we should just go back to positional parameters
 //
+// UPDATE: beta version of Dart 1.11.0 SDK fixes this!
+//
 // A better solution is needed
 //
 

@@ -10,22 +10,22 @@ void main() {
     group('Creation', () {
       var state = SimpleState();
       var stateKey = StateKey.forState<SimpleState>();
-      test("is not started when created", () {
+      test("should not be started when created", () {
         var sm = TreeStateMachine.forLeaves([BuildLeaf((key) => state)], stateKey);
         expect(sm.isStarted, equals(false));
       });
 
-      test("has no current state when created", () {
+      test("should have no current state when created", () {
         var sm = TreeStateMachine.forLeaves([BuildLeaf((key) => state)], stateKey);
         expect(sm.currentState, equals(null));
       });
 
-      test("has transitions stream when created", () {
+      test("should have transitions stream when created", () {
         var sm = TreeStateMachine.forLeaves([BuildLeaf((key) => state)], stateKey);
         expect(sm.transitions, isNotNull);
       });
 
-      test("throws if constructed with null root", () {
+      test("should be constructed with null root", () {
         expect(() => TreeStateMachine.forRoot(null), throwsArgumentError);
       });
     });

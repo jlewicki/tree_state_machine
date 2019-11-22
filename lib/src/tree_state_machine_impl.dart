@@ -9,7 +9,16 @@ class Machine {
 
   Machine(this.rootNode, this.nodes);
 
-  Future<TransitionContext> enterInitialState(TreeNode initialNode) async {
+  Future<MachineTransitionContext> enterInitialState([StateKey initialStateKey]) async {
+    final initialNode = initialStateKey != null ? nodes[initialStateKey] : rootNode;
+    if (initialNode == null) {
+      throw ArgumentError.value(
+        initialStateKey,
+        'initalStateKey',
+        'This TreeStateMachine does not contain the specified initial state.',
+      );
+    }
+
     final transCtx = MachineTransitionContext(rootNode, initialNode);
 
     // States along the path from the root state to the requested initial state.
@@ -90,6 +99,7 @@ class MachineTransitionContext implements TransitionContext {
       throw StateError('Unable to find initialChild $initialChildKey for ${parentNode.key}.');
     }
 
+    // Update toNode as initial child is calculated
     toNode = initialChild;
     return initialChild;
   }

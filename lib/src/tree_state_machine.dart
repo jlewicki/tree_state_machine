@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
+import 'package:tree_state_machine/src/tree_state_machine_impl.dart';
 
 class CurrentState {
   void sendMessage(Object message) {}
@@ -9,14 +10,13 @@ class CurrentState {
 class Transition {}
 
 class TreeStateMachine {
-  final TreeNode _rootNode;
-  final Map<StateKey, TreeNode> _nodeMap;
+  final Machine _machine;
   final StreamController<Transition> _transitions;
   Stream<Transition> _transitionsStream;
   bool _isStarted = false;
   CurrentState _currentState;
 
-  TreeStateMachine._(this._rootNode, this._nodeMap, this._transitions) {
+  TreeStateMachine._(this._machine, this._transitions) {
     _transitionsStream = _transitions.stream.asBroadcastStream();
   }
 
@@ -25,8 +25,9 @@ class TreeStateMachine {
 
     final buildCtx = BuildContext(null);
     final rootNode = buildRoot(buildCtx);
+    final machine = Machine(rootNode, buildCtx.nodes);
 
-    return TreeStateMachine._(rootNode, buildCtx.nodes, StreamController());
+    return TreeStateMachine._(machine, StreamController());
   }
 
   factory TreeStateMachine.forLeaves(Iterable<BuildLeaf> buildLeaves, StateKey initialState) {
@@ -40,8 +41,9 @@ class TreeStateMachine {
     );
     final buildCtx = BuildContext(null);
     final rootNode = rootBuilder(buildCtx);
+    final machine = Machine(rootNode, buildCtx.nodes);
 
-    return TreeStateMachine._(rootNode, buildCtx.nodes, StreamController());
+    return TreeStateMachine._(machine, StreamController());
   }
 
   bool get isStarted => _isStarted;
@@ -49,20 +51,11 @@ class TreeStateMachine {
   Stream<Transition> get transitions => _transitionsStream;
 
   void start([StateKey initialStateKey]) {
-    ArgumentError.checkNotNull(initialStateKey, 'initialStateKey');
-
     if (_isStarted) {
       throw StateError('This TreeStateMachine has already been started.');
     }
 
-    final initialNode = initialStateKey != null ? _nodeMap[initialStateKey] : _rootNode;
-    if (initialNode == null) {
-      throw ArgumentError.value(
-        initialStateKey,
-        'initalStateKey',
-        'This TreeStateMachine does not contain the specified initial state.',
-      );
-    }
+    _machine.enterInitialState(initialStateKey);
 
     _isStarted = true;
   }
