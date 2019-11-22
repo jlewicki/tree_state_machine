@@ -21,7 +21,7 @@ class TreeNode {
     this.initialChild,
   );
 
-  factory TreeNode(StateKey key, StateCreator createState, TreeNode parent,
+  factory TreeNode(StateKey key, StateCreator<TreeState> createState, TreeNode parent,
       [InitialChild entryTransition]) {
     final lazyState = Lazy<TreeState>(() => createState(key));
     return TreeNode._(key, parent, lazyState, entryTransition);
@@ -52,7 +52,7 @@ class TreeNode {
     while (i1.moveNext() && i2.moveNext()) {
       lca = i1.current.key == i2.current.key ? i1.current : lca;
     }
-    assert(lca != null);
+    assert(lca != null, 'LCA must not be null');
     return lca;
   }
 }

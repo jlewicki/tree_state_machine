@@ -20,7 +20,9 @@ class ValueKey<T> extends StateKey {
 
   @override
   bool operator ==(Object other) {
-    if (other.runtimeType != runtimeType) return false;
+    if (other.runtimeType != runtimeType) {
+      return false;
+    }
     final typedOther = other as ValueKey<T>;
     return value == typedOther.value;
   }
@@ -69,7 +71,7 @@ class TreeStateRef {
   final StateKey key;
   // More fields?
   TreeStateRef(this.key) {
-    ArgumentError.checkNotNull(key, "key");
+    ArgumentError.checkNotNull(key, 'key');
   }
 }
 

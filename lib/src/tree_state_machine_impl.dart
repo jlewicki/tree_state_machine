@@ -43,7 +43,7 @@ class Machine {
     MachineTransitionContext transCtx,
   ) async {
     for (final node in nodesToEnter) {
-      var result = transCtx.onEnter(node);
+      final result = transCtx.onEnter(node);
       if (result is Future<void>) {
         await result;
       }
@@ -75,9 +75,8 @@ class MachineTransitionContext implements TransitionContext {
   TreeStateRef get toState => TreeStateRef(toNode.key);
 
   @override
-  Iterable<TreeStateRef> transitionPath() {
-    return _exitedNodes.followedBy(_enteredNodes).map((node) => TreeStateRef(node.key));
-  }
+  Iterable<TreeStateRef> transitionPath() =>
+      _exitedNodes.followedBy(_enteredNodes).map((node) => TreeStateRef(node.key));
 
   TreeNode onInitialChild(TreeNode parentNode) {
     final initialChildKey = parentNode.initialChild(this);
