@@ -78,14 +78,13 @@ class MachineTransitionContext implements TransitionContext {
   MachineTransitionContext(this.fromNode, this.toNode);
 
   @override
-  TreeStateRef get fromState => TreeStateRef(fromNode.key);
+  StateKey get from => fromNode.key;
 
   @override
-  TreeStateRef get toState => TreeStateRef(toNode.key);
+  StateKey get to => toNode.key;
 
   @override
-  Iterable<TreeStateRef> transitionPath() =>
-      _exitedNodes.followedBy(_enteredNodes).map((node) => TreeStateRef(node.key));
+  Iterable<StateKey> path() => _exitedNodes.followedBy(_enteredNodes).map((node) => node.key);
 
   TreeNode onInitialChild(TreeNode parentNode) {
     final initialChildKey = parentNode.initialChild(this);

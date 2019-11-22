@@ -68,7 +68,7 @@ class BuildContext {
 
   void addNode(TreeNode node) {
     if (nodes.containsKey(node.key)) {
-      final msg = 'A state with key ${node.key} has alreasdy been added to the state tree.';
+      final msg = 'A state with key ${node.key} has already been added to the state tree.';
       throw ArgumentError.value(node, 'node', msg);
     }
     nodes[node.key] = node;

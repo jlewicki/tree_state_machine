@@ -67,18 +67,10 @@ class MessageContext {
   MessageResult unhandled() => UnhandledResult.value;
 }
 
-class TreeStateRef {
-  final StateKey key;
-  // More fields?
-  TreeStateRef(this.key) {
-    ArgumentError.checkNotNull(key, 'key');
-  }
-}
-
 abstract class TransitionContext {
-  TreeStateRef get fromState;
-  TreeStateRef get toState;
-  Iterable<TreeStateRef> transitionPath();
+  StateKey get from;
+  StateKey get to;
+  Iterable<StateKey> path();
 }
 
 //

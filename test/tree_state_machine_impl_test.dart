@@ -65,11 +65,11 @@ void main() {
       test('should follow initial children when starting at root', () async {
         final MachineTransitionContext transCtx = await machine.enterInitialState(rootNode.key);
 
-        expect(transCtx.fromState.key, equals(r_key));
+        expect(transCtx.from, equals(r_key));
 
-        expect(transCtx.toState.key, equals(r_a_a_2_key));
+        expect(transCtx.to, equals(r_a_a_2_key));
         expect(
-          transCtx.transitionPath().map((ref) => ref.key),
+          transCtx.path(),
           orderedEquals([r_key, r_a_key, r_a_a_key, r_a_a_2_key]),
         );
       });
@@ -78,10 +78,10 @@ void main() {
         final leafNode = buildCtx.nodes[r_b_1_key];
         final MachineTransitionContext transCtx = await machine.enterInitialState(leafNode.key);
 
-        expect(transCtx.fromState.key, equals(r_key));
-        expect(transCtx.toState.key, equals(leafNode.key));
+        expect(transCtx.from, equals(r_key));
+        expect(transCtx.to, equals(leafNode.key));
         expect(
-          transCtx.transitionPath().map((ref) => ref.key),
+          transCtx.path().map((ref) => ref),
           orderedEquals([r_key, r_a_b_key, r_b_1_key]),
         );
       });
@@ -92,10 +92,10 @@ void main() {
         final interiorNode = buildCtx.nodes[r_a_a_key];
         final MachineTransitionContext transCtx = await machine.enterInitialState(interiorNode.key);
 
-        expect(transCtx.fromState.key, equals(r_key));
-        expect(transCtx.toState.key, equals(r_a_a_2_key));
+        expect(transCtx.from, equals(r_key));
+        expect(transCtx.to, equals(r_a_a_2_key));
         expect(
-          transCtx.transitionPath().map((ref) => ref.key),
+          transCtx.path(),
           orderedEquals([r_key, r_a_key, r_a_a_key, r_a_a_2_key]),
         );
       });
