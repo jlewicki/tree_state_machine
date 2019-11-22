@@ -17,5 +17,8 @@ pubspec.lock
 # Or the files created by docgen.
 dartdoc-viewer
 
-#dont't commit files created by build
+# Or the files created by build
 .dart_tool/
+
+# Or files used by VS Code
+.vscode/
