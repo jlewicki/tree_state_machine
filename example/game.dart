@@ -1,50 +1,22 @@
-import 'package:tree_state_machine/src/tree_state.dart';
+import 'package:tree_state_machine/tree_state_machine.dart';
 
-//
-// Game Starting
-//
-class GameStartingData extends StateData {
-  String selectedScenario = null;
-  String selectedUBoat = null;
-}
+class GameRootState extends EmptyTreeState {}
 
-class GameStartingState extends DataTreeState<GameStartingData> {
-  @override
-  StateHandler createHandler() => createMessageHandler(onMessage: _onMessage, onEnter: _onEnter);
+class GameStartingState extends EmptyTreeState {}
 
-  Future _onEnter(TransitionContext transitionContext) {
-    return Future.value(1);
-  }
+class ChooseScenarioState extends EmptyTreeState {}
 
-  Future<MessageResult> _onMessage(MessageContext1<GameStartingMessage> msgCtx) async {
-    return msgCtx.goTo(() => GameInProgressState());
-  }
-}
+class ChooseSpaceshipState extends EmptyTreeState {}
 
-class GameStartingMessage {}
-
-//
-// Game In Progress
-//
-class GameInProgressData extends StateData {
-  String uboat;
-}
-
-class GameInProgressState extends DataTreeState<GameInProgressData> {
-  @override
-  StateHandler createHandler() => StateHandler.noOp;
-
-  // List<Lazy<StateHandler>> childStates = [
-  //   Lazy(() => new))
-  // ]
-}
-
-//
-// GameRoot
-//
-class GameState extends TreeState {
-  @override
-  StateHandler createHandler() {
-    return null;
-  }
-}
+var gameTree = BuildRoot(
+  state: (key) => GameRootState(),
+  children: [
+    BuildInterior(
+      state: (key) => GameStartingState(),
+      children: [
+        BuildLeaf((key) => ChooseScenarioState()),
+        BuildLeaf((key) => ChooseSpaceshipState()),
+      ],
+    ),
+  ],
+);
