@@ -14,7 +14,9 @@ abstract class StateKey {
 @immutable
 class ValueKey<T> extends StateKey {
   final T value;
-  ValueKey(this.value) : super._();
+  ValueKey(this.value) : super._() {
+    ArgumentError.notNull('value');
+  }
 
   @override
   bool operator ==(Object other) {
@@ -30,6 +32,9 @@ class ValueKey<T> extends StateKey {
     hash = 31 * hash + value.hashCode;
     return hash;
   }
+
+  @override
+  String toString() => 'StateKey($value)';
 }
 
 // Wacky: https://github.com/dart-lang/sdk/issues/33297
@@ -62,13 +67,16 @@ class MessageContext {
 
 class TreeStateRef {
   final StateKey key;
+  // More fields?
   TreeStateRef(this.key) {
     ArgumentError.checkNotNull(key, "key");
   }
 }
 
 abstract class TransitionContext {
-  TreeState sourceState;
+  TreeStateRef get fromState;
+  TreeStateRef get toState;
+  Iterable<TreeStateRef> transitionPath();
 }
 
 //

@@ -10,7 +10,7 @@ class Machine {
   Machine(this.rootNode, this.nodes);
 
   Future<TransitionContext> enterInitialState(TreeNode initialNode) async {
-    final transCtx = _TransitionContext();
+    final transCtx = MachineTransitionContext(rootNode, initialNode);
 
     // States along the path from the root state to the requested initial state.
     var entryPath = initialNode.selfAndAncestors().toList().reversed;
@@ -22,28 +22,26 @@ class Machine {
     }
 
     await _enterStates(entryPath, transCtx);
-
     return transCtx;
   }
 
-  Iterable<TreeNode> _descendInitialChildren(TreeNode parentNode, _TransitionContext ctx) sync* {
+  Iterable<TreeNode> _descendInitialChildren(
+    TreeNode parentNode,
+    MachineTransitionContext ctx,
+  ) sync* {
     var currentNode = parentNode;
     while (!currentNode.isLeaf) {
-      final initialChildKey = parentNode.initialChild(ctx);
-      if (initialChildKey == null) {
-        throw StateError('initialChild for state ${parentNode.key} returned null');
-      }
-      final initialChild = nodes[initialChildKey];
-      if (initialChild == null) {
-        throw StateError('Unable to find initialChild $initialChildKey for state ${parentNode.key}.');
-      }
+      final initialChild = ctx.onInitialChild(currentNode);
       yield initialChild;
       currentNode = initialChild;
     }
   }
 
-  // TODO: is it possible to return FutureOr?
-  Future<void> _enterStates(Iterable<TreeNode> nodesToEnter, _TransitionContext transCtx) async {
+  // Is it possible to return FutureOr?
+  Future<void> _enterStates(
+    Iterable<TreeNode> nodesToEnter,
+    MachineTransitionContext transCtx,
+  ) async {
     for (final node in nodesToEnter) {
       var result = transCtx.onEnter(node);
       if (result is Future<void>) {
@@ -62,9 +60,40 @@ class Machine {
   // }
 }
 
-class _TransitionContext extends TransitionContext {
+class MachineTransitionContext implements TransitionContext {
+  final TreeNode fromNode;
+  TreeNode toNode;
   final List<TreeNode> _enteredNodes = [];
   final List<TreeNode> _exitedNodes = [];
+
+  MachineTransitionContext(this.fromNode, this.toNode);
+
+  @override
+  TreeStateRef get fromState => TreeStateRef(fromNode.key);
+
+  @override
+  TreeStateRef get toState => TreeStateRef(toNode.key);
+
+  @override
+  Iterable<TreeStateRef> transitionPath() {
+    return _exitedNodes.followedBy(_enteredNodes).map((node) => TreeStateRef(node.key));
+  }
+
+  TreeNode onInitialChild(TreeNode parentNode) {
+    final initialChildKey = parentNode.initialChild(this);
+    if (initialChildKey == null) {
+      throw StateError('initialChild for ${parentNode.key} returned null');
+    }
+
+    final initialChild =
+        parentNode.children.firstWhere((c) => c.key == initialChildKey, orElse: () => null);
+    if (initialChild == null) {
+      throw StateError('Unable to find initialChild $initialChildKey for ${parentNode.key}.');
+    }
+
+    toNode = initialChild;
+    return initialChild;
+  }
 
   FutureOr<void> onEnter(TreeNode node) {
     final result = node.state().onEnter(this);

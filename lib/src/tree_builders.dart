@@ -2,6 +2,7 @@ import 'dart:collection';
 import 'package:meta/meta.dart';
 import 'package:tree_state_machine/src/lazy.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
+import 'package:tree_state_machine/tree_state_machine.dart';
 
 typedef InitialChild = StateKey Function(TransitionContext ctx);
 typedef StateCreator<T> = T Function(StateKey key);
@@ -20,7 +21,8 @@ class TreeNode {
     this.initialChild,
   );
 
-  factory TreeNode(StateKey key, StateCreator createState, TreeNode parent, [InitialChild entryTransition]) {
+  factory TreeNode(StateKey key, StateCreator createState, TreeNode parent,
+      [InitialChild entryTransition]) {
     final lazyState = Lazy<TreeState>(() => createState(key));
     return TreeNode._(key, parent, lazyState, entryTransition);
   }
@@ -41,6 +43,17 @@ class TreeNode {
       yield nextAncestor;
       nextAncestor = nextAncestor.parent;
     }
+  }
+
+  TreeNode lcaWith(TreeNode other) {
+    final i1 = selfAndAncestors().toList().reversed.iterator;
+    final i2 = other.selfAndAncestors().toList().reversed.iterator;
+    TreeNode lca;
+    while (i1.moveNext() && i2.moveNext()) {
+      lca = i1.current.key == i2.current.key ? i1.current : lca;
+    }
+    assert(lca != null);
+    return lca;
   }
 }
 
@@ -172,9 +185,11 @@ class BuildLeaf<T extends TreeState> implements BuildChildNode {
 
   BuildLeaf._(this.key, this.createState);
 
-  factory BuildLeaf(StateCreator<T> createState) => BuildLeaf._(StateKey.forState<T>(), createState);
+  factory BuildLeaf(StateCreator<T> createState) =>
+      BuildLeaf._(StateKey.forState<T>(), createState);
 
-  factory BuildLeaf.keyed(StateKey key, StateCreator<T> createState) => BuildLeaf._(key, createState);
+  factory BuildLeaf.keyed(StateKey key, StateCreator<T> createState) =>
+      BuildLeaf._(key, createState);
 
   @override
   TreeNode call(BuildContext ctx) {

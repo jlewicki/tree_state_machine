@@ -16,7 +16,7 @@ void main() {
   var parentNode = TreeNode(parentKey, (key) => parentState, null);
 
   group('BuildLeaf', () {
-    test("builds a leaf node", () {
+    test('should build a leaf node', () {
       var buildCtx = BuildContext(parentNode);
 
       var builder = BuildLeaf.keyed(stateKey, (key) => state);
@@ -30,7 +30,7 @@ void main() {
       expect(leafNode.children, isEmpty);
     });
 
-    test("builds a leaf node with type-based state key", () {
+    test('should build a leaf node with type-based state key', () {
       var buildCtx = BuildContext(parentNode);
 
       var builder = BuildLeaf((key) => state);
@@ -38,7 +38,7 @@ void main() {
       expect(leafNode.key, equals(StateKey.forState<SimpleState>()));
     });
 
-    test("adds node to context", () {
+    test('should add node to context', () {
       var buildCtx = BuildContext(parentNode);
 
       var builder = BuildLeaf.keyed(stateKey, (key) => state);
@@ -59,7 +59,7 @@ void main() {
       initialChild: (_) => childState1Key,
     );
 
-    test("builds an interior node", () {
+    test('should build an interior node', () {
       var buildCtx = BuildContext(parentNode);
 
       var interiorNode = buildInterior(buildCtx);
@@ -75,7 +75,7 @@ void main() {
       });
     });
 
-    test("builds an interior node with type-based state key", () {
+    test('should build an interior node with type-based state key', () {
       var buildCtx = BuildContext(parentNode);
 
       var buildInterior = BuildInterior(
@@ -91,7 +91,7 @@ void main() {
       expect(interiorNode.key, equals(StateKey.forState<SimpleState>()));
     });
 
-    test("adds node to context", () {
+    test("should add node to context", () {
       var buildCtx = BuildContext(parentNode);
 
       var interiorNode = buildInterior(buildCtx);
@@ -114,7 +114,7 @@ void main() {
       initialChild: (_) => childState1Key,
     );
 
-    test("builds a root node", () {
+    test('should build a root node', () {
       var buildCtx = BuildContext(null);
 
       var rootNode = buildRoot(buildCtx);
@@ -130,7 +130,7 @@ void main() {
       });
     });
 
-    test("builds an root node with type-based state key", () {
+    test('should build a root node with type-based state key', () {
       var buildCtx = BuildContext(null);
 
       var buildRoot = BuildRoot(
@@ -146,12 +146,12 @@ void main() {
       expect(rootNode.key, equals(StateKey.forState<SimpleState>()));
     });
 
-    test("throws if built with a parent node", () {
+    test('should throw if built with a parent node', () {
       var buildCtx = BuildContext(parentNode);
       expect(() => buildRoot(buildCtx), throwsArgumentError);
     });
 
-    test("adds node to context", () {
+    test('should add node to context', () {
       var buildCtx = BuildContext(null);
 
       var rootNode = buildRoot(buildCtx);
@@ -163,8 +163,8 @@ void main() {
     });
   });
 
-  group("BuildContext", () {
-    test("throws if node with duplicate key is added", () {
+  group('BuildContext', () {
+    test('should throw if node with duplicate key is added', () {
       var buildCtx = BuildContext(parentNode);
       var key = StateKey.named("Foo");
       var builder = BuildLeaf.keyed(key, (key) => state);
