@@ -106,12 +106,16 @@ class MachineTransitionContext implements TransitionContext {
   FutureOr<void> onEnter(TreeNode node) {
     final result = node.state().onEnter(this);
     _enteredNodes.add(node);
-    return result;
+    if (result is Future<void>) {
+      return result;
+    }
   }
 
   FutureOr<void> onExit(TreeNode node) {
     final result = node.state().onExit(this);
     _exitedNodes.add(node);
-    return result;
+    if (result is Future<void>) {
+      return result;
+    }
   }
 }

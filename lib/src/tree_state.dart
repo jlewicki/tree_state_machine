@@ -51,7 +51,7 @@ class _TypeLiteral<T> {
 typedef TransitionHandler = FutureOr<void> Function(TransitionContext ctx);
 typedef MessageHandler = FutureOr<MessageResult> Function(MessageContext ctx);
 
-final TransitionHandler emptyTransitionHandler = (_) => {};
+final TransitionHandler emptyTransitionHandler = (_) {};
 final MessageHandler emptyMessageHandler = (ctx) => ctx.unhandled();
 
 abstract class TreeState {

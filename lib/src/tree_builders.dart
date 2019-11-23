@@ -108,7 +108,7 @@ class BuildRoot<T extends TreeState> implements BuildChildNode {
     ArgumentError.checkNotNull(state, 'state');
     ArgumentError.checkNotNull(children, 'children');
     ArgumentError.checkNotNull(initialChild, 'initialChild');
-    if (children.isEmpty == 0) {
+    if (children.isEmpty) {
       throw ArgumentError.value(children, 'children', 'Must have at least one item');
     }
   }
