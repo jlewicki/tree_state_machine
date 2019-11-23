@@ -51,6 +51,9 @@ class _TypeLiteral<T> {
 typedef TransitionHandler = FutureOr<void> Function(TransitionContext ctx);
 typedef MessageHandler = FutureOr<MessageResult> Function(MessageContext ctx);
 
+final TransitionHandler emptyTransitionHandler = (_) => {};
+final MessageHandler emptyMessageHandler = (ctx) => ctx.unhandled();
+
 abstract class TreeState {
   FutureOr<void> onEnter(TransitionContext ctx) {}
   FutureOr<MessageResult> onMessage(MessageContext ctx);
@@ -86,6 +89,24 @@ class GoToResult extends MessageResult {
 class UnhandledResult extends MessageResult {
   UnhandledResult._();
   static final UnhandledResult value = UnhandledResult._();
+}
+
+class DelegateState extends TreeState {
+  TransitionHandler entryHandler;
+  TransitionHandler exitHandler;
+  MessageHandler messageHandler;
+
+  DelegateState({this.entryHandler, this.exitHandler, this.messageHandler}) {
+    entryHandler = entryHandler ?? emptyTransitionHandler;
+    exitHandler = exitHandler ?? emptyTransitionHandler;
+    messageHandler = messageHandler ?? emptyMessageHandler;
+  }
+  @override
+  FutureOr<void> onEnter(TransitionContext ctx) => entryHandler(ctx);
+  @override
+  FutureOr<MessageResult> onMessage(MessageContext ctx) => messageHandler(ctx);
+  @override
+  FutureOr<void> onExit(TransitionContext ctx) => exitHandler(ctx);
 }
 
 // class StateData {}
