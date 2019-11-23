@@ -1,3 +1,4 @@
+import 'package:async/async.dart';
 import 'package:test/test.dart';
 import 'package:tree_state_machine/src/tree_state_machine.dart';
 import 'tree_1.dart' as deep_tree;
@@ -41,6 +42,26 @@ void main() {
         expect(sm.currentState, isNotNull);
         expect(sm.currentState.key, equals(deep_tree.r_a_a_2_key));
         expect(sm.currentState.key, equals(initialTransition.to));
+      });
+
+      test('should emit transition', () async {
+        final sm = TreeStateMachine.forRoot(deep_tree.buildTree);
+        final transitionsQ = StreamQueue(sm.transitions);
+
+        final results = await Future.wait([transitionsQ.next, sm.start()]);
+
+        final transition = results[0] as Transition;
+        expect(transition.from, equals(deep_tree.r_key));
+        expect(transition.to, equals(deep_tree.r_a_a_2_key));
+        expect(
+          transition.path,
+          orderedEquals([
+            deep_tree.r_key,
+            deep_tree.r_a_key,
+            deep_tree.r_a_a_key,
+            deep_tree.r_a_a_2_key,
+          ]),
+        );
       });
     });
   });

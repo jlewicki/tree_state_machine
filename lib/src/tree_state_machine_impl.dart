@@ -46,11 +46,11 @@ class Machine {
     }
   }
 
-  // Is it possible to return FutureOr?
   Future<void> _enterStates(
     Iterable<TreeNode> nodesToEnter,
     MachineTransitionContext transCtx,
   ) async {
+    // If we use recursion/lazy evaluation can we avoid the await?
     for (final node in nodesToEnter) {
       final result = transCtx.onEnter(node);
       if (result is Future<void>) {
