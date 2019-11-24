@@ -66,6 +66,10 @@ class EmptyTreeState extends TreeState {
 }
 
 class MessageContext {
+  final Object message;
+  MessageContext(this.message) {
+    ArgumentError.notNull('message');
+  }
   MessageResult goTo(StateKey targetStateKey) => GoToResult(targetStateKey);
   MessageResult unhandled() => UnhandledResult.value;
 }
@@ -79,15 +83,19 @@ abstract class TransitionContext {
 //
 // Message Results
 //
-abstract class MessageResult {}
+abstract class MessageResult {
+  MessageResult._();
+  bool get isGoTo => this is GoToResult;
+  bool get isUnhandled => this is UnhandledResult;
+}
 
 class GoToResult extends MessageResult {
-  GoToResult(this.targetStateKey);
-  final StateKey targetStateKey;
+  GoToResult(this.toStateKey) : super._();
+  final StateKey toStateKey;
 }
 
 class UnhandledResult extends MessageResult {
-  UnhandledResult._();
+  UnhandledResult._() : super._();
   static final UnhandledResult value = UnhandledResult._();
 }
 

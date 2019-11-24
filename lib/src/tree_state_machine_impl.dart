@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:tree_state_machine/src/tree_builders.dart';
-import 'package:tree_state_machine/src/tree_state.dart';
+import 'tree_builders.dart';
+import 'tree_state.dart';
 
 // Core state machine operations
 class Machine {
@@ -18,32 +18,76 @@ class Machine {
         'This TreeStateMachine does not contain the specified initial state.',
       );
     }
-
     final transCtx = MachineTransitionContext(rootNode, initialNode);
-
-    // States along the path from the root state to the requested initial state.
     var entryPath = initialNode.selfAndAncestors().toList().reversed;
-
-    // If the initial state is not a leaf, we need to follow the initialChild of each descendant,
-    // until we reach a leaf.
     if (!initialNode.isLeaf) {
       entryPath = entryPath.followedBy(_descendInitialChildren(initialNode, transCtx));
     }
-
     await _enterStates(entryPath, transCtx);
     return transCtx;
+  }
+
+  Future<MessageProcessed> processMessage(Object message, StateKey currentStateKey) async {
+    final currentNode = nodes[currentStateKey];
+    if (currentNode == null) {
+      throw ArgumentError.value(
+        currentStateKey,
+        'currentStateKey',
+        'This TreeStateMachine does not contain the specified state.',
+      );
+    }
+    final msgCtx = MachineMessageContext(message, currentNode);
+    final msgResult = await _handleMessage(currentNode, msgCtx);
+    return _dispatchMessageResult(msgResult, msgCtx);
+  }
+
+  Future<MessageResult> _handleMessage(TreeNode node, MachineMessageContext msgCtx) async {
+    MessageResult msgResult;
+    TreeNode currentNode = node;
+    do {
+      final futureOr = msgCtx.onMessage(currentNode);
+      msgResult = (futureOr is Future) ? await futureOr : futureOr as MessageResult;
+      currentNode = currentNode.parent;
+    } while (msgResult.isUnhandled && currentNode != null);
+    return msgResult;
+  }
+
+  Future<MessageProcessed> _dispatchMessageResult(
+    MessageResult result,
+    MachineMessageContext msgCtx,
+  ) async {
+    if (result is GoToResult) {
+      // Move this code to MachineGoToResult
+      var toNode = _node(result.toStateKey);
+      final transCtx = MachineTransitionContext(msgCtx.receivingNode, toNode);
+      final initialChildren = _descendInitialChildren(toNode, transCtx);
+      toNode = initialChildren.isEmpty ? toNode : initialChildren.last;
+      final path = _path(msgCtx.receivingNode, toNode);
+      await _exitStates(path.exitingNodes, transCtx);
+      await _enterStates(path.enteringNodes, transCtx);
+      return HandledMessage(
+        msgCtx.message,
+        msgCtx.receivingNode.key,
+        msgCtx.handlingNode.key,
+        transCtx.exitedNodes.map((n) => n.key),
+        transCtx.enteredNodes.map((n) => n.key),
+      );
+    }
+    return null;
   }
 
   Iterable<TreeNode> _descendInitialChildren(
     TreeNode parentNode,
     MachineTransitionContext ctx,
-  ) sync* {
+  ) {
+    final nodes = <TreeNode>[];
     var currentNode = parentNode;
     while (!currentNode.isLeaf) {
       final initialChild = ctx.onInitialChild(currentNode);
-      yield initialChild;
+      nodes.add(initialChild);
       currentNode = initialChild;
     }
+    return nodes;
   }
 
   Future<void> _enterStates(
@@ -59,14 +103,36 @@ class Machine {
     }
   }
 
-  // Future<void> _exitStates(Iterable<TreeNode> nodesToExit, TransitionContext transCtx) async {
-  //   for (final node in nodesToExit) {
-  //     var result = node.handler().onExit(transCtx);
-  //     if (result is Future<void>) {
-  //       await result;
-  //     }
-  //   }
-  // }
+  Future<void> _exitStates(
+    Iterable<TreeNode> nodesToExit,
+    MachineTransitionContext transCtx,
+  ) async {
+    // If we use recursion/lazy evaluation can we avoid the await?
+    for (final node in nodesToExit) {
+      final result = transCtx.onExit(node);
+      if (result is Future<void>) {
+        await result;
+      }
+    }
+  }
+
+  NodePath _path(TreeNode from, TreeNode to) {
+    TreeNode lcaNode = from.lcaWith(to);
+    final exitingNodes = from.selfAndAncestors().takeWhile((n) => n != lcaNode).toList();
+    final enteringNodes = to.selfAndAncestors().takeWhile((n) => n != lcaNode).toList().reversed;
+    //final initialChildNodes = _descendInitialChildren(to, ctx)
+    return NodePath(exitingNodes, enteringNodes);
+  }
+
+  TreeNode _node(StateKey key, [throwIfNotFound = true]) {
+    final node = nodes[key];
+    if (key == null && throwIfNotFound) {
+      throw StateError(
+        'This TreeStateMachine does not contain the specified state $key.',
+      );
+    }
+    return node;
+  }
 }
 
 class MachineTransitionContext implements TransitionContext {
@@ -85,6 +151,9 @@ class MachineTransitionContext implements TransitionContext {
 
   @override
   Iterable<StateKey> path() => _exitedNodes.followedBy(_enteredNodes).map((node) => node.key);
+
+  Iterable<TreeNode> get exitedNodes => _exitedNodes;
+  Iterable<TreeNode> get enteredNodes => _enteredNodes;
 
   TreeNode onInitialChild(TreeNode parentNode) {
     final initialChildKey = parentNode.initialChild(this);
@@ -119,3 +188,47 @@ class MachineTransitionContext implements TransitionContext {
     }
   }
 }
+
+class MachineMessageContext extends MessageContext {
+  final TreeNode receivingNode;
+  TreeNode handlingNode;
+
+  MachineMessageContext(Object message, this.receivingNode) : super(message);
+
+  FutureOr<MessageResult> onMessage(TreeNode node) {
+    handlingNode = node;
+    return node.state().onMessage(this);
+  }
+}
+
+class NodePath {
+  final Iterable<TreeNode> exitingNodes;
+  final Iterable<TreeNode> enteringNodes;
+  NodePath(this.exitingNodes, this.enteringNodes);
+}
+
+abstract class MessageProcessed {}
+
+class HandledMessage extends MessageProcessed {
+  final Object message;
+  final StateKey receivingState;
+  final StateKey handlingState;
+  final Iterable<StateKey> exitedStates;
+  final Iterable<StateKey> enteredStates;
+  HandledMessage(
+    this.message,
+    this.receivingState,
+    this.handlingState,
+    this.exitedStates,
+    this.enteredStates,
+  );
+}
+
+class UnhandledMessage extends MessageProcessed {
+  final Object message;
+  final StateKey receivingState;
+  final Iterable<StateKey> handlingStates;
+  UnhandledMessage(this.message, this.receivingState, this.handlingStates);
+}
+
+class InvalidMessage extends MessageProcessed {}

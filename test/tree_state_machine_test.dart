@@ -35,7 +35,7 @@ void main() {
       });
 
       test('should set current state to initial state', () async {
-        final sm = TreeStateMachine.forRoot(deep_tree.buildTree);
+        final sm = TreeStateMachine.forRoot(deep_tree.treeBuilder());
 
         final initialTransition = await sm.start();
 
@@ -45,7 +45,7 @@ void main() {
       });
 
       test('should emit transition', () async {
-        final sm = TreeStateMachine.forRoot(deep_tree.buildTree);
+        final sm = TreeStateMachine.forRoot(deep_tree.treeBuilder());
         final transitionsQ = StreamQueue(sm.transitions);
 
         final results = await Future.wait([transitionsQ.next, sm.start()]);

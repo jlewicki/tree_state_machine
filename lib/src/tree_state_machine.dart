@@ -64,7 +64,7 @@ class TreeStateMachine {
     }
 
     final transCtx = await _machine.enterInitialState(initialStateKey);
-    _currentState = CurrentState(transCtx.to);
+    _currentState = CurrentState(transCtx.to, (msg, key) => _machine.processMessage(msg, key));
     _transitions.add(_toTransition(transCtx));
     _isStarted = true;
     return transCtx;
@@ -76,10 +76,13 @@ class TreeStateMachine {
 
 class CurrentState {
   final StateKey key;
-  CurrentState(this.key) {
+  final void Function(Object msg, StateKey key) dispatch;
+  CurrentState(this.key, this.dispatch) {
     ArgumentError.notNull('key');
   }
-  void sendMessage(Object message) {}
+  void sendMessage(Object message) {
+    dispatch(message, key);
+  }
 }
 
 @immutable
