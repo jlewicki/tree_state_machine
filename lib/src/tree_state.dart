@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:meta/meta.dart';
+import 'package:tree_state_machine/tree_state_machine.dart';
 
 //
 // Keys
@@ -71,6 +72,8 @@ class MessageContext {
     ArgumentError.notNull('message');
   }
   MessageResult goTo(StateKey targetStateKey) => GoToResult(targetStateKey);
+  MessageResult stay() => InternalTransitionResult.value;
+  MessageResult goToSelf() => SelfTransitionResult.value;
   MessageResult unhandled() => UnhandledResult.value;
 }
 
@@ -87,11 +90,31 @@ abstract class MessageResult {
   MessageResult._();
 }
 
+/// A [MessageResult] indicating that a message was sucessfully handled, and a transition to a new
+/// state should occur.
 class GoToResult extends MessageResult {
-  GoToResult(this.toStateKey) : super._();
+  /// Indicates the state to which the state machine should transition.
   final StateKey toStateKey;
+
+  GoToResult(this.toStateKey) : super._();
 }
 
+/// A [MessageResult] indicating that a message was sucessfully handled, and an internal transition
+/// should occur. That is, current state should remain the same.
+class InternalTransitionResult extends MessageResult {
+  InternalTransitionResult._() : super._();
+  static final InternalTransitionResult value = InternalTransitionResult._();
+}
+
+/// A [MessageResult] indicating that a message was sucessfully handled, and an self transition
+/// should occur. That is, current state should remain the same, but the exit and entry handlers for
+/// the state should be called.
+class SelfTransitionResult extends MessageResult {
+  SelfTransitionResult._() : super._();
+  static final SelfTransitionResult value = SelfTransitionResult._();
+}
+
+/// A [MessageResult] indicating that a state did not recognize or handle a message,
 class UnhandledResult extends MessageResult {
   UnhandledResult._() : super._();
   static final UnhandledResult value = UnhandledResult._();

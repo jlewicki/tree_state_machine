@@ -41,31 +41,44 @@ class Machine {
     return _handleMessageResult(msgResult, msgCtx);
   }
 
-  // Invokes [onMessage]
+  // Invokes on message on the specified node, and each of its ancestor nodes, until the message is
+  // handled, or the root node is reached.
   Future<MessageResult> _handleMessage(TreeNode node, MachineMessageContext msgCtx) async {
     MessageResult msgResult;
     var currentNode = node;
     do {
       final futureOr = msgCtx.onMessage(currentNode);
       msgResult = (futureOr is Future) ? await futureOr : futureOr as MessageResult;
+      if (msgResult == null) {
+        throw StateError('State ${currentNode.key} returned null from onMessage.');
+      }
       currentNode = currentNode.parent;
     } while (msgResult is UnhandledResult && currentNode != null);
     return msgResult;
   }
 
-  Future<MessageProcessed> _handleMessageResult(
+  FutureOr<MessageProcessed> _handleMessageResult(
     MessageResult result,
     MachineMessageContext msgCtx,
   ) async {
     if (result is GoToResult) {
-      return _handleGoToResult(result, msgCtx);
-    } else {
-      assert(false, 'Unrecogized message result ${result.runtimeType}');
+      return _handleGoTo(result, msgCtx);
+    } else if (result is UnhandledResult) {
+      return _handleUnhandled(msgCtx);
+    } else if (result is InternalTransitionResult) {
+      return _handleInternalTransition(result, msgCtx);
+    } else if (result is SelfTransitionResult) {
+      return _handleSelfTransition(result, msgCtx);
     }
+    assert(false, 'Unrecognized message result ${result.runtimeType}');
     return null;
   }
 
-  Future<HandledMessage> _handleGoToResult(GoToResult result, MachineMessageContext msgCtx) async {
+  Future<HandledMessage> _handleGoTo(
+    GoToResult result,
+    MachineMessageContext msgCtx, {
+    bool isSelfTransition = false,
+  }) async {
     var toNode = _node(result.toStateKey);
     final transCtx = MachineTransitionContext(msgCtx.receivingNode, toNode);
     final initialChildren = _descendInitialChildren(toNode, transCtx);
@@ -73,6 +86,57 @@ class Machine {
     final path = _path(msgCtx.receivingNode, toNode);
     await _exitStates(path.exitingNodes, transCtx);
     await _enterStates(path.enteringNodes, transCtx);
+    return HandledMessage(
+      msgCtx.message,
+      msgCtx.receivingNode.key,
+      msgCtx.handlingNode.key,
+      transCtx.exitedNodes.map((n) => n.key),
+      transCtx.enteredNodes.map((n) => n.key),
+    );
+  }
+
+  UnhandledMessage _handleUnhandled(MachineMessageContext msgCtx) {
+    assert(msgCtx.notifiedNodes.length >= 2);
+    return UnhandledMessage(
+      msgCtx.message,
+      msgCtx.receivingNode.key,
+      msgCtx.notifiedNodes.map((n) => n.key),
+    );
+  }
+
+  HandledMessage _handleInternalTransition(
+      InternalTransitionResult result, MachineMessageContext msgCtx) {
+    // Note that ann internal transition means that the current leaf state is maintained, even if
+    // the internal transition is returned by an ancestor node.
+    return HandledMessage(
+        msgCtx.message, msgCtx.receivingNode.key, msgCtx.handlingNode.key, [], []);
+  }
+
+  Future<HandledMessage> _handleSelfTransition(
+    SelfTransitionResult result,
+    MachineMessageContext msgCtx,
+  ) async {
+    if (msgCtx.handlingNode.parent == null) {
+      throw StateError('Self-transitions from the root node are invalid.');
+    }
+    // Note that the handling node might be different from the receiving node. That is, the
+    // receiving node might not handle a message, but one of its ancestor nodes could return
+    // a self transition. In this case there is some ambiguity. The ancestor state is indicating
+    // that it should be exited and re-entered, but does that mean:
+    // - the initialChild path of the ancestor should be followed to determine the appropriate leaf
+    //   state?
+    // - the current leaf state should be maintained?
+    // This implmentation follows the second approach, since it seems more consistent with the
+    // notion of an internal transition.
+    //
+    // Note that all of the states from the current leaf state to the handling ancestor node will be
+    // re-entered.
+    final handlingParent = msgCtx.handlingNode.parent;
+    final exitingNodes = _path(msgCtx.receivingNode, handlingParent).path;
+    final enteringNodes = exitingNodes.toList().reversed;
+    final transCtx = MachineTransitionContext(msgCtx.receivingNode, msgCtx.receivingNode);
+    await _exitStates(exitingNodes, transCtx);
+    await _enterStates(enteringNodes, transCtx);
     return HandledMessage(
       msgCtx.message,
       msgCtx.receivingNode.key,
@@ -126,7 +190,6 @@ class Machine {
     final lcaNode = from.lcaWith(to);
     final exitingNodes = from.selfAndAncestors().takeWhile((n) => n != lcaNode).toList();
     final enteringNodes = to.selfAndAncestors().takeWhile((n) => n != lcaNode).toList().reversed;
-    //final initialChildNodes = _descendInitialChildren(to, ctx)
     return NodePath(exitingNodes, enteringNodes);
   }
 
@@ -196,13 +259,20 @@ class MachineTransitionContext implements TransitionContext {
 }
 
 class MachineMessageContext extends MessageContext {
+  /// The leaf node that received the message
   final TreeNode receivingNode;
-  TreeNode handlingNode;
+
+  /// The nodes, starting at the receiving leaf node, that were notified of the message.
+  final List<TreeNode> notifiedNodes = [];
+
+  /// The node that handled the message. That is, the node that returned a [MessageResult] other
+  /// than [UnhandledResult].
+  TreeNode get handlingNode => notifiedNodes.last;
 
   MachineMessageContext(Object message, this.receivingNode) : super(message);
 
   FutureOr<MessageResult> onMessage(TreeNode node) {
-    handlingNode = node;
+    notifiedNodes.add(node);
     return node.state().onMessage(this);
   }
 }
@@ -211,30 +281,35 @@ class NodePath {
   final Iterable<TreeNode> exitingNodes;
   final Iterable<TreeNode> enteringNodes;
   NodePath(this.exitingNodes, this.enteringNodes);
+  Iterable<TreeNode> get path => exitingNodes.followedBy(enteringNodes);
 }
 
-abstract class MessageProcessed {}
-
-class HandledMessage extends MessageProcessed {
+//.
+abstract class MessageProcessed {
   final Object message;
   final StateKey receivingState;
+  MessageProcessed(this.message, this.receivingState);
+}
+
+class HandledMessage extends MessageProcessed {
   final StateKey handlingState;
   final Iterable<StateKey> exitedStates;
   final Iterable<StateKey> enteredStates;
   HandledMessage(
-    this.message,
-    this.receivingState,
+    Object message,
+    StateKey receivingState,
     this.handlingState,
     this.exitedStates,
     this.enteredStates,
-  );
+  ) : super(message, receivingState);
 }
 
 class UnhandledMessage extends MessageProcessed {
-  final Object message;
-  final StateKey receivingState;
-  final Iterable<StateKey> handlingStates;
-  UnhandledMessage(this.message, this.receivingState, this.handlingStates);
+  final Iterable<StateKey> notifiedStates;
+  UnhandledMessage(Object message, StateKey receivingState, this.notifiedStates)
+      : super(message, receivingState);
 }
 
-class InvalidMessage extends MessageProcessed {}
+class InvalidMessage extends MessageProcessed {
+  InvalidMessage(Object message, StateKey receivingState) : super(message, receivingState);
+}
