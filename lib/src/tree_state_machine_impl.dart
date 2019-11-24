@@ -38,42 +38,48 @@ class Machine {
     }
     final msgCtx = MachineMessageContext(message, currentNode);
     final msgResult = await _handleMessage(currentNode, msgCtx);
-    return _dispatchMessageResult(msgResult, msgCtx);
+    return _handleMessageResult(msgResult, msgCtx);
   }
 
+  // Invokes [onMessage]
   Future<MessageResult> _handleMessage(TreeNode node, MachineMessageContext msgCtx) async {
     MessageResult msgResult;
-    TreeNode currentNode = node;
+    var currentNode = node;
     do {
       final futureOr = msgCtx.onMessage(currentNode);
       msgResult = (futureOr is Future) ? await futureOr : futureOr as MessageResult;
       currentNode = currentNode.parent;
-    } while (msgResult.isUnhandled && currentNode != null);
+    } while (msgResult is UnhandledResult && currentNode != null);
     return msgResult;
   }
 
-  Future<MessageProcessed> _dispatchMessageResult(
+  Future<MessageProcessed> _handleMessageResult(
     MessageResult result,
     MachineMessageContext msgCtx,
   ) async {
     if (result is GoToResult) {
-      // Move this code to MachineGoToResult
-      var toNode = _node(result.toStateKey);
-      final transCtx = MachineTransitionContext(msgCtx.receivingNode, toNode);
-      final initialChildren = _descendInitialChildren(toNode, transCtx);
-      toNode = initialChildren.isEmpty ? toNode : initialChildren.last;
-      final path = _path(msgCtx.receivingNode, toNode);
-      await _exitStates(path.exitingNodes, transCtx);
-      await _enterStates(path.enteringNodes, transCtx);
-      return HandledMessage(
-        msgCtx.message,
-        msgCtx.receivingNode.key,
-        msgCtx.handlingNode.key,
-        transCtx.exitedNodes.map((n) => n.key),
-        transCtx.enteredNodes.map((n) => n.key),
-      );
+      return _handleGoToResult(result, msgCtx);
+    } else {
+      assert(false, 'Unrecogized message result ${result.runtimeType}');
     }
     return null;
+  }
+
+  Future<HandledMessage> _handleGoToResult(GoToResult result, MachineMessageContext msgCtx) async {
+    var toNode = _node(result.toStateKey);
+    final transCtx = MachineTransitionContext(msgCtx.receivingNode, toNode);
+    final initialChildren = _descendInitialChildren(toNode, transCtx);
+    toNode = initialChildren.isEmpty ? toNode : initialChildren.last;
+    final path = _path(msgCtx.receivingNode, toNode);
+    await _exitStates(path.exitingNodes, transCtx);
+    await _enterStates(path.enteringNodes, transCtx);
+    return HandledMessage(
+      msgCtx.message,
+      msgCtx.receivingNode.key,
+      msgCtx.handlingNode.key,
+      transCtx.exitedNodes.map((n) => n.key),
+      transCtx.enteredNodes.map((n) => n.key),
+    );
   }
 
   Iterable<TreeNode> _descendInitialChildren(
@@ -117,14 +123,14 @@ class Machine {
   }
 
   NodePath _path(TreeNode from, TreeNode to) {
-    TreeNode lcaNode = from.lcaWith(to);
+    final lcaNode = from.lcaWith(to);
     final exitingNodes = from.selfAndAncestors().takeWhile((n) => n != lcaNode).toList();
     final enteringNodes = to.selfAndAncestors().takeWhile((n) => n != lcaNode).toList().reversed;
     //final initialChildNodes = _descendInitialChildren(to, ctx)
     return NodePath(exitingNodes, enteringNodes);
   }
 
-  TreeNode _node(StateKey key, [throwIfNotFound = true]) {
+  TreeNode _node(StateKey key, [bool throwIfNotFound = true]) {
     final node = nodes[key];
     if (key == null && throwIfNotFound) {
       throw StateError(

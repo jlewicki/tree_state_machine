@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:meta/meta.dart';
-import 'package:tree_state_machine/src/tree_builders.dart';
-import 'package:tree_state_machine/src/tree_state.dart';
-import 'package:tree_state_machine/src/tree_state_machine_impl.dart';
+import 'tree_builders.dart';
+import 'tree_state.dart';
+import 'tree_state_machine_impl.dart';
 
 class TreeStateMachine {
   final Machine _machine;
@@ -64,7 +64,7 @@ class TreeStateMachine {
     }
 
     final transCtx = await _machine.enterInitialState(initialStateKey);
-    _currentState = CurrentState(transCtx.to, (msg, key) => _machine.processMessage(msg, key));
+    _currentState = CurrentState(transCtx.to, _machine.processMessage);
     _transitions.add(_toTransition(transCtx));
     _isStarted = true;
     return transCtx;
@@ -90,7 +90,7 @@ class Transition {
   final StateKey from;
   final StateKey to;
   final Iterable<StateKey> path;
-  Transition(this.from, this.to, this.path);
+  const Transition(this.from, this.to, this.path);
 }
 
 // Root state for wrapping 'flat' list of leaf states.

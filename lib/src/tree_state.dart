@@ -85,8 +85,6 @@ abstract class TransitionContext {
 //
 abstract class MessageResult {
   MessageResult._();
-  bool get isGoTo => this is GoToResult;
-  bool get isUnhandled => this is UnhandledResult;
 }
 
 class GoToResult extends MessageResult {

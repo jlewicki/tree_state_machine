@@ -1,8 +1,7 @@
 import 'dart:collection';
 import 'package:meta/meta.dart';
-import 'package:tree_state_machine/src/lazy.dart';
-import 'package:tree_state_machine/src/tree_state.dart';
-import 'package:tree_state_machine/tree_state_machine.dart';
+import 'lazy.dart';
+import 'tree_state.dart';
 
 typedef InitialChild = StateKey Function(TransitionContext ctx);
 typedef StateCreator<T> = T Function(StateKey key);
