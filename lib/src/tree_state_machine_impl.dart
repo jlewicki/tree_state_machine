@@ -106,7 +106,7 @@ class Machine {
 
   HandledMessage _handleInternalTransition(
       InternalTransitionResult result, MachineMessageContext msgCtx) {
-    // Note that ann internal transition means that the current leaf state is maintained, even if
+    // Note that an internal transition means that the current leaf state is maintained, even if
     // the internal transition is returned by an ancestor node.
     return HandledMessage(
         msgCtx.message, msgCtx.receivingNode.key, msgCtx.handlingNode.key, [], []);
@@ -126,7 +126,7 @@ class Machine {
     // - the initialChild path of the ancestor should be followed to determine the appropriate leaf
     //   state?
     // - the current leaf state should be maintained?
-    // This implmentation follows the second approach, since it seems more consistent with the
+    // This implementation follows the second approach, since it seems more consistent with the
     // notion of an internal transition.
     //
     // Note that all of the states from the current leaf state to the handling ancestor node will be
