@@ -87,42 +87,62 @@ void main() {
     });
 
     group('processMessage', () {
-      test('should handle message with current state', () async {
-        final buildTree = flat_tree.treeBuilder(state1Handler: (msgCtx) {
-          return msgCtx.goTo(flat_tree.r_2_key);
+      group('handled message', () {
+        test('should handle message with current state', () async {
+          final buildTree = flat_tree.treeBuilder(state1Handler: (msgCtx) {
+            return msgCtx.goTo(flat_tree.r_2_key);
+          });
+          final buildCtx = BuildContext();
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+
+          final msgProcessed = await machine.processMessage(Object(), flat_tree.r_1_key);
+
+          expect(msgProcessed, isA<HandledMessage>());
+          final handled = msgProcessed as HandledMessage;
+          expect(handled.receivingState, equals(flat_tree.r_1_key));
+          expect(handled.handlingState, equals(flat_tree.r_1_key));
+          expect(handled.exitedStates, orderedEquals([flat_tree.r_1_key]));
+          expect(handled.enteredStates, orderedEquals([flat_tree.r_2_key]));
         });
-        final buildCtx = BuildContext();
-        final rootNode = buildTree(buildCtx);
-        final machine = Machine(rootNode, buildCtx.nodes);
 
-        final msgProcessed = await machine.processMessage(Object(), flat_tree.r_1_key);
-
-        expect(msgProcessed, isA<HandledMessage>());
-        final handled = msgProcessed as HandledMessage;
-        expect(handled.receivingState, equals(flat_tree.r_1_key));
-        expect(handled.handlingState, equals(flat_tree.r_1_key));
-        expect(handled.exitedStates, orderedEquals([flat_tree.r_1_key]));
-        expect(handled.enteredStates, orderedEquals([flat_tree.r_2_key]));
-      });
-
-      test('should handle message with ancestor states if current state does not handle', () async {
-        final buildTree = treeBuilder(
-          r_a_handler: (msgCtx) {
+        test('should handle message with ancestor states if unhandled by current state', () async {
+          final buildTree = treeBuilder(r_a_handler: (msgCtx) {
             return msgCtx.goTo(r_b_1_key);
-          },
-        );
-        final buildCtx = BuildContext();
-        final rootNode = buildTree(buildCtx);
-        final machine = Machine(rootNode, buildCtx.nodes);
+          });
+          final buildCtx = BuildContext();
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
 
-        final msgProcessed = await machine.processMessage(Object(), r_a_a_1_key);
+          final msgProcessed = await machine.processMessage(Object(), r_a_a_1_key);
 
-        expect(msgProcessed, isA<HandledMessage>());
-        final handled = msgProcessed as HandledMessage;
-        expect(handled.receivingState, equals(r_a_a_1_key));
-        expect(handled.handlingState, equals(r_a_key));
-        expect(handled.exitedStates, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
-        expect(handled.enteredStates, orderedEquals([r_b_key, r_b_1_key]));
+          expect(msgProcessed, isA<HandledMessage>());
+          final handled = msgProcessed as HandledMessage;
+          expect(handled.receivingState, equals(r_a_a_1_key));
+          expect(handled.handlingState, equals(r_a_key));
+          expect(handled.exitedStates, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
+          expect(handled.enteredStates, orderedEquals([r_b_key, r_b_1_key]));
+        });
+
+        test('should follow initial children at to state', () async {
+          final buildTree = treeBuilder(r_a_a_1_handler: (msgCtx) {
+            return msgCtx.goTo(r_b_key);
+          });
+          final buildCtx = BuildContext();
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+          final msg = Object();
+
+          final msgProcessed = await machine.processMessage(msg, r_a_a_1_key);
+
+          expect(msgProcessed, isA<HandledMessage>());
+          final handled = msgProcessed as HandledMessage;
+          expect(handled.message, same(msg));
+          expect(handled.receivingState, equals(r_a_a_1_key));
+          expect(handled.handlingState, equals(r_a_a_1_key));
+          expect(handled.exitedStates, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
+          expect(handled.enteredStates, orderedEquals([r_b_key, r_b_1_key]));
+        });
       });
     });
   });
