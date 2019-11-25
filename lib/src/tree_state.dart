@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:meta/meta.dart';
-import 'package:tree_state_machine/tree_state_machine.dart';
 
 //
 // Keys
@@ -106,7 +105,10 @@ class MessageContext {
 abstract class TransitionContext {
   StateKey get from;
   StateKey get to;
-  Iterable<StateKey> path();
+  Iterable<StateKey> get path;
+  Iterable<StateKey> traversed();
+  Iterable<StateKey> get exited;
+  Iterable<StateKey> get entered;
 }
 
 /// Base class for describing the results of processing a state machine message.

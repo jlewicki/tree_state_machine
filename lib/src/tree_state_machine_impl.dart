@@ -18,12 +18,9 @@ class Machine {
         'This TreeStateMachine does not contain the specified initial state.',
       );
     }
-    final transCtx = MachineTransitionContext(rootNode, initialNode);
-    var entryPath = initialNode.selfAndAncestors().toList().reversed;
-    if (!initialNode.isLeaf) {
-      entryPath = entryPath.followedBy(_descendInitialChildren(initialNode, transCtx));
-    }
-    await _enterStates(entryPath, transCtx);
+    final path = NodePath.enterFromRoot(rootNode, initialNode);
+    final transCtx = MachineTransitionContext(path);
+    await _doTransition(transCtx, path.exiting, path.entering);
     return transCtx;
   }
 
@@ -80,11 +77,9 @@ class Machine {
     bool isSelfTransition = false,
   }) async {
     var toNode = _node(result.toStateKey);
-    final transCtx = MachineTransitionContext(msgCtx.receivingNode, toNode);
-    final initialChildren = _descendInitialChildren(toNode, transCtx);
-    toNode = initialChildren.isEmpty ? toNode : initialChildren.last;
-    final path = _path(msgCtx.receivingNode, toNode);
-    await _doTransition(transCtx, path.exitingNodes, path.enteringNodes, result.transitionAction);
+    final path = NodePath(msgCtx.receivingNode, toNode);
+    final transCtx = MachineTransitionContext(path);
+    await _doTransition(transCtx, path.exiting, path.entering, result.transitionAction);
     return HandledMessage(
       msgCtx.message,
       msgCtx.receivingNode.key,
@@ -130,11 +125,9 @@ class Machine {
     //
     // Note that all of the states from the current leaf state to the handling ancestor node will be
     // re-entered.
-    final handlingParent = msgCtx.handlingNode.parent;
-    final exitingNodes = _path(msgCtx.receivingNode, handlingParent).path;
-    final enteringNodes = exitingNodes.toList().reversed;
-    final transCtx = MachineTransitionContext(msgCtx.receivingNode, msgCtx.receivingNode);
-    await _doTransition(transCtx, exitingNodes, enteringNodes, result.transitionAction);
+    final path = NodePath.reenter(msgCtx.receivingNode, msgCtx.handlingNode.parent);
+    final transCtx = MachineTransitionContext(path);
+    await _doTransition(transCtx, path.exiting, path.entering, result.transitionAction);
     return HandledMessage(
       msgCtx.message,
       msgCtx.receivingNode.key,
@@ -145,11 +138,8 @@ class Machine {
   }
 
   Future<void> _doTransition(
-    TransitionContext transCtx,
-    Iterable<TreeNode> exitingNodes,
-    Iterable<TreeNode> enteringNodes,
-    TransitionHandler transitionAction,
-  ) async {
+      TransitionContext transCtx, Iterable<TreeNode> exitingNodes, Iterable<TreeNode> enteringNodes,
+      [TransitionHandler transitionAction]) async {
     await _exitStates(exitingNodes, transCtx);
     if (transitionAction != null) {
       final futureOr = transitionAction(transCtx);
@@ -158,20 +148,27 @@ class Machine {
       }
     }
     await _enterStates(enteringNodes, transCtx);
+    await _enterInitialChildren(enteringNodes.last, transCtx, []);
   }
 
-  Iterable<TreeNode> _descendInitialChildren(
+  FutureOr<void> _enterInitialChildren(
     TreeNode parentNode,
     MachineTransitionContext ctx,
+    List<TreeNode> enteredNodes,
   ) {
-    final nodes = <TreeNode>[];
-    var currentNode = parentNode;
-    while (!currentNode.isLeaf) {
-      final initialChild = ctx.onInitialChild(currentNode);
-      nodes.add(initialChild);
-      currentNode = initialChild;
+    if (parentNode.isLeaf) {
+      return enteredNodes;
     }
-    return nodes;
+    final initialChild = ctx.onInitialChild(parentNode);
+    final onEnterfutureOr = ctx.onEnter(initialChild);
+    if (onEnterfutureOr is Future) {
+      return onEnterfutureOr.then((_) {
+        enteredNodes.add(initialChild);
+        return _enterInitialChildren(initialChild, ctx, enteredNodes);
+      });
+    }
+    enteredNodes.add(initialChild);
+    return _enterInitialChildren(initialChild, ctx, enteredNodes);
   }
 
   Future<void> _enterStates(
@@ -200,13 +197,6 @@ class Machine {
     }
   }
 
-  NodePath _path(TreeNode from, TreeNode to) {
-    final lcaNode = from.lcaWith(to);
-    final exitingNodes = from.selfAndAncestors().takeWhile((n) => n != lcaNode).toList();
-    final enteringNodes = to.selfAndAncestors().takeWhile((n) => n != lcaNode).toList().reversed;
-    return NodePath(exitingNodes, enteringNodes);
-  }
-
   TreeNode _node(StateKey key, [bool throwIfNotFound = true]) {
     final node = nodes[key];
     if (key == null && throwIfNotFound) {
@@ -219,21 +209,25 @@ class Machine {
 }
 
 class MachineTransitionContext implements TransitionContext {
-  final TreeNode fromNode;
+  final NodePath nodePath;
   TreeNode toNode;
   final List<TreeNode> _enteredNodes = [];
   final List<TreeNode> _exitedNodes = [];
 
-  MachineTransitionContext(this.fromNode, this.toNode);
+  MachineTransitionContext(this.nodePath) : toNode = nodePath.to;
 
   @override
-  StateKey get from => fromNode.key;
-
+  StateKey get from => nodePath.from.key;
   @override
   StateKey get to => toNode.key;
-
   @override
-  Iterable<StateKey> path() => _exitedNodes.followedBy(_enteredNodes).map((node) => node.key);
+  Iterable<StateKey> get path => nodePath.path.map((n) => n.key);
+  @override
+  Iterable<StateKey> get exited => _exitedNodes.map((n) => n.key);
+  @override
+  Iterable<StateKey> get entered => _enteredNodes.map((n) => n.key);
+  @override
+  Iterable<StateKey> traversed() => exited.followedBy(entered);
 
   Iterable<TreeNode> get exitedNodes => _exitedNodes;
   Iterable<TreeNode> get enteredNodes => _enteredNodes;
@@ -292,10 +286,39 @@ class MachineMessageContext extends MessageContext {
 }
 
 class NodePath {
-  final Iterable<TreeNode> exitingNodes;
-  final Iterable<TreeNode> enteringNodes;
-  NodePath(this.exitingNodes, this.enteringNodes);
-  Iterable<TreeNode> get path => exitingNodes.followedBy(enteringNodes);
+  final TreeNode from;
+  final TreeNode to;
+  final TreeNode lca;
+  final Iterable<TreeNode> path;
+  final Iterable<TreeNode> exiting;
+  final Iterable<TreeNode> entering;
+
+  NodePath._(this.from, this.to, this.lca, this.path, this.exiting, this.entering);
+
+  factory NodePath(TreeNode from, TreeNode to) {
+    final lca = from.lcaWith(to);
+    final exiting = from.selfAndAncestors().takeWhile((n) => n != lca).toList();
+    final entering = to.selfAndAncestors().takeWhile((n) => n != lca).toList().reversed.toList();
+    final path = exiting.followedBy(entering);
+    return NodePath._(from, to, lca, path, exiting, entering);
+  }
+
+  factory NodePath.reenter(TreeNode node, TreeNode from) {
+    final lca = node.lcaWith(from);
+    assert(lca.key == from.key);
+    final exiting = node.selfAndAncestors().takeWhile((n) => n != lca).toList();
+    final entering = exiting.reversed.toList();
+    final path = exiting.followedBy(entering);
+    return NodePath._(node, node, lca, path, exiting, entering);
+  }
+
+  factory NodePath.enterFromRoot(TreeNode root, TreeNode to) {
+    assert(root.isRoot);
+    final exiting = <TreeNode>[];
+    final entering = to.selfAndAncestors().toList().reversed.toList();
+    final path = exiting.followedBy(entering);
+    return NodePath._(root, to, null, path, exiting, entering);
+  }
 }
 
 //.

@@ -71,7 +71,7 @@ class TreeStateMachine {
   }
 
   Transition _toTransition(MachineTransitionContext ctx) =>
-      Transition(ctx.from, ctx.to, ctx.path());
+      Transition(ctx.from, ctx.to, ctx.traversed());
 }
 
 class CurrentState {

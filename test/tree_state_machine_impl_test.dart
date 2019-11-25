@@ -21,7 +21,7 @@ void main() {
 
         expect(transCtx.to, equals(r_a_a_2_key));
         expect(
-          transCtx.path(),
+          transCtx.traversed(),
           orderedEquals([r_key, r_a_key, r_a_a_key, r_a_a_2_key]),
         );
       });
@@ -34,7 +34,7 @@ void main() {
         expect(transCtx.from, equals(r_key));
         expect(transCtx.to, equals(leafNode.key));
         expect(
-          transCtx.path().map((ref) => ref),
+          transCtx.traversed().map((ref) => ref),
           orderedEquals([r_key, r_b_key, r_b_1_key]),
         );
       });
@@ -49,7 +49,11 @@ void main() {
         expect(transCtx.from, equals(r_key));
         expect(transCtx.to, equals(r_a_a_2_key));
         expect(
-          transCtx.path(),
+          transCtx.path,
+          orderedEquals([r_key, r_a_key, r_a_a_key]),
+        );
+        expect(
+          transCtx.traversed(),
           orderedEquals([r_key, r_a_key, r_a_a_key, r_a_a_2_key]),
         );
       });
@@ -165,7 +169,10 @@ void main() {
               transitionAction: (ctx) {
                 actionCalled = true;
                 expect(ctx.from, equals(r_a_a_1_key));
-                expect(ctx.to, equals(r_b_1_key));
+                // Initial children have not been calculated yet, since r_b has not yet been entered, so toNode
+                // is still r_b_key
+                expect(ctx.to, equals(r_b_key));
+                expect(ctx.traversed(), orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
               },
             );
           });
@@ -285,11 +292,23 @@ void main() {
           var actionCalled = false;
 
           final buildTree = treeBuilder(r_a_handler: (msgCtx) {
-            return msgCtx.goToSelf(transitionAction: (ctx) {
-              actionCalled = true;
-              expect(ctx.from, equals(r_a_a_1_key));
-              expect(ctx.to, equals(r_a_a_1_key));
-            });
+            return msgCtx.goToSelf(
+              transitionAction: (ctx) {
+                actionCalled = true;
+                expect(ctx.from, equals(r_a_a_1_key));
+                expect(ctx.to, equals(r_a_a_1_key));
+                expect(
+                    ctx.path,
+                    equals([
+                      r_a_a_1_key,
+                      r_a_a_key,
+                      r_a_key,
+                      r_a_key,
+                      r_a_a_key,
+                      r_a_a_1_key,
+                    ]));
+              },
+            );
           });
           final buildCtx = BuildContext();
           final rootNode = buildTree(buildCtx);
