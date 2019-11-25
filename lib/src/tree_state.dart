@@ -54,6 +54,7 @@ typedef MessageHandler = FutureOr<MessageResult> Function(MessageContext ctx);
 final TransitionHandler emptyTransitionHandler = (_) {};
 final MessageHandler emptyMessageHandler = (ctx) => ctx.unhandled();
 
+/// Describes the behavior of an individual state withing a tree state machine.
 abstract class TreeState {
   FutureOr<void> onEnter(TransitionContext ctx) {}
   FutureOr<MessageResult> onMessage(MessageContext ctx);
@@ -102,12 +103,40 @@ class MessageContext {
   MessageResult unhandled() => UnhandledResult.value;
 }
 
+/// Describes a transition between states that is occuring in a tree state machine.
 abstract class TransitionContext {
+  /// The source state of the transition.
   StateKey get from;
+
+  /// The destination state of the transition. That is, the requested end state of the transition
+  /// when it was initiated.
+  ///
+  /// Note that this state is not necessarily the final end state of the transition. If this property
+  /// refers to a non-leaf state, then additional states will be traversed as the initial child
+  /// path rooted at this state is followed, to arrive at the final leaf state for this transition.
   StateKey get to;
+
+  /// The end state of the transition.
+  ///
+  /// This will refer to the final leaf state of the transition, including the result of following
+  /// the initial child path rooted at [to], if [to] referes to a non-leaf state.
+  StateKey get end;
+
+  /// The path of states in the tree starting at [from] and ending at [to].
   Iterable<StateKey> get path;
+
+  /// The path of states that has been currently been traversed (exited or entered) during this
+  /// transition.
   Iterable<StateKey> traversed();
+
+  /// The states that have currently been exited during this transition.
+  ///
+  /// The ordering in this collection reflects the order the states were exited.
   Iterable<StateKey> get exited;
+
+  /// The states that have currently been entered during this transition.
+  ///
+  /// The ordering in this collection reflects the order the states were entered.
   Iterable<StateKey> get entered;
 }
 

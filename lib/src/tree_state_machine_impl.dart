@@ -138,17 +138,28 @@ class Machine {
   }
 
   Future<void> _doTransition(
-      TransitionContext transCtx, Iterable<TreeNode> exitingNodes, Iterable<TreeNode> enteringNodes,
-      [TransitionHandler transitionAction]) async {
-    await _exitStates(exitingNodes, transCtx);
+    TransitionContext transCtx,
+    Iterable<TreeNode> nodesToExit,
+    Iterable<TreeNode> nodesToEnter, [
+    TransitionHandler transitionAction,
+  ]) async {
+    // Exit the requested states
+    await _exitStates(nodesToExit, transCtx);
+
+    // Invoke transition action after all states are exited, and before ant states are entered.
     if (transitionAction != null) {
       final futureOr = transitionAction(transCtx);
       if (futureOr is Future<void>) {
         await futureOr;
       }
     }
-    await _enterStates(enteringNodes, transCtx);
-    await _enterInitialChildren(enteringNodes.last, transCtx, []);
+
+    // Enter the requested states
+    await _enterStates(nodesToEnter, transCtx);
+
+    // Enter initial children, so that we end up at leaf state when the final nodeToEnter is not
+    // a leaf node
+    await _enterInitialChildren(nodesToEnter.last, transCtx, []);
   }
 
   FutureOr<void> _enterInitialChildren(
@@ -228,8 +239,11 @@ class MachineTransitionContext implements TransitionContext {
   Iterable<StateKey> get entered => _enteredNodes.map((n) => n.key);
   @override
   Iterable<StateKey> traversed() => exited.followedBy(entered);
+  @override
+  StateKey get end => exited.last;
 
   Iterable<TreeNode> get exitedNodes => _exitedNodes;
+
   Iterable<TreeNode> get enteredNodes => _enteredNodes;
 
   TreeNode onInitialChild(TreeNode parentNode) {
