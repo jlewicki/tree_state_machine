@@ -155,6 +155,36 @@ void main() {
           expect(handled.exitedStates, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
           expect(handled.enteredStates, orderedEquals([r_b_key, r_b_1_key]));
         });
+
+        test('should call transition action if provided', () async {
+          var actionCalled = false;
+
+          final buildTree = treeBuilder(r_a_a_1_handler: (msgCtx) {
+            return msgCtx.goTo(
+              r_b_key,
+              transitionAction: (ctx) {
+                actionCalled = true;
+                expect(ctx.from, equals(r_a_a_1_key));
+                expect(ctx.to, equals(r_b_1_key));
+              },
+            );
+          });
+          final buildCtx = BuildContext();
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+          final msg = Object();
+
+          final msgProcessed = await machine.processMessage(msg, r_a_a_1_key);
+
+          expect(msgProcessed, isA<HandledMessage>());
+          final handled = msgProcessed as HandledMessage;
+          expect(handled.message, same(msg));
+          expect(handled.receivingState, equals(r_a_a_1_key));
+          expect(handled.handlingState, equals(r_a_a_1_key));
+          expect(handled.exitedStates, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
+          expect(handled.enteredStates, orderedEquals([r_b_key, r_b_1_key]));
+          expect(actionCalled, isTrue);
+        });
       });
 
       group('UnhandledResult', () {
@@ -249,6 +279,31 @@ void main() {
           expect(handled.handlingState, equals(r_a_key));
           expect(handled.exitedStates, [r_a_a_1_key, r_a_a_key, r_a_key]);
           expect(handled.enteredStates, [r_a_key, r_a_a_key, r_a_a_1_key]);
+        });
+
+        test('should call transition action if provided', () async {
+          var actionCalled = false;
+
+          final buildTree = treeBuilder(r_a_handler: (msgCtx) {
+            return msgCtx.goToSelf(transitionAction: (ctx) {
+              actionCalled = true;
+              expect(ctx.from, equals(r_a_a_1_key));
+              expect(ctx.to, equals(r_a_a_1_key));
+            });
+          });
+          final buildCtx = BuildContext();
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+
+          final msgProcessed = await machine.processMessage(Object(), r_a_a_1_key);
+
+          expect(msgProcessed, isA<HandledMessage>());
+          final handled = msgProcessed as HandledMessage;
+          expect(handled.receivingState, equals(r_a_a_1_key));
+          expect(handled.handlingState, equals(r_a_key));
+          expect(handled.exitedStates, [r_a_a_1_key, r_a_a_key, r_a_key]);
+          expect(handled.enteredStates, [r_a_key, r_a_a_key, r_a_a_1_key]);
+          expect(actionCalled, isTrue);
         });
       });
     });

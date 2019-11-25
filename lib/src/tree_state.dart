@@ -67,13 +67,39 @@ class EmptyTreeState extends TreeState {
 }
 
 class MessageContext {
+  /// The message that is being processed by the state machine.
   final Object message;
+
   MessageContext(this.message) {
     ArgumentError.notNull('message');
   }
-  MessageResult goTo(StateKey targetStateKey) => GoToResult(targetStateKey);
+
+  /// Returns a [MessageResult] indicating that a transition to the specified state should occur.
+  ///
+  /// A [TransitionHandler] may optionally be specified, indicating a function that should be called
+  /// during the transition between states.
+  MessageResult goTo(StateKey targetStateKey, {TransitionHandler transitionAction}) =>
+      GoToResult(targetStateKey, transitionAction);
+
+  /// Returns a [MessageResult] indicating that an internal transition should occur.
+  ///
+  /// An internal transition means that the current state will not change, and no entry and exit
+  /// handlers will be called.
   MessageResult stay() => InternalTransitionResult.value;
-  MessageResult goToSelf() => SelfTransitionResult.value;
+
+  /// Returns a [MessageResult] indicating that a self-transition should occur.
+  ///
+  /// A self-transition means that the state that calls this method is exited and re-entered,
+  /// calling the handler functions for the state.
+  ///
+  /// If the calling state is a leaf state, only that state is re-entered. If the calling state is a
+  /// interior states, all the states from the current (i.e. leaf) state and the calling interior
+  /// state a re-enterd.
+  MessageResult goToSelf({TransitionHandler transitionAction}) =>
+      SelfTransitionResult(transitionAction);
+
+  /// Returns a [MessageResult] indicating the message could not be handled by a state, and that
+  /// ancestor states should be given an opportunity to handle the message.
   MessageResult unhandled() => UnhandledResult.value;
 }
 
@@ -83,9 +109,7 @@ abstract class TransitionContext {
   Iterable<StateKey> path();
 }
 
-//
-// Message Results
-//
+/// Base class for describing the results of processing a state machine message.
 abstract class MessageResult {
   MessageResult._();
 }
@@ -95,8 +119,8 @@ abstract class MessageResult {
 class GoToResult extends MessageResult {
   /// Indicates the state to which the state machine should transition.
   final StateKey toStateKey;
-
-  GoToResult(this.toStateKey) : super._();
+  final FutureOr<void> Function(TransitionContext) transitionAction;
+  GoToResult(this.toStateKey, [this.transitionAction]) : super._();
 }
 
 /// A [MessageResult] indicating that a message was sucessfully handled, and an internal transition
@@ -110,8 +134,8 @@ class InternalTransitionResult extends MessageResult {
 /// should occur. That is, current state should remain the same, but the exit and entry handlers for
 /// the state should be called.
 class SelfTransitionResult extends MessageResult {
-  SelfTransitionResult._() : super._();
-  static final SelfTransitionResult value = SelfTransitionResult._();
+  final FutureOr<void> Function(TransitionContext) transitionAction;
+  SelfTransitionResult([this.transitionAction]) : super._();
 }
 
 /// A [MessageResult] indicating that a state did not recognize or handle a message,
@@ -120,6 +144,7 @@ class UnhandledResult extends MessageResult {
   static final UnhandledResult value = UnhandledResult._();
 }
 
+/// A tree state that delegates its behavior to one or more external functions.
 class DelegateState extends TreeState {
   TransitionHandler entryHandler;
   TransitionHandler exitHandler;

@@ -84,8 +84,7 @@ class Machine {
     final initialChildren = _descendInitialChildren(toNode, transCtx);
     toNode = initialChildren.isEmpty ? toNode : initialChildren.last;
     final path = _path(msgCtx.receivingNode, toNode);
-    await _exitStates(path.exitingNodes, transCtx);
-    await _enterStates(path.enteringNodes, transCtx);
+    await _doTransition(transCtx, path.exitingNodes, path.enteringNodes, result.transitionAction);
     return HandledMessage(
       msgCtx.message,
       msgCtx.receivingNode.key,
@@ -135,8 +134,7 @@ class Machine {
     final exitingNodes = _path(msgCtx.receivingNode, handlingParent).path;
     final enteringNodes = exitingNodes.toList().reversed;
     final transCtx = MachineTransitionContext(msgCtx.receivingNode, msgCtx.receivingNode);
-    await _exitStates(exitingNodes, transCtx);
-    await _enterStates(enteringNodes, transCtx);
+    await _doTransition(transCtx, exitingNodes, enteringNodes, result.transitionAction);
     return HandledMessage(
       msgCtx.message,
       msgCtx.receivingNode.key,
@@ -144,6 +142,22 @@ class Machine {
       transCtx.exitedNodes.map((n) => n.key),
       transCtx.enteredNodes.map((n) => n.key),
     );
+  }
+
+  Future<void> _doTransition(
+    TransitionContext transCtx,
+    Iterable<TreeNode> exitingNodes,
+    Iterable<TreeNode> enteringNodes,
+    TransitionHandler transitionAction,
+  ) async {
+    await _exitStates(exitingNodes, transCtx);
+    if (transitionAction != null) {
+      final futureOr = transitionAction(transCtx);
+      if (futureOr is Future<void>) {
+        await futureOr;
+      }
+    }
+    await _enterStates(enteringNodes, transCtx);
   }
 
   Iterable<TreeNode> _descendInitialChildren(
