@@ -4,6 +4,8 @@ import 'package:tree_state_machine/src/tree_state.dart';
 
 class SimpleState extends EmptyTreeState {}
 
+class SimpleTerminalState extends TerminalTreeState {}
+
 void main() {
   var state = SimpleState();
   var stateKey = StateKey.named('state');
@@ -14,6 +16,8 @@ void main() {
   var parentState = SimpleState();
   var parentKey = StateKey.named('parent');
   var parentNode = TreeNode(parentKey, (key) => parentState, null);
+  var terminalState = SimpleTerminalState();
+  var terminalKey = StateKey.named('terminal');
 
   group('BuildLeaf', () {
     test('should build a leaf node', () {
@@ -160,6 +164,40 @@ void main() {
       rootNode.children.forEach((c) {
         expect(buildCtx.nodes[c.key], equals(c));
       });
+    });
+  });
+
+  group('BuildTerminal', () {
+    test('should build an terminal node', () {
+      var buildCtx = BuildContext(parentNode);
+
+      var buildTerminal = BuildTerminal.keyed(terminalKey, (key) => terminalState);
+      var terminalNode = buildTerminal(buildCtx);
+
+      expect(terminalNode, isNotNull);
+      expect(terminalNode.key, equals(terminalKey));
+      expect(terminalNode.isTerminal, isTrue);
+      expect(terminalNode.state(), same(terminalState));
+      expect(terminalNode.parent, same(parentNode));
+      expect(terminalNode.children, isEmpty);
+    });
+
+    test('should build a leaf node with type-based state key', () {
+      var buildCtx = BuildContext(parentNode);
+
+      var buildTerminal = BuildTerminal((key) => terminalState);
+      var terminalNode = buildTerminal(buildCtx);
+
+      expect(terminalNode.key, equals(StateKey.forState<SimpleTerminalState>()));
+    });
+
+    test('should add node to context', () {
+      var buildCtx = BuildContext(parentNode);
+
+      var buildTerminal = BuildTerminal.keyed(terminalKey, (key) => terminalState);
+      var terminalNode = buildTerminal(buildCtx);
+
+      expect(buildCtx.nodes[terminalKey], equals(terminalNode));
     });
   });
 

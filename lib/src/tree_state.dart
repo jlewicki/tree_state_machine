@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:meta/meta.dart';
-
 //
 // Keys
 //
@@ -59,6 +58,16 @@ abstract class TreeState {
   FutureOr<void> onEnter(TransitionContext ctx) {}
   FutureOr<MessageResult> onMessage(MessageContext ctx);
   FutureOr<void> onExit(TransitionContext ctx) {}
+}
+
+abstract class TerminalTreeState extends TreeState {
+  @nonVirtual
+  @override
+  FutureOr<void> onExit(TransitionContext ctx) {}
+
+  @nonVirtual
+  @override
+  FutureOr<MessageResult> onMessage(MessageContext ctx) => UnhandledResult.value;
 }
 
 class EmptyTreeState extends TreeState {
@@ -192,6 +201,19 @@ class DelegateState extends TreeState {
   FutureOr<MessageResult> onMessage(MessageContext ctx) => messageHandler(ctx);
   @override
   FutureOr<void> onExit(TransitionContext ctx) => exitHandler(ctx);
+}
+
+class DelegateTerminalState extends TerminalTreeState {
+  TransitionHandler entryHandler;
+
+  DelegateTerminalState({this.entryHandler}) {
+    entryHandler = entryHandler ?? emptyTransitionHandler;
+  }
+  @override
+  FutureOr<void> onEnter(TransitionContext ctx) => entryHandler(ctx);
+
+  @override
+  FutureOr<void> onExit(TransitionContext ctx) {}
 }
 
 // class StateData {}

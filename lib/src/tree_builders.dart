@@ -4,12 +4,13 @@ import 'lazy.dart';
 import 'tree_state.dart';
 
 typedef InitialChild = StateKey Function(TransitionContext ctx);
-typedef StateCreator<T> = T Function(StateKey key);
+typedef StateCreator<T extends TreeState> = T Function(StateKey key);
 
 class TreeNode {
   final Lazy<TreeState> _lazyState;
   final StateKey key;
   final TreeNode parent;
+  // Consider making this list of keys
   final List<TreeNode> children = [];
   final InitialChild initialChild;
 
@@ -26,9 +27,15 @@ class TreeNode {
     return TreeNode._(key, parent, lazyState, entryTransition);
   }
 
+  factory TreeNode.terminal(StateKey key, StateCreator<TreeState> createState, TreeNode parent) {
+    final lazyState = Lazy<TreeState>(() => createState(key));
+    return TerminalNode._(key, parent, lazyState);
+  }
+
   bool get isRoot => parent == null;
   bool get isLeaf => children.isEmpty;
   bool get isInterior => !isRoot && !isLeaf;
+  bool get isTerminal => this is TerminalNode;
   TreeState state() => _lazyState.value;
 
   Iterable<TreeNode> selfAndAncestors() sync* {
@@ -54,6 +61,11 @@ class TreeNode {
     assert(lca != null, 'LCA must not be null');
     return lca;
   }
+}
+
+class TerminalNode extends TreeNode {
+  TerminalNode._(StateKey key, TreeNode parent, Lazy<TreeState> lazyState)
+      : super._(key, parent, lazyState, null);
 }
 
 class BuildContext {
@@ -97,13 +109,15 @@ abstract class BuildChildNode extends BuildNode {}
 // A better solution is needed
 //
 
-class BuildRoot<T extends TreeState> implements BuildChildNode {
+class BuildRoot<T extends TreeState> implements BuildNode {
   final StateKey key;
   final StateCreator<T> state;
   final Iterable<BuildChildNode> children;
   final InitialChild initialChild;
+  final Iterable<BuildTerminal> terminalStates;
 
-  BuildRoot._(this.key, this.state, this.children, this.initialChild) {
+  BuildRoot._(this.key, this.state, this.children, this.initialChild, this.terminalStates) {
+    ArgumentError.checkNotNull(key, 'key');
     ArgumentError.checkNotNull(state, 'state');
     ArgumentError.checkNotNull(children, 'children');
     ArgumentError.checkNotNull(initialChild, 'initialChild');
@@ -116,16 +130,18 @@ class BuildRoot<T extends TreeState> implements BuildChildNode {
     @required StateCreator<T> state,
     @required Iterable<BuildChildNode> children,
     @required InitialChild initialChild,
+    Iterable<BuildTerminal> terminalStates,
   }) =>
-      BuildRoot._(StateKey.forState<T>(), state, children, initialChild);
+      BuildRoot._(StateKey.forState<T>(), state, children, initialChild, terminalStates ?? []);
 
   factory BuildRoot.keyed({
     @required StateKey key,
     @required StateCreator<T> state,
     @required Iterable<BuildChildNode> children,
     @required InitialChild initialChild,
+    Iterable<BuildTerminal> terminalStates,
   }) =>
-      BuildRoot._(key, state, children, initialChild);
+      BuildRoot._(key, state, children, initialChild, terminalStates ?? []);
 
   @override
   TreeNode call(BuildContext ctx) {
@@ -135,6 +151,7 @@ class BuildRoot<T extends TreeState> implements BuildChildNode {
     final root = TreeNode(key, state, null, initialChild);
     final childContext = ctx.childContext(root);
     root.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
+    root.children.addAll(terminalStates.map((childBuilder) => childBuilder(childContext)));
     ctx.addNode(root);
     return root;
   }
@@ -147,6 +164,7 @@ class BuildInterior<T extends TreeState> implements BuildChildNode {
   final InitialChild initialChild;
 
   BuildInterior._(this.key, this.state, this.children, this.initialChild) {
+    ArgumentError.checkNotNull(key, 'key');
     ArgumentError.checkNotNull(state, 'state');
     ArgumentError.checkNotNull(children, 'children');
     ArgumentError.checkNotNull(initialChild, 'initialChild');
@@ -184,7 +202,10 @@ class BuildLeaf<T extends TreeState> implements BuildChildNode {
   final StateKey key;
   final StateCreator<T> createState;
 
-  BuildLeaf._(this.key, this.createState);
+  BuildLeaf._(this.key, this.createState) {
+    ArgumentError.checkNotNull(key, 'key');
+    ArgumentError.checkNotNull(createState, 'createState');
+  }
 
   factory BuildLeaf(StateCreator<T> createState) =>
       BuildLeaf._(StateKey.forState<T>(), createState);
@@ -197,5 +218,28 @@ class BuildLeaf<T extends TreeState> implements BuildChildNode {
     final leaf = TreeNode(key, createState, ctx.parentNode);
     ctx.addNode(leaf);
     return leaf;
+  }
+}
+
+class BuildTerminal<T extends TerminalTreeState> extends BuildNode {
+  final StateKey key;
+  final StateCreator<T> createState;
+
+  BuildTerminal._(this.key, this.createState) {
+    ArgumentError.checkNotNull(key, 'key');
+    ArgumentError.checkNotNull(createState, 'createState');
+  }
+
+  factory BuildTerminal(StateCreator<T> createState) =>
+      BuildTerminal._(StateKey.forState<T>(), createState);
+
+  factory BuildTerminal.keyed(StateKey key, StateCreator<T> createState) =>
+      BuildTerminal._(key, createState);
+
+  @override
+  TreeNode call(BuildContext ctx) {
+    final terminal = TreeNode.terminal(key, createState, ctx.parentNode);
+    ctx.addNode(terminal);
+    return terminal;
   }
 }

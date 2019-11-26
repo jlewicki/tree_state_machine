@@ -33,6 +33,14 @@ class Machine {
         'This TreeStateMachine does not contain the specified state.',
       );
     }
+
+    // If the state machine is in a terminal state, do not dispatch the message for proccessing,
+    // since there is no point.
+    if (currentNode.isTerminal) {
+      final msgProcessed = UnhandledMessage(message, currentNode.key, []);
+      return Future.value(msgProcessed);
+    }
+
     final msgCtx = MachineMessageContext(message, currentNode);
     final msgResult = await _handleMessage(currentNode, msgCtx);
     return _handleMessageResult(msgResult, msgCtx);
@@ -76,7 +84,7 @@ class Machine {
     MachineMessageContext msgCtx, {
     bool isSelfTransition = false,
   }) async {
-    var toNode = _node(result.toStateKey);
+    final toNode = _node(result.toStateKey);
     final path = NodePath(msgCtx.receivingNode, toNode);
     final transCtx = MachineTransitionContext(path);
     await _doTransition(transCtx, path.exiting, path.entering, result.transitionAction);
@@ -138,7 +146,7 @@ class Machine {
   }
 
   Future<void> _doTransition(
-    TransitionContext transCtx,
+    MachineTransitionContext transCtx,
     Iterable<TreeNode> nodesToExit,
     Iterable<TreeNode> nodesToEnter, [
     TransitionHandler transitionAction,
@@ -173,7 +181,7 @@ class Machine {
     final initialChild = ctx.onInitialChild(parentNode);
     final onEnterfutureOr = ctx.onEnter(initialChild);
     if (onEnterfutureOr is Future) {
-      return onEnterfutureOr.then((_) {
+      return onEnterfutureOr.then((Object _) {
         enteredNodes.add(initialChild);
         return _enterInitialChildren(initialChild, ctx, enteredNodes);
       });

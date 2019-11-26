@@ -77,6 +77,26 @@ void main() {
         );
       });
 
+      test('should return unhandled if current state is terminal', () async {
+        final buildTree = treeBuilder(r_handler: (msgCtx) {
+          // Root state (or any states) should not have it's handler invoked
+          expect(false, isTrue);
+          return msgCtx.unhandled();
+        });
+        final buildCtx = BuildContext();
+        final rootNode = buildTree(buildCtx);
+        final machine = Machine(rootNode, buildCtx.nodes);
+
+        final msg = Object();
+        final msgProcessed = await machine.processMessage(msg, r_X_key);
+
+        expect(msgProcessed, isA<UnhandledMessage>());
+        final handled = msgProcessed as UnhandledMessage;
+        expect(handled.message, same(msg));
+        expect(handled.receivingState, equals(r_X_key));
+        expect(handled.notifiedStates, isEmpty);
+      });
+
       group('GoToResult', () {
         test('should handle message with current state', () async {
           final buildTree = flat_tree.treeBuilder(state1Handler: (msgCtx) {
