@@ -17,45 +17,19 @@ void main() {
       test('should follow initial children when starting at root', () async {
         final MachineTransitionContext transCtx = await machine.enterInitialState(rootNode.key);
 
-        expect(transCtx.from, equals(r_key));
-
-        expect(transCtx.to, equals(r_a_a_2_key));
-        expect(
-          transCtx.traversed(),
-          orderedEquals([r_key, r_a_key, r_a_a_key, r_a_a_2_key]),
-        );
+        expectPath(transCtx, [], [r_key, r_a_key, r_a_a_key, r_a_a_2_key]);
       });
 
       test('should descend to initial state when initial state is a leaf', () async {
-        final leafNode = buildCtx.nodes[r_b_1_key];
+        final MachineTransitionContext transCtx = await machine.enterInitialState(r_b_1_key);
 
-        final MachineTransitionContext transCtx = await machine.enterInitialState(leafNode.key);
-
-        expect(transCtx.from, equals(r_key));
-        expect(transCtx.to, equals(leafNode.key));
-        expect(
-          transCtx.traversed().map((ref) => ref),
-          orderedEquals([r_key, r_b_key, r_b_1_key]),
-        );
+        expectPath(transCtx, [], [r_key, r_b_key, r_b_1_key], to: r_b_1_key);
       });
 
-      test(
-          'should descend to initial state, then follow initial children, when initial state an interior',
-          () async {
-        final interiorNode = buildCtx.nodes[r_a_a_key];
+      test('should descend to initial state, then follow initial children', () async {
+        final MachineTransitionContext transCtx = await machine.enterInitialState(r_a_a_key);
 
-        final MachineTransitionContext transCtx = await machine.enterInitialState(interiorNode.key);
-
-        expect(transCtx.from, equals(r_key));
-        expect(transCtx.to, equals(r_a_a_2_key));
-        expect(
-          transCtx.path,
-          orderedEquals([r_key, r_a_key, r_a_a_key]),
-        );
-        expect(
-          transCtx.traversed(),
-          orderedEquals([r_key, r_a_key, r_a_a_key, r_a_a_2_key]),
-        );
+        expectPath(transCtx, [], [r_key, r_a_key, r_a_a_key, r_a_a_2_key], to: r_a_a_key);
       });
 
       test('should throw if initialChild returns null', () {
@@ -169,8 +143,8 @@ void main() {
               transitionAction: (ctx) {
                 actionCalled = true;
                 expect(ctx.from, equals(r_a_a_1_key));
-                // Initial children have not been calculated yet, since r_b has not yet been entered, so toNode
-                // is still r_b_key
+                // Initial children have not been calculated yet, since r_b has not yet been
+                // entered, so toNode is still r_b_key
                 expect(ctx.to, equals(r_b_key));
                 expect(ctx.traversed(), orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
               },
@@ -327,4 +301,27 @@ void main() {
       });
     });
   });
+}
+
+void expectPath(
+  TransitionContext transCtx,
+  Iterable<StateKey> exited,
+  Iterable<StateKey> entered, {
+  StateKey to,
+}) {
+  expect(transCtx.from, equals(exited.isNotEmpty ? exited.first : entered.first));
+  expect(transCtx.end, equals(entered.last));
+  if (to != null) {
+    expect(transCtx.to, equals(to));
+    expect(
+      transCtx.path,
+      orderedEquals(exited.followedBy(entered.takeWhile((e) => e != to).followedBy([to]))),
+    );
+  }
+  expect(transCtx.exited, orderedEquals(exited));
+  expect(transCtx.entered, orderedEquals(entered));
+  expect(
+    transCtx.traversed(),
+    orderedEquals(exited.followedBy(entered)),
+  );
 }

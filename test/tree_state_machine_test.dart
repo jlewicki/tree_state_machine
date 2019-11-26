@@ -41,7 +41,7 @@ void main() {
 
         expect(sm.currentState, isNotNull);
         expect(sm.currentState.key, equals(deep_tree.r_a_a_2_key));
-        expect(sm.currentState.key, equals(initialTransition.to));
+        expect(sm.currentState.key, equals(initialTransition.end));
       });
 
       test('should emit transition', () async {

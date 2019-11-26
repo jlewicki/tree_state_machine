@@ -64,14 +64,14 @@ class TreeStateMachine {
     }
 
     final transCtx = await _machine.enterInitialState(initialStateKey);
-    _currentState = CurrentState(transCtx.to, _machine.processMessage);
+    _currentState = CurrentState(transCtx.end, _machine.processMessage);
     _transitions.add(_toTransition(transCtx));
     _isStarted = true;
     return transCtx;
   }
 
   Transition _toTransition(MachineTransitionContext ctx) =>
-      Transition(ctx.from, ctx.to, ctx.traversed());
+      Transition(ctx.from, ctx.end, ctx.traversed());
 }
 
 class CurrentState {

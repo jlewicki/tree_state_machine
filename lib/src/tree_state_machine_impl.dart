@@ -230,7 +230,7 @@ class MachineTransitionContext implements TransitionContext {
   @override
   StateKey get from => nodePath.from.key;
   @override
-  StateKey get to => toNode.key;
+  StateKey get to => nodePath.to.key;
   @override
   Iterable<StateKey> get path => nodePath.path.map((n) => n.key);
   @override
@@ -240,7 +240,7 @@ class MachineTransitionContext implements TransitionContext {
   @override
   Iterable<StateKey> traversed() => exited.followedBy(entered);
   @override
-  StateKey get end => exited.last;
+  StateKey get end => entered.last;
 
   Iterable<TreeNode> get exitedNodes => _exitedNodes;
 
