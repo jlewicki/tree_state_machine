@@ -186,6 +186,26 @@ void main() {
           expect(handled.enteredStates, orderedEquals([r_b_key, r_b_1_key]));
           expect(actionCalled, isTrue);
         });
+
+        test('should go to terminal state', () async {
+          final buildTree = treeBuilder(r_a_a_1_handler: (msgCtx) {
+            return msgCtx.goTo(r_X_key);
+          });
+          final buildCtx = BuildContext();
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+          final msg = Object();
+
+          final msgProcessed = await machine.processMessage(msg, r_a_a_1_key);
+
+          expect(msgProcessed, isA<HandledMessage>());
+          final handled = msgProcessed as HandledMessage;
+          expect(handled.message, same(msg));
+          expect(handled.receivingState, equals(r_a_a_1_key));
+          expect(handled.handlingState, equals(r_a_a_1_key));
+          expect(handled.exitedStates, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
+          expect(handled.enteredStates, orderedEquals([r_X_key]));
+        });
       });
 
       group('UnhandledResult', () {

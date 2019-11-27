@@ -55,24 +55,35 @@ final MessageHandler emptyMessageHandler = (ctx) => ctx.unhandled();
 
 /// Describes the behavior of an individual state withing a tree state machine.
 abstract class TreeState {
-  FutureOr<void> onEnter(TransitionContext ctx) {}
-  FutureOr<MessageResult> onMessage(MessageContext ctx);
-  FutureOr<void> onExit(TransitionContext ctx) {}
+  FutureOr<void> onEnter(TransitionContext context) {}
+
+  /// Processes a message that has been sent to this state.
+  ///
+  /// The [MessageContext] argument describes the message that was sent. Subclasses can inspect this
+  /// message and trigger state transitions by calling various methods on this context, such as
+  /// [MessageContext.goTo].
+  ///
+  /// If the state does not recogize the message, it can call [MessageContext.unhandled]. The state
+  /// machine will then call [onMessage] on the parent state of this state, giving it an opportunity
+  /// to handle the message.
+  FutureOr<MessageResult> onMessage(MessageContext context);
+
+  FutureOr<void> onExit(TransitionContext context) {}
 }
 
 abstract class TerminalTreeState extends TreeState {
   @nonVirtual
   @override
-  FutureOr<void> onExit(TransitionContext ctx) {}
+  FutureOr<void> onExit(TransitionContext context) {}
 
   @nonVirtual
   @override
-  FutureOr<MessageResult> onMessage(MessageContext ctx) => UnhandledResult.value;
+  FutureOr<MessageResult> onMessage(MessageContext context) => UnhandledResult.value;
 }
 
 class EmptyTreeState extends TreeState {
   @override
-  FutureOr<MessageResult> onMessage(MessageContext ctx) => ctx.unhandled();
+  FutureOr<MessageResult> onMessage(MessageContext context) => context.unhandled();
 }
 
 class MessageContext {
@@ -196,11 +207,11 @@ class DelegateState extends TreeState {
     messageHandler = messageHandler ?? emptyMessageHandler;
   }
   @override
-  FutureOr<void> onEnter(TransitionContext ctx) => entryHandler(ctx);
+  FutureOr<void> onEnter(TransitionContext context) => entryHandler(context);
   @override
-  FutureOr<MessageResult> onMessage(MessageContext ctx) => messageHandler(ctx);
+  FutureOr<MessageResult> onMessage(MessageContext context) => messageHandler(context);
   @override
-  FutureOr<void> onExit(TransitionContext ctx) => exitHandler(ctx);
+  FutureOr<void> onExit(TransitionContext context) => exitHandler(context);
 }
 
 class DelegateTerminalState extends TerminalTreeState {
@@ -210,10 +221,10 @@ class DelegateTerminalState extends TerminalTreeState {
     entryHandler = entryHandler ?? emptyTransitionHandler;
   }
   @override
-  FutureOr<void> onEnter(TransitionContext ctx) => entryHandler(ctx);
+  FutureOr<void> onEnter(TransitionContext context) => entryHandler(context);
 
   @override
-  FutureOr<void> onExit(TransitionContext ctx) {}
+  FutureOr<void> onExit(TransitionContext context) {}
 }
 
 // class StateData {}

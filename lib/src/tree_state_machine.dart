@@ -41,8 +41,15 @@ class TreeStateMachine {
     return TreeStateMachine._(machine);
   }
 
+  /// Indicates if [start] has been called.
   bool get isStarted => _isStarted;
+
   CurrentState get currentState => _currentState;
+
+  /// Stream of [Transition] events.
+  ///
+  /// A [Transition] is emitted on this stream when a state transition occurs within the state
+  /// machine.
   Stream<Transition> get transitions => _transitions.stream;
 
   /// Starts the state machine, transitioning the current state to the initial state of the state
