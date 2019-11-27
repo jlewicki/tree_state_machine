@@ -28,15 +28,14 @@ class Machine {
     return transCtx;
   }
 
-  // Processes the specified message by dispatching it to the node identified by currentStateKey.
-  Future<MessageProcessed> processMessage(Object message, StateKey currentStateKey) async {
-    final currentNode = nodes[currentStateKey];
+  // Processes the specified message by dispatching it to the current node.
+  Future<MessageProcessed> processMessage(Object message, [StateKey initialStateKey]) async {
+    // Auto initializing makes testing easier, but may want to rethink this.
     if (currentNode == null) {
-      throw ArgumentError.value(
-        currentStateKey,
-        'currentStateKey',
-        'This TreeStateMachine does not contain the specified state.',
-      );
+      final _initialStateKey = initialStateKey ?? rootNode.key;
+      final initialNode = nodes[_initialStateKey];
+      assert(initialNode != null, 'Unable to find initial state ${initialStateKey}');
+      await enterInitialState(initialNode.key);
     }
 
     // If the state machine is in a terminal state, do not dispatch the message for proccessing,
@@ -150,12 +149,14 @@ class Machine {
     );
   }
 
-  Future<MachineTransitionContext> _doTransition(NodePath path,
-      [TransitionHandler transitionAction]) async {
+  Future<MachineTransitionContext> _doTransition(
+    NodePath path, [
+    TransitionHandler transitionAction,
+  ]) async {
     final transCtx = MachineTransitionContext(path);
 
     // Exit the requested states
-    await _exitStates(path.exiting, transCtx);
+    await _exitStates(path.exiting.iterator, transCtx);
 
     // Invoke transition action after all states are exited, and before ant states are entered.
     if (transitionAction != null) {
@@ -166,11 +167,11 @@ class Machine {
     }
 
     // Enter the requested states
-    await _enterStates(path.entering, transCtx);
+    await _enterStates(path.entering.iterator, transCtx);
 
     // Enter initial children, so that we end up at leaf state when the final nodeToEnter is not
     // a leaf node
-    await _enterInitialChildren(path.entering.last, transCtx, []);
+    await _enterInitialChildren(path.entering.last, transCtx);
 
     // Update current node after the transition is complete
     assert(transCtx.endNode.isLeaf, 'Entering initial state did not result in a leaf node');
@@ -182,45 +183,36 @@ class Machine {
   FutureOr<void> _enterInitialChildren(
     TreeNode parentNode,
     MachineTransitionContext ctx,
-    List<TreeNode> enteredNodes,
   ) {
-    if (parentNode.isLeaf) {
-      return enteredNodes;
+    if (!parentNode.isLeaf) {
+      final initialChild = ctx.onInitialChild(parentNode);
+      final onEnterFutureOr = ctx.onEnter(initialChild);
+      return onEnterFutureOr is Future
+          ? onEnterFutureOr.then((Object _) => _enterInitialChildren(initialChild, ctx))
+          : _enterInitialChildren(initialChild, ctx);
     }
-    final initialChild = ctx.onInitialChild(parentNode);
-    final onEnterFutureOr = ctx.onEnter(initialChild);
-    if (onEnterFutureOr is Future) {
-      return onEnterFutureOr.then((Object _) {
-        enteredNodes.add(initialChild);
-        return _enterInitialChildren(initialChild, ctx, enteredNodes);
-      });
-    }
-    enteredNodes.add(initialChild);
-    return _enterInitialChildren(initialChild, ctx, enteredNodes);
   }
 
-  Future<void> _enterStates(
-    Iterable<TreeNode> nodesToEnter,
+  FutureOr<void> _enterStates(
+    Iterator<TreeNode> nodesToEnter,
     MachineTransitionContext transCtx,
-  ) async {
-    // If we use recursion/lazy evaluation can we avoid the await?
-    for (final node in nodesToEnter) {
-      final result = transCtx.onEnter(node);
+  ) {
+    while (nodesToEnter.moveNext()) {
+      final result = transCtx.onEnter(nodesToEnter.current);
       if (result is Future<void>) {
-        await result;
+        return result.then((Object _) => _enterStates(nodesToEnter, transCtx));
       }
     }
   }
 
-  Future<void> _exitStates(
-    Iterable<TreeNode> nodesToExit,
+  FutureOr<void> _exitStates(
+    Iterator<TreeNode> nodesToExit,
     MachineTransitionContext transCtx,
-  ) async {
-    // If we use recursion/lazy evaluation can we avoid the await?
-    for (final node in nodesToExit) {
-      final result = transCtx.onExit(node);
+  ) {
+    while (nodesToExit.moveNext()) {
+      final result = transCtx.onExit(nodesToExit.current);
       if (result is Future<void>) {
-        await result;
+        return result.then((Object _) => _exitStates(nodesToExit, transCtx));
       }
     }
   }

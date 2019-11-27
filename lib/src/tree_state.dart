@@ -231,7 +231,7 @@ class DelegateState extends TreeState {
 class DelegateTerminalState extends TerminalTreeState {
   TransitionHandler entryHandler;
 
-  DelegateTerminalState({this.entryHandler}) {
+  DelegateTerminalState(this.entryHandler) {
     entryHandler = entryHandler ?? emptyTransitionHandler;
   }
   @override
@@ -241,7 +241,15 @@ class DelegateTerminalState extends TerminalTreeState {
   FutureOr<void> onExit(TransitionContext context) {}
 }
 
-// class StateData {}
+// Food for thought
+// typedef L<T> = List<T> Function<S>(S, {T Function(int, S) factory});
+// https://github.com/dart-lang/sdk/blob/master/docs/language/informal/generic-function-type-alias.md
+
+// abstract class StateData {}
+// /**
+//  * Represents a state within a tree (i.e. hierarchical) state machine that has associated state data of type [D].
+//  */
+// abstract class DataTreeState<D extends StateData> extends TreeState {}
 
 // /**
 //  * Represents a state within a tree (i.e. hierarchical) state machine that has associated state data of type [D].

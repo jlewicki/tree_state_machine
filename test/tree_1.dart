@@ -12,47 +12,56 @@ final r_b_1_key = StateKey.named('r_b_1');
 final r_X_key = StateKey.named('r_X');
 
 BuildRoot treeBuilder({
-  MessageHandler r_handler,
-  MessageHandler r_a_handler,
-  MessageHandler r_a_a_handler,
-  MessageHandler r_a_a_1_handler,
-  MessageHandler r_a_a_2_handler,
-  MessageHandler r_a_1_handler,
-  MessageHandler r_b_handler,
-  MessageHandler r_b_1_handler,
-  TransitionHandler r_X_onEnter,
+  TransitionHandler createEntryHandler(StateKey key),
+  TransitionHandler createExitHandler(StateKey key),
+  MessageHandler createMessageHandler(StateKey key),
+  Map<StateKey, TransitionHandler> entryHandlers,
+  Map<StateKey, MessageHandler> messageHandlers,
+  Map<StateKey, TransitionHandler> exitHandlers,
 }) {
+  final _createEntryHandler = createEntryHandler ?? (_) => emptyTransitionHandler;
+  final _createExitHandler = createExitHandler ?? (_) => emptyTransitionHandler;
+  final _createMessageHandler = createMessageHandler ?? (_) => emptyMessageHandler;
+  final _entryHandlers = entryHandlers ?? {};
+  final _messageHandlers = messageHandlers ?? {};
+  final _exitHandlers = exitHandlers ?? {};
+
+  DelegateState createState(StateKey key) => DelegateState(
+      entryHandler: _entryHandlers[key] ?? _createEntryHandler(key),
+      messageHandler: _messageHandlers[key] ?? _createMessageHandler(key),
+      exitHandler: _exitHandlers[key] ?? _createExitHandler(key));
+
   return BuildRoot.keyed(
     key: r_key,
-    state: (key) => DelegateState(messageHandler: r_handler),
+    state: createState,
     initialChild: (_) => r_a_key,
     terminalStates: [
-      BuildTerminal.keyed(r_X_key, (key) => DelegateTerminalState(entryHandler: r_X_onEnter)),
+      BuildTerminal.keyed(r_X_key, (key) => DelegateTerminalState(_exitHandlers[key])),
     ],
     children: [
       BuildInterior.keyed(
         key: r_a_key,
-        state: (key) => DelegateState(messageHandler: r_a_handler),
+        state: createState,
         initialChild: (_) => r_a_a_key,
         children: [
           BuildInterior.keyed(
             key: r_a_a_key,
-            state: (key) => DelegateState(messageHandler: r_a_a_handler),
+            state: createState,
             initialChild: (_) => r_a_a_2_key,
             children: [
-              BuildLeaf.keyed(r_a_a_1_key, (key) => DelegateState(messageHandler: r_a_a_1_handler)),
-              BuildLeaf.keyed(r_a_a_2_key, (key) => DelegateState(messageHandler: r_a_a_2_handler)),
+              BuildLeaf.keyed(r_a_a_1_key, createState),
+              BuildLeaf.keyed(r_a_a_2_key, createState),
             ],
           ),
-          BuildLeaf.keyed(r_a_1_key, (key) => DelegateState(messageHandler: r_a_1_handler)),
+          BuildLeaf.keyed(r_a_1_key, createState),
         ],
       ),
       BuildInterior.keyed(
         key: r_b_key,
-        state: (key) => DelegateState(messageHandler: r_b_handler),
+        state: createState,
         initialChild: (_) => r_b_1_key,
         children: [
-          BuildLeaf.keyed(r_b_1_key, (key) => DelegateState(messageHandler: r_b_1_handler)),
+          BuildLeaf.keyed(r_b_1_key, createState),
         ],
       ),
     ],

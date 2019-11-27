@@ -78,10 +78,12 @@ void main() {
       });
 
       test('should return unhandled if current state is terminal', () async {
-        final buildTree = treeBuilder(r_handler: (msgCtx) {
-          // Root state (or any states) should not have it's handler invoked
-          expect(false, isTrue);
-          return msgCtx.unhandled();
+        final buildTree = treeBuilder(messageHandlers: {
+          r_key: (msgCtx) {
+            // Root state (or any states) should not have it's handler invoked
+            expect(false, isTrue);
+            return msgCtx.unhandled();
+          }
         });
         final buildCtx = BuildContext();
         final rootNode = buildTree(buildCtx);
@@ -117,8 +119,10 @@ void main() {
         });
 
         test('should handle message with ancestor states if unhandled by current state', () async {
-          final buildTree = treeBuilder(r_a_handler: (msgCtx) {
-            return msgCtx.goTo(r_b_1_key);
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_key: (msgCtx) {
+              return msgCtx.goTo(r_b_1_key);
+            }
           });
           final buildCtx = BuildContext();
           final rootNode = buildTree(buildCtx);
@@ -135,9 +139,11 @@ void main() {
         });
 
         test('should follow initial children at to state', () async {
-          final buildTree = treeBuilder(r_a_a_1_handler: (msgCtx) {
-            return msgCtx.goTo(r_b_key);
-          });
+          final buildTree = treeBuilder(
+            messageHandlers: {
+              r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_b_key),
+            },
+          );
           final buildCtx = BuildContext();
           final rootNode = buildTree(buildCtx);
           final machine = Machine(rootNode, buildCtx.nodes);
@@ -154,21 +160,59 @@ void main() {
           expect(handled.enteredStates, orderedEquals([r_b_key, r_b_1_key]));
         });
 
+        test('should call transition handlers in order', () async {
+          var order = 1;
+          final entryOrder = Map<StateKey, int>();
+          final exitOrder = Map<StateKey, int>();
+          TransitionHandler createEntryHandler(StateKey key) => (_) {
+                entryOrder[key] = order++;
+              };
+          TransitionHandler createExitHandler(StateKey key) => (_) {
+                exitOrder[key] = order++;
+              };
+
+          final buildTree = treeBuilder(
+            createEntryHandler: createEntryHandler,
+            createExitHandler: createExitHandler,
+            messageHandlers: {
+              r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_b_key),
+            },
+          );
+          final buildCtx = BuildContext();
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+
+          await machine.enterInitialState(r_a_a_1_key);
+
+          // Reset order so we ignore the transitions from entering intial state
+          order = 1;
+          await machine.processMessage(Object());
+
+          var expectedOrder = 1;
+          for (final key in [r_a_a_1_key, r_a_a_key, r_a_key]) {
+            expect(exitOrder[key], equals(expectedOrder++));
+          }
+          for (final key in [r_b_key, r_b_1_key]) {
+            expect(entryOrder[key], equals(expectedOrder++));
+          }
+        });
+
         test('should call transition action if provided', () async {
           var actionCalled = false;
-
-          final buildTree = treeBuilder(r_a_a_1_handler: (msgCtx) {
-            return msgCtx.goTo(
-              r_b_key,
-              transitionAction: (ctx) {
-                actionCalled = true;
-                expect(ctx.from, equals(r_a_a_1_key));
-                // Initial children have not been calculated yet, since r_b has not yet been
-                // entered, so toNode is still r_b_key
-                expect(ctx.to, equals(r_b_key));
-                expect(ctx.traversed(), orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
-              },
-            );
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_a_1_key: (msgCtx) {
+              return msgCtx.goTo(
+                r_b_key,
+                transitionAction: (ctx) {
+                  actionCalled = true;
+                  expect(ctx.from, equals(r_a_a_1_key));
+                  // Initial children have not been calculated yet, since r_b has not yet been
+                  // entered, so toNode is still r_b_key
+                  expect(ctx.to, equals(r_b_key));
+                  expect(ctx.traversed(), orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
+                },
+              );
+            }
           });
           final buildCtx = BuildContext();
           final rootNode = buildTree(buildCtx);
@@ -188,8 +232,10 @@ void main() {
         });
 
         test('should go to terminal state', () async {
-          final buildTree = treeBuilder(r_a_a_1_handler: (msgCtx) {
-            return msgCtx.goTo(r_X_key);
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_a_1_key: (msgCtx) {
+              return msgCtx.goTo(r_X_key);
+            }
           });
           final buildCtx = BuildContext();
           final rootNode = buildTree(buildCtx);
@@ -228,8 +274,10 @@ void main() {
 
       group('InternalTransitionResult', () {
         test('should stay in current state when current state is handling state', () async {
-          final buildTree = treeBuilder(r_a_a_1_handler: (msgCtx) {
-            return msgCtx.stay();
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_a_1_key: (msgCtx) {
+              return msgCtx.stay();
+            }
           });
           final buildCtx = BuildContext();
           final rootNode = buildTree(buildCtx);
@@ -246,8 +294,10 @@ void main() {
         });
 
         test('should stay in current state when ancestor state is handling state', () async {
-          final buildTree = treeBuilder(r_a_handler: (msgCtx) {
-            return msgCtx.stay();
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_key: (msgCtx) {
+              return msgCtx.stay();
+            }
           });
           final buildCtx = BuildContext();
           final rootNode = buildTree(buildCtx);
@@ -266,8 +316,10 @@ void main() {
 
       group('SelfTransitionResult', () {
         test('should re-enter leaf state when current state is handling state', () async {
-          final buildTree = treeBuilder(r_a_a_1_handler: (msgCtx) {
-            return msgCtx.goToSelf();
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_a_1_key: (msgCtx) {
+              return msgCtx.goToSelf();
+            }
           });
           final buildCtx = BuildContext();
           final rootNode = buildTree(buildCtx);
@@ -285,8 +337,10 @@ void main() {
 
         test('should re-enter leaf and interior states when interior state is handling state',
             () async {
-          final buildTree = treeBuilder(r_a_handler: (msgCtx) {
-            return msgCtx.goToSelf();
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_key: (msgCtx) {
+              return msgCtx.goToSelf();
+            }
           });
           final buildCtx = BuildContext();
           final rootNode = buildTree(buildCtx);
@@ -304,25 +358,26 @@ void main() {
 
         test('should call transition action if provided', () async {
           var actionCalled = false;
-
-          final buildTree = treeBuilder(r_a_handler: (msgCtx) {
-            return msgCtx.goToSelf(
-              transitionAction: (ctx) {
-                actionCalled = true;
-                expect(ctx.from, equals(r_a_a_1_key));
-                expect(ctx.to, equals(r_a_a_1_key));
-                expect(
-                    ctx.path,
-                    equals([
-                      r_a_a_1_key,
-                      r_a_a_key,
-                      r_a_key,
-                      r_a_key,
-                      r_a_a_key,
-                      r_a_a_1_key,
-                    ]));
-              },
-            );
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_key: (msgCtx) {
+              return msgCtx.goToSelf(
+                transitionAction: (ctx) {
+                  actionCalled = true;
+                  expect(ctx.from, equals(r_a_a_1_key));
+                  expect(ctx.to, equals(r_a_a_1_key));
+                  expect(
+                      ctx.path,
+                      equals([
+                        r_a_a_1_key,
+                        r_a_a_key,
+                        r_a_key,
+                        r_a_key,
+                        r_a_a_key,
+                        r_a_a_1_key,
+                      ]));
+                },
+              );
+            }
           });
           final buildCtx = BuildContext();
           final rootNode = buildTree(buildCtx);
