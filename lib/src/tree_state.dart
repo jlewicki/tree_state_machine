@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:meta/meta.dart';
-
 //
 // Keys
 //
@@ -48,55 +47,209 @@ class _TypeLiteral<T> {
 // States
 //
 
-typedef TransitionHandler = FutureOr<void> Function(TransitionContext ctx);
-typedef MessageHandler = FutureOr<MessageResult> Function(MessageContext ctx);
-
+/// An individual state within a tree state machine.
+///
+/// A tree state is defined by its behavior in response to messages, represented by the [onMessage]
+/// implementation.
 abstract class TreeState {
-  FutureOr<void> onEnter(TransitionContext ctx) {}
-  FutureOr<MessageResult> onMessage(MessageContext ctx);
-  FutureOr<void> onExit(TransitionContext ctx) {}
+  FutureOr<void> onEnter(TransitionContext context) {}
+
+  /// Processes a message that has been sent to this state.
+  ///
+  /// The [MessageContext] argument describes the message that was sent. Subclasses can inspect this
+  /// message and trigger state transitions by calling various methods on this context, such as
+  /// [MessageContext.goTo].
+  ///
+  /// If the state does not recognize the message, it can call [MessageContext.unhandled]. The state
+  /// machine will then call [onMessage] on the parent state of this state, giving it an opportunity
+  /// to handle the message.
+  FutureOr<MessageResult> onMessage(MessageContext context);
+
+  FutureOr<void> onExit(TransitionContext context) {}
 }
 
-class EmptyTreeState extends TreeState {
+/// A terminal (final) state within a tree state machine.
+///
+/// A terminal state indicates that that state machine has completed processing. No further message
+/// handline or state transitions can occur once a terminal state has been entered.
+///
+/// A tree state machine may contain as many terminal states as necessary, in order to reflect the
+/// different completion conditions of the state tree.
+abstract class TerminalTreeState extends TreeState {
+  @nonVirtual
   @override
-  FutureOr<MessageResult> onMessage(MessageContext ctx) => ctx.unhandled();
-}
+  FutureOr<void> onExit(TransitionContext context) {
+    throw StateError('Can not leave a terminal state.');
+  }
 
-class MessageContext {
-  MessageResult goTo(StateKey targetStateKey) => GoToResult(targetStateKey);
-  MessageResult unhandled() => UnhandledResult.value;
-}
-
-class TreeStateRef {
-  final StateKey key;
-  // More fields?
-  TreeStateRef(this.key) {
-    ArgumentError.checkNotNull(key, 'key');
+  @nonVirtual
+  @override
+  FutureOr<MessageResult> onMessage(MessageContext context) {
+    throw StateError('Can not send message to a terminal state');
   }
 }
 
+typedef TransitionHandler = FutureOr<void> Function(TransitionContext ctx);
+typedef MessageHandler = FutureOr<MessageResult> Function(MessageContext ctx);
+
+final TransitionHandler emptyTransitionHandler = (_) {};
+final MessageHandler emptyMessageHandler = (ctx) => ctx.unhandled();
+
+class EmptyTreeState extends TreeState {
+  @override
+  FutureOr<MessageResult> onMessage(MessageContext context) => context.unhandled();
+}
+
+class MessageContext {
+  /// The message that is being processed by the state machine.
+  final Object message;
+
+  MessageContext(this.message) {
+    ArgumentError.notNull('message');
+  }
+
+  /// Returns a [MessageResult] indicating that a transition to the specified state should occur.
+  ///
+  /// A [TransitionHandler] may optionally be specified, indicating a function that should be called
+  /// during the transition between states.
+  MessageResult goTo(StateKey targetStateKey, {TransitionHandler transitionAction}) =>
+      GoToResult(targetStateKey, transitionAction);
+
+  /// Returns a [MessageResult] indicating that an internal transition should occur.
+  ///
+  /// An internal transition means that the current state will not change, and no entry and exit
+  /// handlers will be called.
+  MessageResult stay() => InternalTransitionResult.value;
+
+  /// Returns a [MessageResult] indicating that a self-transition should occur.
+  ///
+  /// A self-transition means that the state that calls this method is exited and re-entered,
+  /// calling the handler functions for the state.
+  ///
+  /// If the calling state is a leaf state, only that state is re-entered. If the calling state is a
+  /// interior states, all the states from the current (i.e. leaf) state and the calling interior
+  /// state a re-enterd.
+  MessageResult goToSelf({TransitionHandler transitionAction}) =>
+      SelfTransitionResult(transitionAction);
+
+  /// Returns a [MessageResult] indicating the message could not be handled by a state, and that
+  /// ancestor states should be given an opportunity to handle the message.
+  MessageResult unhandled() => UnhandledResult.value;
+}
+
+/// Describes a transition between states that is occuring in a tree state machine.
 abstract class TransitionContext {
-  TreeStateRef get fromState;
-  TreeStateRef get toState;
-  Iterable<TreeStateRef> transitionPath();
+  /// The source state of the transition.
+  StateKey get from;
+
+  /// The destination state of the transition. That is, the requested end state of the transition
+  /// when it was initiated.
+  ///
+  /// Note that this state is not necessarily the final end state of the transition. If this property
+  /// refers to a non-leaf state, then additional states will be traversed as the initial child
+  /// path rooted at this state is followed, to arrive at the final leaf state for this transition.
+  StateKey get to;
+
+  /// The end state of the transition.
+  ///
+  /// This will refer to the final leaf state of the transition, including the result of following
+  /// the initial child path rooted at [to], if [to] referes to a non-leaf state.
+  StateKey get end;
+
+  /// The path of states in the tree starting at [from] and ending at [to].
+  Iterable<StateKey> get path;
+
+  /// The path of states that has been currently been traversed (exited or entered) during this
+  /// transition.
+  Iterable<StateKey> traversed();
+
+  /// The states that have currently been exited during this transition.
+  ///
+  /// The ordering in this collection reflects the order the states were exited.
+  Iterable<StateKey> get exited;
+
+  /// The states that have currently been entered during this transition.
+  ///
+  /// The ordering in this collection reflects the order the states were entered.
+  Iterable<StateKey> get entered;
 }
 
-//
-// Message Results
-//
-abstract class MessageResult {}
+/// Base class for describing the results of processing a state machine message.
+abstract class MessageResult {
+  MessageResult._();
+}
 
+/// A [MessageResult] indicating that a message was sucessfully handled, and a transition to a new
+/// state should occur.
 class GoToResult extends MessageResult {
-  GoToResult(this.targetStateKey);
-  final StateKey targetStateKey;
+  /// Indicates the state to which the state machine should transition.
+  final StateKey toStateKey;
+  final FutureOr<void> Function(TransitionContext) transitionAction;
+  GoToResult(this.toStateKey, [this.transitionAction]) : super._();
 }
 
+/// A [MessageResult] indicating that a message was sucessfully handled, and an internal transition
+/// should occur. That is, current state should remain the same.
+class InternalTransitionResult extends MessageResult {
+  InternalTransitionResult._() : super._();
+  static final InternalTransitionResult value = InternalTransitionResult._();
+}
+
+/// A [MessageResult] indicating that a message was sucessfully handled, and an self transition
+/// should occur. That is, current state should remain the same, but the exit and entry handlers for
+/// the state should be called.
+class SelfTransitionResult extends MessageResult {
+  final FutureOr<void> Function(TransitionContext) transitionAction;
+  SelfTransitionResult([this.transitionAction]) : super._();
+}
+
+/// A [MessageResult] indicating that a state did not recognize or handle a message,
 class UnhandledResult extends MessageResult {
-  UnhandledResult._();
+  UnhandledResult._() : super._();
   static final UnhandledResult value = UnhandledResult._();
 }
 
-// class StateData {}
+/// A tree state that delegates its behavior to one or more external functions.
+class DelegateState extends TreeState {
+  TransitionHandler entryHandler;
+  TransitionHandler exitHandler;
+  MessageHandler messageHandler;
+
+  DelegateState({this.entryHandler, this.exitHandler, this.messageHandler}) {
+    entryHandler = entryHandler ?? emptyTransitionHandler;
+    exitHandler = exitHandler ?? emptyTransitionHandler;
+    messageHandler = messageHandler ?? emptyMessageHandler;
+  }
+  @override
+  FutureOr<void> onEnter(TransitionContext context) => entryHandler(context);
+  @override
+  FutureOr<MessageResult> onMessage(MessageContext context) => messageHandler(context);
+  @override
+  FutureOr<void> onExit(TransitionContext context) => exitHandler(context);
+}
+
+class DelegateTerminalState extends TerminalTreeState {
+  TransitionHandler entryHandler;
+
+  DelegateTerminalState(this.entryHandler) {
+    entryHandler = entryHandler ?? emptyTransitionHandler;
+  }
+  @override
+  FutureOr<void> onEnter(TransitionContext context) => entryHandler(context);
+
+  @override
+  FutureOr<void> onExit(TransitionContext context) {}
+}
+
+// Food for thought
+// typedef L<T> = List<T> Function<S>(S, {T Function(int, S) factory});
+// https://github.com/dart-lang/sdk/blob/master/docs/language/informal/generic-function-type-alias.md
+
+// abstract class StateData {}
+// /**
+//  * Represents a state within a tree (i.e. hierarchical) state machine that has associated state data of type [D].
+//  */
+// abstract class DataTreeState<D extends StateData> extends TreeState {}
 
 // /**
 //  * Represents a state within a tree (i.e. hierarchical) state machine that has associated state data of type [D].

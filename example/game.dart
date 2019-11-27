@@ -10,9 +10,11 @@ class ChooseSpaceshipState extends EmptyTreeState {}
 
 var gameTree = BuildRoot(
   state: (key) => GameRootState(),
+  initialChild: (_) => StateKey.forState<GameStartingState>(),
   children: [
     BuildInterior(
       state: (key) => GameStartingState(),
+      initialChild: (_) => StateKey.forState<ChooseScenarioState>(),
       children: [
         BuildLeaf((key) => ChooseScenarioState()),
         BuildLeaf((key) => ChooseSpaceshipState()),

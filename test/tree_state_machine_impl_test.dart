@@ -1,152 +1,408 @@
-import 'dart:async';
-
 import 'package:test/test.dart';
 import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 import 'package:tree_state_machine/src/tree_state_machine_impl.dart';
 
+import 'tree_1.dart';
+import 'flat_tree_1.dart' as flat_tree;
+
 void main() {
   group('Machine', () {
-    final r = _State();
-    final r_key = StateKey.named('r');
-    final r_a = _State();
-    final r_a_key = StateKey.named('r_a');
-    final r_a_a = _State();
-    final r_a_a_key = StateKey.named('r_a_a');
-    final r_a_b = _State();
-    final r_a_b_key = StateKey.named('r_a_b');
-    final r_a_1 = _State();
-    final r_a_1_key = StateKey.named('r_a_1');
-    final r_a_a_1 = _State();
-    final r_a_a_1_key = StateKey.named('r_a_a_1');
-    final r_a_a_2 = _State();
-    final r_a_a_2_key = StateKey.named('r_a_a_2');
-    final r_b_1 = _State();
-    final r_b_1_key = StateKey.named('r_b_1');
-
-    final buildATree = BuildRoot.keyed(
-      key: r_key,
-      state: (key) => r,
-      initialChild: (_) => r_a_key,
-      children: [
-        BuildInterior.keyed(
-          key: r_a_key,
-          state: (key) => r_a,
-          initialChild: (_) => r_a_a_key,
-          children: [
-            BuildInterior.keyed(
-              key: r_a_a_key,
-              state: (key) => r_a_a,
-              initialChild: (_) => r_a_a_2_key,
-              children: [
-                BuildLeaf.keyed(r_a_a_1_key, (key) => r_a_a_1),
-                BuildLeaf.keyed(r_a_a_2_key, (key) => r_a_a_2),
-              ],
-            ),
-            BuildLeaf.keyed(r_a_1_key, (key) => r_a_1),
-          ],
-        ),
-        BuildInterior.keyed(
-          key: r_a_b_key,
-          state: (key) => r_a_b,
-          initialChild: (_) => r_b_1_key,
-          children: [
-            BuildLeaf.keyed(r_b_1_key, (key) => r_b_1),
-          ],
-        ),
-      ],
-    );
-
     group('enterInitialState', () {
       final buildCtx = BuildContext();
-      final rootNode = buildATree(buildCtx);
+      var buildTree = treeBuilder();
+      final rootNode = buildTree(buildCtx);
       final machine = Machine(rootNode, buildCtx.nodes);
 
       test('should follow initial children when starting at root', () async {
-        final MachineTransitionContext transCtx = await machine.enterInitialState(rootNode);
+        final MachineTransitionContext transCtx = await machine.enterInitialState(rootNode.key);
 
-        expect(transCtx.fromState.key, equals(r_key));
-
-        expect(transCtx.toState.key, equals(r_a_a_2_key));
-        expect(
-          transCtx.transitionPath().map((ref) => ref.key),
-          orderedEquals([r_key, r_a_key, r_a_a_key, r_a_a_2_key]),
-        );
+        expectPath(transCtx, [], [r_key, r_a_key, r_a_a_key, r_a_a_2_key]);
       });
 
       test('should descend to initial state when initial state is a leaf', () async {
-        final leafNode = buildCtx.nodes[r_b_1_key];
-        final MachineTransitionContext transCtx = await machine.enterInitialState(leafNode);
+        final MachineTransitionContext transCtx = await machine.enterInitialState(r_b_1_key);
 
-        expect(transCtx.fromState.key, equals(r_key));
-        expect(transCtx.toState.key, equals(leafNode.key));
-        expect(
-          transCtx.transitionPath().map((ref) => ref.key),
-          orderedEquals([r_key, r_a_b_key, r_b_1_key]),
-        );
+        expectPath(transCtx, [], [r_key, r_b_key, r_b_1_key], to: r_b_1_key);
       });
 
-      test(
-          'should descend to initial state, then follow initial children, when initial state an interior',
-          () async {
-        final interiorNode = buildCtx.nodes[r_a_a_key];
-        final MachineTransitionContext transCtx = await machine.enterInitialState(interiorNode);
+      test('should descend to initial state, then follow initial children', () async {
+        final MachineTransitionContext transCtx = await machine.enterInitialState(r_a_a_key);
 
-        expect(transCtx.fromState.key, equals(r_key));
-        expect(transCtx.toState.key, equals(r_a_a_2_key));
-        expect(
-          transCtx.transitionPath().map((ref) => ref.key),
-          orderedEquals([r_key, r_a_key, r_a_a_key, r_a_a_2_key]),
-        );
+        expectPath(transCtx, [], [r_key, r_a_key, r_a_a_key, r_a_a_2_key], to: r_a_a_key);
       });
 
       test('should throw if initialChild returns null', () {
-        final buildTree =
-            BuildRoot.keyed(key: r_key, state: (key) => r, initialChild: (_) => null, children: [
-          BuildLeaf.keyed(r_a_1_key, (key) => r_a_1),
-        ]);
+        final buildTree = BuildRoot.keyed(
+          key: r_key,
+          state: (key) => DelegateState(),
+          initialChild: (_) => null,
+          children: [
+            BuildLeaf.keyed(r_a_1_key, (key) => DelegateState()),
+          ],
+        );
         final buildCtx = BuildContext();
         final rootNode = buildTree(buildCtx);
         final machine = Machine(rootNode, buildCtx.nodes);
 
-        expect(() => machine.enterInitialState(rootNode), throwsStateError);
+        expect(() => machine.enterInitialState(rootNode.key), throwsStateError);
       });
 
       test('should throw if initialChild references a state that is not a child', () {
         final buildTree = BuildRoot.keyed(
             key: r_key,
-            state: (key) => r,
+            state: (key) => DelegateState(),
             initialChild: (_) => r_a_a_1_key,
             children: [
-              BuildLeaf.keyed(r_a_1_key, (key) => r_a_1),
+              BuildLeaf.keyed(r_a_1_key, (key) => DelegateState()),
             ]);
         final buildCtx = BuildContext();
         final rootNode = buildTree(buildCtx);
         final machine = Machine(rootNode, buildCtx.nodes);
 
-        expect(() => machine.enterInitialState(rootNode), throwsStateError);
+        expect(() => machine.enterInitialState(rootNode.key), throwsStateError);
+      });
+    });
+
+    group('processMessage', () {
+      test('should throw if handling state returns null from onMessage', () {
+        final buildTree = flat_tree.treeBuilder(state1Handler: (msgCtx) => null);
+        final buildCtx = BuildContext();
+        final rootNode = buildTree(buildCtx);
+        final machine = Machine(rootNode, buildCtx.nodes);
+
+        expect(
+          () async => await machine.processMessage(Object(), flat_tree.r_1_key),
+          throwsStateError,
+        );
+      });
+
+      test('should return unhandled if current state is terminal', () async {
+        final buildTree = treeBuilder(messageHandlers: {
+          r_key: (msgCtx) {
+            // Root state (or any states) should not have it's handler invoked
+            expect(false, isTrue);
+            return msgCtx.unhandled();
+          }
+        });
+        final buildCtx = BuildContext();
+        final rootNode = buildTree(buildCtx);
+        final machine = Machine(rootNode, buildCtx.nodes);
+
+        final msg = Object();
+        final msgProcessed = await machine.processMessage(msg, r_X_key);
+
+        expect(msgProcessed, isA<UnhandledMessage>());
+        final handled = msgProcessed as UnhandledMessage;
+        expect(handled.message, same(msg));
+        expect(handled.receivingState, equals(r_X_key));
+        expect(handled.notifiedStates, isEmpty);
+      });
+
+      group('GoToResult', () {
+        test('should handle message with current state', () async {
+          final buildTree = flat_tree.treeBuilder(state1Handler: (msgCtx) {
+            return msgCtx.goTo(flat_tree.r_2_key);
+          });
+          final buildCtx = BuildContext();
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+
+          final msgProcessed = await machine.processMessage(Object(), flat_tree.r_1_key);
+
+          expect(msgProcessed, isA<HandledMessage>());
+          final handled = msgProcessed as HandledMessage;
+          expect(handled.receivingState, equals(flat_tree.r_1_key));
+          expect(handled.handlingState, equals(flat_tree.r_1_key));
+          expect(handled.exitedStates, orderedEquals([flat_tree.r_1_key]));
+          expect(handled.enteredStates, orderedEquals([flat_tree.r_2_key]));
+        });
+
+        test('should handle message with ancestor states if unhandled by current state', () async {
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_key: (msgCtx) => msgCtx.goTo(r_b_1_key),
+          });
+          final buildCtx = BuildContext();
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+
+          final msgProcessed = await machine.processMessage(Object(), r_a_a_1_key);
+
+          expect(msgProcessed, isA<HandledMessage>());
+          final handled = msgProcessed as HandledMessage;
+          expect(handled.receivingState, equals(r_a_a_1_key));
+          expect(handled.handlingState, equals(r_a_key));
+          expect(handled.exitedStates, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
+          expect(handled.enteredStates, orderedEquals([r_b_key, r_b_1_key]));
+        });
+
+        test('should follow initial children at to state', () async {
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_b_key),
+          });
+          final buildCtx = BuildContext();
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+          final msg = Object();
+
+          final msgProcessed = await machine.processMessage(msg, r_a_a_1_key);
+
+          expect(msgProcessed, isA<HandledMessage>());
+          final handled = msgProcessed as HandledMessage;
+          expect(handled.message, same(msg));
+          expect(handled.receivingState, equals(r_a_a_1_key));
+          expect(handled.handlingState, equals(r_a_a_1_key));
+          expect(handled.exitedStates, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
+          expect(handled.enteredStates, orderedEquals([r_b_key, r_b_1_key]));
+        });
+
+        test('should call transition handlers in order', () async {
+          var order = 1;
+          final entryOrder = Map<StateKey, int>();
+          final exitOrder = Map<StateKey, int>();
+          TransitionHandler createEntryHandler(StateKey key) => (_) {
+                entryOrder[key] = order++;
+              };
+          TransitionHandler createExitHandler(StateKey key) => (_) {
+                exitOrder[key] = order++;
+              };
+
+          final buildTree = treeBuilder(
+            createEntryHandler: createEntryHandler,
+            createExitHandler: createExitHandler,
+            messageHandlers: {
+              r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_b_key),
+            },
+          );
+          final buildCtx = BuildContext();
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+
+          await machine.enterInitialState(r_a_a_1_key);
+
+          // Reset order so we ignore the transitions from entering intial state
+          order = 1;
+          await machine.processMessage(Object());
+
+          var expectedOrder = 1;
+          for (final key in [r_a_a_1_key, r_a_a_key, r_a_key]) {
+            expect(exitOrder[key], equals(expectedOrder++));
+          }
+          for (final key in [r_b_key, r_b_1_key]) {
+            expect(entryOrder[key], equals(expectedOrder++));
+          }
+        });
+
+        test('should call transition action if provided', () async {
+          var actionCalled = false;
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_a_1_key: (msgCtx) {
+              return msgCtx.goTo(
+                r_b_key,
+                transitionAction: (ctx) {
+                  actionCalled = true;
+                  expect(ctx.from, equals(r_a_a_1_key));
+                  // Initial children have not been calculated yet, since r_b has not yet been
+                  // entered, so toNode is still r_b_key
+                  expect(ctx.to, equals(r_b_key));
+                  expect(ctx.traversed(), orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
+                },
+              );
+            }
+          });
+          final buildCtx = BuildContext();
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+          final msg = Object();
+
+          final msgProcessed = await machine.processMessage(msg, r_a_a_1_key);
+
+          expect(msgProcessed, isA<HandledMessage>());
+          final handled = msgProcessed as HandledMessage;
+          expect(handled.message, same(msg));
+          expect(handled.receivingState, equals(r_a_a_1_key));
+          expect(handled.handlingState, equals(r_a_a_1_key));
+          expect(handled.exitedStates, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
+          expect(handled.enteredStates, orderedEquals([r_b_key, r_b_1_key]));
+          expect(actionCalled, isTrue);
+        });
+
+        test('should go to terminal state', () async {
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_X_key),
+          });
+          final buildCtx = BuildContext();
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+          final msg = Object();
+
+          final msgProcessed = await machine.processMessage(msg, r_a_a_1_key);
+
+          expect(msgProcessed, isA<HandledMessage>());
+          final handled = msgProcessed as HandledMessage;
+          expect(handled.message, same(msg));
+          expect(handled.receivingState, equals(r_a_a_1_key));
+          expect(handled.handlingState, equals(r_a_a_1_key));
+          expect(handled.exitedStates, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
+          expect(handled.enteredStates, orderedEquals([r_X_key]));
+        });
+      });
+
+      group('UnhandledResult', () {
+        test('should try to handle message with all ancestor states', () async {
+          final buildTree = treeBuilder();
+          final buildCtx = BuildContext();
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+          final msg = Object();
+
+          final msgProcessed = await machine.processMessage(msg, r_a_a_1_key);
+
+          expect(msgProcessed, isA<UnhandledMessage>());
+          final handled = msgProcessed as UnhandledMessage;
+          expect(handled.message, same(msg));
+          expect(handled.receivingState, equals(r_a_a_1_key));
+          expect(handled.notifiedStates, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key, r_key]));
+        });
+      });
+
+      group('InternalTransitionResult', () {
+        test('should stay in current state when current state is handling state', () async {
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_a_1_key: (msgCtx) => msgCtx.stay(),
+          });
+          final buildCtx = BuildContext();
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+
+          final msgProcessed = await machine.processMessage(Object(), r_a_a_1_key);
+
+          expect(msgProcessed, isA<HandledMessage>());
+          final handled = msgProcessed as HandledMessage;
+          expect(handled.receivingState, equals(r_a_a_1_key));
+          expect(handled.handlingState, equals(r_a_a_1_key));
+          expect(handled.exitedStates, isEmpty);
+          expect(handled.enteredStates, isEmpty);
+        });
+
+        test('should stay in current state when ancestor state is handling state', () async {
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_key: (msgCtx) => msgCtx.stay(),
+          });
+          final buildCtx = BuildContext();
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+
+          final msgProcessed = await machine.processMessage(Object(), r_a_a_1_key);
+
+          expect(msgProcessed, isA<HandledMessage>());
+          final handled = msgProcessed as HandledMessage;
+          expect(handled.receivingState, equals(r_a_a_1_key));
+          expect(handled.handlingState, equals(r_a_key));
+          expect(handled.exitedStates, isEmpty);
+          expect(handled.enteredStates, isEmpty);
+        });
+      });
+
+      group('SelfTransitionResult', () {
+        test('should re-enter leaf state when current state is handling state', () async {
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_a_1_key: (msgCtx) => msgCtx.goToSelf(),
+          });
+          final buildCtx = BuildContext();
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+
+          final msgProcessed = await machine.processMessage(Object(), r_a_a_1_key);
+
+          expect(msgProcessed, isA<HandledMessage>());
+          final handled = msgProcessed as HandledMessage;
+          expect(handled.receivingState, equals(r_a_a_1_key));
+          expect(handled.handlingState, equals(r_a_a_1_key));
+          expect(handled.exitedStates, [r_a_a_1_key]);
+          expect(handled.enteredStates, [r_a_a_1_key]);
+        });
+
+        test('should re-enter leaf and interior states when interior state is handling state',
+            () async {
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_key: (msgCtx) => msgCtx.goToSelf(),
+          });
+          final buildCtx = BuildContext();
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+
+          final msgProcessed = await machine.processMessage(Object(), r_a_a_1_key);
+
+          expect(msgProcessed, isA<HandledMessage>());
+          final handled = msgProcessed as HandledMessage;
+          expect(handled.receivingState, equals(r_a_a_1_key));
+          expect(handled.handlingState, equals(r_a_key));
+          expect(handled.exitedStates, [r_a_a_1_key, r_a_a_key, r_a_key]);
+          expect(handled.enteredStates, [r_a_key, r_a_a_key, r_a_a_1_key]);
+        });
+
+        test('should call transition action if provided', () async {
+          var actionCalled = false;
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_key: (msgCtx) {
+              return msgCtx.goToSelf(
+                transitionAction: (ctx) {
+                  actionCalled = true;
+                  expect(ctx.from, equals(r_a_a_1_key));
+                  expect(ctx.to, equals(r_a_a_1_key));
+                  expect(
+                      ctx.path,
+                      equals([
+                        r_a_a_1_key,
+                        r_a_a_key,
+                        r_a_key,
+                        r_a_key,
+                        r_a_a_key,
+                        r_a_a_1_key,
+                      ]));
+                },
+              );
+            }
+          });
+          final buildCtx = BuildContext();
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+
+          final msgProcessed = await machine.processMessage(Object(), r_a_a_1_key);
+
+          expect(msgProcessed, isA<HandledMessage>());
+          final handled = msgProcessed as HandledMessage;
+          expect(handled.receivingState, equals(r_a_a_1_key));
+          expect(handled.handlingState, equals(r_a_key));
+          expect(handled.exitedStates, [r_a_a_1_key, r_a_a_key, r_a_key]);
+          expect(handled.enteredStates, [r_a_key, r_a_a_key, r_a_a_1_key]);
+          expect(actionCalled, isTrue);
+        });
       });
     });
   });
 }
 
-class _State extends TreeState {
-  TransitionHandler entryHandler;
-  TransitionHandler exitHandler;
-  MessageHandler messageHandler;
-
-  _State({this.entryHandler, this.exitHandler, this.messageHandler}) {
-    entryHandler = entryHandler ?? emptyTransitionHandler;
-    exitHandler = exitHandler ?? emptyTransitionHandler;
-    messageHandler = messageHandler ?? emptyMessageHandler;
+void expectPath(
+  TransitionContext transCtx,
+  Iterable<StateKey> exited,
+  Iterable<StateKey> entered, {
+  StateKey to,
+}) {
+  expect(transCtx.from, equals(exited.isNotEmpty ? exited.first : entered.first));
+  expect(transCtx.end, equals(entered.last));
+  if (to != null) {
+    expect(transCtx.to, equals(to));
+    expect(
+      transCtx.path,
+      orderedEquals(exited.followedBy(entered.takeWhile((e) => e != to).followedBy([to]))),
+    );
   }
-  @override
-  FutureOr<void> onEnter(TransitionContext ctx) => entryHandler(ctx);
-  @override
-  FutureOr<MessageResult> onMessage(MessageContext ctx) => messageHandler(ctx);
-  @override
-  FutureOr<void> onExit(TransitionContext ctx) => exitHandler(ctx);
+  expect(transCtx.exited, orderedEquals(exited));
+  expect(transCtx.entered, orderedEquals(entered));
+  expect(
+    transCtx.traversed(),
+    orderedEquals(exited.followedBy(entered)),
+  );
 }
-
-final TransitionHandler emptyTransitionHandler = (_) => {};
-final MessageHandler emptyMessageHandler = (ctx) => ctx.unhandled();
