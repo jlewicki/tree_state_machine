@@ -40,14 +40,17 @@ class TreeStateMachine {
     return TreeStateMachine._(machine);
   }
 
-  /// Indicates if [start] has been called.
+  /// Returns `true` if [start] has been called.
   bool get isStarted => _isStarted;
 
-  /// Indicates if the state machine has ended.
+  /// Returns `true` if the state machine has ended.
   ///
   /// A state machine ends when a terminal state is entered.
   bool get isEnded => isStarted && _machine.currentNode.isTerminal;
 
+  /// The current state of the state machine.
+  ///
+  /// This will return `null` if [start] has not been called.
   CurrentState get currentState => _currentState;
 
   /// Stream of [Transition] events.

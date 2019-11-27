@@ -99,6 +99,36 @@ void main() {
         expect(handled.notifiedStates, isEmpty);
       });
 
+      test('should process with async handlers', () async {
+        final delayInMillis = 50;
+        final buildTree = treeBuilder(
+          createEntryHandler: (key) => (ctx) =>
+              Future.delayed(Duration(milliseconds: delayInMillis), () => emptyTransitionHandler),
+          createExitHandler: (key) => (ctx) =>
+              Future.delayed(Duration(milliseconds: delayInMillis), () => emptyTransitionHandler),
+          createMessageHandler: (key) =>
+              (ctx) => Future.delayed(Duration(milliseconds: delayInMillis), () => ctx.unhandled()),
+          messageHandlers: {
+            r_a_a_1_key: (msgCtx) =>
+                Future.delayed(Duration(milliseconds: delayInMillis), () => msgCtx.goTo(r_b_1_key)),
+          },
+        );
+        final buildCtx = BuildContext();
+        final rootNode = buildTree(buildCtx);
+        final machine = Machine(rootNode, buildCtx.nodes);
+        final msg = Object();
+
+        final msgProcessed = await machine.processMessage(msg, r_a_a_1_key);
+
+        expect(msgProcessed, isA<HandledMessage>());
+        final handled = msgProcessed as HandledMessage;
+        expect(handled.message, same(msg));
+        expect(handled.receivingState, equals(r_a_a_1_key));
+        expect(handled.handlingState, equals(r_a_a_1_key));
+        expect(handled.exitedStates, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
+        expect(handled.enteredStates, orderedEquals([r_b_key, r_b_1_key]));
+      });
+
       group('GoToResult', () {
         test('should handle message with current state', () async {
           final buildTree = flat_tree.treeBuilder(state1Handler: (msgCtx) {
