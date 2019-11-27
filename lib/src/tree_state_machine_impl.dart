@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'tree_builders.dart';
+import 'tree_node.dart';
 import 'tree_state.dart';
 
 // Core state machine operations
@@ -24,6 +24,7 @@ class Machine {
     return transCtx;
   }
 
+  // Processes the specified message by dispatching it to the node identified by currentStateKey.
   Future<MessageProcessed> processMessage(Object message, StateKey currentStateKey) async {
     final currentNode = nodes[currentStateKey];
     if (currentNode == null) {

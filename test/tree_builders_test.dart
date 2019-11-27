@@ -1,5 +1,6 @@
 import 'package:test/test.dart';
 import 'package:tree_state_machine/src/tree_builders.dart';
+import 'package:tree_state_machine/src/tree_node.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 
 class SimpleState extends EmptyTreeState {}

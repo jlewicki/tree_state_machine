@@ -77,8 +77,14 @@ class TreeStateMachine {
     return transCtx;
   }
 
-  Transition _toTransition(MachineTransitionContext ctx) =>
-      Transition(ctx.from, ctx.end, ctx.traversed());
+  Transition _toTransition(MachineTransitionContext ctx) => Transition(
+        ctx.from,
+        ctx.end,
+        ctx.path.toList(),
+        ctx.traversed().toList(),
+        ctx.exited.toList(),
+        ctx.entered.toList(),
+      );
 }
 
 class CurrentState {
@@ -96,8 +102,17 @@ class CurrentState {
 class Transition {
   final StateKey from;
   final StateKey to;
-  final Iterable<StateKey> path;
-  const Transition(this.from, this.to, this.path);
+  final List<StateKey> _path;
+  final List<StateKey> _traversed;
+  final List<StateKey> _exited;
+  final List<StateKey> _entered;
+
+  const Transition(this.from, this.to, this._path, this._traversed, this._exited, this._entered);
+
+  Iterable<StateKey> get path => _path;
+  Iterable<StateKey> get traversed => _traversed;
+  Iterable<StateKey> get exited => _exited;
+  Iterable<StateKey> get entered => _entered;
 }
 
 // Root state for wrapping 'flat' list of leaf states.

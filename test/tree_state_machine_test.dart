@@ -54,7 +54,7 @@ void main() {
         expect(transition.from, equals(deep_tree.r_key));
         expect(transition.to, equals(deep_tree.r_a_a_2_key));
         expect(
-          transition.path,
+          transition.traversed,
           orderedEquals([
             deep_tree.r_key,
             deep_tree.r_a_key,
