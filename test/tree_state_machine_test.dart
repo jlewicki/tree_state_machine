@@ -1,6 +1,7 @@
 import 'package:async/async.dart';
 import 'package:test/test.dart';
 import 'package:tree_state_machine/src/tree_state_machine.dart';
+import 'package:tree_state_machine/src/tree_state_machine_impl.dart';
 import 'tree_1.dart' as deep_tree;
 import 'flat_tree_1.dart' as flat_tree;
 

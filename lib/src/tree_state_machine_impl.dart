@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:meta/meta.dart';
+
 import 'tree_node.dart';
 import 'tree_state.dart';
 
@@ -6,8 +8,11 @@ import 'tree_state.dart';
 class Machine {
   final TreeNode rootNode;
   final Map<StateKey, TreeNode> nodes;
+  TreeNode _currentNode;
 
   Machine(this.rootNode, this.nodes);
+
+  TreeNode get currentNode => _currentNode;
 
   Future<MachineTransitionContext> enterInitialState([StateKey initialStateKey]) async {
     final initialNode = initialStateKey != null ? nodes[initialStateKey] : rootNode;
@@ -19,8 +24,7 @@ class Machine {
       );
     }
     final path = NodePath.enterFromRoot(rootNode, initialNode);
-    final transCtx = MachineTransitionContext(path);
-    await _doTransition(transCtx, path.exiting, path.entering);
+    final transCtx = await _doTransition(path);
     return transCtx;
   }
 
@@ -44,7 +48,8 @@ class Machine {
 
     final msgCtx = MachineMessageContext(message, currentNode);
     final msgResult = await _handleMessage(currentNode, msgCtx);
-    return _handleMessageResult(msgResult, msgCtx);
+    final msgProcessed = await _handleMessageResult(msgResult, msgCtx);
+    return msgProcessed;
   }
 
   // Invokes on message on the specified node, and each of its ancestor nodes, until the message is
@@ -87,8 +92,7 @@ class Machine {
   }) async {
     final toNode = _node(result.toStateKey);
     final path = NodePath(msgCtx.receivingNode, toNode);
-    final transCtx = MachineTransitionContext(path);
-    await _doTransition(transCtx, path.exiting, path.entering, result.transitionAction);
+    final transCtx = await _doTransition(path, result.transitionAction);
     return HandledMessage(
       msgCtx.message,
       msgCtx.receivingNode.key,
@@ -99,7 +103,8 @@ class Machine {
   }
 
   UnhandledMessage _handleUnhandled(MachineMessageContext msgCtx) {
-    assert(msgCtx.notifiedNodes.length >= 2);
+    assert(msgCtx.notifiedNodes.length >= 2,
+        'At least 2 nodes (a leaf and the root) should have been notified');
     return UnhandledMessage(
       msgCtx.message,
       msgCtx.receivingNode.key,
@@ -108,12 +113,12 @@ class Machine {
   }
 
   HandledMessage _handleInternalTransition(
-      InternalTransitionResult result, MachineMessageContext msgCtx) {
-    // Note that an internal transition means that the current leaf state is maintained, even if
-    // the internal transition is returned by an ancestor node.
-    return HandledMessage(
-        msgCtx.message, msgCtx.receivingNode.key, msgCtx.handlingNode.key, [], []);
-  }
+    InternalTransitionResult result,
+    MachineMessageContext msgCtx,
+  ) =>
+      // Note that an internal transition means that the current leaf state is maintained, even if
+      // the internal transition is returned by an ancestor node.
+      HandledMessage(msgCtx.message, msgCtx.receivingNode.key, msgCtx.handlingNode.key, [], []);
 
   Future<HandledMessage> _handleSelfTransition(
     SelfTransitionResult result,
@@ -135,8 +140,7 @@ class Machine {
     // Note that all of the states from the current leaf state to the handling ancestor node will be
     // re-entered.
     final path = NodePath.reenter(msgCtx.receivingNode, msgCtx.handlingNode.parent);
-    final transCtx = MachineTransitionContext(path);
-    await _doTransition(transCtx, path.exiting, path.entering, result.transitionAction);
+    final transCtx = await _doTransition(path, result.transitionAction);
     return HandledMessage(
       msgCtx.message,
       msgCtx.receivingNode.key,
@@ -146,14 +150,12 @@ class Machine {
     );
   }
 
-  Future<void> _doTransition(
-    MachineTransitionContext transCtx,
-    Iterable<TreeNode> nodesToExit,
-    Iterable<TreeNode> nodesToEnter, [
-    TransitionHandler transitionAction,
-  ]) async {
+  Future<MachineTransitionContext> _doTransition(NodePath path,
+      [TransitionHandler transitionAction]) async {
+    final transCtx = MachineTransitionContext(path);
+
     // Exit the requested states
-    await _exitStates(nodesToExit, transCtx);
+    await _exitStates(path.exiting, transCtx);
 
     // Invoke transition action after all states are exited, and before ant states are entered.
     if (transitionAction != null) {
@@ -164,11 +166,17 @@ class Machine {
     }
 
     // Enter the requested states
-    await _enterStates(nodesToEnter, transCtx);
+    await _enterStates(path.entering, transCtx);
 
     // Enter initial children, so that we end up at leaf state when the final nodeToEnter is not
     // a leaf node
-    await _enterInitialChildren(nodesToEnter.last, transCtx, []);
+    await _enterInitialChildren(path.entering.last, transCtx, []);
+
+    // Update current node after the transition is complete
+    assert(transCtx.endNode.isLeaf, 'Entering initial state did not result in a leaf node');
+    _currentNode = transCtx.endNode;
+
+    return transCtx;
   }
 
   FutureOr<void> _enterInitialChildren(
@@ -180,9 +188,9 @@ class Machine {
       return enteredNodes;
     }
     final initialChild = ctx.onInitialChild(parentNode);
-    final onEnterfutureOr = ctx.onEnter(initialChild);
-    if (onEnterfutureOr is Future) {
-      return onEnterfutureOr.then((Object _) {
+    final onEnterFutureOr = ctx.onEnter(initialChild);
+    if (onEnterFutureOr is Future) {
+      return onEnterFutureOr.then((Object _) {
         enteredNodes.add(initialChild);
         return _enterInitialChildren(initialChild, ctx, enteredNodes);
       });
@@ -234,7 +242,13 @@ class MachineTransitionContext implements TransitionContext {
   final List<TreeNode> _enteredNodes = [];
   final List<TreeNode> _exitedNodes = [];
 
-  MachineTransitionContext(this.nodePath) : toNode = nodePath.to;
+  MachineTransitionContext(this.nodePath) : toNode = nodePath.to {
+    // In general we always start a transition at a leaf node. However, when the state machine
+    // starts, there is a transition from the root node to the initial starting state for the
+    // machine.
+    assert(nodePath.from.isLeaf || nodePath.from.isRoot,
+        'Transition did not start at a leaf or root node.');
+  }
 
   @override
   StateKey get from => nodePath.from.key;
@@ -252,8 +266,8 @@ class MachineTransitionContext implements TransitionContext {
   StateKey get end => entered.last;
 
   Iterable<TreeNode> get exitedNodes => _exitedNodes;
-
   Iterable<TreeNode> get enteredNodes => _enteredNodes;
+  TreeNode get endNode => _enteredNodes.last;
 
   TreeNode onInitialChild(TreeNode parentNode) {
     final initialChildKey = parentNode.initialChild(this);
@@ -287,6 +301,38 @@ class MachineTransitionContext implements TransitionContext {
       return result;
     }
   }
+
+  Transition toTransition() {
+    assert(endNode.isLeaf, 'Transition did not end at a leaf node.');
+    return Transition(from, end, traversed(), exited, entered);
+  }
+}
+
+/// Describes a transition between states in a state machine.
+@immutable
+class Transition {
+  /// The starting leaf state of the transition.
+  final StateKey from;
+
+  /// The final leaf state of the transition.
+  final StateKey to;
+
+  final List<StateKey> traversed;
+  final List<StateKey> exited;
+  final List<StateKey> entered;
+
+  Transition(
+    this.from,
+    this.to,
+    Iterable<StateKey> traversed,
+    Iterable<StateKey> exited,
+    Iterable<StateKey> entered,
+  )   : this.traversed = (traversed ?? []).toList(growable: false),
+        this.exited = (exited ?? []).toList(growable: false),
+        this.entered = (entered ?? []).toList(growable: false) {
+    ArgumentError.checkNotNull(from, 'from');
+    ArgumentError.checkNotNull(to, 'to');
+  }
 }
 
 class MachineMessageContext extends MessageContext {
@@ -300,7 +346,11 @@ class MachineMessageContext extends MessageContext {
   /// than [UnhandledResult].
   TreeNode get handlingNode => notifiedNodes.last;
 
-  MachineMessageContext(Object message, this.receivingNode) : super(message);
+  MachineMessageContext(Object message, this.receivingNode)
+      : assert(message != null),
+        assert(receivingNode != null),
+        assert(receivingNode.isLeaf),
+        super(message);
 
   FutureOr<MessageResult> onMessage(TreeNode node) {
     notifiedNodes.add(node);
@@ -308,43 +358,6 @@ class MachineMessageContext extends MessageContext {
   }
 }
 
-class NodePath {
-  final TreeNode from;
-  final TreeNode to;
-  final TreeNode lca;
-  final Iterable<TreeNode> path;
-  final Iterable<TreeNode> exiting;
-  final Iterable<TreeNode> entering;
-
-  NodePath._(this.from, this.to, this.lca, this.path, this.exiting, this.entering);
-
-  factory NodePath(TreeNode from, TreeNode to) {
-    final lca = from.lcaWith(to);
-    final exiting = from.selfAndAncestors().takeWhile((n) => n != lca).toList();
-    final entering = to.selfAndAncestors().takeWhile((n) => n != lca).toList().reversed.toList();
-    final path = exiting.followedBy(entering);
-    return NodePath._(from, to, lca, path, exiting, entering);
-  }
-
-  factory NodePath.reenter(TreeNode node, TreeNode from) {
-    final lca = node.lcaWith(from);
-    assert(lca.key == from.key);
-    final exiting = node.selfAndAncestors().takeWhile((n) => n != lca).toList();
-    final entering = exiting.reversed.toList();
-    final path = exiting.followedBy(entering);
-    return NodePath._(node, node, lca, path, exiting, entering);
-  }
-
-  factory NodePath.enterFromRoot(TreeNode root, TreeNode to) {
-    assert(root.isRoot);
-    final exiting = <TreeNode>[];
-    final entering = to.selfAndAncestors().toList().reversed.toList();
-    final path = exiting.followedBy(entering);
-    return NodePath._(root, to, null, path, exiting, entering);
-  }
-}
-
-//.
 abstract class MessageProcessed {
   final Object message;
   final StateKey receivingState;

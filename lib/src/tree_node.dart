@@ -41,11 +41,12 @@ class TreeNode {
   TreeState state() => _lazyState.value;
 
   bool isInState(StateKey stateKey) {
-    if (key == stateKey) {
-      return true;
-    }
-    if (parent != null) {
-      return parent.isInState(stateKey);
+    var nextNode = this;
+    while (nextNode != null) {
+      if (nextNode.key == stateKey) {
+        return true;
+      }
+      nextNode = nextNode.parent;
     }
     return false;
   }
@@ -78,4 +79,40 @@ class TreeNode {
 class TerminalNode extends TreeNode {
   TerminalNode._(StateKey key, TreeNode parent, Lazy<TreeState> lazyState)
       : super._(key, parent, lazyState, null);
+}
+
+class NodePath {
+  final TreeNode from;
+  final TreeNode to;
+  final TreeNode lca;
+  final Iterable<TreeNode> path;
+  final Iterable<TreeNode> exiting;
+  final Iterable<TreeNode> entering;
+
+  NodePath._(this.from, this.to, this.lca, this.path, this.exiting, this.entering);
+
+  factory NodePath(TreeNode from, TreeNode to) {
+    final lca = from.lcaWith(to);
+    final exiting = from.selfAndAncestors().takeWhile((n) => n != lca).toList();
+    final entering = to.selfAndAncestors().takeWhile((n) => n != lca).toList().reversed.toList();
+    final path = exiting.followedBy(entering);
+    return NodePath._(from, to, lca, path, exiting, entering);
+  }
+
+  factory NodePath.reenter(TreeNode node, TreeNode from) {
+    final lca = node.lcaWith(from);
+    assert(lca.key == from.key);
+    final exiting = node.selfAndAncestors().takeWhile((n) => n != lca).toList();
+    final entering = exiting.reversed.toList();
+    final path = exiting.followedBy(entering);
+    return NodePath._(node, node, lca, path, exiting, entering);
+  }
+
+  factory NodePath.enterFromRoot(TreeNode root, TreeNode to) {
+    assert(root.isRoot);
+    final exiting = <TreeNode>[];
+    final entering = to.selfAndAncestors().toList().reversed.toList();
+    final path = exiting.followedBy(entering);
+    return NodePath._(root, to, null, path, exiting, entering);
+  }
 }

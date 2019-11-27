@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:meta/meta.dart';
 import 'tree_builders.dart';
 import 'tree_state.dart';
 import 'tree_state_machine_impl.dart';
@@ -44,6 +43,11 @@ class TreeStateMachine {
   /// Indicates if [start] has been called.
   bool get isStarted => _isStarted;
 
+  /// Indicates if the state machine has ended.
+  ///
+  /// A state machine ends when a terminal state is entered.
+  bool get isEnded => isStarted && _machine.currentNode.isTerminal;
+
   CurrentState get currentState => _currentState;
 
   /// Stream of [Transition] events.
@@ -72,19 +76,10 @@ class TreeStateMachine {
 
     final transCtx = await _machine.enterInitialState(initialStateKey);
     _currentState = CurrentState(transCtx.end, _machine.processMessage);
-    _transitions.add(_toTransition(transCtx));
+    _transitions.add(transCtx.toTransition());
     _isStarted = true;
     return transCtx;
   }
-
-  Transition _toTransition(MachineTransitionContext ctx) => Transition(
-        ctx.from,
-        ctx.end,
-        ctx.path.toList(),
-        ctx.traversed().toList(),
-        ctx.exited.toList(),
-        ctx.entered.toList(),
-      );
 }
 
 class CurrentState {
@@ -96,23 +91,6 @@ class CurrentState {
   void sendMessage(Object message) {
     dispatch(message, key);
   }
-}
-
-@immutable
-class Transition {
-  final StateKey from;
-  final StateKey to;
-  final List<StateKey> _path;
-  final List<StateKey> _traversed;
-  final List<StateKey> _exited;
-  final List<StateKey> _entered;
-
-  const Transition(this.from, this.to, this._path, this._traversed, this._exited, this._entered);
-
-  Iterable<StateKey> get path => _path;
-  Iterable<StateKey> get traversed => _traversed;
-  Iterable<StateKey> get exited => _exited;
-  Iterable<StateKey> get entered => _entered;
 }
 
 // Root state for wrapping 'flat' list of leaf states.

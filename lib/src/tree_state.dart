@@ -47,13 +47,10 @@ class _TypeLiteral<T> {
 // States
 //
 
-typedef TransitionHandler = FutureOr<void> Function(TransitionContext ctx);
-typedef MessageHandler = FutureOr<MessageResult> Function(MessageContext ctx);
-
-final TransitionHandler emptyTransitionHandler = (_) {};
-final MessageHandler emptyMessageHandler = (ctx) => ctx.unhandled();
-
-/// Describes the behavior of an individual state withing a tree state machine.
+/// An individual state within a tree state machine.
+///
+/// A tree state is defined by its behavior in response to messages, represented by the [onMessage]
+/// implementation.
 abstract class TreeState {
   FutureOr<void> onEnter(TransitionContext context) {}
 
@@ -63,7 +60,7 @@ abstract class TreeState {
   /// message and trigger state transitions by calling various methods on this context, such as
   /// [MessageContext.goTo].
   ///
-  /// If the state does not recogize the message, it can call [MessageContext.unhandled]. The state
+  /// If the state does not recognize the message, it can call [MessageContext.unhandled]. The state
   /// machine will then call [onMessage] on the parent state of this state, giving it an opportunity
   /// to handle the message.
   FutureOr<MessageResult> onMessage(MessageContext context);
@@ -71,15 +68,32 @@ abstract class TreeState {
   FutureOr<void> onExit(TransitionContext context) {}
 }
 
+/// A terminal (final) state within a tree state machine.
+///
+/// A terminal state indicates that that state machine has completed processing. No further message
+/// handline or state transitions can occur once a terminal state has been entered.
+///
+/// A tree state machine may contain as many terminal states as necessary, in order to reflect the
+/// different completion conditions of the state tree.
 abstract class TerminalTreeState extends TreeState {
   @nonVirtual
   @override
-  FutureOr<void> onExit(TransitionContext context) {}
+  FutureOr<void> onExit(TransitionContext context) {
+    throw StateError('Can not leave a terminal state.');
+  }
 
   @nonVirtual
   @override
-  FutureOr<MessageResult> onMessage(MessageContext context) => UnhandledResult.value;
+  FutureOr<MessageResult> onMessage(MessageContext context) {
+    throw StateError('Can not send message to a terminal state');
+  }
 }
+
+typedef TransitionHandler = FutureOr<void> Function(TransitionContext ctx);
+typedef MessageHandler = FutureOr<MessageResult> Function(MessageContext ctx);
+
+final TransitionHandler emptyTransitionHandler = (_) {};
+final MessageHandler emptyMessageHandler = (ctx) => ctx.unhandled();
 
 class EmptyTreeState extends TreeState {
   @override
