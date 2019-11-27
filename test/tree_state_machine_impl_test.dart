@@ -120,9 +120,7 @@ void main() {
 
         test('should handle message with ancestor states if unhandled by current state', () async {
           final buildTree = treeBuilder(messageHandlers: {
-            r_a_key: (msgCtx) {
-              return msgCtx.goTo(r_b_1_key);
-            }
+            r_a_key: (msgCtx) => msgCtx.goTo(r_b_1_key),
           });
           final buildCtx = BuildContext();
           final rootNode = buildTree(buildCtx);
@@ -139,11 +137,9 @@ void main() {
         });
 
         test('should follow initial children at to state', () async {
-          final buildTree = treeBuilder(
-            messageHandlers: {
-              r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_b_key),
-            },
-          );
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_b_key),
+          });
           final buildCtx = BuildContext();
           final rootNode = buildTree(buildCtx);
           final machine = Machine(rootNode, buildCtx.nodes);
@@ -233,9 +229,7 @@ void main() {
 
         test('should go to terminal state', () async {
           final buildTree = treeBuilder(messageHandlers: {
-            r_a_a_1_key: (msgCtx) {
-              return msgCtx.goTo(r_X_key);
-            }
+            r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_X_key),
           });
           final buildCtx = BuildContext();
           final rootNode = buildTree(buildCtx);
@@ -275,9 +269,7 @@ void main() {
       group('InternalTransitionResult', () {
         test('should stay in current state when current state is handling state', () async {
           final buildTree = treeBuilder(messageHandlers: {
-            r_a_a_1_key: (msgCtx) {
-              return msgCtx.stay();
-            }
+            r_a_a_1_key: (msgCtx) => msgCtx.stay(),
           });
           final buildCtx = BuildContext();
           final rootNode = buildTree(buildCtx);
@@ -295,9 +287,7 @@ void main() {
 
         test('should stay in current state when ancestor state is handling state', () async {
           final buildTree = treeBuilder(messageHandlers: {
-            r_a_key: (msgCtx) {
-              return msgCtx.stay();
-            }
+            r_a_key: (msgCtx) => msgCtx.stay(),
           });
           final buildCtx = BuildContext();
           final rootNode = buildTree(buildCtx);
@@ -317,9 +307,7 @@ void main() {
       group('SelfTransitionResult', () {
         test('should re-enter leaf state when current state is handling state', () async {
           final buildTree = treeBuilder(messageHandlers: {
-            r_a_a_1_key: (msgCtx) {
-              return msgCtx.goToSelf();
-            }
+            r_a_a_1_key: (msgCtx) => msgCtx.goToSelf(),
           });
           final buildCtx = BuildContext();
           final rootNode = buildTree(buildCtx);
@@ -338,9 +326,7 @@ void main() {
         test('should re-enter leaf and interior states when interior state is handling state',
             () async {
           final buildTree = treeBuilder(messageHandlers: {
-            r_a_key: (msgCtx) {
-              return msgCtx.goToSelf();
-            }
+            r_a_key: (msgCtx) => msgCtx.goToSelf(),
           });
           final buildCtx = BuildContext();
           final rootNode = buildTree(buildCtx);
