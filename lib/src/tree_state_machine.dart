@@ -6,6 +6,7 @@ import 'tree_state_machine_impl.dart';
 class TreeStateMachine {
   final Machine _machine;
   final StreamController<Transition> _transitions = StreamController.broadcast();
+  final StreamController<MessageProcessed> _processedMessages = StreamController.broadcast();
   bool _isStarted = false;
   CurrentState _currentState;
 
@@ -59,6 +60,14 @@ class TreeStateMachine {
   /// machine.
   Stream<Transition> get transitions => _transitions.stream;
 
+  /// Stream of [MessageProcessed] events.
+  ///
+  /// A [MessageProcessed] is raised on this stream when a message was processed by a state within
+  /// the state machine. The result of this processing may have resulted in a state transition, in
+  /// which case an event will also be raised on the [transitions] stream.  When this occurs, an
+  /// event on this stream is raised first.
+  Stream<MessageProcessed> get processedMessages => _processedMessages.stream;
+
   /// Starts the state machine, transitioning the current state to the initial state of the state
   /// tree.
   ///
@@ -78,22 +87,40 @@ class TreeStateMachine {
     }
 
     final transCtx = await _machine.enterInitialState(initialStateKey);
-    _currentState = CurrentState(transCtx.end, _machine.processMessage);
+    _currentState = CurrentState(transCtx.end, _processMessage);
     _transitions.add(transCtx.toTransition());
     _isStarted = true;
     return transCtx;
+  }
+
+  Future<MessageProcessed> _processMessage(Object message) async {
+    final result = await _machine.processMessage(message);
+    final transition = result is HandledMessage ? result.transition : null;
+
+    // Defer raising events until this method returns.
+    Timer.run(() {
+      _processedMessages.add(result);
+      if (transition != null) {
+        _transitions.add(transition);
+      }
+    });
+
+    if (transition != null) {
+      _currentState = CurrentState(_machine.currentNode.key, _processMessage);
+    }
+    return result;
   }
 }
 
 class CurrentState {
   final StateKey key;
-  final void Function(Object msg, StateKey key) dispatch;
-  CurrentState(this.key, this.dispatch) {
+  final Future<MessageProcessed> Function(Object msg) _dispatch;
+
+  CurrentState(this.key, this._dispatch) {
     ArgumentError.notNull('key');
   }
-  void sendMessage(Object message) {
-    dispatch(message, key);
-  }
+
+  Future<MessageProcessed> sendMessage(Object message) => _dispatch(message);
 }
 
 // Root state for wrapping 'flat' list of leaf states.
