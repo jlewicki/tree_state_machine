@@ -89,10 +89,28 @@ abstract class TerminalTreeState extends TreeState {
   }
 }
 
+/// Type of functions that are called when a state transition occurs within a state machine.
+///
+/// Each state in the state machine has two associated [TransitionHandler]s. One is called by the
+/// state machine each time the state is entered, and the other is called each time the state is
+/// exited.
 typedef TransitionHandler = FutureOr<void> Function(TransitionContext ctx);
+
+/// Type of functions that process messages sent to a state machine.
+///
+/// Each state in the state machine has an associated [MessageHandler], and the state machine calls
+/// this handler when the state is active and a message is sent to the machine.
+///
+/// The handler accepts a [MessageContext] describing the message that was sent, and returns
+/// (possibly asynchronously) a [MessageResult] describing how the state processed the message. The
+/// [MessageResult] is created by calling methods on the [MessageContext], such as
+/// [MessageContext.goTo].
 typedef MessageHandler = FutureOr<MessageResult> Function(MessageContext ctx);
 
+/// A [TransitionHandler] that returns immediately.
 final TransitionHandler emptyTransitionHandler = (_) {};
+
+/// A [MessageHandler] that always returns [MessageContext.unhandled].
 final MessageHandler emptyMessageHandler = (ctx) => ctx.unhandled();
 
 class EmptyTreeState extends TreeState {
@@ -100,6 +118,7 @@ class EmptyTreeState extends TreeState {
   FutureOr<MessageResult> onMessage(MessageContext context) => context.unhandled();
 }
 
+/// Provides information to a state about the message that is being processed.
 class MessageContext {
   /// The message that is being processed by the state machine.
   final Object message;
@@ -175,6 +194,9 @@ abstract class TransitionContext {
 }
 
 /// Base class for describing the results of processing a state machine message.
+///
+/// Instances of this class are created by calling methods on [MessageContext], for example
+/// [MessageContext.goTo].
 abstract class MessageResult {
   MessageResult._();
 }

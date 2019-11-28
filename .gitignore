@@ -14,8 +14,8 @@ pubspec.lock
 # Or the files created by coverage.
 /coverage/
 
-# Or the files created by docgen.
-dartdoc-viewer
+# Or the files created by dartdoc.
+/doc
 
 # Or the files created by build
 .dart_tool/
