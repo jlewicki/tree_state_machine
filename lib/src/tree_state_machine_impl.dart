@@ -34,7 +34,7 @@ class Machine {
     if (currentNode == null) {
       final _initialStateKey = initialStateKey ?? rootNode.key;
       final initialNode = nodes[_initialStateKey];
-      assert(initialNode != null, 'Unable to find initial state ${initialStateKey}');
+      assert(initialNode != null, 'Unable to find initial state $initialStateKey');
       await enterInitialState(initialNode.key);
     }
 
@@ -96,8 +96,7 @@ class Machine {
       msgCtx.message,
       msgCtx.receivingNode.key,
       msgCtx.handlingNode.key,
-      transCtx.exitedNodes.map((n) => n.key),
-      transCtx.enteredNodes.map((n) => n.key),
+      transCtx.toTransition(),
     );
   }
 
@@ -117,7 +116,7 @@ class Machine {
   ) =>
       // Note that an internal transition means that the current leaf state is maintained, even if
       // the internal transition is returned by an ancestor node.
-      HandledMessage(msgCtx.message, msgCtx.receivingNode.key, msgCtx.handlingNode.key, [], []);
+      HandledMessage(msgCtx.message, msgCtx.receivingNode.key, msgCtx.handlingNode.key);
 
   Future<HandledMessage> _handleSelfTransition(
     SelfTransitionResult result,
@@ -144,8 +143,7 @@ class Machine {
       msgCtx.message,
       msgCtx.receivingNode.key,
       msgCtx.handlingNode.key,
-      transCtx.exitedNodes.map((n) => n.key),
-      transCtx.enteredNodes.map((n) => n.key),
+      transCtx.toTransition(),
     );
   }
 
@@ -358,15 +356,16 @@ abstract class MessageProcessed {
 
 class HandledMessage extends MessageProcessed {
   final StateKey handlingState;
-  final Iterable<StateKey> exitedStates;
-  final Iterable<StateKey> enteredStates;
+  final Transition transition;
   HandledMessage(
     Object message,
     StateKey receivingState,
-    this.handlingState,
-    this.exitedStates,
-    this.enteredStates,
-  ) : super(message, receivingState);
+    this.handlingState, [
+    this.transition,
+  ]) : super(message, receivingState);
+
+  Iterable<StateKey> get exitedStates => transition?.exited ?? emptyStates;
+  Iterable<StateKey> get enteredStates => transition?.entered ?? emptyStates;
 }
 
 class UnhandledMessage extends MessageProcessed {
@@ -378,3 +377,5 @@ class UnhandledMessage extends MessageProcessed {
 class InvalidMessage extends MessageProcessed {
   InvalidMessage(Object message, StateKey receivingState) : super(message, receivingState);
 }
+
+final Iterable<StateKey> emptyStates = List.unmodifiable(<StateKey>[]);
