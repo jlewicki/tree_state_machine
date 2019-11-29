@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:async/async.dart';
 import 'package:test/test.dart';
 import 'package:tree_state_machine/src/tree_state_machine.dart';
@@ -67,25 +69,24 @@ void main() {
     });
 
     group('processMessage', () {
-      test('should update current state', () async {
+      test('should update current state key', () async {
         final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
           tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_a_a_1_key),
         }));
         await sm.start();
-        final currentState = sm.currentState;
 
         await sm.currentState.sendMessage(Object());
 
         expect(sm.currentState, isNotNull);
         expect(sm.currentState.key, equals(tree.r_a_a_1_key));
-        expect(sm.currentState, predicate((cs) => !identical(cs, currentState)));
       });
 
-      test('should emit transition after emitting processedMessage', () async {
+      test('should emit transition event after emitting processedMessage', () async {
         final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
           tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_a_a_1_key),
         }));
         await sm.start();
+        await Timer(Duration(milliseconds: 1), () {});
         Object firstEvent;
         final nextProcessedMessage =
             StreamQueue(sm.processedMessages).next.then((pm) => firstEvent ??= pm);
@@ -97,7 +98,7 @@ void main() {
         expect(firstEvent, isA<MessageProcessed>());
       });
 
-      test('should emit processedMessage', () async {
+      test('should emit processedMessage event', () async {
         final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
           // This processes message, but does not result in a transition
           tree.r_a_a_2_key: (ctx) => ctx.stay(),
@@ -113,6 +114,96 @@ void main() {
         final msgProcessed = qItems[0];
         expect(msgProcessed.receivingState, equals(tree.r_a_a_2_key));
         expect(msgProcessed.message, same(msg));
+      });
+
+      test('should return ProcessingError if exception is thrown in message handler', () async {
+        final ex = Exception('oops');
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+          tree.r_a_a_2_key: (ctx) => throw ex,
+        }));
+        await sm.start();
+
+        final message = Object();
+        final result = await sm.currentState.sendMessage(message);
+
+        expect(result, isA<ProcessingError>());
+        final error = result as ProcessingError;
+        expect(error.message, same(message));
+        expect(error.receivingState, equals(tree.r_a_a_2_key));
+        expect(error.error, same(ex));
+      });
+
+      test('current state should not change if exception is thrown in message handler', () async {
+        final ex = Exception('oops');
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+          tree.r_a_a_2_key: (ctx) => throw ex,
+        }));
+        await sm.start();
+
+        final message = Object();
+        final result = await sm.currentState.sendMessage(message);
+
+        expect(result, isA<ProcessingError>());
+        final error = result as ProcessingError;
+        expect(error.message, same(message));
+        expect(error.receivingState, equals(tree.r_a_a_2_key));
+        expect(error.error, same(ex));
+      });
+    });
+  });
+
+  group('CurrentState', () {
+    group('sendMessage', () {
+      test('should dispatch to state machine for processing', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+          tree.initialStateKey: (msgCtx) => msgCtx.stay(),
+        }));
+        await sm.start();
+
+        var msg = Object();
+        var result = await sm.currentState.sendMessage(msg);
+
+        expect(result, isA<HandledMessage>());
+        final handled = result as HandledMessage;
+        expect(handled.message, same(msg));
+        expect(handled.receivingState, equals(tree.r_a_a_2_key));
+      });
+
+      test('should throw if message is null', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start();
+
+        expect(() => sm.currentState.sendMessage(null), throwsArgumentError);
+      });
+    });
+
+    group('isActiveState', () {
+      test('should return true for current state', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start();
+
+        expect(sm.currentState.isActiveState(tree.initialStateKey), isTrue);
+      });
+
+      test('should return true for ancestor of current state', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start();
+
+        expect(sm.currentState.isActiveState(tree.r_a_key), isTrue);
+      });
+
+      test('should return false for non-ancestor of current state', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start();
+
+        expect(sm.currentState.isActiveState(tree.r_b_key), isFalse);
+      });
+
+      test('should throw if key is null', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start();
+
+        expect(() => sm.currentState.isActiveState(null), throwsArgumentError);
       });
     });
   });

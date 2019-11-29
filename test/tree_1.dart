@@ -11,6 +11,8 @@ final r_b_key = StateKey.named('r_a_b');
 final r_b_1_key = StateKey.named('r_b_1');
 final r_X_key = StateKey.named('r_X');
 
+final initialStateKey = r_a_a_2_key;
+
 BuildRoot treeBuilder({
   TransitionHandler createEntryHandler(StateKey key),
   TransitionHandler createExitHandler(StateKey key),

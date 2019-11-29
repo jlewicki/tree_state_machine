@@ -14,7 +14,15 @@ class Machine {
 
   TreeNode get currentNode => _currentNode;
 
-  Future<MachineTransitionContext> enterInitialState([StateKey initialStateKey]) async {
+  /// Enters the initial state of the state machine.
+  ///
+  /// Each state between the root state and the initial leaf state of the state machine will be
+  /// entered. The initial leaf state is determined by following the initial child path starting at
+  /// the root state, or the state identified by [initialStateKey].
+  ///
+  /// Returns a future yielding a [MachineTransitionContext] that describes the states that were
+  /// entered.
+  Future<MachineTransitionContext> enterInitialState([StateKey initialStateKey]) {
     final initialNode = initialStateKey != null ? nodes[initialStateKey] : rootNode;
     if (initialNode == null) {
       throw ArgumentError.value(
@@ -24,11 +32,13 @@ class Machine {
       );
     }
     final path = NodePath.enterFromRoot(rootNode, initialNode);
-    final transCtx = await _doTransition(path);
-    return transCtx;
+    return _doTransition(path);
   }
 
-  // Processes the specified message by dispatching it to the current node.
+  /// Processes the specified message by dispatching it to the current state.
+  ///
+  /// Returns a future yielding a [MessageProcessed] that describes how the message was processed,
+  /// and any state transition that occurred.
   Future<MessageProcessed> processMessage(Object message, [StateKey initialStateKey]) async {
     // Auto initializing makes testing easier, but may want to rethink this.
     if (currentNode == null) {
@@ -157,11 +167,11 @@ class Machine {
     final actionHandler = () => (transitionAction ?? emptyTransitionHandler)(transCtx);
     final entryHandlers = path.entering.map((n) => () => transCtx.onEnter(n));
     final initialChildPath = _initialChildPath(path.to, transCtx);
-    // Note that initialChildPath iterates on demand, so next child wont be computed until
+    // Note that initialChildPath iterates on demand, so next child won't be computed until
     // current child is entered.
     final initialChildHandlers = initialChildPath.map((n) => () => transCtx.onEnter(n));
     final bookkeepingHandler = () {
-      assert(transCtx.endNode.isLeaf, 'Entering initial state did not result in a leaf node');
+      assert(transCtx.endNode.isLeaf, 'Transition did not end at a leaf node');
       _currentNode = transCtx.endNode;
     };
 
@@ -361,8 +371,14 @@ class UnhandledMessage extends MessageProcessed {
       : super(message, receivingState);
 }
 
-class InvalidMessage extends MessageProcessed {
-  InvalidMessage(Object message, StateKey receivingState) : super(message, receivingState);
+// class InvalidMessage extends MessageProcessed {
+//   InvalidMessage(Object message, StateKey receivingState) : super(message, receivingState);
+// }
+
+class ProcessingError extends MessageProcessed {
+  final Exception error;
+  ProcessingError(Object message, StateKey receivingState, this.error)
+      : super(message, receivingState);
 }
 
 final Iterable<StateKey> emptyStates = List.unmodifiable(<StateKey>[]);
