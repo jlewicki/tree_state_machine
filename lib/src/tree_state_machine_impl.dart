@@ -153,66 +153,53 @@ class Machine {
   ]) async {
     final transCtx = MachineTransitionContext(path);
 
-    // Exit the requested states
-    await _exitStates(path.exiting.iterator, transCtx);
+    final exitHandlers = path.exiting.map((n) => () => transCtx.onExit(n));
+    final actionHandler = () => (transitionAction ?? emptyTransitionHandler)(transCtx);
+    final entryHandlers = path.entering.map((n) => () => transCtx.onEnter(n));
+    final initialChildPath = _initialChildPath(path.to, transCtx);
+    // Note that initialChildPath iterates on demand, so next child wont be computed until
+    // current child is entered.
+    final initialChildHandlers = initialChildPath.map((n) => () => transCtx.onEnter(n));
+    final bookkeepingHandler = () {
+      assert(transCtx.endNode.isLeaf, 'Entering initial state did not result in a leaf node');
+      _currentNode = transCtx.endNode;
+    };
 
-    // Invoke transition action after all states are exited, and before ant states are entered.
-    if (transitionAction != null) {
-      final futureOr = transitionAction(transCtx);
-      if (futureOr is Future<void>) {
-        await futureOr;
-      }
-    }
-
-    // Enter the requested states
-    await _enterStates(path.entering.iterator, transCtx);
-
-    // Enter initial children, so that we end up at leaf state when the final nodeToEnter is not
-    // a leaf node
-    await _enterInitialChildren(path.entering.last, transCtx);
-
-    // Update current node after the transition is complete
-    assert(transCtx.endNode.isLeaf, 'Entering initial state did not result in a leaf node');
-    _currentNode = transCtx.endNode;
+    await _runTransitionHandlers(
+      transCtx,
+      exitHandlers
+          .followedBy([actionHandler])
+          .followedBy(entryHandlers)
+          .followedBy(initialChildHandlers)
+          .followedBy([bookkeepingHandler])
+          .iterator,
+    );
 
     return transCtx;
   }
 
-  FutureOr<void> _enterInitialChildren(
+  Iterable<TreeNode> _initialChildPath(
     TreeNode parentNode,
-    MachineTransitionContext ctx,
-  ) {
-    if (!parentNode.isLeaf) {
-      final initialChild = ctx.onInitialChild(parentNode);
-      final onEnterFutureOr = ctx.onEnter(initialChild);
-      return onEnterFutureOr is Future
-          ? onEnterFutureOr.then((Object _) => _enterInitialChildren(initialChild, ctx))
-          : _enterInitialChildren(initialChild, ctx);
+    MachineTransitionContext transCtx,
+  ) sync* {
+    var currentNode = parentNode;
+    while (!currentNode.isLeaf) {
+      currentNode = transCtx.onInitialChild(currentNode);
+      yield currentNode;
     }
   }
 
-  FutureOr<void> _enterStates(
-    Iterator<TreeNode> nodesToEnter,
-    MachineTransitionContext transCtx,
+  FutureOr<void> _runTransitionHandlers(
+    TransitionContext transCtx,
+    Iterator<FutureOr<void> Function()> handlers,
   ) {
-    while (nodesToEnter.moveNext()) {
-      final result = transCtx.onEnter(nodesToEnter.current);
+    while (handlers.moveNext()) {
+      final result = handlers.current();
       if (result is Future<void>) {
-        return result.then((Object _) => _enterStates(nodesToEnter, transCtx));
+        return result.then((Object _) => _runTransitionHandlers(transCtx, handlers));
       }
     }
-  }
-
-  FutureOr<void> _exitStates(
-    Iterator<TreeNode> nodesToExit,
-    MachineTransitionContext transCtx,
-  ) {
-    while (nodesToExit.moveNext()) {
-      final result = transCtx.onExit(nodesToExit.current);
-      if (result is Future<void>) {
-        return result.then((Object _) => _exitStates(nodesToExit, transCtx));
-      }
-    }
+    return transCtx;
   }
 
   TreeNode _node(StateKey key, [bool throwIfNotFound = true]) {
