@@ -62,11 +62,33 @@ class TreeStateMachine {
 
   /// Stream of [MessageProcessed] events.
   ///
-  /// A [MessageProcessed] is raised on this stream when a message was processed by a state within
-  /// the state machine. The result of this processing may have resulted in a state transition, in
-  /// which case an event will also be raised on the [transitions] stream.  When this occurs, an
-  /// event on this stream is raised first.
+  /// A [MessageProcessed] event is raised on this stream when a message was processed by a state
+  /// within the state machine. The result of this processing may have resulted in a state
+  /// transition, in which case an event will also be raised on the [transitions] stream.  When this
+  /// occurs, an event on this stream is raised first.
+  ///
+  /// Note that the [MessageProcessed] event does not necessarily mean that the message was handled
+  /// successfully; it might have been unhandled or an error might have occurred. Check the runtime
+  /// type of the event to determine what occurred.
   Stream<MessageProcessed> get processedMessages => _processedMessages.stream;
+
+  /// Stream of [HandledMessage] events.
+  ///
+  /// A [HandledMessage] is raised on this stream when a message was successfully handled a state
+  /// within the state machine.
+  ///
+  /// Note that the [HandledMessage] is also raised on the [processedMessages] stream.
+  Stream<HandledMessage> get handledMessages =>
+      Stream.castFrom(processedMessages.where((mp) => mp is HandledMessage));
+
+  /// Stream of [ProcessingError] events.
+  ///
+  /// A [ProcessingError] is raised on this stream when an error was thrown from one of a states
+  /// handler functions while a message was being handled or during a state transition.
+  ///
+  /// Note that the [ProcessingError] is also raised on the [processedMessages] stream.
+  Stream<ProcessingError> get errors =>
+      Stream.castFrom(processedMessages.where((mp) => mp is ProcessingError));
 
   /// Starts the state machine, transitioning the current state to the initial state of the state
   /// tree.
@@ -101,8 +123,8 @@ class TreeStateMachine {
     try {
       result = await _machine.processMessage(message);
       transition = result is HandledMessage ? result.transition : null;
-    } catch (ex) {
-      result = ProcessingError(message, receivingState, ex);
+    } catch (ex, stack) {
+      result = ProcessingError(message, receivingState, ex, stack);
     }
 
     // Raise events. Note that our stream controllers are async, so that this method will complete

@@ -345,12 +345,14 @@ class MachineMessageContext extends MessageContext {
   }
 }
 
+@immutable
 abstract class MessageProcessed {
   final Object message;
   final StateKey receivingState;
   MessageProcessed(this.message, this.receivingState);
 }
 
+@immutable
 class HandledMessage extends MessageProcessed {
   final StateKey handlingState;
   final Transition transition;
@@ -365,19 +367,18 @@ class HandledMessage extends MessageProcessed {
   Iterable<StateKey> get enteredStates => transition?.entered ?? emptyStates;
 }
 
+@immutable
 class UnhandledMessage extends MessageProcessed {
   final Iterable<StateKey> notifiedStates;
   UnhandledMessage(Object message, StateKey receivingState, this.notifiedStates)
       : super(message, receivingState);
 }
 
-// class InvalidMessage extends MessageProcessed {
-//   InvalidMessage(Object message, StateKey receivingState) : super(message, receivingState);
-// }
-
+@immutable
 class ProcessingError extends MessageProcessed {
-  final Exception error;
-  ProcessingError(Object message, StateKey receivingState, this.error)
+  final Object error;
+  final StackTrace stackTrace;
+  ProcessingError(Object message, StateKey receivingState, this.error, this.stackTrace)
       : super(message, receivingState);
 }
 

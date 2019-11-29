@@ -133,11 +133,83 @@ void main() {
         expect(error.error, same(ex));
       });
 
-      test('current state should not change if exception is thrown in message handler', () async {
+      test('should emit ProcessingError if exception is thrown in message handler', () async {
         final ex = Exception('oops');
         final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
           tree.r_a_a_2_key: (ctx) => throw ex,
         }));
+        await sm.start();
+
+        final errorsQ = StreamQueue(sm.errors);
+
+        final msg = Object();
+        final qItems = await Future.wait(
+          [errorsQ.next, sm.currentState.sendMessage(msg)],
+        );
+
+        final msgProcessed = qItems[0];
+        expect(msgProcessed.receivingState, equals(tree.r_a_a_2_key));
+        expect(msgProcessed.message, same(msg));
+        expect(msgProcessed, isA<ProcessingError>());
+        final error = msgProcessed as ProcessingError;
+        expect(error.error, same(ex));
+        expect(error.stackTrace, isNotNull);
+      });
+
+      test('should emit ProcessingError if exception is thrown in transition handler', () async {
+        final ex = Exception('oops');
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder(
+          messageHandlers: {
+            tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_b_1_key),
+          },
+          entryHandlers: {
+            tree.r_b_key: (ctx) => throw ex,
+          },
+        ));
+        await sm.start();
+        final errorsQ = StreamQueue(sm.errors);
+
+        final msg = Object();
+        final qItems = await Future.wait(
+          [errorsQ.next, sm.currentState.sendMessage(msg)],
+        );
+
+        final msgProcessed = qItems[0];
+        expect(msgProcessed.receivingState, equals(tree.r_a_a_2_key));
+        expect(msgProcessed.message, same(msg));
+        expect(msgProcessed, isA<ProcessingError>());
+        final error = msgProcessed as ProcessingError;
+        expect(error.error, same(ex));
+        expect(error.stackTrace, isNotNull);
+      });
+
+      test('should keep current state if exception is thrown in message handler', () async {
+        final ex = Exception('oops');
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+          tree.r_a_a_2_key: (ctx) => throw ex,
+        }));
+        await sm.start();
+
+        final message = Object();
+        final result = await sm.currentState.sendMessage(message);
+
+        expect(result, isA<ProcessingError>());
+        final error = result as ProcessingError;
+        expect(error.message, same(message));
+        expect(error.receivingState, equals(tree.r_a_a_2_key));
+        expect(error.error, same(ex));
+      });
+
+      test('should keep current state if exception is thrown in transition handler', () async {
+        final ex = Exception('oops');
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder(
+          messageHandlers: {
+            tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_b_1_key),
+          },
+          entryHandlers: {
+            tree.r_b_key: (ctx) => throw ex,
+          },
+        ));
         await sm.start();
 
         final message = Object();
