@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'package:meta/meta.dart';
-
 import 'tree_node.dart';
 import 'tree_state.dart';
 
@@ -51,7 +49,7 @@ class Machine {
     // If the state machine is in a final state, do not dispatch the message for proccessing,
     // since there is no point.
     if (currentNode.isFinal) {
-      final msgProcessed = UnhandledMessage(message, currentNode.key, []);
+      final msgProcessed = UnhandledMessage(message, currentNode.key, const []);
       return Future.value(msgProcessed);
     }
 
@@ -295,33 +293,6 @@ class MachineTransitionContext implements TransitionContext {
   }
 }
 
-/// Describes a transition between states in a state machine.
-@immutable
-class Transition {
-  /// The starting leaf state of the transition.
-  final StateKey from;
-
-  /// The final leaf state of the transition.
-  final StateKey to;
-
-  final List<StateKey> traversed;
-  final List<StateKey> exited;
-  final List<StateKey> entered;
-
-  Transition(
-    this.from,
-    this.to,
-    Iterable<StateKey> traversed,
-    Iterable<StateKey> exited,
-    Iterable<StateKey> entered,
-  )   : this.traversed = (traversed ?? []).toList(growable: false),
-        this.exited = (exited ?? []).toList(growable: false),
-        this.entered = (entered ?? []).toList(growable: false) {
-    ArgumentError.checkNotNull(from, 'from');
-    ArgumentError.checkNotNull(to, 'to');
-  }
-}
-
 class MachineMessageContext extends MessageContext {
   /// The leaf node that received the message
   final TreeNode receivingNode;
@@ -344,42 +315,3 @@ class MachineMessageContext extends MessageContext {
     return node.state().onMessage(this);
   }
 }
-
-@immutable
-abstract class MessageProcessed {
-  final Object message;
-  final StateKey receivingState;
-  MessageProcessed(this.message, this.receivingState);
-}
-
-@immutable
-class HandledMessage extends MessageProcessed {
-  final StateKey handlingState;
-  final Transition transition;
-  HandledMessage(
-    Object message,
-    StateKey receivingState,
-    this.handlingState, [
-    this.transition,
-  ]) : super(message, receivingState);
-
-  Iterable<StateKey> get exitedStates => transition?.exited ?? emptyStates;
-  Iterable<StateKey> get enteredStates => transition?.entered ?? emptyStates;
-}
-
-@immutable
-class UnhandledMessage extends MessageProcessed {
-  final Iterable<StateKey> notifiedStates;
-  UnhandledMessage(Object message, StateKey receivingState, this.notifiedStates)
-      : super(message, receivingState);
-}
-
-@immutable
-class ProcessingError extends MessageProcessed {
-  final Object error;
-  final StackTrace stackTrace;
-  ProcessingError(Object message, StateKey receivingState, this.error, this.stackTrace)
-      : super(message, receivingState);
-}
-
-final Iterable<StateKey> emptyStates = List.unmodifiable(<StateKey>[]);

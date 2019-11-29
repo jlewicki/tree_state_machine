@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:async/async.dart';
 import 'package:test/test.dart';
+import 'package:tree_state_machine/src/tree_state.dart';
 import 'package:tree_state_machine/src/tree_state_machine.dart';
-import 'package:tree_state_machine/src/tree_state_machine_impl.dart';
 import 'tree_1.dart' as tree;
 import 'flat_tree_1.dart' as flat_tree;
 
@@ -158,15 +158,11 @@ void main() {
 
       test('should emit ProcessingError if exception is thrown in transition handler', () async {
         final ex = Exception('oops');
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder(
-          messageHandlers: {
-            tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_b_1_key),
-          },
-          entryHandlers: {
-            tree.r_b_key: (ctx) => throw ex,
-          },
-        ));
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+          tree.r_a_a_2_key: (ctx) => throw ex,
+        }));
         await sm.start();
+
         final errorsQ = StreamQueue(sm.errors);
 
         final msg = Object();

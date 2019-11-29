@@ -274,6 +274,87 @@ class DelegateFinalState extends FinalTreeState {
   FutureOr<void> onExit(TransitionContext context) {}
 }
 
+/// Describes a transition between states in a state machine.
+@immutable
+class Transition {
+  /// The starting leaf state of the transition.
+  final StateKey from;
+
+  /// The final leaf state of the transition.
+  final StateKey to;
+
+  /// Complete list of states that were traversed (exited states followed by entered states) during
+  /// the transition.
+  ///
+  /// The first state in the list is [from], and the last state in the list is [to].
+  final List<StateKey> traversed;
+
+  /// The states that were exited during the transition.
+  ///
+  /// The order of the states in the list reflects the order the states were exited.
+  final List<StateKey> exited;
+
+  /// The states that were entered during the transition.
+  ///
+  /// The order of the states in the list reflects the order the states were entered.
+  final List<StateKey> entered;
+
+  /// Constructs a [Transition] instance.
+  Transition(
+    this.from,
+    this.to,
+    Iterable<StateKey> traversed,
+    Iterable<StateKey> exited,
+    Iterable<StateKey> entered,
+  )   : assert(traversed.first == from, 'from must be the same as the first traversed state'),
+        assert(traversed.last == to, 'from must be the same as the last traversed state'),
+        assert(exited.isEmpty || exited.first == from, 'from must be same as first exited state'),
+        assert(entered.last == to, 'to must be same as last entered state'),
+        this.traversed = (traversed ?? const []).toList(growable: false),
+        this.exited = (exited ?? const []).toList(growable: false),
+        this.entered = (entered ?? const []).toList(growable: false) {
+    ArgumentError.checkNotNull(from, 'from');
+    ArgumentError.checkNotNull(to, 'to');
+  }
+}
+
+@immutable
+abstract class MessageProcessed {
+  final Object message;
+  final StateKey receivingState;
+  const MessageProcessed(this.message, this.receivingState);
+}
+
+@immutable
+class HandledMessage extends MessageProcessed {
+  final StateKey handlingState;
+  final Transition transition;
+  const HandledMessage(
+    Object message,
+    StateKey receivingState,
+    this.handlingState, [
+    this.transition,
+  ]) : super(message, receivingState);
+
+  Iterable<StateKey> get exitedStates => transition?.exited ?? const [];
+  Iterable<StateKey> get enteredStates => transition?.entered ?? const [];
+}
+
+@immutable
+class UnhandledMessage extends MessageProcessed {
+  final Iterable<StateKey> notifiedStates;
+  const UnhandledMessage(Object message, StateKey receivingState, this.notifiedStates)
+      : super(message, receivingState);
+}
+
+@immutable
+class ProcessingError extends MessageProcessed {
+  final Object error;
+  final StackTrace stackTrace;
+  const ProcessingError(Object message, StateKey receivingState, this.error, this.stackTrace)
+      : super(message, receivingState);
+}
+
 // Food for thought
 // typedef L<T> = List<T> Function<S>(S, {T Function(int, S) factory});
 // https://github.com/dart-lang/sdk/blob/master/docs/language/informal/generic-function-type-alias.md
