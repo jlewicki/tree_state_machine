@@ -150,9 +150,61 @@ void main() {
         expect(error.error, same(ex));
       });
     });
+
+    group('isEnded', () {
+      test('should return false if state machine is not started', () {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+          // This processes message, but does not result in a transition
+          tree.r_a_a_2_key: (ctx) => ctx.stay(),
+        }));
+
+        expect(sm.isEnded, isFalse);
+      });
+
+      test('should return false if current state is not final', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+          // This processes message, but does not result in a transition
+          tree.r_a_a_2_key: (ctx) => ctx.stay(),
+        }));
+        await sm.start();
+
+        expect(sm.isEnded, isFalse);
+      });
+
+      test('should return true if current state is final', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+          // This processes message, but does not result in a transition
+          tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_X_key),
+        }));
+        await sm.start();
+
+        await sm.currentState.sendMessage(Object());
+        expect(sm.isEnded, isTrue);
+      });
+    });
   });
 
   group('CurrentState', () {
+    group('key', () {
+      test('should return initial state after starting', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start();
+
+        expect(sm.currentState.key, equals(tree.initialStateKey));
+      });
+
+      test('should return current state after transition', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+          tree.initialStateKey: (msgCtx) => msgCtx.goTo(tree.r_b_1_key),
+        }));
+        await sm.start();
+
+        await sm.currentState.sendMessage(Object());
+
+        expect(sm.currentState.key, equals(tree.r_b_1_key));
+      });
+    });
+
     group('sendMessage', () {
       test('should dispatch to state machine for processing', () async {
         final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
