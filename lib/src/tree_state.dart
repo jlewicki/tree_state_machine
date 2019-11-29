@@ -1,19 +1,30 @@
 import 'dart:async';
 import 'package:meta/meta.dart';
+
 //
 // Keys
 //
 
+/// A [StateKey] is an indentifier for a state within a tree state machine.
+///
+/// Keys must be unique within a tree of states.
 abstract class StateKey {
   StateKey._();
-  static StateKey named(String name) => ValueKey<String>(name);
-  static StateKey forState<T extends TreeState>() => ValueKey<Type>(_TypeLiteral<T>().type);
+
+  /// Construct a [StateKey] with the specifed name.
+  static StateKey named(String name) => _ValueKey<String>(name);
+
+  /// Construct a [StateKey] with a name based on the specified state type.
+  ///
+  /// This may be useful if each state in a tree is represented by its own [TreeState] subclass, and
+  /// therefore a unique name for the state can be inferred from the type name.
+  static StateKey forState<T extends TreeState>() => _ValueKey<Type>(_TypeLiteral<T>().type);
 }
 
 @immutable
-class ValueKey<T> extends StateKey {
+class _ValueKey<T> extends StateKey {
   final T value;
-  ValueKey(this.value) : super._() {
+  _ValueKey(this.value) : super._() {
     ArgumentError.notNull('value');
   }
 
@@ -22,7 +33,7 @@ class ValueKey<T> extends StateKey {
     if (other.runtimeType != runtimeType) {
       return false;
     }
-    final typedOther = other as ValueKey<T>;
+    final typedOther = other as _ValueKey<T>;
     return value == typedOther.value;
   }
 
