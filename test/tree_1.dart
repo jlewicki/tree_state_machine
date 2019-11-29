@@ -35,8 +35,8 @@ BuildRoot treeBuilder({
     key: r_key,
     state: createState,
     initialChild: (_) => r_a_key,
-    terminalStates: [
-      BuildTerminal.keyed(r_X_key, (key) => DelegateTerminalState(_exitHandlers[key])),
+    finalStates: [
+      BuildFinal.keyed(r_X_key, (key) => DelegateFinalState(_exitHandlers[key])),
     ],
     children: [
       BuildInterior.keyed(

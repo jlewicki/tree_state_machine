@@ -5,7 +5,7 @@ import 'package:tree_state_machine/src/tree_state.dart';
 
 class SimpleState extends EmptyTreeState {}
 
-class SimpleTerminalState extends TerminalTreeState {}
+class SimpleFinalState extends FinalTreeState {}
 
 void main() {
   var state = SimpleState();
@@ -17,8 +17,8 @@ void main() {
   var parentState = SimpleState();
   var parentKey = StateKey.named('parent');
   var parentNode = TreeNode(parentKey, (key) => parentState, null);
-  var terminalState = SimpleTerminalState();
-  var terminalKey = StateKey.named('terminal');
+  var finalState = SimpleFinalState();
+  var finaKey = StateKey.named('final');
 
   group('BuildLeaf', () {
     test('should build a leaf node', () {
@@ -168,37 +168,37 @@ void main() {
     });
   });
 
-  group('BuildTerminal', () {
-    test('should build an terminal node', () {
+  group('BuildFinal', () {
+    test('should build a final node', () {
       var buildCtx = BuildContext(parentNode);
 
-      var buildTerminal = BuildTerminal.keyed(terminalKey, (key) => terminalState);
-      var terminalNode = buildTerminal(buildCtx);
+      var buildFinal = BuildFinal.keyed(finaKey, (key) => finalState);
+      var finalNode = buildFinal(buildCtx);
 
-      expect(terminalNode, isNotNull);
-      expect(terminalNode.key, equals(terminalKey));
-      expect(terminalNode.isTerminal, isTrue);
-      expect(terminalNode.state(), same(terminalState));
-      expect(terminalNode.parent, same(parentNode));
-      expect(terminalNode.children, isEmpty);
+      expect(finalNode, isNotNull);
+      expect(finalNode.key, equals(finaKey));
+      expect(finalNode.isFinal, isTrue);
+      expect(finalNode.state(), same(finalState));
+      expect(finalNode.parent, same(parentNode));
+      expect(finalNode.children, isEmpty);
     });
 
     test('should build a leaf node with type-based state key', () {
       var buildCtx = BuildContext(parentNode);
 
-      var buildTerminal = BuildTerminal((key) => terminalState);
-      var terminalNode = buildTerminal(buildCtx);
+      var buildFinal = BuildFinal((key) => finalState);
+      var finalNode = buildFinal(buildCtx);
 
-      expect(terminalNode.key, equals(StateKey.forState<SimpleTerminalState>()));
+      expect(finalNode.key, equals(StateKey.forState<SimpleFinalState>()));
     });
 
     test('should add node to context', () {
       var buildCtx = BuildContext(parentNode);
 
-      var buildTerminal = BuildTerminal.keyed(terminalKey, (key) => terminalState);
-      var terminalNode = buildTerminal(buildCtx);
+      var buildFinal = BuildFinal.keyed(finaKey, (key) => finalState);
+      var finalNode = buildFinal(buildCtx);
 
-      expect(buildCtx.nodes[terminalKey], equals(terminalNode));
+      expect(buildCtx.nodes[finaKey], equals(finalNode));
     });
   });
 

@@ -38,9 +38,9 @@ class Machine {
       await enterInitialState(initialNode.key);
     }
 
-    // If the state machine is in a terminal state, do not dispatch the message for proccessing,
+    // If the state machine is in a final state, do not dispatch the message for proccessing,
     // since there is no point.
-    if (currentNode.isTerminal) {
+    if (currentNode.isFinal) {
       final msgProcessed = UnhandledMessage(message, currentNode.key, []);
       return Future.value(msgProcessed);
     }

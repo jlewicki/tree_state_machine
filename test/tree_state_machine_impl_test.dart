@@ -77,7 +77,7 @@ void main() {
         );
       });
 
-      test('should return unhandled if current state is terminal', () async {
+      test('should return unhandled if current state is final', () async {
         final buildTree = treeBuilder(messageHandlers: {
           r_key: (msgCtx) {
             // Root state (or any states) should not have it's handler invoked
@@ -257,7 +257,7 @@ void main() {
           expect(actionCalled, isTrue);
         });
 
-        test('should go to terminal state', () async {
+        test('should go to final state', () async {
           final buildTree = treeBuilder(messageHandlers: {
             r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_X_key),
           });

@@ -29,15 +29,15 @@ class TreeNode {
     return TreeNode._(key, parent, lazyState, entryTransition);
   }
 
-  factory TreeNode.terminal(StateKey key, StateCreator<TreeState> createState, TreeNode parent) {
+  factory TreeNode.finalNode(StateKey key, StateCreator<TreeState> createState, TreeNode parent) {
     final lazyState = Lazy<TreeState>(() => createState(key));
-    return TerminalNode._(key, parent, lazyState);
+    return FinalNode._(key, parent, lazyState);
   }
 
   bool get isRoot => parent == null;
   bool get isLeaf => children.isEmpty;
   bool get isInterior => !isRoot && !isLeaf;
-  bool get isTerminal => this is TerminalNode;
+  bool get isFinal => this is FinalNode;
   TreeState state() => _lazyState.value;
 
   bool isInState(StateKey stateKey) {
@@ -76,8 +76,8 @@ class TreeNode {
   }
 }
 
-class TerminalNode extends TreeNode {
-  TerminalNode._(StateKey key, TreeNode parent, Lazy<TreeState> lazyState)
+class FinalNode extends TreeNode {
+  FinalNode._(StateKey key, TreeNode parent, Lazy<TreeState> lazyState)
       : super._(key, parent, lazyState, null);
 }
 

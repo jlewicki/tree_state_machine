@@ -46,8 +46,8 @@ class TreeStateMachine {
 
   /// Returns `true` if the state machine has ended.
   ///
-  /// A state machine ends when a terminal state is entered.
-  bool get isEnded => isStarted && _machine.currentNode.isTerminal;
+  /// A state machine ends when a final state is entered.
+  bool get isEnded => isStarted && _machine.currentNode.isFinal;
 
   /// The current state of the state machine.
   ///

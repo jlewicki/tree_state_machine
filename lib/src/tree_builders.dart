@@ -47,9 +47,9 @@ class BuildRoot<T extends TreeState> implements BuildNode {
   final StateCreator<T> state;
   final Iterable<BuildChildNode> children;
   final InitialChild initialChild;
-  final Iterable<BuildTerminal> terminalStates;
+  final Iterable<BuildFinal> finalStates;
 
-  BuildRoot._(this.key, this.state, this.children, this.initialChild, this.terminalStates) {
+  BuildRoot._(this.key, this.state, this.children, this.initialChild, this.finalStates) {
     ArgumentError.checkNotNull(key, 'key');
     ArgumentError.checkNotNull(state, 'state');
     ArgumentError.checkNotNull(children, 'children');
@@ -63,18 +63,18 @@ class BuildRoot<T extends TreeState> implements BuildNode {
     @required StateCreator<T> state,
     @required Iterable<BuildChildNode> children,
     @required InitialChild initialChild,
-    Iterable<BuildTerminal> terminalStates,
+    Iterable<BuildFinal> finalStates,
   }) =>
-      BuildRoot._(StateKey.forState<T>(), state, children, initialChild, terminalStates ?? []);
+      BuildRoot._(StateKey.forState<T>(), state, children, initialChild, finalStates ?? []);
 
   factory BuildRoot.keyed({
     @required StateKey key,
     @required StateCreator<T> state,
     @required Iterable<BuildChildNode> children,
     @required InitialChild initialChild,
-    Iterable<BuildTerminal> terminalStates,
+    Iterable<BuildFinal> finalStates,
   }) =>
-      BuildRoot._(key, state, children, initialChild, terminalStates ?? []);
+      BuildRoot._(key, state, children, initialChild, finalStates ?? []);
 
   @override
   TreeNode call(BuildContext ctx) {
@@ -84,7 +84,7 @@ class BuildRoot<T extends TreeState> implements BuildNode {
     final root = TreeNode(key, state, null, initialChild);
     final childContext = ctx.childContext(root);
     root.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
-    root.children.addAll(terminalStates.map((childBuilder) => childBuilder(childContext)));
+    root.children.addAll(finalStates.map((childBuilder) => childBuilder(childContext)));
     ctx.addNode(root);
     return root;
   }
@@ -154,25 +154,25 @@ class BuildLeaf<T extends TreeState> implements BuildChildNode {
   }
 }
 
-class BuildTerminal<T extends TerminalTreeState> extends BuildNode {
+class BuildFinal<T extends FinalTreeState> extends BuildNode {
   final StateKey key;
   final StateCreator<T> createState;
 
-  BuildTerminal._(this.key, this.createState) {
+  BuildFinal._(this.key, this.createState) {
     ArgumentError.checkNotNull(key, 'key');
     ArgumentError.checkNotNull(createState, 'createState');
   }
 
-  factory BuildTerminal(StateCreator<T> createState) =>
-      BuildTerminal._(StateKey.forState<T>(), createState);
+  factory BuildFinal(StateCreator<T> createState) =>
+      BuildFinal._(StateKey.forState<T>(), createState);
 
-  factory BuildTerminal.keyed(StateKey key, StateCreator<T> createState) =>
-      BuildTerminal._(key, createState);
+  factory BuildFinal.keyed(StateKey key, StateCreator<T> createState) =>
+      BuildFinal._(key, createState);
 
   @override
   TreeNode call(BuildContext ctx) {
-    final terminal = TreeNode.terminal(key, createState, ctx.parentNode);
-    ctx.addNode(terminal);
-    return terminal;
+    final finalNode = TreeNode.finalNode(key, createState, ctx.parentNode);
+    ctx.addNode(finalNode);
+    return finalNode;
   }
 }

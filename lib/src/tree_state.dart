@@ -68,24 +68,24 @@ abstract class TreeState {
   FutureOr<void> onExit(TransitionContext context) {}
 }
 
-/// A terminal (final) state within a tree state machine.
+/// A final state within a tree state machine.
 ///
-/// A terminal state indicates that that state machine has completed processing. No further message
-/// handline or state transitions can occur once a terminal state has been entered.
+/// A final state indicates that that state machine has completed processing. No further message
+/// handline or state transitions can occur once a final state has been entered.
 ///
-/// A tree state machine may contain as many terminal states as necessary, in order to reflect the
+/// A tree state machine may contain as many final states as necessary, in order to reflect the
 /// different completion conditions of the state tree.
-abstract class TerminalTreeState extends TreeState {
+abstract class FinalTreeState extends TreeState {
   @nonVirtual
   @override
   FutureOr<void> onExit(TransitionContext context) {
-    throw StateError('Can not leave a terminal state.');
+    throw StateError('Can not leave a final state.');
   }
 
   @nonVirtual
   @override
   FutureOr<MessageResult> onMessage(MessageContext context) {
-    throw StateError('Can not send message to a terminal state');
+    throw StateError('Can not send message to a final state');
   }
 }
 
@@ -250,10 +250,10 @@ class DelegateState extends TreeState {
   FutureOr<void> onExit(TransitionContext context) => exitHandler(context);
 }
 
-class DelegateTerminalState extends TerminalTreeState {
+class DelegateFinalState extends FinalTreeState {
   TransitionHandler entryHandler;
 
-  DelegateTerminalState(this.entryHandler) {
+  DelegateFinalState(this.entryHandler) {
     entryHandler = entryHandler ?? emptyTransitionHandler;
   }
   @override
