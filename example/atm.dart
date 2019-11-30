@@ -35,7 +35,7 @@ class SelfTestState extends TreeState {
     // Perform self test
     final testPassed = await _performSelfTest();
     if (testPassed) {
-      context.postMessage(testPassedMessage);
+      context.post(testPassedMessage);
     }
   }
 
