@@ -130,26 +130,21 @@ class EmptyTreeState extends TreeState {
 }
 
 /// Provides information to a state about the message that is being processed.
-class MessageContext {
+abstract class MessageContext {
   /// The message that is being processed by the state machine.
-  final Object message;
-
-  MessageContext(this.message) {
-    ArgumentError.notNull('message');
-  }
+  Object get message;
 
   /// Returns a [MessageResult] indicating that a transition to the specified state should occur.
   ///
   /// A [TransitionHandler] may optionally be specified, indicating a function that should be called
   /// during the transition between states.
-  MessageResult goTo(StateKey targetStateKey, {TransitionHandler transitionAction}) =>
-      GoToResult(targetStateKey, transitionAction);
+  MessageResult goTo(StateKey targetStateKey, {TransitionHandler transitionAction});
 
   /// Returns a [MessageResult] indicating that an internal transition should occur.
   ///
   /// An internal transition means that the current state will not change, and no entry and exit
   /// handlers will be called.
-  MessageResult stay() => InternalTransitionResult.value;
+  MessageResult stay();
 
   /// Returns a [MessageResult] indicating that a self-transition should occur.
   ///
@@ -159,12 +154,11 @@ class MessageContext {
   /// If the calling state is a leaf state, only that state is re-entered. If the calling state is a
   /// interior states, all the states from the current (i.e. leaf) state and the calling interior
   /// state a re-enterd.
-  MessageResult goToSelf({TransitionHandler transitionAction}) =>
-      SelfTransitionResult(transitionAction);
+  MessageResult goToSelf({TransitionHandler transitionAction});
 
   /// Returns a [MessageResult] indicating the message could not be handled by a state, and that
   /// ancestor states should be given an opportunity to handle the message.
-  MessageResult unhandled() => UnhandledResult.value;
+  MessageResult unhandled();
 }
 
 /// Describes a transition between states that is occuring in a tree state machine.
@@ -202,6 +196,10 @@ abstract class TransitionContext {
   ///
   /// The ordering in this collection reflects the order the states were entered.
   Iterable<StateKey> get entered;
+
+  /// Posts a message that should be sent to the end state of this transition, after the transition
+  /// has completed.
+  void postMessage(Object message);
 }
 
 /// Base class for describing the results of processing a state machine message.

@@ -56,6 +56,7 @@ class Machine {
     final msgCtx = MachineMessageContext(message, currentNode);
     final msgResult = await _handleMessage(currentNode, msgCtx);
     final msgProcessed = await _handleMessageResult(msgResult, msgCtx);
+    msgCtx.dispose();
     return msgProcessed;
   }
 
@@ -159,7 +160,7 @@ class Machine {
     NodePath path, [
     TransitionHandler transitionAction,
   ]) async {
-    final transCtx = MachineTransitionContext(path);
+    final transCtx = MachineTransitionContext(path, this.processMessage);
 
     final exitHandlers = path.exiting.map((n) => () => transCtx.onExit(n));
     final actionHandler = () => (transitionAction ?? emptyTransitionHandler)(transCtx);
@@ -226,8 +227,9 @@ class MachineTransitionContext implements TransitionContext {
   TreeNode toNode;
   final List<TreeNode> _enteredNodes = [];
   final List<TreeNode> _exitedNodes = [];
+  final void Function(Object message) _postMessage;
 
-  MachineTransitionContext(this.nodePath) : toNode = nodePath.to {
+  MachineTransitionContext(this.nodePath, this._postMessage) : toNode = nodePath.to {
     // In general we always start a transition at a leaf node. However, when the state machine
     // starts, there is a transition from the root node to the initial starting state for the
     // machine.
@@ -271,6 +273,10 @@ class MachineTransitionContext implements TransitionContext {
     return initialChild;
   }
 
+  void postMessage(Object message) {
+    Timer.run(() => _postMessage(message));
+  }
+
   FutureOr<void> onEnter(TreeNode node) {
     final result = node.state().onEnter(this);
     _enteredNodes.add(node);
@@ -294,6 +300,8 @@ class MachineTransitionContext implements TransitionContext {
 }
 
 class MachineMessageContext extends MessageContext {
+  final Object message;
+
   /// The leaf node that received the message
   final TreeNode receivingNode;
 
@@ -304,14 +312,47 @@ class MachineMessageContext extends MessageContext {
   /// than [UnhandledResult].
   TreeNode get handlingNode => notifiedNodes.last;
 
-  MachineMessageContext(Object message, this.receivingNode)
+  bool _disposed = false;
+
+  MachineMessageContext(this.message, this.receivingNode)
       : assert(message != null),
         assert(receivingNode != null),
-        assert(receivingNode.isLeaf),
-        super(message);
+        assert(receivingNode.isLeaf);
+
+  @override
+  MessageResult goTo(StateKey targetStateKey, {TransitionHandler transitionAction}) {
+    _checkDisposed();
+    return GoToResult(targetStateKey, transitionAction);
+  }
+
+  @override
+  MessageResult stay() {
+    _checkDisposed();
+    return InternalTransitionResult.value;
+  }
+
+  @override
+  MessageResult goToSelf({TransitionHandler transitionAction}) {
+    _checkDisposed();
+    return SelfTransitionResult(transitionAction);
+  }
+
+  @override
+  MessageResult unhandled() {
+    _checkDisposed();
+    return UnhandledResult.value;
+  }
 
   FutureOr<MessageResult> onMessage(TreeNode node) {
     notifiedNodes.add(node);
     return node.state().onMessage(this);
+  }
+
+  void dispose() => _disposed = true;
+
+  void _checkDisposed() {
+    if (_disposed) {
+      throw StateError('This MessageContext has been disposed.');
+    }
   }
 }
