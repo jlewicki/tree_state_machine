@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:test/test.dart';
 import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
@@ -7,6 +9,84 @@ import 'tree_1.dart';
 import 'flat_tree_1.dart' as flat_tree;
 
 void main() {
+  group('MachineTransitionContext', () {
+    group('postMessage', () {
+      test('Should send message to end state when transition completes', () async {
+        final completer = Completer();
+        var receivedMessage = false;
+        final msg = Object();
+        final buildTree = treeBuilder(
+          entryHandlers: {
+            r_a_a_key: (ctx) => ctx.postMessage(msg),
+          },
+          messageHandlers: {
+            r_a_a_2_key: (ctx) {
+              if (identical(ctx.message, msg)) {
+                receivedMessage = true;
+                completer.complete();
+              }
+              return ctx.stay();
+            }
+          },
+        );
+        final buildCtx = BuildContext();
+        final rootNode = buildTree(buildCtx);
+        final machine = Machine(rootNode, buildCtx.nodes);
+        await machine.enterInitialState();
+        await completer.future;
+
+        expect(receivedMessage, isTrue);
+      });
+
+      test('Should send messages to end state if called more than once', () async {
+        final completer = Completer();
+        var receivedMessage1 = false;
+        var receivedMessage2 = false;
+        final msg1 = Object();
+        final msg2 = Object();
+        final buildTree = treeBuilder(
+          entryHandlers: {
+            r_a_a_key: (ctx) {
+              ctx.postMessage(msg1);
+              ctx.postMessage(msg2);
+            }
+          },
+          messageHandlers: {
+            r_a_a_2_key: (ctx) {
+              if (identical(ctx.message, msg1)) {
+                receivedMessage1 = true;
+              }
+              return ctx.goTo(r_b_1_key);
+            },
+            r_b_1_key: (ctx) {
+              if (identical(ctx.message, msg2)) {
+                if (!receivedMessage1) {
+                  // messages should be received in order posted
+                  expect(false, isTrue);
+                }
+                receivedMessage2 = true;
+              }
+              if (receivedMessage1 && receivedMessage2) {
+                completer.complete();
+              }
+              return ctx.stay();
+            }
+          },
+        );
+        final buildCtx = BuildContext();
+        final rootNode = buildTree(buildCtx);
+        final machine = Machine(rootNode, buildCtx.nodes);
+
+        await machine.enterInitialState();
+        await completer.future;
+
+        expect(receivedMessage1, isTrue);
+        expect(receivedMessage2, isTrue);
+        expect(machine.currentNode.key, equals(r_b_1_key));
+      });
+    });
+  });
+
   group('Machine', () {
     group('enterInitialState', () {
       final buildCtx = BuildContext();

@@ -62,11 +62,33 @@ class TreeStateMachine {
 
   /// Stream of [MessageProcessed] events.
   ///
-  /// A [MessageProcessed] is raised on this stream when a message was processed by a state within
-  /// the state machine. The result of this processing may have resulted in a state transition, in
-  /// which case an event will also be raised on the [transitions] stream.  When this occurs, an
-  /// event on this stream is raised first.
+  /// A [MessageProcessed] event is raised on this stream when a message was processed by a state
+  /// within the state machine. The result of this processing may have resulted in a state
+  /// transition, in which case an event will also be raised on the [transitions] stream.  When this
+  /// occurs, an event on this stream is raised first.
+  ///
+  /// Note that the [MessageProcessed] event does not necessarily mean that the message was handled
+  /// successfully; it might have been unhandled or an error might have occurred. Check the runtime
+  /// type of the event to determine what occurred.
   Stream<MessageProcessed> get processedMessages => _processedMessages.stream;
+
+  /// Stream of [HandledMessage] events.
+  ///
+  /// A [HandledMessage] is raised on this stream when a message was successfully handled a state
+  /// within the state machine.
+  ///
+  /// Note that the [HandledMessage] is also raised on the [processedMessages] stream.
+  Stream<HandledMessage> get handledMessages =>
+      Stream.castFrom(processedMessages.where((mp) => mp is HandledMessage));
+
+  /// Stream of [ProcessingError] events.
+  ///
+  /// A [ProcessingError] is raised on this stream when an error was thrown from one of a states
+  /// handler functions while a message was being handled or during a state transition.
+  ///
+  /// Note that the [ProcessingError] is also raised on the [processedMessages] stream.
+  Stream<ProcessingError> get errors =>
+      Stream.castFrom(processedMessages.where((mp) => mp is ProcessingError));
 
   /// Starts the state machine, transitioning the current state to the initial state of the state
   /// tree.
@@ -87,40 +109,59 @@ class TreeStateMachine {
     }
 
     final transCtx = await _machine.enterInitialState(initialStateKey);
-    _currentState = CurrentState(transCtx.end, _processMessage);
+    _currentState = CurrentState._(this);
     _transitions.add(transCtx.toTransition());
     _isStarted = true;
     return transCtx;
   }
 
   Future<MessageProcessed> _processMessage(Object message) async {
-    final result = await _machine.processMessage(message);
-    final transition = result is HandledMessage ? result.transition : null;
+    MessageProcessed result;
+    Transition transition;
+    final receivingState = _machine.currentNode.key;
 
-    // Defer raising events until this method returns.
-    Timer.run(() {
-      _processedMessages.add(result);
-      if (transition != null) {
-        _transitions.add(transition);
-      }
-    });
-
-    if (transition != null) {
-      _currentState = CurrentState(_machine.currentNode.key, _processMessage);
+    try {
+      result = await _machine.processMessage(message);
+      transition = result is HandledMessage ? result.transition : null;
+    } catch (ex, stack) {
+      result = ProcessingError(message, receivingState, ex, stack);
     }
+
+    // Raise events. Note that our stream controllers are async, so that this method will complete
+    // before events are visible to listeners.
+    _processedMessages.add(result);
+    if (transition != null) {
+      _transitions.add(transition);
+    }
+
     return result;
   }
 }
 
+/// Describes the state that is the current leaf state of a [TreeStateMachine].
 class CurrentState {
-  final StateKey key;
-  final Future<MessageProcessed> Function(Object msg) _dispatch;
+  final TreeStateMachine _treeStateMachine;
+  CurrentState._(this._treeStateMachine);
 
-  CurrentState(this.key, this._dispatch) {
-    ArgumentError.notNull('key');
+  /// The [StateKey] identifying the current leaf state.
+  StateKey get key => _treeStateMachine._machine.currentNode.key;
+
+  /// Returns `true` if the specified state is an active state in the state machine.
+  ///
+  /// The current state, and all of its ancestor states, are active states.
+  bool isActiveState(StateKey key) {
+    ArgumentError.checkNotNull(key, 'key');
+    return _treeStateMachine._machine.currentNode.isInState(key);
   }
 
-  Future<MessageProcessed> sendMessage(Object message) => _dispatch(message);
+  /// Sends the specified message to the current leaf state for processing.
+  ///
+  /// Returns a future that yields a [MessageProcessed] describing how the message was processed,
+  /// and any state transition that occured.
+  Future<MessageProcessed> sendMessage(Object message) {
+    ArgumentError.checkNotNull(message, 'message');
+    return _treeStateMachine._processMessage(message);
+  }
 }
 
 // Root state for wrapping 'flat' list of leaf states.
