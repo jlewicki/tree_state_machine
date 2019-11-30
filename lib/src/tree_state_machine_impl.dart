@@ -286,6 +286,7 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
   }
 
   void post(Object message) {
+    _throwIfDisposed();
     // Consider using microtask?
     Timer.run(() => _machine.processMessage(message));
   }
@@ -306,10 +307,15 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
     assert(endNode.isLeaf, 'Transition did not end at a leaf node.');
     return Transition(from, end, traversed(), exited, entered);
   }
+
+  void _throwIfDisposed() {
+    if (isDisposed) {
+      throw StateError('This TransitionContext has been disposed.');
+    }
+  }
 }
 
 class MachineMessageContext with DisposableMixin implements MessageContext {
-  //final void Function(Object message) _postMessage;
   final Machine _machine;
 
   /// The leaf node that received the message
@@ -384,17 +390,18 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
     notifiedNodes.add(node);
     return node.state().onMessage(this);
   }
+
+  void _throwIfDisposed() {
+    if (isDisposed) {
+      throw StateError('This MessageContext has been disposed.');
+    }
+  }
 }
 
 mixin DisposableMixin {
   bool _disposed = false;
   bool get isDisposed => _disposed;
   void dispose() => _disposed = true;
-  void _throwIfDisposed() {
-    if (_disposed) {
-      throw StateError('This MessageContext has been disposed.');
-    }
-  }
 }
 
 /// Keeps track of resources associated with a tree node.
