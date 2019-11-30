@@ -1,16 +1,26 @@
 import 'dart:async';
+import 'dart:collection';
 import 'tree_node.dart';
 import 'tree_state.dart';
 
 // Core state machine operations
 class Machine {
-  final TreeNode rootNode;
-  final Map<StateKey, TreeNode> nodes;
-  TreeNode _currentNode;
+  final MachineNode rootNode;
+  final Map<StateKey, MachineNode> nodes;
+  MachineNode _currentNode;
 
-  Machine(this.rootNode, this.nodes);
+  Machine._(this.rootNode, this.nodes);
 
-  TreeNode get currentNode => _currentNode;
+  factory Machine(TreeNode rootNode, Map<StateKey, TreeNode> nodesByKey) {
+    final machineRoot = MachineNode(rootNode);
+    final machineNodes = HashMap<StateKey, MachineNode>();
+    for (var entry in nodesByKey.entries) {
+      machineNodes[entry.key] = MachineNode(entry.value);
+    }
+    return Machine._(machineRoot, machineNodes);
+  }
+
+  TreeNode get currentNode => _currentNode?.node;
 
   /// Enters the initial state of the state machine.
   ///
@@ -20,7 +30,7 @@ class Machine {
   ///
   /// Returns a future yielding a [MachineTransitionContext] that describes the states that were
   /// entered.
-  Future<MachineTransitionContext> enterInitialState([StateKey initialStateKey]) {
+  Future<Transition> enterInitialState([StateKey initialStateKey]) {
     final initialNode = initialStateKey != null ? nodes[initialStateKey] : rootNode;
     if (initialNode == null) {
       throw ArgumentError.value(
@@ -29,7 +39,7 @@ class Machine {
         'This TreeStateMachine does not contain the specified initial state.',
       );
     }
-    final path = NodePath.enterFromRoot(rootNode, initialNode);
+    final path = NodePath.enterFromRoot(rootNode.node, initialNode.node);
     return _doTransition(path);
   }
 
@@ -39,11 +49,11 @@ class Machine {
   /// and any state transition that occurred.
   Future<MessageProcessed> processMessage(Object message, [StateKey initialStateKey]) async {
     // Auto initializing makes testing easier, but may want to rethink this.
-    if (currentNode == null) {
-      final _initialStateKey = initialStateKey ?? rootNode.key;
+    if (_currentNode == null) {
+      final _initialStateKey = initialStateKey ?? rootNode.node.key;
       final initialNode = nodes[_initialStateKey];
       assert(initialNode != null, 'Unable to find initial state $initialStateKey');
-      await enterInitialState(initialNode.key);
+      await enterInitialState(initialNode.node.key);
     }
 
     // If the state machine is in a final state, do not dispatch the message for proccessing,
@@ -53,7 +63,7 @@ class Machine {
       return Future.value(msgProcessed);
     }
 
-    final msgCtx = MachineMessageContext(message, currentNode);
+    final msgCtx = MachineMessageContext(message, _currentNode.node, this);
     final msgResult = await _handleMessage(currentNode, msgCtx);
     final msgProcessed = await _handleMessageResult(msgResult, msgCtx);
     msgCtx.dispose();
@@ -99,13 +109,13 @@ class Machine {
     bool isSelfTransition = false,
   }) async {
     final toNode = _node(result.toStateKey);
-    final path = NodePath(msgCtx.receivingNode, toNode);
-    final transCtx = await _doTransition(path, result.transitionAction);
+    final path = NodePath(msgCtx.receivingNode, toNode.node);
+    final transition = await _doTransition(path, result.transitionAction);
     return HandledMessage(
       msgCtx.message,
       msgCtx.receivingNode.key,
       msgCtx.handlingNode.key,
-      transCtx.toTransition(),
+      transition,
     );
   }
 
@@ -115,7 +125,7 @@ class Machine {
     return UnhandledMessage(
       msgCtx.message,
       msgCtx.receivingNode.key,
-      msgCtx.notifiedNodes.map((n) => n.key),
+      msgCtx.notifiedNodes.map((mn) => mn.key),
     );
   }
 
@@ -147,20 +157,20 @@ class Machine {
     // Note that all of the states from the current leaf state to the handling ancestor node will be
     // re-entered.
     final path = NodePath.reenter(msgCtx.receivingNode, msgCtx.handlingNode.parent);
-    final transCtx = await _doTransition(path, result.transitionAction);
+    final transition = await _doTransition(path, result.transitionAction);
     return HandledMessage(
       msgCtx.message,
       msgCtx.receivingNode.key,
       msgCtx.handlingNode.key,
-      transCtx.toTransition(),
+      transition,
     );
   }
 
-  Future<MachineTransitionContext> _doTransition(
+  Future<Transition> _doTransition(
     NodePath path, [
     TransitionHandler transitionAction,
   ]) async {
-    final transCtx = MachineTransitionContext(path, this.processMessage);
+    final transCtx = MachineTransitionContext(path, this);
 
     final exitHandlers = path.exiting.map((n) => () => transCtx.onExit(n));
     final actionHandler = () => (transitionAction ?? emptyTransitionHandler)(transCtx);
@@ -171,7 +181,7 @@ class Machine {
     final initialChildHandlers = initialChildPath.map((n) => () => transCtx.onEnter(n));
     final bookkeepingHandler = () {
       assert(transCtx.endNode.isLeaf, 'Transition did not end at a leaf node');
-      _currentNode = transCtx.endNode;
+      _currentNode = nodes[transCtx.endNode.key];
     };
 
     await _runTransitionHandlers(
@@ -184,7 +194,9 @@ class Machine {
           .iterator,
     );
 
-    return transCtx;
+    final transition = transCtx.toTransition();
+    transCtx.dispose();
+    return transition;
   }
 
   Iterable<TreeNode> _initialChildPath(
@@ -211,25 +223,25 @@ class Machine {
     return transCtx;
   }
 
-  TreeNode _node(StateKey key, [bool throwIfNotFound = true]) {
-    final node = nodes[key];
+  MachineNode _node(StateKey key, [bool throwIfNotFound = true]) {
+    final machineNode = nodes[key];
     if (key == null && throwIfNotFound) {
       throw StateError(
         'This TreeStateMachine does not contain the specified state $key.',
       );
     }
-    return node;
+    return machineNode;
   }
 }
 
-class MachineTransitionContext implements TransitionContext {
+class MachineTransitionContext with DisposableMixin implements TransitionContext {
   final NodePath nodePath;
   TreeNode toNode;
   final List<TreeNode> _enteredNodes = [];
   final List<TreeNode> _exitedNodes = [];
-  final void Function(Object message) _postMessage;
+  final Machine _machine;
 
-  MachineTransitionContext(this.nodePath, this._postMessage) : toNode = nodePath.to {
+  MachineTransitionContext(this.nodePath, this._machine) : toNode = nodePath.to {
     // In general we always start a transition at a leaf node. However, when the state machine
     // starts, there is a transition from the root node to the initial starting state for the
     // machine.
@@ -273,34 +285,38 @@ class MachineTransitionContext implements TransitionContext {
     return initialChild;
   }
 
-  void postMessage(Object message) {
-    Timer.run(() => _postMessage(message));
+  void post(Object message) {
+    _throwIfDisposed();
+    // Consider using microtask?
+    Timer.run(() => _machine.processMessage(message));
   }
 
   FutureOr<void> onEnter(TreeNode node) {
-    final result = node.state().onEnter(this);
     _enteredNodes.add(node);
-    if (result is Future<void>) {
-      return result;
-    }
+    return node.state().onEnter(this);
   }
 
   FutureOr<void> onExit(TreeNode node) {
-    final result = node.state().onExit(this);
     _exitedNodes.add(node);
-    if (result is Future<void>) {
-      return result;
-    }
+    final machineNode = _machine._node(node.key);
+    machineNode.cancelTimers();
+    return node.state().onExit(this);
   }
 
   Transition toTransition() {
     assert(endNode.isLeaf, 'Transition did not end at a leaf node.');
     return Transition(from, end, traversed(), exited, entered);
   }
+
+  void _throwIfDisposed() {
+    if (isDisposed) {
+      throw StateError('This TransitionContext has been disposed.');
+    }
+  }
 }
 
-class MachineMessageContext extends MessageContext {
-  final Object message;
+class MachineMessageContext with DisposableMixin implements MessageContext {
+  final Machine _machine;
 
   /// The leaf node that received the message
   final TreeNode receivingNode;
@@ -312,35 +328,62 @@ class MachineMessageContext extends MessageContext {
   /// than [UnhandledResult].
   TreeNode get handlingNode => notifiedNodes.last;
 
-  bool _disposed = false;
-
-  MachineMessageContext(this.message, this.receivingNode)
+  MachineMessageContext(this.message, this.receivingNode, this._machine)
       : assert(message != null),
         assert(receivingNode != null),
         assert(receivingNode.isLeaf);
 
   @override
+  final Object message;
+
+  @override
   MessageResult goTo(StateKey targetStateKey, {TransitionHandler transitionAction}) {
-    _checkDisposed();
+    _throwIfDisposed();
     return GoToResult(targetStateKey, transitionAction);
   }
 
   @override
   MessageResult stay() {
-    _checkDisposed();
+    _throwIfDisposed();
     return InternalTransitionResult.value;
   }
 
   @override
   MessageResult goToSelf({TransitionHandler transitionAction}) {
-    _checkDisposed();
+    _throwIfDisposed();
     return SelfTransitionResult(transitionAction);
   }
 
   @override
   MessageResult unhandled() {
-    _checkDisposed();
+    _throwIfDisposed();
     return UnhandledResult.value;
+  }
+
+  @override
+  Dispose schedule(
+    Object message(), {
+    Duration duration = const Duration(),
+    bool periodic = false,
+  }) {
+    _throwIfDisposed();
+    ArgumentError.checkNotNull(message, 'message');
+    if (periodic && duration.inMicroseconds < 100) {
+      // 100 is somewhat arbitrary, but we dont want to flood the event queue.
+      throw ArgumentError.value(
+        duration.inMicroseconds,
+        'duration',
+        'Duration must be greater than 100 microseconds',
+      );
+    }
+    final postMessage = () => _machine.processMessage(message());
+    final timer = periodic
+        ? Timer.periodic(duration, (timer) => postMessage())
+        : Timer(duration, postMessage);
+    // Associate the timer with the tree node that is currently processing the message when this
+    // method is called.
+    _machine._node(notifiedNodes.last.key).addTimer(timer);
+    return () => timer.cancel();
   }
 
   FutureOr<MessageResult> onMessage(TreeNode node) {
@@ -348,11 +391,32 @@ class MachineMessageContext extends MessageContext {
     return node.state().onMessage(this);
   }
 
-  void dispose() => _disposed = true;
-
-  void _checkDisposed() {
-    if (_disposed) {
+  void _throwIfDisposed() {
+    if (isDisposed) {
       throw StateError('This MessageContext has been disposed.');
+    }
+  }
+}
+
+mixin DisposableMixin {
+  bool _disposed = false;
+  bool get isDisposed => _disposed;
+  void dispose() => _disposed = true;
+}
+
+/// Keeps track of resources associated with a tree node.
+class MachineNode {
+  final TreeNode node;
+  final List<Timer> _timers = [];
+  MachineNode(this.node);
+
+  void addTimer(Timer timer) {
+    _timers.add(timer);
+  }
+
+  void cancelTimers() {
+    for (var timer in _timers) {
+      timer.cancel();
     }
   }
 }

@@ -118,6 +118,9 @@ typedef TransitionHandler = FutureOr<void> Function(TransitionContext ctx);
 /// [MessageContext.goTo].
 typedef MessageHandler = FutureOr<MessageResult> Function(MessageContext ctx);
 
+/// Type of functions that are used to signal that resources can be released.
+typedef Dispose = void Function();
+
 /// A [TransitionHandler] that returns immediately.
 final TransitionHandler emptyTransitionHandler = (_) {};
 
@@ -159,6 +162,26 @@ abstract class MessageContext {
   /// Returns a [MessageResult] indicating the message could not be handled by a state, and that
   /// ancestor states should be given an opportunity to handle the message.
   MessageResult unhandled();
+
+  /// Schedules a message to be dispatched to the state machine asynchronously.
+  ///
+  /// The time at which the message is sent is indicated by the [duration] argument. If not
+  /// specified, it will be sent as soon as possible (but still asynchronously).
+  ///
+  /// If [periodic] is true, then messages will be dispatched repeatedly, at intervals specified by
+  /// [duration]. Note that a [Timer] is used in the underlying implemention. Refer to
+  /// [Timer.periodic(duration, callback)] for further details regarding scheduling.
+  ///
+  /// This scheduling is only valid for the state that calls this method. If a state transition
+  /// occurs and this state is exited, the scheduling is automatically cancelled.
+  ///
+  /// The returned [Dispose] can be used to cancel the scheduled messaging (periodic or
+  /// otherwise).
+  Dispose schedule(
+    Object message(), {
+    Duration duration = const Duration(),
+    bool periodic = false,
+  });
 }
 
 /// Describes a transition between states that is occuring in a tree state machine.
@@ -199,7 +222,7 @@ abstract class TransitionContext {
 
   /// Posts a message that should be sent to the end state of this transition, after the transition
   /// has completed.
-  void postMessage(Object message);
+  void post(Object message);
 }
 
 /// Base class for describing the results of processing a state machine message.

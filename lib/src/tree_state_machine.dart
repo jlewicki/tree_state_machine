@@ -103,16 +103,16 @@ class TreeStateMachine {
   /// from the root until a leaf node is reached.
   ///
   /// A [StateError] is thrown if [start] has already been called.
-  Future<TransitionContext> start([StateKey initialStateKey]) async {
+  Future<Transition> start([StateKey initialStateKey]) async {
     if (_isStarted) {
       throw StateError('This TreeStateMachine has already been started.');
     }
 
-    final transCtx = await _machine.enterInitialState(initialStateKey);
+    final transition = await _machine.enterInitialState(initialStateKey);
     _currentState = CurrentState._(this);
-    _transitions.add(transCtx.toTransition());
+    _transitions.add(transition);
     _isStarted = true;
-    return transCtx;
+    return transition;
   }
 
   Future<MessageProcessed> _processMessage(Object message) async {

@@ -44,7 +44,7 @@ void main() {
 
         expect(sm.currentState, isNotNull);
         expect(sm.currentState.key, equals(tree.r_a_a_2_key));
-        expect(sm.currentState.key, equals(initialTransition.end));
+        expect(sm.currentState.key, equals(initialTransition.to));
       });
 
       test('should emit transition', () async {
@@ -53,7 +53,7 @@ void main() {
 
         final qItems = await Future.wait([transitionsQ.next, sm.start()]);
 
-        final transition = qItems[0] as Transition;
+        final transition = qItems[0];
         expect(transition.from, equals(tree.r_key));
         expect(transition.to, equals(tree.r_a_a_2_key));
         expect(
