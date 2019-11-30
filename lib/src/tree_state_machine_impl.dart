@@ -14,7 +14,7 @@ class Machine {
   factory Machine(TreeNode rootNode, Map<StateKey, TreeNode> nodesByKey) {
     final machineRoot = MachineNode(rootNode);
     final machineNodes = HashMap<StateKey, MachineNode>();
-    for (var entry in nodesByKey.entries) {
+    for (final entry in nodesByKey.entries) {
       machineNodes[entry.key] = MachineNode(entry.value);
     }
     return Machine._(machineRoot, machineNodes);
@@ -264,6 +264,13 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
   @override
   StateKey get end => entered.last;
 
+  @override
+  void post(Object message) {
+    _throwIfDisposed();
+    // Consider using microtask?
+    Timer.run(() => _machine.processMessage(message));
+  }
+
   Iterable<TreeNode> get exitedNodes => _exitedNodes;
   Iterable<TreeNode> get enteredNodes => _enteredNodes;
   TreeNode get endNode => _enteredNodes.last;
@@ -285,12 +292,6 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
     return initialChild;
   }
 
-  void post(Object message) {
-    _throwIfDisposed();
-    // Consider using microtask?
-    Timer.run(() => _machine.processMessage(message));
-  }
-
   FutureOr<void> onEnter(TreeNode node) {
     _enteredNodes.add(node);
     return node.state().onEnter(this);
@@ -298,8 +299,7 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
 
   FutureOr<void> onExit(TreeNode node) {
     _exitedNodes.add(node);
-    final machineNode = _machine._node(node.key);
-    machineNode.cancelTimers();
+    _machine._node(node.key).cancelTimers();
     return node.state().onExit(this);
   }
 
@@ -383,7 +383,7 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
     // Associate the timer with the tree node that is currently processing the message when this
     // method is called.
     _machine._node(notifiedNodes.last.key).addTimer(timer);
-    return () => timer.cancel();
+    return timer.cancel;
   }
 
   FutureOr<MessageResult> onMessage(TreeNode node) {
@@ -415,7 +415,7 @@ class MachineNode {
   }
 
   void cancelTimers() {
-    for (var timer in _timers) {
+    for (final timer in _timers) {
       timer.cancel();
     }
   }
