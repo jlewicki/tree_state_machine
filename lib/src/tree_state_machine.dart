@@ -1,7 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'package:json_annotation/json_annotation.dart';
+
 import 'tree_builders.dart';
 import 'tree_state.dart';
 import 'tree_state_machine_impl.dart';
+
+part 'tree_state_machine.g.dart';
 
 class TreeStateMachine {
   final Machine _machine;
@@ -30,13 +36,13 @@ class TreeStateMachine {
       throw ArgumentError.value(buildLeaves, 'buildLeaves', msg);
     }
 
-    final rootBuilder = buildRoot(
+    final buildRoot = rootBuilder(
       state: (key) => _RootState(),
       children: buildLeaves,
       initialChild: (_) => initialState,
     );
     final buildCtx = BuildContext(null);
-    final rootNode = rootBuilder(buildCtx);
+    final rootNode = buildRoot(buildCtx);
     final machine = Machine(rootNode, buildCtx.nodes);
     return TreeStateMachine._(machine);
   }
@@ -115,13 +121,29 @@ class TreeStateMachine {
     return transition;
   }
 
-  // void saveTree(IOSink sink) {
-  //   ArgumentError.checkNotNull(sink, 'sink');
-  //   if (!isStarted) {
-  //     throw StateError('This TreeStateMachine must be started before saving the tree.');
-  //   }
-  //   SaveContext
-  // }
+  void saveTo(IOSink sink) {
+    ArgumentError.checkNotNull(sink, 'sink');
+    if (!isStarted) {
+      throw StateError('This TreeStateMachine must be started before saving the tree.');
+    }
+
+    // Serialize data from active states
+    final stateDataList = _currentState.activeStates.map((key) {
+      final node = _machine.nodes[key];
+      assert(key != null, 'active state ${key.toString()} could not be found');
+      final state = node.node.state();
+      return _StateData(
+        key.toString(),
+        state is DataTreeState ? state.provider.encode() : null,
+        null,
+      );
+    }).toList();
+
+    Stream.fromIterable(<Object>[_StateTreeData(null, stateDataList).toJson()])
+        .transform(json.encoder)
+        .transform(utf8.encoder)
+        .pipe(sink);
+  }
 
   Future<MessageProcessed> _processMessage(Object message) async {
     MessageProcessed result;
@@ -182,8 +204,19 @@ class CurrentState {
 // Root state for wrapping 'flat' list of leaf states.
 class _RootState extends EmptyTreeState {}
 
-// class _StateTreeData {
-//   String treeVersion;
-//   StateKey currentState;
-//   Map<StateKey, StateData> dataByKey;
-// }
+@JsonSerializable()
+class _StateData {
+  String key;
+  Object encodedData;
+  String dataVersion;
+  _StateData(this.key, this.encodedData, this.dataVersion);
+  Map<String, dynamic> toJson() => _$_StateDataToJson(this);
+}
+
+@JsonSerializable()
+class _StateTreeData {
+  String version;
+  List<_StateData> stateData;
+  _StateTreeData(this.version, this.stateData);
+  Map<String, dynamic> toJson() => _$_StateTreeDataToJson(this);
+}

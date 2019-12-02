@@ -1,27 +1,100 @@
 import 'dart:collection';
 import 'package:meta/meta.dart';
-import 'package:tree_state_machine/src/tree_node.dart';
+import 'tree_node.dart';
 import 'tree_state.dart';
 
-typedef ChildNodeBuilder = TaggedTreeNode<ChildNode> Function(BuildContext ctx);
-typedef LeafNodeBuilder = TaggedTreeNode<Leaf> Function(BuildContext ctx);
-typedef InteriorNodeBuilder = TaggedTreeNode<Interior> Function(BuildContext ctx);
-typedef FinalNodeBuilder = TaggedTreeNode<Final> Function(BuildContext ctx);
-typedef RootNodeBuilder = TaggedTreeNode<Root> Function(BuildContext ctx);
+typedef ChildNodeBuilder = ChildNode Function(BuildContext ctx);
+typedef LeafNodeBuilder = LeafNode Function(BuildContext ctx);
+typedef InteriorNodeBuilder = InteriorNode Function(BuildContext ctx);
+typedef FinalNodeBuilder = FinalNode Function(BuildContext ctx);
+typedef RootNodeBuilder = RootNode Function(BuildContext ctx);
 
-RootNodeBuilder buildRoot<T extends TreeState>({
+RootNodeBuilder rootBuilder<T extends TreeState>({
   StateKey key,
   @required StateCreator<T> state,
   @required Iterable<ChildNodeBuilder> children,
   @required InitialChild initialChild,
   Iterable<FinalNodeBuilder> finalStates,
+}) =>
+    _rootBuilder<T>(
+        key, (k) => RootNode(k, state, initialChild), children, initialChild, finalStates);
+
+RootNodeBuilder dataRootBuilder<T extends DataTreeState<D>, D>({
+  StateKey key,
+  @required DataStateCreator<T, D> createState,
+  @required Iterable<ChildNodeBuilder> children,
+  @required InitialChild initialChild,
+  @required DataProvider<D> provider,
+  Iterable<FinalNodeBuilder> finalStates,
+}) =>
+    _rootBuilder<T>(
+      key,
+      (k) => RootNode(k, (k) => createState(k, provider), initialChild, provider),
+      children,
+      initialChild,
+      finalStates,
+    );
+
+InteriorNodeBuilder interiorBuilder<T extends TreeState>({
+  StateKey key,
+  @required StateCreator<T> state,
+  @required Iterable<ChildNodeBuilder> children,
+  @required InitialChild initialChild,
+}) =>
+    _interiorBuilder<T>(key, (k, p) => InteriorNode(k, p, state, initialChild), children);
+
+InteriorNodeBuilder dataInteriorBuilder<T extends DataTreeState<D>, D>({
+  StateKey key,
+  @required DataStateCreator<T, D> createState,
+  @required Iterable<ChildNodeBuilder> children,
+  @required InitialChild initialChild,
+  @required DataProvider<D> provider,
+}) =>
+    _interiorBuilder<T>(
+        key,
+        (k, p) => InteriorNode(k, p, (k) => createState(k, provider), initialChild, provider),
+        children);
+
+LeafNodeBuilder leafBuilder<T extends TreeState>({
+  StateKey key,
+  @required StateCreator<T> createState,
 }) {
+  return _leafBuilder<T>(key, (k, p) => LeafNode(k, p, createState));
+}
+
+LeafNodeBuilder dataLeafBuilder<T extends DataTreeState<D>, D>({
+  StateKey key,
+  @required DataStateCreator<T, D> createState,
+  @required DataProvider<D> provider,
+}) {
+  return _leafBuilder<T>(key, (k, p) => LeafNode(k, p, (k) => createState(k, provider), provider));
+}
+
+FinalNodeBuilder finalBuilder<T extends TreeState>({
+  StateKey key,
+  @required StateCreator<T> createState,
+}) {
+  return (ctx) {
+    final nodeKey = key ?? StateKey.forState<T>();
+    final leaf = FinalNode(nodeKey, ctx.parentNode, createState);
+    ctx.addNode(leaf);
+    return leaf;
+  };
+}
+
+RootNodeBuilder _rootBuilder<T extends TreeState>(
+  StateKey key,
+  RootNode Function(StateKey key) createNode,
+  Iterable<ChildNodeBuilder> children,
+  InitialChild initialChild,
+  Iterable<FinalNodeBuilder> finalStates,
+) {
   return (ctx) {
     if (ctx.parentNode != null) {
       throw ArgumentError.value(ctx, 'ctx', 'Unexpected parent node for root node');
     }
     final nodeKey = key ?? StateKey.forState<T>();
-    final root = rootNode(nodeKey, state, initialChild);
+    final root = createNode(nodeKey);
     final childContext = ctx.childContext(root);
     root.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
     if (finalStates != null) {
@@ -32,15 +105,14 @@ RootNodeBuilder buildRoot<T extends TreeState>({
   };
 }
 
-InteriorNodeBuilder buildInterior<T extends TreeState>({
+InteriorNodeBuilder _interiorBuilder<T extends TreeState>(
   StateKey key,
-  @required StateCreator<T> state,
-  @required Iterable<ChildNodeBuilder> children,
-  @required InitialChild initialChild,
-}) {
+  InteriorNode Function(StateKey key, TreeNode parent) createNode,
+  Iterable<ChildNodeBuilder> children,
+) {
   return (ctx) {
     final nodeKey = key ?? StateKey.forState<T>();
-    final interior = interiorNode(nodeKey, state, ctx.parentNode, initialChild);
+    final interior = createNode(nodeKey, ctx.parentNode);
     final childContext = ctx.childContext(interior);
     interior.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
     ctx.addNode(interior);
@@ -48,120 +120,17 @@ InteriorNodeBuilder buildInterior<T extends TreeState>({
   };
 }
 
-LeafNodeBuilder buildLeaf<T extends TreeState>({
+LeafNodeBuilder _leafBuilder<T extends TreeState>(
   StateKey key,
-  @required StateCreator<T> createState,
-}) {
+  LeafNode Function(StateKey key, TreeNode parent) createNode,
+) {
   return (ctx) {
     final nodeKey = key ?? StateKey.forState<T>();
-    final leaf = leafNode(nodeKey, createState, ctx.parentNode);
+    final leaf = createNode(nodeKey, ctx.parentNode);
     ctx.addNode(leaf);
     return leaf;
   };
 }
-
-LeafNodeBuilder dataLeaf<T extends DataTreeState<D>, D>({
-  StateKey key,
-  @required DataStateCreator<T, D> createState,
-  @required DataProvider<D> provider,
-}) {
-  return (ctx) {
-    final nodeKey = key ?? StateKey.forState<T>();
-    final leaf = leafNode(nodeKey, (k) => createState(k, provider), ctx.parentNode);
-    ctx.addNode(leaf);
-    return leaf;
-  };
-}
-
-FinalNodeBuilder buildFinal<T extends TreeState>({
-  StateKey key,
-  @required StateCreator<T> createState,
-}) {
-  return (ctx) {
-    final nodeKey = key ?? StateKey.forState<T>();
-    final leaf = finalNode(nodeKey, createState, ctx.parentNode);
-    ctx.addNode(leaf);
-    return leaf;
-  };
-}
-
-// class Build {
-//   static RootNodeBuilder root<T extends TreeState>({
-//     StateKey key,
-//     @required StateCreator<T> state,
-//     @required Iterable<ChildNodeBuilder> children,
-//     @required InitialChild initialChild,
-//     Iterable<FinalNodeBuilder> finalStates,
-//   }) {
-//     return (ctx) {
-//       if (ctx.parentNode != null) {
-//         throw ArgumentError.value(ctx, 'ctx', 'Unexpected parent node for root node');
-//       }
-//       final nodeKey = key ?? StateKey.forState<T>();
-//       final root = TreeNode.rootNode(nodeKey, state, initialChild);
-//       final childContext = ctx.childContext(root);
-//       root.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
-//       if (finalStates != null) {
-//         root.children.addAll(finalStates.map((childBuilder) => childBuilder(childContext)));
-//       }
-//       ctx.addNode(root);
-//       return root;
-//     };
-//   }
-
-//   static InteriorNodeBuilder interior<T extends TreeState>({
-//     StateKey key,
-//     @required StateCreator<T> state,
-//     @required Iterable<ChildNodeBuilder> children,
-//     @required InitialChild initialChild,
-//   }) {
-//     return (ctx) {
-//       final nodeKey = key ?? StateKey.forState<T>();
-//       final interior = TreeNode.interiorNode(nodeKey, state, ctx.parentNode, initialChild);
-//       final childContext = ctx.childContext(interior);
-//       interior.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
-//       ctx.addNode(interior);
-//       return interior;
-//     };
-//   }
-
-//   static LeafNodeBuilder leaf<T extends TreeState>({
-//     StateKey key,
-//     @required StateCreator<T> createState,
-//   }) {
-//     return (ctx) {
-//       final nodeKey = key ?? StateKey.forState<T>();
-//       final leaf = TreeNode.leafNode(nodeKey, createState, ctx.parentNode);
-//       ctx.addNode(leaf);
-//       return leaf;
-//     };
-//   }
-
-//   static ChildNodeBuilder dataLeaf<T extends DataTreeState<D>, D>({
-//     StateKey key,
-//     @required DataStateCreator<T, D> createState,
-//     @required DataProvider<D> provider,
-//   }) {
-//     return (ctx) {
-//       final nodeKey = key ?? StateKey.forState<T>();
-//       final leaf = TreeNode.leafNode(nodeKey, (k) => createState(k, provider), ctx.parentNode);
-//       ctx.addNode(leaf);
-//       return leaf;
-//     };
-//   }
-
-//   static FinalNodeBuilder finalNode<T extends TreeState>({
-//     StateKey key,
-//     @required StateCreator<T> createState,
-//   }) {
-//     return (ctx) {
-//       final nodeKey = key ?? StateKey.forState<T>();
-//       final leaf = TreeNode.finalNode(nodeKey, createState, ctx.parentNode);
-//       ctx.addNode(leaf);
-//       return leaf;
-//     };
-//   }
-// }
 
 class BuildContext {
   final TreeNode parentNode;

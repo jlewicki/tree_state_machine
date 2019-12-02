@@ -1,29 +1,63 @@
-import 'package:json_annotation/json_annotation.dart';
-part 'tree_state_io_test.g.dart';
+import 'package:test/test.dart';
+import 'package:tree_state_machine/src/tree_state.dart';
+import 'fixture/tree_data.dart';
 
-@JsonSerializable()
-class SomeData {
-  int count;
-  int itemNumber;
-  bool isRushed;
-}
-
-@JsonSerializable()
-class OtherData {
-  String playerName;
-  List<HiScore> hiScores;
-}
-
-@JsonSerializable()
-class HiScore {
-  String game;
-  int score;
-  HiScore();
-  factory HiScore.fromJson(Map<String, dynamic> json) => _$HiScoreFromJson(json);
+class SimpleDataState extends EmptyDataTreeState<SimpleData> {
+  SimpleDataState() : super(SimpleData.jsonProvider());
 }
 
 void main() {
-//
+  group('DataProvider', () {
+    group('data', () {
+      test('should create data instance on demand', () {
+        final provider = SimpleData.jsonProvider();
+        expect(provider.data, isNotNull);
+      });
+    });
+
+    group('encode', () {
+      test('should encode data using codec', () {
+        final provider = SimpleData.jsonProvider();
+        provider.data.name = 'Bill';
+        provider.data.age = 25;
+
+        final expected = provider.codec.encode(provider.data);
+        final actual = provider.encode();
+
+        expect(actual, isA<Map<String, dynamic>>());
+        expect(
+            (actual as Map<String, dynamic>).entries,
+            pairwiseCompare(
+                (expected as Map<String, dynamic>).entries,
+                (aEntry, eEntry) => aEntry.key == eEntry.key && aEntry.value == eEntry.value,
+                'entries are the same'));
+      });
+    });
+
+    group('decodeInto', () {
+      test('should update data', () {
+        final provider = SimpleData.jsonProvider();
+        provider.data.name = 'Bill';
+        provider.data.age = 25;
+
+        final newData = SimpleData()
+          ..name = 'Jim'
+          ..age = 30;
+
+        provider.decodeInto(newData.toJson());
+
+        expect(provider.data.name, equals('Jim'));
+        expect(provider.data.age, equals(30));
+      });
+    });
+  });
+
+  group('DataTreeState', () {
+    test('should create data instance on demand', () {
+      final state = SimpleDataState();
+      expect(state.data, isNotNull);
+    });
+  });
 }
 
 //  test('io stuff', () async {

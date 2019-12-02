@@ -4,8 +4,8 @@ import 'package:async/async.dart';
 import 'package:test/test.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 import 'package:tree_state_machine/src/tree_state_machine.dart';
-import 'tree_1.dart' as tree;
-import 'flat_tree_1.dart' as flat_tree;
+import 'fixture/tree_1.dart' as tree;
+import 'fixture/flat_tree_1.dart' as flat_tree;
 
 void main() {
   group('TreeStateMachine', () {
@@ -249,6 +249,18 @@ void main() {
         await sm.currentState.sendMessage(Object());
         expect(sm.isEnded, isTrue);
       });
+    });
+  });
+
+  group('saveTo', () {
+    test('should throw if sink is null', () {
+      final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+      expect(() => sm.saveTo(null), throwsArgumentError);
+    });
+
+    test('should throw if machine is not started', () {
+      final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+      expect(() => sm.saveTo(null), throwsArgumentError);
     });
   });
 

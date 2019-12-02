@@ -1,26 +1,25 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'tree_state_io_test.dart';
+part of 'tree_data.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-SomeData _$SomeDataFromJson(Map<String, dynamic> json) {
-  return SomeData()
-    ..count = json['count'] as int
-    ..itemNumber = json['itemNumber'] as int
-    ..isRushed = json['isRushed'] as bool;
+SimpleData _$SimpleDataFromJson(Map<String, dynamic> json) {
+  return SimpleData()
+    ..name = json['name'] as String
+    ..age = json['age'] as int;
 }
 
-Map<String, dynamic> _$SomeDataToJson(SomeData instance) => <String, dynamic>{
-      'count': instance.count,
-      'itemNumber': instance.itemNumber,
-      'isRushed': instance.isRushed,
+Map<String, dynamic> _$SimpleDataToJson(SimpleData instance) =>
+    <String, dynamic>{
+      'name': instance.name,
+      'age': instance.age,
     };
 
-OtherData _$OtherDataFromJson(Map<String, dynamic> json) {
-  return OtherData()
+PlayerData _$PlayerDataFromJson(Map<String, dynamic> json) {
+  return PlayerData()
     ..playerName = json['playerName'] as String
     ..hiScores = (json['hiScores'] as List)
         ?.map((e) =>
@@ -28,7 +27,8 @@ OtherData _$OtherDataFromJson(Map<String, dynamic> json) {
         ?.toList();
 }
 
-Map<String, dynamic> _$OtherDataToJson(OtherData instance) => <String, dynamic>{
+Map<String, dynamic> _$PlayerDataToJson(PlayerData instance) =>
+    <String, dynamic>{
       'playerName': instance.playerName,
       'hiScores': instance.hiScores,
     };

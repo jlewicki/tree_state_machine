@@ -33,37 +33,37 @@ RootNodeBuilder treeBuilder({
       messageHandler: _messageHandlers[key] ?? _createMessageHandler(key),
       exitHandler: _exitHandlers[key] ?? _createExitHandler(key));
 
-  return buildRoot(
+  return rootBuilder(
     key: r_key,
     state: createState,
     initialChild: (_) => r_a_key,
     finalStates: [
-      buildFinal(key: r_X_key, createState: (key) => DelegateFinalState(_exitHandlers[key])),
+      finalBuilder(key: r_X_key, createState: (key) => DelegateFinalState(_exitHandlers[key])),
     ],
     children: [
-      buildInterior(
+      interiorBuilder(
         key: r_a_key,
         state: createState,
         initialChild: (_) => r_a_a_key,
         children: [
-          buildInterior(
+          interiorBuilder(
             key: r_a_a_key,
             state: createState,
             initialChild: (_) => r_a_a_2_key,
             children: [
-              buildLeaf(key: r_a_a_1_key, createState: createState),
-              buildLeaf(key: r_a_a_2_key, createState: createState),
+              leafBuilder(key: r_a_a_1_key, createState: createState),
+              leafBuilder(key: r_a_a_2_key, createState: createState),
             ],
           ),
-          buildLeaf(key: r_a_1_key, createState: createState),
+          leafBuilder(key: r_a_1_key, createState: createState),
         ],
       ),
-      buildInterior(
+      interiorBuilder(
         key: r_b_key,
         state: createState,
         initialChild: (_) => r_b_1_key,
         children: [
-          buildLeaf(key: r_b_1_key, createState: createState),
+          leafBuilder(key: r_b_1_key, createState: createState),
         ],
       ),
     ],

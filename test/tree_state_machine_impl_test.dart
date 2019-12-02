@@ -5,8 +5,8 @@ import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 import 'package:tree_state_machine/src/tree_state_machine_impl.dart';
 
-import 'tree_1.dart';
-import 'flat_tree_1.dart' as flat_tree;
+import 'fixture/tree_1.dart';
+import 'fixture/flat_tree_1.dart' as flat_tree;
 
 void main() {
   group('Machine', () {
@@ -35,12 +35,12 @@ void main() {
       });
 
       test('should throw if initialChild returns null', () {
-        final buildTree = buildRoot(
+        final buildTree = rootBuilder(
           key: r_key,
           state: (key) => DelegateState(),
           initialChild: (_) => null,
           children: [
-            buildLeaf(key: r_a_1_key, createState: (key) => DelegateState()),
+            leafBuilder(key: r_a_1_key, createState: (key) => DelegateState()),
           ],
         );
         final buildCtx = BuildContext();
@@ -51,12 +51,12 @@ void main() {
       });
 
       test('should throw if initialChild references a state that is not a child', () {
-        final buildTree = buildRoot(
+        final buildTree = rootBuilder(
             key: r_key,
             state: (key) => DelegateState(),
             initialChild: (_) => r_a_a_1_key,
             children: [
-              buildLeaf(key: r_a_1_key, createState: (key) => DelegateState()),
+              leafBuilder(key: r_a_1_key, createState: (key) => DelegateState()),
             ]);
         final buildCtx = BuildContext();
         final rootNode = buildTree(buildCtx);

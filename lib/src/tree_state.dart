@@ -119,29 +119,49 @@ abstract class FinalTreeState implements TreeState {
 }
 
 class DataProvider<D> {
-  final Codec<D, Object> _codec;
+  final Codec<D, Object> codec;
   final D Function() _create;
-  DataProvider(this._codec, this._create);
-
   D _data;
+  DataProvider(this._create, this.codec);
+
+  /// Creates [DataProvider] that can be used for JSON serialization.
+  factory DataProvider.json(
+    D Function() create,
+    Map<String, dynamic> Function(D data) encode,
+    D Function(Map<String, dynamic> json) decode,
+  ) {
+    return DataProvider(create, JsonDataCodec(encode, decode));
+  }
+
+  /// The data instance managed by this provider.
+  ///
+  /// The instance is created on demand using the `create` function provided in the constructor.
   D get data => _data ??= _create();
 
-  Object encode() => _codec.encoder.convert(data);
+  /// Encodes the [data] value using the [Codec] provided in the constructor.
+  Object encode() => codec.encoder.convert(data);
 
   void decodeInto(Object input) {
     ArgumentError.checkNotNull('input');
-    if (!(input is D)) {
-      throw ArgumentError.value(
-          input, 'input', 'Input is not of expected type ${TypeLiteral<D>().type}');
-    }
-    _data = _codec.decoder.convert(input);
+    _data = codec.decoder.convert(input);
   }
 }
 
+/// A tree state that supports serialization of its state data.
+///
+///
 abstract class DataTreeState<D> extends TreeState {
-  DataProvider<D> _provider;
-  DataTreeState(this._provider);
-  D get data => _provider.data;
+  /// The [DataProvider] that supports serializing and deserializing the data associated with this
+  /// state.
+  final DataProvider<D> provider;
+
+  /// Constructs a [DataTreeState].
+  DataTreeState(this.provider) {
+    ArgumentError.checkNotNull(provider, 'provider');
+  }
+
+  /// The serializable data associated with this state.
+  D get data => provider.data;
 }
 
 /// Type of functions that are called when a state transition occurs within a state machine.
@@ -173,6 +193,12 @@ final MessageHandler emptyMessageHandler = (ctx) => ctx.unhandled();
 
 /// A tree state that always returns [MessageContext.unhandled].
 class EmptyTreeState extends TreeState {
+  @override
+  FutureOr<MessageResult> onMessage(MessageContext context) => context.unhandled();
+}
+
+class EmptyDataTreeState<D> extends DataTreeState<D> {
+  EmptyDataTreeState(DataProvider<D> provider) : super(provider);
   @override
   FutureOr<MessageResult> onMessage(MessageContext context) => context.unhandled();
 }
@@ -453,9 +479,6 @@ class DelegateFinalState extends FinalTreeState {
   }
   @override
   FutureOr<void> onEnter(TransitionContext context) => entryHandler(context);
-
-  @override
-  FutureOr<void> onExit(TransitionContext context) {}
 }
 // Food for thought
 // typedef L<T> = List<T> Function<S>(S, {T Function(int, S) factory});

@@ -6,43 +6,6 @@ typedef StateCreator<T extends TreeState> = T Function(StateKey key);
 typedef DataStateCreator<T extends DataTreeState<D>, D> = T Function(
     StateKey key, DataProvider<D> provider);
 
-TaggedTreeNode<Root> rootNode(
-  StateKey key,
-  StateCreator<TreeState> createState,
-  InitialChild initialChild,
-) {
-  final lazyState = Lazy<TreeState>(() => createState(key));
-  return TaggedTreeNode._(key, null, lazyState, initialChild, null);
-}
-
-TaggedTreeNode<Interior> interiorNode(
-  StateKey key,
-  StateCreator<TreeState> createState,
-  TreeNode parent,
-  InitialChild initialChild,
-) {
-  final lazyState = Lazy<TreeState>(() => createState(key));
-  return TaggedTreeNode._(key, parent, lazyState, initialChild, null);
-}
-
-TaggedTreeNode<Leaf> leafNode(
-  StateKey key,
-  StateCreator<TreeState> createState,
-  TreeNode parent,
-) {
-  final lazyState = Lazy<TreeState>(() => createState(key));
-  return TaggedTreeNode._(key, parent, lazyState, null, null);
-}
-
-TaggedTreeNode<Final> finalNode(
-  StateKey key,
-  StateCreator<TreeState> createState,
-  TreeNode parent,
-) {
-  final lazyState = Lazy<TreeState>(() => createState(key));
-  return TaggedTreeNode._(key, parent, lazyState, null, null);
-}
-
 class TreeNode {
   final Lazy<TreeState> _lazyState;
   final StateKey key;
@@ -54,10 +17,10 @@ class TreeNode {
 
   TreeNode._(this.key, this.parent, this._lazyState, this.initialChild, this.provider);
 
-  bool get isRoot => this is TaggedTreeNode<Root>;
-  bool get isLeaf => this is TaggedTreeNode<Leaf> || this is TaggedTreeNode<Final>;
-  bool get isInterior => this is TaggedTreeNode<Interior>;
-  bool get isFinal => this is TaggedTreeNode<Final>;
+  bool get isRoot => this is RootNode;
+  bool get isLeaf => this is LeafNode;
+  bool get isInterior => this is InteriorNode;
+  bool get isFinal => this is FinalNode;
   TreeState state() => _lazyState.value;
 
   bool isActive(StateKey stateKey) {
@@ -96,8 +59,8 @@ class TreeNode {
   }
 }
 
-class TaggedTreeNode<T extends NodeType> extends TreeNode {
-  TaggedTreeNode._(
+abstract class ChildNode extends TreeNode {
+  ChildNode._(
     StateKey key,
     TreeNode parent,
     Lazy<TreeState> lazyState,
@@ -106,17 +69,42 @@ class TaggedTreeNode<T extends NodeType> extends TreeNode {
   ) : super._(key, parent, lazyState, initialChild, provider);
 }
 
-abstract class NodeType {}
+class RootNode extends TreeNode {
+  RootNode(
+    StateKey key,
+    StateCreator createState,
+    InitialChild initialChild, [
+    DataProvider provider,
+  ]) : super._(key, null, Lazy<TreeState>(() => createState(key)), initialChild, provider);
+}
 
-abstract class Root extends NodeType {}
+class InteriorNode extends ChildNode {
+  InteriorNode(
+    StateKey key,
+    TreeNode parent,
+    StateCreator<TreeState> createState,
+    InitialChild initialChild, [
+    DataProvider provider,
+  ]) : super._(key, parent, Lazy<TreeState>(() => createState(key)), initialChild, provider);
+}
 
-abstract class ChildNode extends NodeType {}
+class LeafNode extends ChildNode {
+  LeafNode(
+    StateKey key,
+    TreeNode parent,
+    StateCreator createState, [
+    DataProvider provider,
+  ]) : super._(key, parent, Lazy<TreeState>(() => createState(key)), null, provider);
+}
 
-abstract class Leaf extends ChildNode {}
-
-abstract class Final extends ChildNode {}
-
-abstract class Interior extends ChildNode {}
+class FinalNode extends LeafNode {
+  FinalNode(
+    StateKey key,
+    TreeNode parent,
+    StateCreator createState, [
+    DataProvider provider,
+  ]) : super(key, parent, createState, provider);
+}
 
 class NodePath {
   final TreeNode from;
