@@ -6,21 +6,21 @@ final r_1_key = StateKey.named('leaf1');
 final r_2_key = StateKey.named('leaf2');
 
 final leaves = [
-  BuildLeaf.keyed(r_1_key, (key) => DelegateState()),
-  BuildLeaf.keyed(r_2_key, (key) => DelegateState()),
+  buildLeaf(key: r_1_key, createState: (key) => DelegateState()),
+  buildLeaf(key: r_2_key, createState: (key) => DelegateState()),
 ];
 
-BuildRoot treeBuilder({
+RootNodeBuilder treeBuilder({
   MessageHandler rootHandler,
   MessageHandler state1Handler,
   MessageHandler state2Handler,
 }) {
-  return BuildRoot.keyed(
+  return buildRoot(
       key: r_key,
       state: (key) => DelegateState(messageHandler: rootHandler),
       initialChild: (_) => r_1_key,
       children: [
-        BuildLeaf.keyed(r_1_key, (key) => DelegateState(messageHandler: state1Handler)),
-        BuildLeaf.keyed(r_2_key, (key) => DelegateState(messageHandler: state2Handler)),
+        buildLeaf(key: r_1_key, createState: (key) => DelegateState(messageHandler: state1Handler)),
+        buildLeaf(key: r_2_key, createState: (key) => DelegateState(messageHandler: state2Handler)),
       ]);
 }

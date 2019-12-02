@@ -1,7 +1,167 @@
 import 'dart:collection';
 import 'package:meta/meta.dart';
-import 'tree_node.dart';
+import 'package:tree_state_machine/src/tree_node.dart';
 import 'tree_state.dart';
+
+typedef ChildNodeBuilder = TaggedTreeNode<ChildNode> Function(BuildContext ctx);
+typedef LeafNodeBuilder = TaggedTreeNode<Leaf> Function(BuildContext ctx);
+typedef InteriorNodeBuilder = TaggedTreeNode<Interior> Function(BuildContext ctx);
+typedef FinalNodeBuilder = TaggedTreeNode<Final> Function(BuildContext ctx);
+typedef RootNodeBuilder = TaggedTreeNode<Root> Function(BuildContext ctx);
+
+RootNodeBuilder buildRoot<T extends TreeState>({
+  StateKey key,
+  @required StateCreator<T> state,
+  @required Iterable<ChildNodeBuilder> children,
+  @required InitialChild initialChild,
+  Iterable<FinalNodeBuilder> finalStates,
+}) {
+  return (ctx) {
+    if (ctx.parentNode != null) {
+      throw ArgumentError.value(ctx, 'ctx', 'Unexpected parent node for root node');
+    }
+    final nodeKey = key ?? StateKey.forState<T>();
+    final root = rootNode(nodeKey, state, initialChild);
+    final childContext = ctx.childContext(root);
+    root.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
+    if (finalStates != null) {
+      root.children.addAll(finalStates.map((childBuilder) => childBuilder(childContext)));
+    }
+    ctx.addNode(root);
+    return root;
+  };
+}
+
+InteriorNodeBuilder buildInterior<T extends TreeState>({
+  StateKey key,
+  @required StateCreator<T> state,
+  @required Iterable<ChildNodeBuilder> children,
+  @required InitialChild initialChild,
+}) {
+  return (ctx) {
+    final nodeKey = key ?? StateKey.forState<T>();
+    final interior = interiorNode(nodeKey, state, ctx.parentNode, initialChild);
+    final childContext = ctx.childContext(interior);
+    interior.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
+    ctx.addNode(interior);
+    return interior;
+  };
+}
+
+LeafNodeBuilder buildLeaf<T extends TreeState>({
+  StateKey key,
+  @required StateCreator<T> createState,
+}) {
+  return (ctx) {
+    final nodeKey = key ?? StateKey.forState<T>();
+    final leaf = leafNode(nodeKey, createState, ctx.parentNode);
+    ctx.addNode(leaf);
+    return leaf;
+  };
+}
+
+LeafNodeBuilder dataLeaf<T extends DataTreeState<D>, D>({
+  StateKey key,
+  @required DataStateCreator<T, D> createState,
+  @required DataProvider<D> provider,
+}) {
+  return (ctx) {
+    final nodeKey = key ?? StateKey.forState<T>();
+    final leaf = leafNode(nodeKey, (k) => createState(k, provider), ctx.parentNode);
+    ctx.addNode(leaf);
+    return leaf;
+  };
+}
+
+FinalNodeBuilder buildFinal<T extends TreeState>({
+  StateKey key,
+  @required StateCreator<T> createState,
+}) {
+  return (ctx) {
+    final nodeKey = key ?? StateKey.forState<T>();
+    final leaf = finalNode(nodeKey, createState, ctx.parentNode);
+    ctx.addNode(leaf);
+    return leaf;
+  };
+}
+
+// class Build {
+//   static RootNodeBuilder root<T extends TreeState>({
+//     StateKey key,
+//     @required StateCreator<T> state,
+//     @required Iterable<ChildNodeBuilder> children,
+//     @required InitialChild initialChild,
+//     Iterable<FinalNodeBuilder> finalStates,
+//   }) {
+//     return (ctx) {
+//       if (ctx.parentNode != null) {
+//         throw ArgumentError.value(ctx, 'ctx', 'Unexpected parent node for root node');
+//       }
+//       final nodeKey = key ?? StateKey.forState<T>();
+//       final root = TreeNode.rootNode(nodeKey, state, initialChild);
+//       final childContext = ctx.childContext(root);
+//       root.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
+//       if (finalStates != null) {
+//         root.children.addAll(finalStates.map((childBuilder) => childBuilder(childContext)));
+//       }
+//       ctx.addNode(root);
+//       return root;
+//     };
+//   }
+
+//   static InteriorNodeBuilder interior<T extends TreeState>({
+//     StateKey key,
+//     @required StateCreator<T> state,
+//     @required Iterable<ChildNodeBuilder> children,
+//     @required InitialChild initialChild,
+//   }) {
+//     return (ctx) {
+//       final nodeKey = key ?? StateKey.forState<T>();
+//       final interior = TreeNode.interiorNode(nodeKey, state, ctx.parentNode, initialChild);
+//       final childContext = ctx.childContext(interior);
+//       interior.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
+//       ctx.addNode(interior);
+//       return interior;
+//     };
+//   }
+
+//   static LeafNodeBuilder leaf<T extends TreeState>({
+//     StateKey key,
+//     @required StateCreator<T> createState,
+//   }) {
+//     return (ctx) {
+//       final nodeKey = key ?? StateKey.forState<T>();
+//       final leaf = TreeNode.leafNode(nodeKey, createState, ctx.parentNode);
+//       ctx.addNode(leaf);
+//       return leaf;
+//     };
+//   }
+
+//   static ChildNodeBuilder dataLeaf<T extends DataTreeState<D>, D>({
+//     StateKey key,
+//     @required DataStateCreator<T, D> createState,
+//     @required DataProvider<D> provider,
+//   }) {
+//     return (ctx) {
+//       final nodeKey = key ?? StateKey.forState<T>();
+//       final leaf = TreeNode.leafNode(nodeKey, (k) => createState(k, provider), ctx.parentNode);
+//       ctx.addNode(leaf);
+//       return leaf;
+//     };
+//   }
+
+//   static FinalNodeBuilder finalNode<T extends TreeState>({
+//     StateKey key,
+//     @required StateCreator<T> createState,
+//   }) {
+//     return (ctx) {
+//       final nodeKey = key ?? StateKey.forState<T>();
+//       final leaf = TreeNode.finalNode(nodeKey, createState, ctx.parentNode);
+//       ctx.addNode(leaf);
+//       return leaf;
+//     };
+//   }
+// }
 
 class BuildContext {
   final TreeNode parentNode;
@@ -18,161 +178,5 @@ class BuildContext {
       throw ArgumentError.value(node, 'node', msg);
     }
     nodes[node.key] = node;
-  }
-}
-
-abstract class BuildNode {
-  TreeNode call(BuildContext ctx);
-}
-
-/// A builder for nodes that can be children of other nodes.
-abstract class BuildChildNode extends BuildNode {}
-
-//
-// General note about node builders:
-// For convenience in generating state keys when calling the unnamed ctor, the builders are generic types. And for
-// readability when declaring state trees with the builders, keyed optional args are used.
-//
-// Unfortunately, the dart analyzer does not check for @required in generic types (I think this issue reflects that:
-// https://github.com/dart-lang/sdk/issues/38596). Which means currently it possible for consumers to leave off required
-// arguments. Maybe we should just go back to positional parameters
-//
-// UPDATE: beta version of Dart 1.11.0 SDK fixes this!
-//
-// A better solution is needed
-//
-
-class BuildRoot<T extends TreeState> implements BuildNode {
-  final StateKey key;
-  final StateCreator<T> state;
-  final Iterable<BuildChildNode> children;
-  final InitialChild initialChild;
-  final Iterable<BuildFinal> finalStates;
-
-  BuildRoot._(this.key, this.state, this.children, this.initialChild, this.finalStates) {
-    ArgumentError.checkNotNull(key, 'key');
-    ArgumentError.checkNotNull(state, 'state');
-    ArgumentError.checkNotNull(children, 'children');
-    ArgumentError.checkNotNull(initialChild, 'initialChild');
-    if (children.isEmpty) {
-      throw ArgumentError.value(children, 'children', 'Must have at least one item');
-    }
-  }
-
-  factory BuildRoot({
-    @required StateCreator<T> state,
-    @required Iterable<BuildChildNode> children,
-    @required InitialChild initialChild,
-    Iterable<BuildFinal> finalStates,
-  }) =>
-      BuildRoot._(StateKey.forState<T>(), state, children, initialChild, finalStates ?? []);
-
-  factory BuildRoot.keyed({
-    @required StateKey key,
-    @required StateCreator<T> state,
-    @required Iterable<BuildChildNode> children,
-    @required InitialChild initialChild,
-    Iterable<BuildFinal> finalStates,
-  }) =>
-      BuildRoot._(key, state, children, initialChild, finalStates ?? []);
-
-  @override
-  TreeNode call(BuildContext ctx) {
-    if (ctx.parentNode != null) {
-      throw ArgumentError.value(ctx, 'ctx', 'Unexpected parent node for root node');
-    }
-    final root = TreeNode(key, state, null, initialChild);
-    final childContext = ctx.childContext(root);
-    root.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
-    root.children.addAll(finalStates.map((childBuilder) => childBuilder(childContext)));
-    ctx.addNode(root);
-    return root;
-  }
-}
-
-class BuildInterior<T extends TreeState> implements BuildChildNode {
-  final StateKey key;
-  final StateCreator<T> state;
-  final Iterable<BuildChildNode> children;
-  final InitialChild initialChild;
-
-  BuildInterior._(this.key, this.state, this.children, this.initialChild) {
-    ArgumentError.checkNotNull(key, 'key');
-    ArgumentError.checkNotNull(state, 'state');
-    ArgumentError.checkNotNull(children, 'children');
-    ArgumentError.checkNotNull(initialChild, 'initialChild');
-    if (children.isEmpty) {
-      throw ArgumentError.value(children, 'children', 'Must have at least one item');
-    }
-  }
-
-  factory BuildInterior({
-    @required StateCreator<T> state,
-    @required Iterable<BuildChildNode> children,
-    @required InitialChild initialChild,
-  }) =>
-      BuildInterior._(StateKey.forState<T>(), state, children, initialChild);
-
-  factory BuildInterior.keyed({
-    @required StateKey key,
-    @required StateCreator<T> state,
-    @required Iterable<BuildChildNode> children,
-    @required InitialChild initialChild,
-  }) =>
-      BuildInterior._(key, state, children, initialChild);
-
-  @override
-  TreeNode call(BuildContext ctx) {
-    final interior = TreeNode(key, state, ctx.parentNode, initialChild);
-    final childContext = ctx.childContext(interior);
-    interior.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
-    ctx.addNode(interior);
-    return interior;
-  }
-}
-
-class BuildLeaf<T extends TreeState> implements BuildChildNode {
-  final StateKey key;
-  final StateCreator<T> createState;
-
-  BuildLeaf._(this.key, this.createState) {
-    ArgumentError.checkNotNull(key, 'key');
-    ArgumentError.checkNotNull(createState, 'createState');
-  }
-
-  factory BuildLeaf(StateCreator<T> createState) =>
-      BuildLeaf._(StateKey.forState<T>(), createState);
-
-  factory BuildLeaf.keyed(StateKey key, StateCreator<T> createState) =>
-      BuildLeaf._(key, createState);
-
-  @override
-  TreeNode call(BuildContext ctx) {
-    final leaf = TreeNode(key, createState, ctx.parentNode);
-    ctx.addNode(leaf);
-    return leaf;
-  }
-}
-
-class BuildFinal<T extends FinalTreeState> extends BuildNode {
-  final StateKey key;
-  final StateCreator<T> createState;
-
-  BuildFinal._(this.key, this.createState) {
-    ArgumentError.checkNotNull(key, 'key');
-    ArgumentError.checkNotNull(createState, 'createState');
-  }
-
-  factory BuildFinal(StateCreator<T> createState) =>
-      BuildFinal._(StateKey.forState<T>(), createState);
-
-  factory BuildFinal.keyed(StateKey key, StateCreator<T> createState) =>
-      BuildFinal._(key, createState);
-
-  @override
-  TreeNode call(BuildContext ctx) {
-    final finalNode = TreeNode.finalNode(key, createState, ctx.parentNode);
-    ctx.addNode(finalNode);
-    return finalNode;
   }
 }

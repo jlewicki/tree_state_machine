@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:meta/meta.dart';
+import 'utility.dart';
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -19,7 +21,7 @@ abstract class StateKey {
   ///
   /// This may be useful if each state in a tree is represented by its own [TreeState] subclass, and
   /// therefore a unique name for the state can be inferred from the type name.
-  static StateKey forState<T extends TreeState>() => _ValueKey<Type>(_TypeLiteral<T>().type);
+  static StateKey forState<T extends TreeState>() => _ValueKey<Type>(TypeLiteral<T>().type);
 }
 
 @immutable
@@ -48,11 +50,6 @@ class _ValueKey<T> extends StateKey {
 
   @override
   String toString() => 'StateKey($value)';
-}
-
-// Wacky: https://github.com/dart-lang/sdk/issues/33297
-class _TypeLiteral<T> {
-  Type get type => T;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -119,6 +116,32 @@ abstract class FinalTreeState implements TreeState {
   FutureOr<MessageResult> onMessage(MessageContext context) {
     throw StateError('Can not send message to a final state');
   }
+}
+
+class DataProvider<D> {
+  final Codec<D, Object> _codec;
+  final D Function() _create;
+  DataProvider(this._codec, this._create);
+
+  D _data;
+  D get data => _data ??= _create();
+
+  Object encode() => _codec.encoder.convert(data);
+
+  void decodeInto(Object input) {
+    ArgumentError.checkNotNull('input');
+    if (!(input is D)) {
+      throw ArgumentError.value(
+          input, 'input', 'Input is not of expected type ${TypeLiteral<D>().type}');
+    }
+    _data = _codec.decoder.convert(input);
+  }
+}
+
+abstract class DataTreeState<D> extends TreeState {
+  DataProvider<D> _provider;
+  DataTreeState(this._provider);
+  D get data => _provider.data;
 }
 
 /// Type of functions that are called when a state transition occurs within a state machine.
@@ -378,6 +401,7 @@ class HandledMessage extends MessageProcessed {
     this.transition,
   ]) : super._(message, receivingState);
 
+  // Get rid of these?
   Iterable<StateKey> get exitedStates => transition?.exited ?? const [];
   Iterable<StateKey> get enteredStates => transition?.entered ?? const [];
 }
@@ -524,21 +548,6 @@ class DelegateFinalState extends FinalTreeState {
 //   final M message;
 //   MessageContext1(this.message);
 // }
-
-// class TransitionContext {}
-
-// abstract class MessageResult {}
-
-// class StateHandler {
-//   final TransitionHandler onEnter;
-//   final MessageHandler onMessage;
-//   final TransitionHandler onExit;
-//   static final StateHandler noOp = StateHandler(null, null, null);
-
-//   StateHandler(this.onEnter, this.onMessage, this.onExit);
-// }
-
-// Type _typeOf<T>() => T;
 
 // StateHandler createMessageHandler<M>(
 //     {TransitionHandler onEnter,

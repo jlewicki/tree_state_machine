@@ -35,12 +35,12 @@ void main() {
       });
 
       test('should throw if initialChild returns null', () {
-        final buildTree = BuildRoot.keyed(
+        final buildTree = buildRoot(
           key: r_key,
           state: (key) => DelegateState(),
           initialChild: (_) => null,
           children: [
-            BuildLeaf.keyed(r_a_1_key, (key) => DelegateState()),
+            buildLeaf(key: r_a_1_key, createState: (key) => DelegateState()),
           ],
         );
         final buildCtx = BuildContext();
@@ -51,12 +51,12 @@ void main() {
       });
 
       test('should throw if initialChild references a state that is not a child', () {
-        final buildTree = BuildRoot.keyed(
+        final buildTree = buildRoot(
             key: r_key,
             state: (key) => DelegateState(),
             initialChild: (_) => r_a_a_1_key,
             children: [
-              BuildLeaf.keyed(r_a_1_key, (key) => DelegateState()),
+              buildLeaf(key: r_a_1_key, createState: (key) => DelegateState()),
             ]);
         final buildCtx = BuildContext();
         final rootNode = buildTree(buildCtx);

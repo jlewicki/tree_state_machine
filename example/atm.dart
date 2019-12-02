@@ -72,22 +72,22 @@ class SelectingTransactionState extends EmptyTreeState {}
 
 class TransactionState extends EmptyTreeState {}
 
-final atmTree = BuildRoot(
+final atmTree = buildRoot(
   state: (_) => RootState(),
   initialChild: (_) => StateKey.forState<OffState>(),
   children: [
-    BuildLeaf((_) => OffState()),
-    BuildLeaf((_) => SelfTestState()),
-    BuildLeaf((_) => IdleState()),
-    BuildLeaf((_) => MaintenanceState()),
-    BuildLeaf((_) => OutOfServiceState()),
-    BuildInterior(
+    buildLeaf(createState: (_) => OffState()),
+    buildLeaf(createState: (_) => SelfTestState()),
+    buildLeaf(createState: (_) => IdleState()),
+    buildLeaf(createState: (_) => MaintenanceState()),
+    buildLeaf(createState: (_) => OutOfServiceState()),
+    buildInterior(
       state: (_) => ServingCustomerState(),
       initialChild: (_) => StateKey.forState<CustomerAuthenticationState>(),
       children: [
-        BuildLeaf((_) => CustomerAuthenticationState()),
-        BuildLeaf((_) => SelectingTransactionState()),
-        BuildLeaf((_) => TransactionState()),
+        buildLeaf(createState: (_) => CustomerAuthenticationState()),
+        buildLeaf(createState: (_) => SelectingTransactionState()),
+        buildLeaf(createState: (_) => TransactionState()),
       ],
     )
   ],

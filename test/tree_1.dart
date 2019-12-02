@@ -13,7 +13,7 @@ final r_X_key = StateKey.named('r_X');
 
 final initialStateKey = r_a_a_2_key;
 
-BuildRoot treeBuilder({
+RootNodeBuilder treeBuilder({
   TransitionHandler createEntryHandler(StateKey key),
   TransitionHandler createExitHandler(StateKey key),
   MessageHandler createMessageHandler(StateKey key),
@@ -33,37 +33,37 @@ BuildRoot treeBuilder({
       messageHandler: _messageHandlers[key] ?? _createMessageHandler(key),
       exitHandler: _exitHandlers[key] ?? _createExitHandler(key));
 
-  return BuildRoot.keyed(
+  return buildRoot(
     key: r_key,
     state: createState,
     initialChild: (_) => r_a_key,
     finalStates: [
-      BuildFinal.keyed(r_X_key, (key) => DelegateFinalState(_exitHandlers[key])),
+      buildFinal(key: r_X_key, createState: (key) => DelegateFinalState(_exitHandlers[key])),
     ],
     children: [
-      BuildInterior.keyed(
+      buildInterior(
         key: r_a_key,
         state: createState,
         initialChild: (_) => r_a_a_key,
         children: [
-          BuildInterior.keyed(
+          buildInterior(
             key: r_a_a_key,
             state: createState,
             initialChild: (_) => r_a_a_2_key,
             children: [
-              BuildLeaf.keyed(r_a_a_1_key, createState),
-              BuildLeaf.keyed(r_a_a_2_key, createState),
+              buildLeaf(key: r_a_a_1_key, createState: createState),
+              buildLeaf(key: r_a_a_2_key, createState: createState),
             ],
           ),
-          BuildLeaf.keyed(r_a_1_key, createState),
+          buildLeaf(key: r_a_1_key, createState: createState),
         ],
       ),
-      BuildInterior.keyed(
+      buildInterior(
         key: r_b_key,
         state: createState,
         initialChild: (_) => r_b_1_key,
         children: [
-          BuildLeaf.keyed(r_b_1_key, createState),
+          buildLeaf(key: r_b_1_key, createState: createState),
         ],
       ),
     ],

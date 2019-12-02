@@ -12,7 +12,7 @@ class TreeStateMachine {
 
   TreeStateMachine._(this._machine);
 
-  factory TreeStateMachine.forRoot(BuildRoot buildRoot) {
+  factory TreeStateMachine.forRoot(RootNodeBuilder buildRoot) {
     ArgumentError.checkNotNull(buildRoot, 'buildRoot');
 
     final buildCtx = BuildContext(null);
@@ -22,7 +22,7 @@ class TreeStateMachine {
     return TreeStateMachine._(machine);
   }
 
-  factory TreeStateMachine.forLeaves(Iterable<BuildLeaf> buildLeaves, StateKey initialState) {
+  factory TreeStateMachine.forLeaves(Iterable<LeafNodeBuilder> buildLeaves, StateKey initialState) {
     ArgumentError.checkNotNull(buildLeaves, 'buildLeaves');
     ArgumentError.checkNotNull(initialState, 'initialState');
     if (buildLeaves.length < 2) {
@@ -30,7 +30,7 @@ class TreeStateMachine {
       throw ArgumentError.value(buildLeaves, 'buildLeaves', msg);
     }
 
-    final rootBuilder = BuildRoot(
+    final rootBuilder = buildRoot(
       state: (key) => _RootState(),
       children: buildLeaves,
       initialChild: (_) => initialState,
@@ -104,7 +104,7 @@ class TreeStateMachine {
   ///
   /// A [StateError] is thrown if [start] has already been called.
   Future<Transition> start([StateKey initialStateKey]) async {
-    if (_isStarted) {
+    if (isStarted) {
       throw StateError('This TreeStateMachine has already been started.');
     }
 
@@ -114,6 +114,14 @@ class TreeStateMachine {
     _isStarted = true;
     return transition;
   }
+
+  // void saveTree(IOSink sink) {
+  //   ArgumentError.checkNotNull(sink, 'sink');
+  //   if (!isStarted) {
+  //     throw StateError('This TreeStateMachine must be started before saving the tree.');
+  //   }
+  //   SaveContext
+  // }
 
   Future<MessageProcessed> _processMessage(Object message) async {
     MessageProcessed result;
@@ -151,8 +159,15 @@ class CurrentState {
   /// The current state, and all of its ancestor states, are active states.
   bool isActiveState(StateKey key) {
     ArgumentError.checkNotNull(key, 'key');
-    return _treeStateMachine._machine.currentNode.isInState(key);
+    return _treeStateMachine._machine.currentNode.isActive(key);
   }
+
+  /// Returns [StateKey]s identifying the states that are currently active in the state machine.
+  ///
+  /// The current state is first in the list, followed by its ancestor states, and ending at
+  /// the root state.
+  List<StateKey> get activeStates =>
+      _treeStateMachine._machine.currentNode.selfAndAncestors().map((n) => n.key).toList();
 
   /// Sends the specified message to the current leaf state for processing.
   ///
@@ -166,3 +181,9 @@ class CurrentState {
 
 // Root state for wrapping 'flat' list of leaf states.
 class _RootState extends EmptyTreeState {}
+
+// class _StateTreeData {
+//   String treeVersion;
+//   StateKey currentState;
+//   Map<StateKey, StateData> dataByKey;
+// }

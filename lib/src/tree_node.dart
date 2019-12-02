@@ -1,8 +1,47 @@
-import 'lazy.dart';
+import 'utility.dart';
 import 'tree_state.dart';
 
 typedef InitialChild = StateKey Function(TransitionContext ctx);
 typedef StateCreator<T extends TreeState> = T Function(StateKey key);
+typedef DataStateCreator<T extends DataTreeState<D>, D> = T Function(
+    StateKey key, DataProvider<D> provider);
+
+TaggedTreeNode<Root> rootNode(
+  StateKey key,
+  StateCreator<TreeState> createState,
+  InitialChild initialChild,
+) {
+  final lazyState = Lazy<TreeState>(() => createState(key));
+  return TaggedTreeNode._(key, null, lazyState, initialChild, null);
+}
+
+TaggedTreeNode<Interior> interiorNode(
+  StateKey key,
+  StateCreator<TreeState> createState,
+  TreeNode parent,
+  InitialChild initialChild,
+) {
+  final lazyState = Lazy<TreeState>(() => createState(key));
+  return TaggedTreeNode._(key, parent, lazyState, initialChild, null);
+}
+
+TaggedTreeNode<Leaf> leafNode(
+  StateKey key,
+  StateCreator<TreeState> createState,
+  TreeNode parent,
+) {
+  final lazyState = Lazy<TreeState>(() => createState(key));
+  return TaggedTreeNode._(key, parent, lazyState, null, null);
+}
+
+TaggedTreeNode<Final> finalNode(
+  StateKey key,
+  StateCreator<TreeState> createState,
+  TreeNode parent,
+) {
+  final lazyState = Lazy<TreeState>(() => createState(key));
+  return TaggedTreeNode._(key, parent, lazyState, null, null);
+}
 
 class TreeNode {
   final Lazy<TreeState> _lazyState;
@@ -11,37 +50,18 @@ class TreeNode {
   // Consider making this list of keys
   final List<TreeNode> children = [];
   final InitialChild initialChild;
+  final DataProvider provider;
 
-  TreeNode._(
-    this.key,
-    this.parent,
-    this._lazyState,
-    this.initialChild,
-  );
+  TreeNode._(this.key, this.parent, this._lazyState, this.initialChild, this.provider);
 
-  factory TreeNode(
-    StateKey key,
-    StateCreator<TreeState> createState,
-    TreeNode parent, [
-    InitialChild entryTransition,
-  ]) {
-    final lazyState = Lazy<TreeState>(() => createState(key));
-    return TreeNode._(key, parent, lazyState, entryTransition);
-  }
-
-  factory TreeNode.finalNode(StateKey key, StateCreator<TreeState> createState, TreeNode parent) {
-    final lazyState = Lazy<TreeState>(() => createState(key));
-    return FinalNode._(key, parent, lazyState);
-  }
-
-  bool get isRoot => parent == null;
-  bool get isLeaf => children.isEmpty;
-  bool get isInterior => !isRoot && !isLeaf;
-  bool get isFinal => this is FinalNode;
+  bool get isRoot => this is TaggedTreeNode<Root>;
+  bool get isLeaf => this is TaggedTreeNode<Leaf> || this is TaggedTreeNode<Final>;
+  bool get isInterior => this is TaggedTreeNode<Interior>;
+  bool get isFinal => this is TaggedTreeNode<Final>;
   TreeState state() => _lazyState.value;
 
-  bool isInState(StateKey stateKey) {
-    var nextNode = this;
+  bool isActive(StateKey stateKey) {
+    TreeNode nextNode = this;
     while (nextNode != null) {
       if (nextNode.key == stateKey) {
         return true;
@@ -76,10 +96,27 @@ class TreeNode {
   }
 }
 
-class FinalNode extends TreeNode {
-  FinalNode._(StateKey key, TreeNode parent, Lazy<TreeState> lazyState)
-      : super._(key, parent, lazyState, null);
+class TaggedTreeNode<T extends NodeType> extends TreeNode {
+  TaggedTreeNode._(
+    StateKey key,
+    TreeNode parent,
+    Lazy<TreeState> lazyState,
+    InitialChild initialChild,
+    DataProvider provider,
+  ) : super._(key, parent, lazyState, initialChild, provider);
 }
+
+abstract class NodeType {}
+
+abstract class Root extends NodeType {}
+
+abstract class ChildNode extends NodeType {}
+
+abstract class Leaf extends ChildNode {}
+
+abstract class Final extends ChildNode {}
+
+abstract class Interior extends ChildNode {}
 
 class NodePath {
   final TreeNode from;
