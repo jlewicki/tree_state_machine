@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:async/async.dart';
 import 'package:test/test.dart';
@@ -250,17 +251,40 @@ void main() {
         expect(sm.isEnded, isTrue);
       });
     });
-  });
 
-  group('saveTo', () {
-    test('should throw if sink is null', () {
-      final sm = TreeStateMachine.forRoot(tree.treeBuilder());
-      expect(() => sm.saveTo(null), throwsArgumentError);
-    });
+    group('saveTo', () {
+      test('should throw if sink is null', () {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        expect(() => sm.saveTo(null), throwsArgumentError);
+      });
 
-    test('should throw if machine is not started', () {
-      final sm = TreeStateMachine.forRoot(tree.treeBuilder());
-      expect(() => sm.saveTo(null), throwsArgumentError);
+      test('should throw if machine is not started', () {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        expect(() => sm.saveTo(null), throwsArgumentError);
+      });
+
+      test('should write state data of active states to sink ', () async {
+        final ioController = StreamController<List<int>>();
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start();
+
+        final results = await Future.wait<Object>([
+          sm.saveTo(ioController),
+          ioController.stream.transform(utf8.decoder).transform(json.decoder).toList(),
+        ]);
+        final jsonList = results[1] as List<Object>;
+
+        expect(jsonList.length, equals(1));
+        expect(jsonList[0], isA<Map<String, dynamic>>());
+
+        final encodableTree = EncodableTree.fromJson(jsonList[0]);
+        expect(encodableTree.encodableStates, isNotNull);
+        expect(
+            encodableTree.encodableStates.map((s) => s.key),
+            orderedEquals(
+              sm.currentState.activeStates.map((s) => s.toString()),
+            ));
+      });
     });
   });
 

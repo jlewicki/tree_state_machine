@@ -10,21 +10,21 @@ typedef FinalNodeBuilder = FinalNode Function(BuildContext ctx);
 typedef RootNodeBuilder = RootNode Function(BuildContext ctx);
 
 RootNodeBuilder rootBuilder<T extends TreeState>({
-  StateKey key,
   @required StateCreator<T> state,
   @required Iterable<ChildNodeBuilder> children,
   @required InitialChild initialChild,
+  StateKey key,
   Iterable<FinalNodeBuilder> finalStates,
 }) =>
     _rootBuilder<T>(
         key, (k) => RootNode(k, state, initialChild), children, initialChild, finalStates);
 
 RootNodeBuilder dataRootBuilder<T extends DataTreeState<D>, D>({
-  StateKey key,
   @required DataStateCreator<T, D> createState,
   @required Iterable<ChildNodeBuilder> children,
   @required InitialChild initialChild,
   @required DataProvider<D> provider,
+  StateKey key,
   Iterable<FinalNodeBuilder> finalStates,
 }) =>
     _rootBuilder<T>(
@@ -36,19 +36,19 @@ RootNodeBuilder dataRootBuilder<T extends DataTreeState<D>, D>({
     );
 
 InteriorNodeBuilder interiorBuilder<T extends TreeState>({
-  StateKey key,
   @required StateCreator<T> state,
   @required Iterable<ChildNodeBuilder> children,
   @required InitialChild initialChild,
+  StateKey key,
 }) =>
     _interiorBuilder<T>(key, (k, p) => InteriorNode(k, p, state, initialChild), children);
 
 InteriorNodeBuilder dataInteriorBuilder<T extends DataTreeState<D>, D>({
-  StateKey key,
   @required DataStateCreator<T, D> createState,
   @required Iterable<ChildNodeBuilder> children,
   @required InitialChild initialChild,
   @required DataProvider<D> provider,
+  StateKey key,
 }) =>
     _interiorBuilder<T>(
         key,
@@ -56,23 +56,23 @@ InteriorNodeBuilder dataInteriorBuilder<T extends DataTreeState<D>, D>({
         children);
 
 LeafNodeBuilder leafBuilder<T extends TreeState>({
-  StateKey key,
   @required StateCreator<T> createState,
+  StateKey key,
 }) {
   return _leafBuilder<T>(key, (k, p) => LeafNode(k, p, createState));
 }
 
 LeafNodeBuilder dataLeafBuilder<T extends DataTreeState<D>, D>({
-  StateKey key,
   @required DataStateCreator<T, D> createState,
   @required DataProvider<D> provider,
+  StateKey key,
 }) {
   return _leafBuilder<T>(key, (k, p) => LeafNode(k, p, (k) => createState(k, provider), provider));
 }
 
 FinalNodeBuilder finalBuilder<T extends TreeState>({
-  StateKey key,
   @required StateCreator<T> createState,
+  StateKey key,
 }) {
   return (ctx) {
     final nodeKey = key ?? StateKey.forState<T>();

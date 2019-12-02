@@ -6,33 +6,30 @@ part of 'tree_state_machine.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_StateData _$_StateDataFromJson(Map<String, dynamic> json) {
-  return _StateData(
+EncodableState _$EncodableStateFromJson(Map<String, dynamic> json) {
+  return EncodableState(
     json['key'] as String,
     json['encodedData'],
     json['dataVersion'] as String,
   );
 }
 
-Map<String, dynamic> _$_StateDataToJson(_StateData instance) =>
-    <String, dynamic>{
+Map<String, dynamic> _$EncodableStateToJson(EncodableState instance) => <String, dynamic>{
       'key': instance.key,
       'encodedData': instance.encodedData,
       'dataVersion': instance.dataVersion,
     };
 
-_StateTreeData _$_StateTreeDataFromJson(Map<String, dynamic> json) {
-  return _StateTreeData(
+EncodableTree _$EncodableTreeFromJson(Map<String, dynamic> json) {
+  return EncodableTree(
     json['version'] as String,
-    (json['stateData'] as List)
-        ?.map((e) =>
-            e == null ? null : _StateData.fromJson(e as Map<String, dynamic>))
+    (json['encodableStates'] as List)
+        ?.map((e) => e == null ? null : EncodableState.fromJson(e as Map<String, dynamic>))
         ?.toList(),
   );
 }
 
-Map<String, dynamic> _$_StateTreeDataToJson(_StateTreeData instance) =>
-    <String, dynamic>{
+Map<String, dynamic> _$EncodableTreeToJson(EncodableTree instance) => <String, dynamic>{
       'version': instance.version,
-      'stateData': instance.stateData,
+      'encodableStates': instance.encodableStates,
     };

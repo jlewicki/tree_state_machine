@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:json_annotation/json_annotation.dart';
 
 import 'tree_builders.dart';
@@ -121,7 +120,7 @@ class TreeStateMachine {
     return transition;
   }
 
-  void saveTo(IOSink sink) {
+  Future<void> saveTo(StreamSink<List<int>> sink) {
     ArgumentError.checkNotNull(sink, 'sink');
     if (!isStarted) {
       throw StateError('This TreeStateMachine must be started before saving the tree.');
@@ -132,14 +131,14 @@ class TreeStateMachine {
       final node = _machine.nodes[key];
       assert(key != null, 'active state ${key.toString()} could not be found');
       final state = node.node.state();
-      return _StateData(
+      return EncodableState(
         key.toString(),
         state is DataTreeState ? state.provider.encode() : null,
         null,
       );
     }).toList();
 
-    Stream.fromIterable(<Object>[_StateTreeData(null, stateDataList).toJson()])
+    return Stream.fromIterable(<Object>[EncodableTree(null, stateDataList).toJson()])
         .transform(json.encoder)
         .transform(utf8.encoder)
         .pipe(sink);
@@ -205,18 +204,20 @@ class CurrentState {
 class _RootState extends EmptyTreeState {}
 
 @JsonSerializable()
-class _StateData {
+class EncodableState {
   String key;
   Object encodedData;
   String dataVersion;
-  _StateData(this.key, this.encodedData, this.dataVersion);
-  Map<String, dynamic> toJson() => _$_StateDataToJson(this);
+  EncodableState(this.key, this.encodedData, this.dataVersion);
+  factory EncodableState.fromJson(Map<String, dynamic> json) => _$EncodableStateFromJson(json);
+  Map<String, dynamic> toJson() => _$EncodableStateToJson(this);
 }
 
 @JsonSerializable()
-class _StateTreeData {
+class EncodableTree {
   String version;
-  List<_StateData> stateData;
-  _StateTreeData(this.version, this.stateData);
-  Map<String, dynamic> toJson() => _$_StateTreeDataToJson(this);
+  List<EncodableState> encodableStates;
+  EncodableTree(this.version, this.encodableStates);
+  factory EncodableTree.fromJson(Map<String, dynamic> json) => _$EncodableTreeFromJson(json);
+  Map<String, dynamic> toJson() => _$EncodableTreeToJson(this);
 }
