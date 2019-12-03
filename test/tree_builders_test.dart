@@ -6,8 +6,8 @@ import 'fixture/tree_data.dart';
 
 class SimpleState extends EmptyTreeState {}
 
-class SimpleDataState extends EmptyDataTreeState<SimpleData> {
-  SimpleDataState(DataProvider<SimpleData> provider) : super(provider);
+class SimpleDataState extends EmptyDataTreeState<SimpleDataA> {
+  SimpleDataState(DataProvider<SimpleDataA> provider) : super(provider);
 }
 
 class SimpleFinalState extends FinalTreeState {}
@@ -67,7 +67,7 @@ void main() {
         createState: (key, prov) {
           return theState = SimpleDataState(prov);
         },
-        provider: SimpleData.jsonProvider(),
+        provider: SimpleDataA.jsonProvider(),
       );
       final leafNode = builder(buildCtx);
 
@@ -138,7 +138,7 @@ void main() {
   group('buildRoot', () {
     var buildRoot = rootBuilder(
       key: stateKey,
-      state: (key) => state,
+      createState: (key) => state,
       children: [
         leafBuilder(key: childState1Key, createState: (key) => childState1),
         leafBuilder(key: childState2Key, createState: (key) => childState2),
@@ -166,7 +166,7 @@ void main() {
       var buildCtx = BuildContext(null);
 
       var buildRoot = rootBuilder(
-        state: (key) => state,
+        createState: (key) => state,
         children: [
           leafBuilder(key: childState1Key, createState: (key) => childState1),
           leafBuilder(key: childState2Key, createState: (key) => childState2),

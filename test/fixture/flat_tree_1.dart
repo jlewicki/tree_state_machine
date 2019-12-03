@@ -17,7 +17,7 @@ RootNodeBuilder treeBuilder({
 }) {
   return rootBuilder(
       key: r_key,
-      state: (key) => DelegateState(messageHandler: rootHandler),
+      createState: (key) => DelegateState(messageHandler: rootHandler),
       initialChild: (_) => r_1_key,
       children: [
         leafBuilder(

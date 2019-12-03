@@ -10,14 +10,14 @@ typedef FinalNodeBuilder = FinalNode Function(BuildContext ctx);
 typedef RootNodeBuilder = RootNode Function(BuildContext ctx);
 
 RootNodeBuilder rootBuilder<T extends TreeState>({
-  @required StateCreator<T> state,
+  @required StateCreator<T> createState,
   @required Iterable<ChildNodeBuilder> children,
   @required InitialChild initialChild,
   StateKey key,
   Iterable<FinalNodeBuilder> finalStates,
 }) =>
     _rootBuilder<T>(
-        key, (k) => RootNode(k, state, initialChild), children, initialChild, finalStates);
+        key, (k) => RootNode(k, createState, initialChild), children, initialChild, finalStates);
 
 RootNodeBuilder dataRootBuilder<T extends DataTreeState<D>, D>({
   @required DataStateCreator<T, D> createState,
@@ -26,14 +26,16 @@ RootNodeBuilder dataRootBuilder<T extends DataTreeState<D>, D>({
   @required DataProvider<D> provider,
   StateKey key,
   Iterable<FinalNodeBuilder> finalStates,
-}) =>
-    _rootBuilder<T>(
-      key,
-      (k) => RootNode(k, (k) => createState(k, provider), initialChild, provider),
-      children,
-      initialChild,
-      finalStates,
-    );
+}) {
+  ArgumentError.checkNotNull(provider, 'provider');
+  return _rootBuilder<T>(
+    key,
+    (k) => RootNode(k, (k) => createState(k, provider), initialChild, provider),
+    children,
+    initialChild,
+    finalStates,
+  );
+}
 
 InteriorNodeBuilder interiorBuilder<T extends TreeState>({
   @required StateCreator<T> state,
@@ -49,38 +51,39 @@ InteriorNodeBuilder dataInteriorBuilder<T extends DataTreeState<D>, D>({
   @required InitialChild initialChild,
   @required DataProvider<D> provider,
   StateKey key,
-}) =>
-    _interiorBuilder<T>(
-        key,
-        (k, p) => InteriorNode(k, p, (k) => createState(k, provider), initialChild, provider),
-        children);
+}) {
+  ArgumentError.checkNotNull(provider, 'provider');
+  return _interiorBuilder<T>(
+      key,
+      (k, p) => InteriorNode(k, p, (k) => createState(k, provider), initialChild, provider),
+      children);
+}
 
 LeafNodeBuilder leafBuilder<T extends TreeState>({
   @required StateCreator<T> createState,
   StateKey key,
-}) {
-  return _leafBuilder<T>(key, (k, p) => LeafNode(k, p, createState));
-}
+}) =>
+    _leafBuilder<T>(key, (k, p) => LeafNode(k, p, createState));
 
 LeafNodeBuilder dataLeafBuilder<T extends DataTreeState<D>, D>({
   @required DataStateCreator<T, D> createState,
   @required DataProvider<D> provider,
   StateKey key,
 }) {
+  ArgumentError.checkNotNull(provider, 'provider');
   return _leafBuilder<T>(key, (k, p) => LeafNode(k, p, (k) => createState(k, provider), provider));
 }
 
 FinalNodeBuilder finalBuilder<T extends TreeState>({
   @required StateCreator<T> createState,
   StateKey key,
-}) {
-  return (ctx) {
-    final nodeKey = key ?? StateKey.forState<T>();
-    final leaf = FinalNode(nodeKey, ctx.parentNode, createState);
-    ctx.addNode(leaf);
-    return leaf;
-  };
-}
+}) =>
+    (ctx) {
+      final nodeKey = key ?? StateKey.forState<T>();
+      final leaf = FinalNode(nodeKey, ctx.parentNode, createState);
+      ctx.addNode(leaf);
+      return leaf;
+    };
 
 RootNodeBuilder _rootBuilder<T extends TreeState>(
   StateKey key,
@@ -88,49 +91,46 @@ RootNodeBuilder _rootBuilder<T extends TreeState>(
   Iterable<ChildNodeBuilder> children,
   InitialChild initialChild,
   Iterable<FinalNodeBuilder> finalStates,
-) {
-  return (ctx) {
-    if (ctx.parentNode != null) {
-      throw ArgumentError.value(ctx, 'ctx', 'Unexpected parent node for root node');
-    }
-    final nodeKey = key ?? StateKey.forState<T>();
-    final root = createNode(nodeKey);
-    final childContext = ctx.childContext(root);
-    root.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
-    if (finalStates != null) {
-      root.children.addAll(finalStates.map((childBuilder) => childBuilder(childContext)));
-    }
-    ctx.addNode(root);
-    return root;
-  };
-}
+) =>
+    (ctx) {
+      if (ctx.parentNode != null) {
+        throw ArgumentError.value(ctx, 'ctx', 'Unexpected parent node for root node');
+      }
+      final nodeKey = key ?? StateKey.forState<T>();
+      final root = createNode(nodeKey);
+      final childContext = ctx.childContext(root);
+      root.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
+      if (finalStates != null) {
+        root.children.addAll(finalStates.map((childBuilder) => childBuilder(childContext)));
+      }
+      ctx.addNode(root);
+      return root;
+    };
 
 InteriorNodeBuilder _interiorBuilder<T extends TreeState>(
   StateKey key,
   InteriorNode Function(StateKey key, TreeNode parent) createNode,
   Iterable<ChildNodeBuilder> children,
-) {
-  return (ctx) {
-    final nodeKey = key ?? StateKey.forState<T>();
-    final interior = createNode(nodeKey, ctx.parentNode);
-    final childContext = ctx.childContext(interior);
-    interior.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
-    ctx.addNode(interior);
-    return interior;
-  };
-}
+) =>
+    (ctx) {
+      final nodeKey = key ?? StateKey.forState<T>();
+      final interior = createNode(nodeKey, ctx.parentNode);
+      final childContext = ctx.childContext(interior);
+      interior.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
+      ctx.addNode(interior);
+      return interior;
+    };
 
 LeafNodeBuilder _leafBuilder<T extends TreeState>(
   StateKey key,
   LeafNode Function(StateKey key, TreeNode parent) createNode,
-) {
-  return (ctx) {
-    final nodeKey = key ?? StateKey.forState<T>();
-    final leaf = createNode(nodeKey, ctx.parentNode);
-    ctx.addNode(leaf);
-    return leaf;
-  };
-}
+) =>
+    (ctx) {
+      final nodeKey = key ?? StateKey.forState<T>();
+      final leaf = createNode(nodeKey, ctx.parentNode);
+      ctx.addNode(leaf);
+      return leaf;
+    };
 
 class BuildContext {
   final TreeNode parentNode;

@@ -129,9 +129,8 @@ class DataProvider<D> {
     D Function() create,
     Map<String, dynamic> Function(D data) encode,
     D Function(Map<String, dynamic> json) decode,
-  ) {
-    return DataProvider(create, JsonDataCodec(encode, decode));
-  }
+  ) =>
+      DataProvider(create, JsonDataCodec(encode, decode));
 
   /// The data instance managed by this provider.
   ///
@@ -471,6 +470,31 @@ class DelegateState extends TreeState {
   FutureOr<void> onExit(TransitionContext context) => exitHandler(context);
 }
 
+/// A data tree state that delegates its behavior to one or more external functions.
+class DelegateDataState<D> extends DataTreeState<D> {
+  TransitionHandler entryHandler;
+  TransitionHandler exitHandler;
+  MessageHandler messageHandler;
+
+  DelegateDataState(
+    DataProvider<D> provider, {
+    this.entryHandler,
+    this.exitHandler,
+    this.messageHandler,
+  }) : super(provider) {
+    entryHandler = entryHandler ?? emptyTransitionHandler;
+    exitHandler = exitHandler ?? emptyTransitionHandler;
+    messageHandler = messageHandler ?? emptyMessageHandler;
+  }
+  @override
+  FutureOr<void> onEnter(TransitionContext context) => entryHandler(context);
+  @override
+  FutureOr<MessageResult> onMessage(MessageContext context) => messageHandler(context);
+  @override
+  FutureOr<void> onExit(TransitionContext context) => exitHandler(context);
+}
+
+/// A final tree state that delegates its behavior to one or more external functions.
 class DelegateFinalState extends FinalTreeState {
   TransitionHandler entryHandler;
 
@@ -480,129 +504,3 @@ class DelegateFinalState extends FinalTreeState {
   @override
   FutureOr<void> onEnter(TransitionContext context) => entryHandler(context);
 }
-// Food for thought
-// typedef L<T> = List<T> Function<S>(S, {T Function(int, S) factory});
-// https://github.com/dart-lang/sdk/blob/master/docs/language/informal/generic-function-type-alias.md
-
-// abstract class StateData {}
-// /**
-//  * Represents a state within a tree (i.e. hierarchical) state machine that has associated state data of type [D].
-//  */
-// abstract class DataTreeState<D extends StateData> extends TreeState {}
-
-// /**
-//  * Represents a state within a tree (i.e. hierarchical) state machine that has associated state data of type [D].
-//  */
-// abstract class DataTreeState<D extends StateData> implements TreeState {
-//   final StateKey key;
-//   DataTreeState(this.key) {
-//     if (key == null) throw ArgumentError.notNull("key");
-//   }
-// }
-
-// /**
-//  * Represents a state within a tree (i.e. hierarchical) state machine.
-//  */
-// abstract class TreeState {
-//   /**
-//    * Creates a state handler representing the message processing behavior of the state.
-//    */
-//   StateHandler createHandler();
-// }
-
-// abstract class StateData {}
-
-// /**
-//  * Represents a state within a tree (i.e. hierarchical) state machine that has associated state data of type [D].
-//  */
-// abstract class DataTreeState<D extends StateData> extends TreeState {}
-
-// /**
-//  * Signature of functions that can process a state machine message.
-//  */
-// typedef Future<MessageResult> MessageHandler(MessageContext context);
-
-// /**
-//  * Signature of functions that can process a state machine message of type M.
-//  */
-// typedef Future<MessageResult> MessageHandler1<M>(MessageContext1<M> context);
-
-// /**
-//  * Signature of functions that can observe a state transition.
-//  */
-// typedef Future TransitionHandler(TransitionContext context);
-
-// /**
-//  * Defines methods for creating various kinds of [MessageResult].
-//  */
-// mixin MessageResultBuilder {
-//   /**
-//    * Creates a [MessageResult] indicating that the state machine should transition a new state.
-//    */
-//   MessageResult goTo(TreeState create()) {
-//     return _GoTo(create);
-//   }
-
-//   /**
-//    * Creates a [MessageResult] indicating that the state machine should transition a new state, initialized with the
-//    * specified state data.
-//    */
-//   MessageResult goToWithData<D extends StateData>(DataTreeState<D> create(), D initialData) {
-//     return _GoToWith(create, initialData);
-//   }
-
-//   /**
-//    * Creates a [MessageResult] indicating that the current state did not recognize the message being processed, and
-//    * therefore did not handle the message.
-//    *
-//    * The state machine should therefore give each ancestor states an opportunity to process the message
-//    */
-//   MessageResult unhandled() {
-//     return unhandledInstance;
-//   }
-// }
-
-// class MessageContext with MessageResultBuilder {
-//   final Object message;
-//   MessageContext(this.message);
-// }
-
-// class MessageContext1<M> with MessageResultBuilder {
-//   final M message;
-//   MessageContext1(this.message);
-// }
-
-// StateHandler createMessageHandler<M>(
-//     {TransitionHandler onEnter,
-//     @required MessageHandler1<M> onMessage,
-//     TransitionHandler onExit,
-//     bool throwOnUnknownMessage = false}) {
-//   MessageHandler rawHandler = (MessageContext ctx) {
-//     if (ctx.message is M) {
-//       return onMessage(MessageContext1(ctx.message as M));
-//     } else if (throwOnUnknownMessage) {
-//       final msg = 'Expected message type ${_typeOf<M>()}, received ${ctx.message.runtimeType}';
-//       return Future.error(Exception(msg));
-//     }
-//     return Future.value(ctx.unhandled());
-//   };
-
-//   return StateHandler(onEnter, rawHandler, onExit);
-// }
-
-// class _GoTo extends MessageResult {
-//   final Lazy<TreeState> targetState;
-//   _GoTo(TreeState create()) : targetState = Lazy(create);
-// }
-
-// class _GoToWith<D extends StateData> extends MessageResult {
-//   final Lazy<DataTreeState<D>> targetState;
-//   final D initialData;
-//   _GoToWith(DataTreeState<D> create(), this.initialData) : targetState = Lazy(create);
-// }
-
-// class _Unhandled extends MessageResult {
-//   _Unhandled._() {}
-// }
-
-// final unhandledInstance = _Unhandled._();

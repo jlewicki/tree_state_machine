@@ -37,7 +37,7 @@ void main() {
       test('should throw if initialChild returns null', () {
         final buildTree = rootBuilder(
           key: r_key,
-          state: (key) => DelegateState(),
+          createState: (key) => DelegateState(),
           initialChild: (_) => null,
           children: [
             leafBuilder(key: r_a_1_key, createState: (key) => DelegateState()),
@@ -53,7 +53,7 @@ void main() {
       test('should throw if initialChild references a state that is not a child', () {
         final buildTree = rootBuilder(
             key: r_key,
-            state: (key) => DelegateState(),
+            createState: (key) => DelegateState(),
             initialChild: (_) => r_a_a_1_key,
             children: [
               leafBuilder(key: r_a_1_key, createState: (key) => DelegateState()),

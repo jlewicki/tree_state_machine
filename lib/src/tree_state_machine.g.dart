@@ -23,7 +23,7 @@ Map<String, dynamic> _$EncodableStateToJson(EncodableState instance) => <String,
 EncodableTree _$EncodableTreeFromJson(Map<String, dynamic> json) {
   return EncodableTree(
     json['version'] as String,
-    (json['encodableStates'] as List)
+    (json['states'] as List)
         ?.map((e) => e == null ? null : EncodableState.fromJson(e as Map<String, dynamic>))
         ?.toList(),
   );
@@ -31,5 +31,5 @@ EncodableTree _$EncodableTreeFromJson(Map<String, dynamic> json) {
 
 Map<String, dynamic> _$EncodableTreeToJson(EncodableTree instance) => <String, dynamic>{
       'version': instance.version,
-      'encodableStates': instance.encodableStates,
+      'states': instance.states,
     };

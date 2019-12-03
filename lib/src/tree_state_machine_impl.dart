@@ -362,7 +362,7 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
 
   @override
   Dispose schedule(
-    Object message(), {
+    Object Function() message, {
     Duration duration = const Duration(),
     bool periodic = false,
   }) {

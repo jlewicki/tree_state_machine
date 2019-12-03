@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:tree_state_machine/src/utility.dart';
 
 import 'tree_builders.dart';
 import 'tree_state.dart';
@@ -36,7 +37,7 @@ class TreeStateMachine {
     }
 
     final buildRoot = rootBuilder(
-      state: (key) => _RootState(),
+      createState: (key) => _RootState(),
       children: buildLeaves,
       initialChild: (_) => initialState,
     );
@@ -120,7 +121,19 @@ class TreeStateMachine {
     return transition;
   }
 
-  Future<void> saveTo(StreamSink<List<int>> sink) {
+  /// Writes the active states of the state machine to the specified sink.
+  ///
+  /// Saving the active states allows the state of running state machine to be written to external
+  /// storage. This state can be reloaded at a later time, potentially in a seperate application
+  /// session, into the state machine using [loadFrom].
+  ///
+  /// Only information about the active states (the current leaf state and its ancestors) is saved.
+  /// This means that when restoring, the state machine on which [loadFrom] is called must be
+  /// constructed with the same tree definition as this state machine.
+  ///
+  /// The state machine must be started before this method is called, otherwise a [StateError] will
+  /// be thrown.
+  Future saveTo(StreamSink<List<int>> sink) {
     ArgumentError.checkNotNull(sink, 'sink');
     if (!isStarted) {
       throw StateError('This TreeStateMachine must be started before saving the tree.');
@@ -142,6 +155,69 @@ class TreeStateMachine {
         .transform(json.encoder)
         .transform(utf8.encoder)
         .pipe(sink);
+  }
+
+  Future loadFrom(Stream<List<int>> stream) async {
+    ArgumentError.checkNotNull(stream, 'stream');
+    if (isStarted) {
+      throw StateError('This TreeStateMachine must not be started before loading the tree.');
+    }
+    final objectList = await stream.transform(utf8.decoder).transform(json.decoder).toList();
+    if (objectList.length != 1) {
+      throw ArgumentError.value(
+        stream,
+        'stream',
+        'Found ${objectList.length} items in stream. Expected 1.',
+      );
+    }
+    if (!(objectList[0] is Map<String, dynamic>)) {
+      throw ArgumentError.value(
+        stream,
+        'stream',
+        'Found ${objectList[0].runtimeType} in stream. Expected Map<String, dynamic>.',
+      );
+    }
+
+    // Find tree nodes that match the encoded data
+    final nodesByStringKey = Map.fromEntries(
+      _machine.nodes.entries.map((e) => MapEntry(e.key.toString(), e.value.node)),
+    );
+    final encodableTree = EncodableTree.fromJson(objectList[0] as Map<String, dynamic>);
+    final nodesForTree = encodableTree.states.map((es) {
+      final treeNode = nodesByStringKey[es.key];
+      return treeNode != null
+          ? treeNode
+          : throw StateError('State machine does not contain state with key ${es.key}');
+    }).toList();
+
+    // Make sure that node hierarchy matches that in the encoded data
+    final activeNodes = nodesForTree[0].selfAndAncestors().toList();
+    final encodedActivePath = encodableTree.states.map((es) => '"${es.key}"').join(', ');
+    final treeActivePath = activeNodes.map((n) => '"${n.key.toString()}"').join(', ');
+    final mismatchedActivePath = StateError(
+        'Active path in stream [$encodedActivePath] does not match active path in state machine [$treeActivePath]');
+    if (activeNodes.length != encodableTree.states.length) {
+      throw mismatchedActivePath;
+    }
+    for (var i = 0; i < activeNodes.length; ++i) {
+      final es = encodableTree.states[i];
+      final node = activeNodes[i];
+      if (es.key != node.key.toString()) {
+        throw mismatchedActivePath;
+      }
+    }
+
+    // Start state machine so that the active nodes matches that in the encoded data.
+    await this.start(activeNodes[0].key);
+
+    // Restore encoded data into states in the tree
+    for (var i = 0; i < activeNodes.length; ++i) {
+      final es = encodableTree.states[i];
+      final node = activeNodes[i];
+      if (es.encodedData != null && node.provider != null) {
+        node.provider.decodeInto(es.encodedData);
+      }
+    }
   }
 
   Future<MessageProcessed> _processMessage(Object message) async {
@@ -174,6 +250,23 @@ class CurrentState {
 
   /// The [StateKey] identifying the current leaf state.
   StateKey get key => _treeStateMachine._machine.currentNode.key;
+
+  /// The state data for the current state, or `null` if the current state does not support data.
+  D data<D>() {
+    return activeData<D>(key);
+  }
+
+  D activeData<D>(StateKey key) {
+    final node = _treeStateMachine._machine.currentNode.selfOrAncestor(key);
+    if (node?.provider != null) {
+      final data = node.provider.data;
+      return data is D
+          ? data
+          : throw StateError(
+              'Data for state ${node.key} of type ${data.runtimeType} does not match requested type ${TypeLiteral<D>().type}.');
+    }
+    return null;
+  }
 
   /// Returns `true` if the specified state is an active state in the state machine.
   ///
@@ -216,8 +309,8 @@ class EncodableState {
 @JsonSerializable()
 class EncodableTree {
   String version;
-  List<EncodableState> encodableStates;
-  EncodableTree(this.version, this.encodableStates);
+  List<EncodableState> states;
+  EncodableTree(this.version, this.states);
   factory EncodableTree.fromJson(Map<String, dynamic> json) => _$EncodableTreeFromJson(json);
   Map<String, dynamic> toJson() => _$EncodableTreeToJson(this);
 }

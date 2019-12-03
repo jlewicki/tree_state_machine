@@ -81,9 +81,7 @@ class JsonDataDecoder<D> extends Converter<Object, D> {
   final D Function(Map<String, dynamic> json) _decode;
   JsonDataDecoder(this._decode);
   @override
-  D convert(Object input) {
-    return input is Map<String, dynamic>
-        ? _decode(input)
-        : throw ArgumentError.value(input, 'input', 'Input must be Map<String, dynamic>');
-  }
+  D convert(Object input) => input is Map<String, dynamic>
+      ? _decode(input)
+      : throw ArgumentError.value(input, 'input', 'Input must be Map<String, dynamic>');
 }

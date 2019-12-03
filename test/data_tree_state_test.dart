@@ -2,22 +2,22 @@ import 'package:test/test.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 import 'fixture/tree_data.dart';
 
-class SimpleDataState extends EmptyDataTreeState<SimpleData> {
-  SimpleDataState() : super(SimpleData.jsonProvider());
+class SimpleDataState extends EmptyDataTreeState<SimpleDataA> {
+  SimpleDataState() : super(SimpleDataA.jsonProvider());
 }
 
 void main() {
   group('DataProvider', () {
     group('data', () {
       test('should create data instance on demand', () {
-        final provider = SimpleData.jsonProvider();
+        final provider = SimpleDataA.jsonProvider();
         expect(provider.data, isNotNull);
       });
     });
 
     group('encode', () {
       test('should encode data using codec', () {
-        final provider = SimpleData.jsonProvider();
+        final provider = SimpleDataA.jsonProvider();
         provider.data.name = 'Bill';
         provider.data.age = 25;
 
@@ -36,11 +36,11 @@ void main() {
 
     group('decodeInto', () {
       test('should update data', () {
-        final provider = SimpleData.jsonProvider();
+        final provider = SimpleDataA.jsonProvider();
         provider.data.name = 'Bill';
         provider.data.age = 25;
 
-        final newData = SimpleData()
+        final newData = SimpleDataA()
           ..name = 'Jim'
           ..age = 30;
 

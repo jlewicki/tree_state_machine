@@ -1,5 +1,5 @@
-import 'utility.dart';
 import 'tree_state.dart';
+import 'utility.dart';
 
 typedef InitialChild = StateKey Function(TransitionContext ctx);
 typedef StateCreator<T extends TreeState> = T Function(StateKey key);
@@ -24,14 +24,18 @@ class TreeNode {
   TreeState state() => _lazyState.value;
 
   bool isActive(StateKey stateKey) {
+    return selfOrAncestor(stateKey) != null;
+  }
+
+  TreeNode selfOrAncestor(StateKey stateKey) {
     TreeNode nextNode = this;
     while (nextNode != null) {
       if (nextNode.key == stateKey) {
-        return true;
+        return nextNode;
       }
       nextNode = nextNode.parent;
     }
-    return false;
+    return null;
   }
 
   Iterable<TreeNode> selfAndAncestors() sync* {

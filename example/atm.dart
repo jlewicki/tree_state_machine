@@ -73,7 +73,7 @@ class SelectingTransactionState extends EmptyTreeState {}
 class TransactionState extends EmptyTreeState {}
 
 final atmTree = rootBuilder(
-  state: (_) => RootState(),
+  createState: (_) => RootState(),
   initialChild: (_) => StateKey.forState<OffState>(),
   children: [
     leafBuilder(createState: (_) => OffState()),
