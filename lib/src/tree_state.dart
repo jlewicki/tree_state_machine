@@ -150,6 +150,7 @@ abstract class DataProvider<D> {
   D get data;
   Object encode();
   void decodeInto(Object input);
+  void setLeafDataAccessor(Object Function() getCurrentLeafData);
 }
 
 class OwnedDataProvider<D> implements DataProvider<D> {
@@ -168,14 +169,19 @@ class OwnedDataProvider<D> implements DataProvider<D> {
     ArgumentError.checkNotNull('input');
     _data = decoder(input);
   }
+
+  @override
+  void setLeafDataAccessor(Object Function() getCurrentLeafData) {}
 }
 
 class LeafDataProvider<D> implements DataProvider<D> {
   D Function() _currentLeafData;
-  LeafDataProvider(this._currentLeafData);
   D get data => _currentLeafData();
   Object encode() => null;
   void decodeInto(Object input) {}
+  @override
+  void setLeafDataAccessor(Object Function() getCurrentLeafData) =>
+      _currentLeafData = getCurrentLeafData;
 }
 
 /// A tree state that supports serialization of its state data.
@@ -508,8 +514,7 @@ class DelegateDataState<D> extends DataTreeState<D> {
   TransitionHandler exitHandler;
   MessageHandler messageHandler;
 
-  DelegateDataState(
-    DataProvider<D> provider, {
+  DelegateDataState({
     this.entryHandler,
     this.exitHandler,
     this.messageHandler,

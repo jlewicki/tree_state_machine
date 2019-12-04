@@ -10,9 +10,9 @@ typedef FinalNodeBuilder = FinalNode Function(BuildContext ctx);
 typedef RootNodeBuilder = RootNode Function(BuildContext ctx);
 typedef CreateProvider<D> = DataProvider<D> Function(Object Function() currentLeafData);
 
-CreateProvider<D> ownedDataProvider<D>(OwnedDataProvider<D> Function() create) => (_) => create();
-CreateProvider<D> currentLeafDataProvider<D>() =>
-    (currentLeafData) => LeafDataProvider(currentLeafData);
+// CreateProvider<D> ownedDataProvider<D>(OwnedDataProvider<D> Function() create) => (_) => create();
+// CreateProvider<D> currentLeafDataProvider<D>() =>
+//     (currentLeafData) => LeafDataProvider(currentLeafData);
 
 RootNodeBuilder rootBuilder<T extends TreeState>({
   @required StateCreator<T> createState,
@@ -35,7 +35,7 @@ RootNodeBuilder dataRootBuilder<T extends DataTreeState<D>, D>({
   ArgumentError.checkNotNull(provider, 'provider');
   return _rootBuilder<T>(
     key,
-    (k) => RootNode(k, (k) => createState(k, provider), initialChild, provider),
+    (k) => RootNode(k, (k) => createState(k), initialChild, provider),
     children,
     initialChild,
     finalStates,
@@ -59,9 +59,7 @@ InteriorNodeBuilder dataInteriorBuilder<T extends DataTreeState<D>, D>({
 }) {
   ArgumentError.checkNotNull(provider, 'provider');
   return _interiorBuilder<T>(
-      key,
-      (k, p) => InteriorNode(k, p, (k) => createState(k, provider), initialChild, provider),
-      children);
+      key, (k, p) => InteriorNode(k, p, (k) => createState(k), initialChild, provider), children);
 }
 
 LeafNodeBuilder leafBuilder<T extends TreeState>({
@@ -78,7 +76,7 @@ LeafNodeBuilder dataLeafBuilderOrig<T extends DataTreeState<D>, D>({
   ArgumentError.checkNotNull(provider, 'provider');
   return _leafBuilder<T>(
     key,
-    (k, ctx) => LeafNode(k, ctx.parentNode, (k) => createState(k, provider), provider),
+    (k, ctx) => LeafNode(k, ctx.parentNode, (k) => createState(k), provider),
   );
 }
 
@@ -90,18 +88,17 @@ LeafNodeBuilder dataLeafBuilder<T extends DataTreeState<D>, D>({
   ArgumentError.checkNotNull(createProvider, 'provider');
   return _leafBuilder<T>(key, (k, ctx) {
     final provider = createProvider();
-    return LeafNode(k, ctx.parentNode, (k) => createState(k, provider), provider);
+    return LeafNode(k, ctx.parentNode, _dataStateCreator(createState, ctx), provider);
   });
 }
 
-// LeafNodeBuilder dataLeafBuilder2<T extends DataTreeState<D>, D>({
-//   @required DataStateCreator<T, D> createState,
-//   @required CreateProvider<D> provider,
-//   StateKey key,
-// }) {
-//   ArgumentError.checkNotNull(provider, 'provider');
-//   return _leafBuilder<T>(key, (k, p) => LeafNode(k, p, (k) => createState(k, provider), provider));
-// }
+StateCreator _dataStateCreator(DataStateCreator createState, BuildContext ctx) {
+  return (key) {
+    final state = createState(key);
+    state.provider.setLeafDataAccessor(ctx.currentLeafData);
+    return state;
+  };
+}
 
 FinalNodeBuilder finalBuilder<T extends TreeState>({
   @required StateCreator<T> createState,

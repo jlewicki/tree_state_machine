@@ -123,7 +123,7 @@ RootNodeBuilder dataTreeBuilder({
             children: [
               dataLeafBuilder(
                 key: r_a_a_1_key,
-                createState: (k, p) => createDataState<SimpleDataC>(k, p),
+                createState: (k) => createDataState<SimpleDataC>(k),
                 createProvider: SimpleDataC.jsonProvider,
               ),
               leafBuilder(key: r_a_a_2_key, createState: createState),
