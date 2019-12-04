@@ -78,3 +78,19 @@ Map<String, dynamic> _$HiScoreToJson(HiScore instance) => <String, dynamic>{
       'game': instance.game,
       'score': instance.score,
     };
+
+PlayerData2 _$PlayerData2FromJson(Map<String, dynamic> json) {
+  return PlayerData2(
+    json['playerName'] as String,
+    (json['hiScores'] as List)
+        ?.map((e) =>
+            e == null ? null : HiScore.fromJson(e as Map<String, dynamic>))
+        ?.toList(),
+  );
+}
+
+Map<String, dynamic> _$PlayerData2ToJson(PlayerData2 instance) =>
+    <String, dynamic>{
+      'playerName': instance.playerName,
+      'hiScores': instance.hiScores,
+    };

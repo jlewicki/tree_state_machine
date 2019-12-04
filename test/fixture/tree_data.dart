@@ -1,5 +1,6 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
+import 'package:tree_state_machine/src/experimental.dart';
 part 'tree_data.g.dart';
 
 @JsonSerializable()
@@ -71,4 +72,22 @@ class HiScore {
         _$HiScoreToJson,
         _$HiScoreFromJson,
       );
+}
+
+// Experimental...
+@JsonSerializable()
+class PlayerData2 extends StateData2<PlayerData2> {
+  String _playerName;
+  List<HiScore> _hiScores;
+  PlayerData2._(this._playerName, this._hiScores);
+  factory PlayerData2(String playerName, List<HiScore> hiScores) {
+    return PlayerData2._(playerName, hiScores);
+  }
+  String get playerName => _playerName;
+  List<HiScore> get hiScores => _hiScores;
+  void addHiScore(HiScore score) {
+    setData(() {
+      hiScores.add(score);
+    });
+  }
 }
