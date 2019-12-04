@@ -118,32 +118,64 @@ abstract class FinalTreeState implements TreeState {
   }
 }
 
-class DataProvider<D> {
-  final Codec<D, Object> codec;
-  final D Function() _create;
+// class DataProvider<D> {
+//   final Codec<D, Object> codec;
+//   final D Function() _create;
+//   D _data;
+//   DataProvider(this._create, this.codec);
+
+//   /// Creates [DataProvider] that can be used for JSON serialization.
+//   factory DataProvider.json(
+//     D Function() create,
+//     Map<String, dynamic> Function(D data) encode,
+//     D Function(Map<String, dynamic> json) decode,
+//   ) =>
+//       DataProvider(create, JsonDataCodec(encode, decode));
+
+//   /// The data instance managed by this provider.
+//   ///
+//   /// The instance is created on demand using the `create` function provided in the constructor.
+//   D get data => _data ??= _create();
+
+//   /// Encodes the [data] value using the [Codec] provided in the constructor.
+//   Object encode() => codec.encoder.convert(data);
+
+//   void decodeInto(Object input) {
+//     ArgumentError.checkNotNull('input');
+//     _data = codec.decoder.convert(input);
+//   }
+// }
+
+abstract class DataProvider<D> {
+  D get data;
+  Object encode();
+  void decodeInto(Object input);
+}
+
+class OwnedDataProvider<D> implements DataProvider<D> {
+  final Map<String, dynamic> Function(D data) encoder;
+  final D Function(Map<String, dynamic> json) decoder;
+  final D Function() _eval;
   D _data;
-  DataProvider(this._create, this.codec);
+  OwnedDataProvider(this._eval, this.encoder, this.decoder);
 
-  /// Creates [DataProvider] that can be used for JSON serialization.
-  factory DataProvider.json(
-    D Function() create,
-    Map<String, dynamic> Function(D data) encode,
-    D Function(Map<String, dynamic> json) decode,
-  ) =>
-      DataProvider(create, JsonDataCodec(encode, decode));
-
-  /// The data instance managed by this provider.
-  ///
-  /// The instance is created on demand using the `create` function provided in the constructor.
-  D get data => _data ??= _create();
+  D get data => _data ??= _eval();
 
   /// Encodes the [data] value using the [Codec] provided in the constructor.
-  Object encode() => codec.encoder.convert(data);
+  Object encode() => encoder(data);
 
   void decodeInto(Object input) {
     ArgumentError.checkNotNull('input');
-    _data = codec.decoder.convert(input);
+    _data = decoder(input);
   }
+}
+
+class LeafDataProvider<D> implements DataProvider<D> {
+  D Function() _currentLeafData;
+  LeafDataProvider(this._currentLeafData);
+  D get data => _currentLeafData();
+  Object encode() => null;
+  void decodeInto(Object input) {}
 }
 
 /// A tree state that supports serialization of its state data.

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
-import 'package:tree_state_machine/src/utility.dart';
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ///
@@ -35,54 +34,71 @@ class StateData3<D> {
     _streamController.add(val);
   }
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
-abstract class DataTreeState3<D> extends TreeState {
-  D _data;
-  D get data => _data ?? createData();
-  D createData();
+abstract class DataProvider2<D> {
+  D get data;
+  Object encode();
+  void decodeInto(Object input);
 }
 
-class DataProvider2<D> {
-  final Codec<D, Map<String, dynamic>> codec;
+typedef CreateProvider2<D> = DataProvider2<D> Function(Object Function() currentLeafData);
+
+CreateProvider2<D> ownedDataProvider<D>(
+  D Function() eval,
+  Map<String, dynamic> Function(D data) encode,
+  D Function(Map<String, dynamic> json) decode,
+) =>
+    (_) => OwnedDataProvider2(eval, encode, decode);
+
+CreateProvider2<D> leafDataProvider<D>() => (currentLeafData) => LeafDataProvider2(currentLeafData);
+
+class OwnedDataProvider2<D> implements DataProvider2<D> {
+  final Map<String, dynamic> Function(D data) _encode;
+  final D Function(Map<String, dynamic> json) _decode;
   final D Function() _eval;
   D _data;
-  DataProvider2._(this._eval, this.codec);
+  OwnedDataProvider2(this._eval, this._encode, this._decode);
 
-  factory DataProvider2(
-    D Function() eval,
-    Map<String, dynamic> Function(D data) encode,
-    D Function(Map<String, dynamic> json) decode,
-  ) =>
-      DataProvider2._(eval, DelegatingCodec(encode, decode));
-
-  /// The data instance managed by this provider.
-  ///
-  /// The instance is created on demand using the `create` function provided in the constructor.
   D get data => _data ??= _eval();
 
   /// Encodes the [data] value using the [Codec] provided in the constructor.
-  Object encode() => codec.encoder.convert(data);
+  Object encode() => _encode(data);
 
   void decodeInto(Object input) {
     ArgumentError.checkNotNull('input');
-    _data = codec.decoder.convert(input);
+    _data = _decode(input);
   }
 }
 
-// Move to utility
-class DelegatingCodec<S, T> extends Codec<S, T> {
-  final Converter<S, T> encoder;
-  final Converter<T, S> decoder;
-  DelegatingCodec(
-    T Function(S data) encode,
-    S Function(T encoded) decode,
-  )   : encoder = DelegatingConverter(encode),
-        decoder = DelegatingConverter(decode);
+class LeafDataProvider2<D> implements DataProvider2<D> {
+  D Function() _currentLeafData;
+  LeafDataProvider2(this._currentLeafData);
+  D get data => _currentLeafData();
+  Object encode() => null;
+  void decodeInto(Object input) {}
 }
 
-class DelegatingConverter<S, T> extends Converter<S, T> {
-  final T Function(S data) _encode;
-  DelegatingConverter(this._encode);
-  @override
-  T convert(S input) => _encode(input);
+abstract class DataTreeState3<D, P extends DataProvider2<D>> extends TreeState {
+  final P provider;
+  DataTreeState3(this.provider);
+  D get data => provider.data;
 }
+
+// Move to utility
+// class DelegatingCodec<S, T> extends Codec<S, T> {
+//   final Converter<S, T> encoder;
+//   final Converter<T, S> decoder;
+//   DelegatingCodec(
+//     T Function(S data) encode,
+//     S Function(T encoded) decode,
+//   )   : encoder = DelegatingConverter(encode),
+//         decoder = DelegatingConverter(decode);
+// }
+
+// class DelegatingConverter<S, T> extends Converter<S, T> {
+//   final T Function(S data) _encode;
+//   DelegatingConverter(this._encode);
+//   @override
+//   T convert(S input) => _encode(input);
+// }

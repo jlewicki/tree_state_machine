@@ -124,7 +124,7 @@ RootNodeBuilder dataTreeBuilder({
               dataLeafBuilder(
                 key: r_a_a_1_key,
                 createState: (k, p) => createDataState<SimpleDataC>(k, p),
-                provider: SimpleDataC.jsonProvider(),
+                createProvider: SimpleDataC.jsonProvider,
               ),
               leafBuilder(key: r_a_a_2_key, createState: createState),
             ],

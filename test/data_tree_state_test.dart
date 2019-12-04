@@ -21,14 +21,14 @@ void main() {
         provider.data.name = 'Bill';
         provider.data.age = 25;
 
-        final expected = provider.codec.encode(provider.data);
+        final expected = provider.encoder(provider.data);
         final actual = provider.encode();
 
         expect(actual, isA<Map<String, dynamic>>());
         expect(
             (actual as Map<String, dynamic>).entries,
             pairwiseCompare(
-                (expected as Map<String, dynamic>).entries,
+                expected.entries,
                 (aEntry, eEntry) => aEntry.key == eEntry.key && aEntry.value == eEntry.value,
                 'entries are the same'));
       });

@@ -1,6 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
-import 'package:tree_state_machine/src/experimental.dart';
 part 'tree_data.g.dart';
 
 @JsonSerializable()
@@ -8,7 +7,7 @@ class SimpleDataA {
   String name;
   int age;
   Map<String, dynamic> toJson() => _$SimpleDataAToJson(this);
-  static DataProvider<SimpleDataA> jsonProvider() => DataProvider.json(
+  static OwnedDataProvider<SimpleDataA> jsonProvider() => OwnedDataProvider(
         () => SimpleDataA(),
         _$SimpleDataAToJson,
         _$SimpleDataAFromJson,
@@ -19,7 +18,7 @@ class SimpleDataA {
 class SimpleDataB {
   String productNumber;
   Map<String, dynamic> toJson() => _$SimpleDataBToJson(this);
-  static DataProvider<SimpleDataB> jsonProvider() => DataProvider.json(
+  static OwnedDataProvider<SimpleDataB> jsonProvider() => OwnedDataProvider(
         () => SimpleDataB(),
         _$SimpleDataBToJson,
         _$SimpleDataBFromJson,
@@ -30,7 +29,7 @@ class SimpleDataB {
 class SimpleDataC {
   String modelYear;
   Map<String, dynamic> toJson() => _$SimpleDataCToJson(this);
-  static DataProvider<SimpleDataC> jsonProvider() => DataProvider.json(
+  static OwnedDataProvider<SimpleDataC> jsonProvider() => OwnedDataProvider(
         () => SimpleDataC(),
         _$SimpleDataCToJson,
         _$SimpleDataCFromJson,
@@ -42,7 +41,7 @@ class PlayerData {
   String playerName;
   List<HiScore> hiScores;
   Map<String, dynamic> toJson() => _$PlayerDataToJson(this);
-  static DataProvider<PlayerData> jsonProvider() => DataProvider.json(
+  static OwnedDataProvider<PlayerData> jsonProvider() => OwnedDataProvider(
         () => PlayerData(),
         _$PlayerDataToJson,
         _$PlayerDataFromJson,
@@ -53,7 +52,7 @@ class PlayerData {
 class SpecialPlayerData extends PlayerData {
   int startYear;
   Map<String, dynamic> toJson() => _$SpecialPlayerDataToJson(this);
-  static DataProvider<SpecialPlayerData> jsonProvider() => DataProvider.json(
+  static OwnedDataProvider<SpecialPlayerData> jsonProvider() => OwnedDataProvider(
         () => SpecialPlayerData(),
         _$SpecialPlayerDataToJson,
         _$SpecialPlayerDataFromJson,
@@ -67,27 +66,9 @@ class HiScore {
   HiScore();
   factory HiScore.fromJson(Map<String, dynamic> json) => _$HiScoreFromJson(json);
   Map<String, dynamic> toJson() => _$HiScoreToJson(this);
-  static DataProvider<HiScore> jsonProvider() => DataProvider.json(
+  static OwnedDataProvider<HiScore> jsonProvider() => OwnedDataProvider(
         () => HiScore(),
         _$HiScoreToJson,
         _$HiScoreFromJson,
       );
-}
-
-// Experimental...
-@JsonSerializable()
-class PlayerData2 extends StateData2<PlayerData2> {
-  String _playerName;
-  List<HiScore> _hiScores;
-  PlayerData2._(this._playerName, this._hiScores);
-  factory PlayerData2(String playerName, List<HiScore> hiScores) {
-    return PlayerData2._(playerName, hiScores);
-  }
-  String get playerName => _playerName;
-  List<HiScore> get hiScores => _hiScores;
-  void addHiScore(HiScore score) {
-    setData(() {
-      hiScores.add(score);
-    });
-  }
 }

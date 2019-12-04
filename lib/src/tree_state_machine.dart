@@ -7,8 +7,6 @@ import 'tree_builders.dart';
 import 'tree_state.dart';
 import 'tree_state_machine_impl.dart';
 
-//part 'tree_state_machine.g.dart';
-
 class TreeStateMachine {
   final Machine _machine;
   final StreamController<Transition> _transitions = StreamController.broadcast();
@@ -21,11 +19,19 @@ class TreeStateMachine {
   factory TreeStateMachine.forRoot(RootNodeBuilder buildRoot) {
     ArgumentError.checkNotNull(buildRoot, 'buildRoot');
 
-    final buildCtx = BuildContext(null);
+    // This is twisty, since we have indirect circular dependency between getCurrentLeafData and
+    // TreeStateMachine
+    TreeStateMachine treeMachine;
+    Object getCurrentLeafData() {
+      return treeMachine.currentState.data();
+    }
+
+    final buildCtx = BuildContext(getCurrentLeafData);
     final rootNode = buildRoot(buildCtx);
     final machine = Machine(rootNode, buildCtx.nodes);
 
-    return TreeStateMachine._(machine);
+    treeMachine = TreeStateMachine._(machine);
+    return treeMachine;
   }
 
   factory TreeStateMachine.forLeaves(Iterable<LeafNodeBuilder> buildLeaves, StateKey initialState) {
@@ -36,15 +42,11 @@ class TreeStateMachine {
       throw ArgumentError.value(buildLeaves, 'buildLeaves', msg);
     }
 
-    final buildRoot = rootBuilder(
+    return TreeStateMachine.forRoot(rootBuilder(
       createState: (key) => _RootState(),
       children: buildLeaves,
       initialChild: (_) => initialState,
-    );
-    final buildCtx = BuildContext(null);
-    final rootNode = buildRoot(buildCtx);
-    final machine = Machine(rootNode, buildCtx.nodes);
-    return TreeStateMachine._(machine);
+    ));
   }
 
   /// Returns `true` if [start] has been called.
