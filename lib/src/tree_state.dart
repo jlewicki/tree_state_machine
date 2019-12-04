@@ -118,34 +118,6 @@ abstract class FinalTreeState implements TreeState {
   }
 }
 
-// class DataProvider<D> {
-//   final Codec<D, Object> codec;
-//   final D Function() _create;
-//   D _data;
-//   DataProvider(this._create, this.codec);
-
-//   /// Creates [DataProvider] that can be used for JSON serialization.
-//   factory DataProvider.json(
-//     D Function() create,
-//     Map<String, dynamic> Function(D data) encode,
-//     D Function(Map<String, dynamic> json) decode,
-//   ) =>
-//       DataProvider(create, JsonDataCodec(encode, decode));
-
-//   /// The data instance managed by this provider.
-//   ///
-//   /// The instance is created on demand using the `create` function provided in the constructor.
-//   D get data => _data ??= _create();
-
-//   /// Encodes the [data] value using the [Codec] provided in the constructor.
-//   Object encode() => codec.encoder.convert(data);
-
-//   void decodeInto(Object input) {
-//     ArgumentError.checkNotNull('input');
-//     _data = codec.decoder.convert(input);
-//   }
-// }
-
 abstract class DataProvider<D> {
   D get data;
   Object encode();
@@ -175,13 +147,13 @@ class OwnedDataProvider<D> implements DataProvider<D> {
 }
 
 class LeafDataProvider<D> implements DataProvider<D> {
-  D Function() _currentLeafData;
-  D get data => _currentLeafData();
+  D Function() _getCurrentLeafData;
+  D get data => _getCurrentLeafData();
   Object encode() => null;
   void decodeInto(Object input) {}
   @override
   void setLeafDataAccessor(Object Function() getCurrentLeafData) =>
-      _currentLeafData = getCurrentLeafData;
+      _getCurrentLeafData = getCurrentLeafData;
 }
 
 /// A tree state that supports serialization of its state data.
@@ -514,7 +486,8 @@ class DelegateDataState<D> extends DataTreeState<D> {
   TransitionHandler exitHandler;
   MessageHandler messageHandler;
 
-  DelegateDataState({
+  DelegateDataState(
+    DataProvider<D> provider, {
     this.entryHandler,
     this.exitHandler,
     this.messageHandler,

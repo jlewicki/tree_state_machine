@@ -3,7 +3,8 @@ import 'utility.dart';
 
 typedef InitialChild = StateKey Function(TransitionContext ctx);
 typedef StateCreator<T extends TreeState> = T Function(StateKey key);
-typedef DataStateCreator<T extends DataTreeState<D>, D> = T Function(StateKey key);
+typedef DataStateCreator<T extends DataTreeState<D>, D> = T Function(
+    StateKey key, DataProvider<D> provider);
 
 class TreeNode {
   final Lazy<TreeState> _lazyState;

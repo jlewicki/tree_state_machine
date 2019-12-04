@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:html';
 import 'package:meta/meta.dart';
 import 'tree_node.dart';
 import 'tree_state.dart';
@@ -35,7 +36,7 @@ RootNodeBuilder dataRootBuilder<T extends DataTreeState<D>, D>({
   ArgumentError.checkNotNull(provider, 'provider');
   return _rootBuilder<T>(
     key,
-    (k) => RootNode(k, (k) => createState(k), initialChild, provider),
+    (k) => RootNode(k, (k) => createState(k, provider), initialChild, provider),
     children,
     initialChild,
     finalStates,
@@ -59,7 +60,9 @@ InteriorNodeBuilder dataInteriorBuilder<T extends DataTreeState<D>, D>({
 }) {
   ArgumentError.checkNotNull(provider, 'provider');
   return _interiorBuilder<T>(
-      key, (k, p) => InteriorNode(k, p, (k) => createState(k), initialChild, provider), children);
+      key,
+      (k, p) => InteriorNode(k, p, (k) => createState(k, provider), initialChild, provider),
+      children);
 }
 
 LeafNodeBuilder leafBuilder<T extends TreeState>({
@@ -76,7 +79,7 @@ LeafNodeBuilder dataLeafBuilderOrig<T extends DataTreeState<D>, D>({
   ArgumentError.checkNotNull(provider, 'provider');
   return _leafBuilder<T>(
     key,
-    (k, ctx) => LeafNode(k, ctx.parentNode, (k) => createState(k), provider),
+    (k, ctx) => LeafNode(k, ctx.parentNode, (k) => createState(k, provider), provider),
   );
 }
 
@@ -88,13 +91,17 @@ LeafNodeBuilder dataLeafBuilder<T extends DataTreeState<D>, D>({
   ArgumentError.checkNotNull(createProvider, 'provider');
   return _leafBuilder<T>(key, (k, ctx) {
     final provider = createProvider();
-    return LeafNode(k, ctx.parentNode, _dataStateCreator(createState, ctx), provider);
+    return LeafNode(k, ctx.parentNode, _dataStateCreator(createState, provider, ctx), provider);
   });
 }
 
-StateCreator _dataStateCreator(DataStateCreator createState, BuildContext ctx) {
+StateCreator _dataStateCreator<T extends DataTreeState<D>, D>(
+  DataStateCreator<T, D> createState,
+  provider,
+  BuildContext ctx,
+) {
   return (key) {
-    final state = createState(key);
+    final state = createState(key, provider);
     state.provider.setLeafDataAccessor(ctx.currentLeafData);
     return state;
   };
