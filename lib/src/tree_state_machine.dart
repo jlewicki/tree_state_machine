@@ -7,7 +7,7 @@ import 'tree_builders.dart';
 import 'tree_state.dart';
 import 'tree_state_machine_impl.dart';
 
-part 'tree_state_machine.g.dart';
+//part 'tree_state_machine.g.dart';
 
 class TreeStateMachine {
   final Machine _machine;
@@ -152,8 +152,7 @@ class TreeStateMachine {
     }).toList();
 
     return Stream.fromIterable(<Object>[EncodableTree(null, stateDataList).toJson()])
-        .transform(json.encoder)
-        .transform(utf8.encoder)
+        .transform(json.fuse(utf8).encoder)
         .pipe(sink);
   }
 
@@ -162,7 +161,7 @@ class TreeStateMachine {
     if (isStarted) {
       throw StateError('This TreeStateMachine must not be started before loading the tree.');
     }
-    final objectList = await stream.transform(utf8.decoder).transform(json.decoder).toList();
+    final objectList = await stream.transform(json.fuse(utf8).decoder).toList();
     if (objectList.length != 1) {
       throw ArgumentError.value(
         stream,
@@ -264,6 +263,11 @@ class CurrentState {
           ? data
           : throw StateError(
               'Data for state ${node.key} of type ${data.runtimeType} does not match requested type ${TypeLiteral<D>().type}.');
+    } else if (node.state() is D && !(TypeLiteral<D>().type is TreeState)) {
+      // In cases where state variables are just instance fields in the TreeState, and the state implements the
+      // requested type, just return the state directly. This allows apps to read the state data without having
+      // to use DataTreeState
+      return node.state() as D;
     }
     return null;
   }
@@ -302,8 +306,16 @@ class EncodableState {
   Object encodedData;
   String dataVersion;
   EncodableState(this.key, this.encodedData, this.dataVersion);
-  factory EncodableState.fromJson(Map<String, dynamic> json) => _$EncodableStateFromJson(json);
-  Map<String, dynamic> toJson() => _$EncodableStateToJson(this);
+  factory EncodableState.fromJson(Map<String, dynamic> json) => EncodableState(
+        json['key'] as String,
+        json['encodedData'],
+        json['dataVersion'] as String,
+      );
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'key': key,
+        'encodedData': encodedData,
+        'dataVersion': dataVersion,
+      };
 }
 
 @JsonSerializable()
@@ -311,6 +323,14 @@ class EncodableTree {
   String version;
   List<EncodableState> states;
   EncodableTree(this.version, this.states);
-  factory EncodableTree.fromJson(Map<String, dynamic> json) => _$EncodableTreeFromJson(json);
-  Map<String, dynamic> toJson() => _$EncodableTreeToJson(this);
+  factory EncodableTree.fromJson(Map<String, dynamic> json) => EncodableTree(
+        json['version'] as String,
+        (json['states'] as List)
+            ?.map((e) => e == null ? null : EncodableState.fromJson(e as Map<String, dynamic>))
+            ?.toList(),
+      );
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'version': version,
+        'states': states,
+      };
 }

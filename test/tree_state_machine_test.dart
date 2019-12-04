@@ -496,5 +496,13 @@ void main() {
         expect(() => sm.currentState.isActiveState(null), throwsArgumentError);
       });
     });
+
+    group('data', () {
+      test('shoud return data from provider when available', () {});
+
+      test('shoud return data from state when available', () {});
+
+      test('shoud return null when data not available', () {});
+    });
   });
 }
