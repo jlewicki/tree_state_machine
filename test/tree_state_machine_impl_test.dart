@@ -190,6 +190,19 @@ void main() {
           expect(handled.enteredStates, orderedEquals([r_b_key, r_b_1_key]));
         });
 
+        test('should call initial child after state is entered', () async {
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_b_key),
+          });
+          final buildCtx = BuildContext(currentLeafData);
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+          final msg = Object();
+
+          final msgProcessed = await machine.processMessage(msg, r_a_a_1_key);
+          // TODO: finish
+        });
+
         test('should call transition handlers in order', () async {
           var order = 1;
           final entryOrder = Map<StateKey, int>();

@@ -22,6 +22,7 @@ RootNodeBuilder treeBuilder({
   Map<StateKey, TransitionHandler> entryHandlers,
   Map<StateKey, MessageHandler> messageHandlers,
   Map<StateKey, TransitionHandler> exitHandlers,
+  Map<StateKey, void Function(TransitionContext)> initialChildCallbacks,
 }) {
   final _createEntryHandler = createEntryHandler ?? (_) => emptyTransitionHandler;
   final _createExitHandler = createExitHandler ?? (_) => emptyTransitionHandler;
@@ -29,6 +30,7 @@ RootNodeBuilder treeBuilder({
   final _entryHandlers = entryHandlers ?? {};
   final _messageHandlers = messageHandlers ?? {};
   final _exitHandlers = exitHandlers ?? {};
+  final _initialChildCallbacks = initialChildCallbacks ?? {};
 
   DelegateState createState(StateKey key) => DelegateState(
       entryHandler: _entryHandlers[key] ?? _createEntryHandler(key),
@@ -38,7 +40,12 @@ RootNodeBuilder treeBuilder({
   return rootBuilder(
     key: r_key,
     createState: createState,
-    initialChild: (_) => r_a_key,
+    initialChild: (ctx) {
+      if (_initialChildCallbacks[r_key] != null) {
+        _initialChildCallbacks[r_key](ctx);
+      }
+      return r_a_key;
+    },
     finalStates: [
       finalBuilder(key: r_X_key, createState: (key) => DelegateFinalState(_exitHandlers[key])),
     ],
@@ -46,12 +53,22 @@ RootNodeBuilder treeBuilder({
       interiorBuilder(
         key: r_a_key,
         state: createState,
-        initialChild: (_) => r_a_a_key,
+        initialChild: (ctx) {
+          if (_initialChildCallbacks[r_a_key] != null) {
+            _initialChildCallbacks[r_a_key](ctx);
+          }
+          return r_a_a_key;
+        },
         children: [
           interiorBuilder(
             key: r_a_a_key,
             state: createState,
-            initialChild: (_) => r_a_a_2_key,
+            initialChild: (ctx) {
+              if (_initialChildCallbacks[r_a_a_key] != null) {
+                _initialChildCallbacks[r_a_a_key](ctx);
+              }
+              return r_a_a_2_key;
+            },
             children: [
               leafBuilder(key: r_a_a_1_key, createState: createState),
               leafBuilder(key: r_a_a_2_key, createState: createState),
@@ -63,7 +80,12 @@ RootNodeBuilder treeBuilder({
       interiorBuilder(
         key: r_b_key,
         state: createState,
-        initialChild: (_) => r_b_1_key,
+        initialChild: (ctx) {
+          if (_initialChildCallbacks[r_b_key] != null) {
+            _initialChildCallbacks[r_b_key](ctx);
+          }
+          return r_b_1_key;
+        },
         children: [
           leafBuilder(key: r_b_1_key, createState: createState),
         ],

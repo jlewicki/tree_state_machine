@@ -560,8 +560,28 @@ void main() {
         ));
         await sm.start();
 
-        final leafData = sm.currentState.activeData<SimpleDataA>(data_tree.r_a_key);
-        expect(leafData.name, equals('foo'));
+        final r_a_data = sm.currentState.activeData<SimpleDataA>(data_tree.r_a_key);
+        expect(r_a_data.name, equals('foo'));
+      });
+
+      test('shoud return data from leaf provider after transition.', () async {
+        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(
+          initialDataValues: {
+            data_tree.r_a_a_2_key: LeafData2()
+              ..name = 'foo'
+              ..label = 'cool'
+          },
+          messageHandlers: {
+            data_tree.r_a_a_key: (ctx) => ctx.goTo(data_tree.r_a_a_1_key),
+          },
+        ));
+        await sm.start();
+
+        await sm.currentState.sendMessage(Object());
+
+        final r_a_a_2_data = sm.currentState.data<LeafData1>();
+        expect(r_a_a_2_data.name, isNull);
+        expect(r_a_a_2_data.counter, isNull);
       });
     });
   });
