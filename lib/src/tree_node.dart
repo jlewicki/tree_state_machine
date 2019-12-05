@@ -196,8 +196,8 @@ class LeafDataProvider<D> implements DataProvider<D> {
   @override
   void initializeLeafDataAccessor(Object Function() getCurrentLeafData) =>
       _getCurrentLeafData = () {
-        final leafData = getCurrentLeafData;
-        if (!(leafData is D)) {
+        final leafData = getCurrentLeafData();
+        if (leafData is! D) {
           throw StateError(
               'Expected leaf data of type ${TypeLiteral<D>().type}, but received ${leafData?.runtimeType}');
         }

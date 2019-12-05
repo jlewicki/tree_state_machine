@@ -6,6 +6,7 @@ import 'package:test/test.dart';
 import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 import 'package:tree_state_machine/src/tree_state_machine.dart';
+import 'fixture/data_tree.dart' as data_tree;
 import 'fixture/tree_1.dart' as tree;
 import 'fixture/flat_tree_1.dart' as flat_tree;
 import 'fixture/tree_data.dart';
@@ -522,11 +523,46 @@ void main() {
     });
 
     group('data', () {
-      test('shoud return data from provider when available', () {});
+      test('shoud return data from provider when available', () async {
+        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(initialDataValues: {
+          data_tree.r_a_a_2_key: LeafData2()
+            ..name = 'foo'
+            ..label = 'cool'
+        }));
+        await sm.start();
+
+        final leafData = sm.currentState.data<LeafData2>();
+        expect(leafData.name, equals('foo'));
+        expect(leafData.label, equals('cool'));
+      });
 
       test('shoud return data from state when available', () {});
 
       test('shoud return null when data not available', () {});
+    });
+
+    group('activeData', () {
+      test('shoud return data from leaf provider when available', () async {
+        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(initialDataValues: {
+          data_tree.r_a_a_2_key: LeafData2()
+            ..name = 'foo'
+            ..label = 'cool'
+        }));
+        await sm.start();
+
+        final leafData = sm.currentState.activeData<LeafDataBase>(data_tree.r_a_a_key);
+        expect(leafData.name, equals('foo'));
+      });
+
+      test('shoud return data from owned provider when available', () async {
+        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(
+          initialDataValues: {data_tree.r_a_key: SimpleDataA()..name = 'foo'},
+        ));
+        await sm.start();
+
+        final leafData = sm.currentState.activeData<SimpleDataA>(data_tree.r_a_key);
+        expect(leafData.name, equals('foo'));
+      });
     });
   });
 }

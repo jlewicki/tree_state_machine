@@ -13,8 +13,6 @@ final r_b_key = StateKey.named('r_b');
 final r_b_1_key = StateKey.named('r_b_1');
 final r_X_key = StateKey.named('r_X');
 
-final initialStateKey = r_a_a_2_key;
-
 RootNodeBuilder treeBuilder({
   TransitionHandler createEntryHandler(StateKey key),
   TransitionHandler createExitHandler(StateKey key),
@@ -22,6 +20,7 @@ RootNodeBuilder treeBuilder({
   Map<StateKey, TransitionHandler> entryHandlers,
   Map<StateKey, MessageHandler> messageHandlers,
   Map<StateKey, TransitionHandler> exitHandlers,
+  Map<StateKey, Object> initialDataValues,
 }) {
   final _createEntryHandler = createEntryHandler ?? (_) => emptyTransitionHandler;
   final _createExitHandler = createExitHandler ?? (_) => emptyTransitionHandler;
@@ -29,63 +28,7 @@ RootNodeBuilder treeBuilder({
   final _entryHandlers = entryHandlers ?? {};
   final _messageHandlers = messageHandlers ?? {};
   final _exitHandlers = exitHandlers ?? {};
-
-  DelegateState createState(StateKey key) => DelegateState(
-      entryHandler: _entryHandlers[key] ?? _createEntryHandler(key),
-      messageHandler: _messageHandlers[key] ?? _createMessageHandler(key),
-      exitHandler: _exitHandlers[key] ?? _createExitHandler(key));
-
-  return rootBuilder(
-    key: r_key,
-    createState: createState,
-    initialChild: (_) => r_a_key,
-    finalStates: [
-      finalBuilder(key: r_X_key, createState: (key) => DelegateFinalState(_exitHandlers[key])),
-    ],
-    children: [
-      interiorBuilder(
-        key: r_a_key,
-        state: createState,
-        initialChild: (_) => r_a_a_key,
-        children: [
-          interiorBuilder(
-            key: r_a_a_key,
-            state: createState,
-            initialChild: (_) => r_a_a_2_key,
-            children: [
-              leafBuilder(key: r_a_a_1_key, createState: createState),
-              leafBuilder(key: r_a_a_2_key, createState: createState),
-            ],
-          ),
-          leafBuilder(key: r_a_1_key, createState: createState),
-        ],
-      ),
-      interiorBuilder(
-        key: r_b_key,
-        state: createState,
-        initialChild: (_) => r_b_1_key,
-        children: [
-          leafBuilder(key: r_b_1_key, createState: createState),
-        ],
-      ),
-    ],
-  );
-}
-
-RootNodeBuilder dataTreeBuilder({
-  TransitionHandler createEntryHandler(StateKey key),
-  TransitionHandler createExitHandler(StateKey key),
-  MessageHandler createMessageHandler(StateKey key),
-  Map<StateKey, TransitionHandler> entryHandlers,
-  Map<StateKey, MessageHandler> messageHandlers,
-  Map<StateKey, TransitionHandler> exitHandlers,
-}) {
-  final _createEntryHandler = createEntryHandler ?? (_) => emptyTransitionHandler;
-  final _createExitHandler = createExitHandler ?? (_) => emptyTransitionHandler;
-  final _createMessageHandler = createMessageHandler ?? (_) => emptyMessageHandler;
-  final _entryHandlers = entryHandlers ?? {};
-  final _messageHandlers = messageHandlers ?? {};
-  final _exitHandlers = exitHandlers ?? {};
+  final _initialDataValues = initialDataValues ?? {};
 
   TreeState createState(StateKey key) => DelegateState(
         entryHandler: _entryHandlers[key] ?? _createEntryHandler(key),
@@ -102,7 +45,7 @@ RootNodeBuilder dataTreeBuilder({
   return dataRootBuilder(
     key: r_key,
     createState: (k) => createDataState<SpecialDataD>(k),
-    provider: SpecialDataD.dataProvider(),
+    provider: SpecialDataD.dataProvider(_initialDataValues[r_key]),
     initialChild: (_) => r_a_key,
     finalStates: [
       finalBuilder(key: r_X_key, createState: (key) => DelegateFinalState(_exitHandlers[key])),
@@ -111,21 +54,25 @@ RootNodeBuilder dataTreeBuilder({
       dataInteriorBuilder(
         key: r_a_key,
         createState: (k) => createDataState<SimpleDataA>(k),
-        provider: SimpleDataA.dataProvider(),
+        provider: SimpleDataA.dataProvider(_initialDataValues[r_a_key]),
         initialChild: (_) => r_a_a_key,
         children: [
           dataInteriorBuilder(
             key: r_a_a_key,
-            createState: (k) => createDataState<SimpleDataB>(k),
-            provider: SimpleDataB.dataProvider(),
+            createState: (k) => createDataState<LeafDataBase>(k),
+            provider: LeafDataBase.dataProvider(),
             initialChild: (_) => r_a_a_2_key,
             children: [
               dataLeafBuilder(
                 key: r_a_a_1_key,
-                createState: (k) => createDataState<SimpleDataC>(k),
-                provider: SimpleDataC.dataProvider(),
+                createState: (k) => createDataState<LeafData1>(k),
+                provider: LeafData1.dataProvider(_initialDataValues[r_a_a_1_key]),
               ),
-              leafBuilder(key: r_a_a_2_key, createState: createState),
+              dataLeafBuilder(
+                key: r_a_a_2_key,
+                createState: (k) => createDataState<LeafData2>(k),
+                provider: LeafData2.dataProvider(_initialDataValues[r_a_a_2_key]),
+              ),
             ],
           ),
           leafBuilder(key: r_a_1_key, createState: createState),

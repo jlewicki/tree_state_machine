@@ -8,14 +8,14 @@ void main() {
   group('DataProvider', () {
     group('data', () {
       test('should create data instance on demand', () {
-        final provider = SimpleDataA.jsonProvider();
+        final provider = SimpleDataA.dataProvider();
         expect(provider.data, isNotNull);
       });
     });
 
     group('encode', () {
-      test('should encode data using codec', () {
-        final provider = SimpleDataA.jsonProvider();
+      test('should encode data using encoder', () {
+        final provider = SimpleDataA.dataProvider();
         provider.data.name = 'Bill';
         provider.data.age = 25;
 
@@ -34,7 +34,7 @@ void main() {
 
     group('decodeInto', () {
       test('should update data', () {
-        final provider = SimpleDataA.jsonProvider();
+        final provider = SimpleDataA.dataProvider();
         provider.data.name = 'Bill';
         provider.data.age = 25;
 
@@ -48,5 +48,9 @@ void main() {
         expect(provider.data.age, equals(30));
       });
     });
+  });
+
+  group('LeafDataProvider', () {
+    test('', () {});
   });
 }
