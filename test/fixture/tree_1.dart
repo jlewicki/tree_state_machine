@@ -93,17 +93,16 @@ RootNodeBuilder dataTreeBuilder({
         exitHandler: _exitHandlers[key] ?? _createExitHandler(key),
       );
 
-  DataTreeState<D> createDataState<D>(StateKey key, DataProvider<D> provider) =>
-      DelegateDataState<D>(
-        provider,
+  DataTreeState<D> createDataState<D>(StateKey key) => DelegateDataState<D>(
         entryHandler: _entryHandlers[key] ?? _createEntryHandler(key),
         messageHandler: _messageHandlers[key] ?? _createMessageHandler(key),
         exitHandler: _exitHandlers[key] ?? _createExitHandler(key),
       );
 
-  return rootBuilder(
+  return dataRootBuilder(
     key: r_key,
-    createState: createState,
+    createState: (k) => createDataState<SpecialDataD>(k),
+    provider: SpecialDataD.jsonProvider(),
     initialChild: (_) => r_a_key,
     finalStates: [
       finalBuilder(key: r_X_key, createState: (key) => DelegateFinalState(_exitHandlers[key])),
@@ -111,19 +110,19 @@ RootNodeBuilder dataTreeBuilder({
     children: [
       dataInteriorBuilder(
         key: r_a_key,
-        createState: (k, p) => createDataState<SimpleDataA>(k, p),
+        createState: (k) => createDataState<SimpleDataA>(k),
         provider: SimpleDataA.jsonProvider(),
         initialChild: (_) => r_a_a_key,
         children: [
           dataInteriorBuilder(
             key: r_a_a_key,
-            createState: (k, p) => createDataState<SimpleDataB>(k, p),
+            createState: (k) => createDataState<SimpleDataB>(k),
             provider: SimpleDataB.jsonProvider(),
             initialChild: (_) => r_a_a_2_key,
             children: [
               dataLeafBuilder(
                 key: r_a_a_1_key,
-                createState: (k, p) => createDataState<SimpleDataC>(k, p),
+                createState: (k) => createDataState<SimpleDataC>(k),
                 createProvider: SimpleDataC.jsonProvider,
               ),
               leafBuilder(key: r_a_a_2_key, createState: createState),

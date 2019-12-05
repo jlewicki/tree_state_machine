@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:meta/meta.dart';
 import 'utility.dart';
 
@@ -118,59 +117,33 @@ abstract class FinalTreeState implements TreeState {
   }
 }
 
-abstract class DataProvider<D> {
+/// Provides access to an externally managed data value.
+abstract class DataValue<D> {
+  /// The data value provided by this instance.
   D get data;
-  Object encode();
-  void decodeInto(Object input);
-  void setLeafDataAccessor(Object Function() getCurrentLeafData);
-}
-
-class OwnedDataProvider<D> implements DataProvider<D> {
-  final Map<String, dynamic> Function(D data) encoder;
-  final D Function(Map<String, dynamic> json) decoder;
-  final D Function() _eval;
-  D _data;
-  OwnedDataProvider(this._eval, this.encoder, this.decoder);
-
-  D get data => _data ??= _eval();
-
-  /// Encodes the [data] value using the [Codec] provided in the constructor.
-  Object encode() => encoder(data);
-
-  void decodeInto(Object input) {
-    ArgumentError.checkNotNull('input');
-    _data = decoder(input);
-  }
-
-  @override
-  void setLeafDataAccessor(Object Function() getCurrentLeafData) {}
-}
-
-class LeafDataProvider<D> implements DataProvider<D> {
-  D Function() _getCurrentLeafData;
-  D get data => _getCurrentLeafData();
-  Object encode() => null;
-  void decodeInto(Object input) {}
-  @override
-  void setLeafDataAccessor(Object Function() getCurrentLeafData) =>
-      _getCurrentLeafData = getCurrentLeafData;
 }
 
 /// A tree state that supports serialization of its state data.
 ///
 ///
 abstract class DataTreeState<D> extends TreeState {
-  /// The [DataProvider] that supports serializing and deserializing the data associated with this
-  /// state.
-  final DataProvider<D> provider;
-
-  /// Constructs a [DataTreeState].
-  DataTreeState(this.provider) {
-    ArgumentError.checkNotNull(provider, 'provider');
-  }
+  DataValue<D> _dataValue;
 
   /// The serializable data associated with this state.
-  D get data => provider.data;
+  D get data {
+    if (_dataValue == null) {
+      throw StateError('Data value has not been initialized.');
+    }
+    return _dataValue.data;
+  }
+
+  /// Called to initialize the data value for this instance.
+  ///
+  /// This will be called by the state machine immediately after it creates this state instance.
+  @mustCallSuper
+  void initializeDataValue(DataValue<D> dataValue) {
+    _dataValue = dataValue;
+  }
 }
 
 /// Type of functions that are called when a state transition occurs within a state machine.
@@ -207,7 +180,6 @@ class EmptyTreeState extends TreeState {
 }
 
 class EmptyDataTreeState<D> extends DataTreeState<D> {
-  EmptyDataTreeState(DataProvider<D> provider) : super(provider);
   @override
   FutureOr<MessageResult> onMessage(MessageContext context) => context.unhandled();
 }
@@ -486,12 +458,11 @@ class DelegateDataState<D> extends DataTreeState<D> {
   TransitionHandler exitHandler;
   MessageHandler messageHandler;
 
-  DelegateDataState(
-    DataProvider<D> provider, {
+  DelegateDataState({
     this.entryHandler,
     this.exitHandler,
     this.messageHandler,
-  }) : super(provider) {
+  }) {
     entryHandler = entryHandler ?? emptyTransitionHandler;
     exitHandler = exitHandler ?? emptyTransitionHandler;
     messageHandler = messageHandler ?? emptyMessageHandler;

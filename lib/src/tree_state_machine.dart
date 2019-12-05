@@ -148,7 +148,7 @@ class TreeStateMachine {
       final state = node.node.state();
       return EncodableState(
         key.toString(),
-        state is DataTreeState ? state.provider.encode() : null,
+        state is DataTreeState ? node.node.dataProvider.encode() : null,
         null,
       );
     }).toList();
@@ -215,8 +215,8 @@ class TreeStateMachine {
     for (var i = 0; i < activeNodes.length; ++i) {
       final es = encodableTree.states[i];
       final node = activeNodes[i];
-      if (es.encodedData != null && node.provider != null) {
-        node.provider.decodeInto(es.encodedData);
+      if (es.encodedData != null && node.dataProvider != null) {
+        node.dataProvider.decodeInto(es.encodedData);
       }
     }
   }
@@ -259,8 +259,8 @@ class CurrentState {
 
   D activeData<D>(StateKey key) {
     final node = _treeStateMachine._machine.currentNode.selfOrAncestor(key);
-    if (node?.provider != null) {
-      final data = node.provider.data;
+    if (node.dataProvider != null) {
+      Object data = node.dataProvider.data;
       return data is D
           ? data
           : throw StateError(
@@ -328,7 +328,8 @@ class EncodableTree {
   factory EncodableTree.fromJson(Map<String, dynamic> json) => EncodableTree(
         json['version'] as String,
         (json['states'] as List)
-            ?.map((e) => e == null ? null : EncodableState.fromJson(e as Map<String, dynamic>))
+            ?.map(
+                (Object e) => e == null ? null : EncodableState.fromJson(e as Map<String, dynamic>))
             ?.toList(),
       );
   Map<String, dynamic> toJson() => <String, dynamic>{

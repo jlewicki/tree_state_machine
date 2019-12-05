@@ -3,8 +3,7 @@ import 'utility.dart';
 
 typedef InitialChild = StateKey Function(TransitionContext ctx);
 typedef StateCreator<T extends TreeState> = T Function(StateKey key);
-typedef DataStateCreator<T extends DataTreeState<D>, D> = T Function(
-    StateKey key, DataProvider<D> provider);
+typedef DataStateCreator<T extends DataTreeState<D>, D> = T Function(StateKey key);
 
 class TreeNode {
   final Lazy<TreeState> _lazyState;
@@ -13,9 +12,15 @@ class TreeNode {
   // Consider making this list of keys
   final List<TreeNode> children = [];
   final InitialChild initialChild;
-  final DataProvider provider;
+  final DataProvider dataProvider;
 
-  TreeNode._(this.key, this.parent, this._lazyState, this.initialChild, this.provider);
+  TreeNode._(
+    this.key,
+    this.parent,
+    this._lazyState,
+    this.initialChild,
+    this.dataProvider,
+  );
 
   bool get isRoot => this is RootNode;
   bool get isLeaf => this is LeafNode;
@@ -68,9 +73,9 @@ abstract class ChildNode extends TreeNode {
     StateKey key,
     TreeNode parent,
     Lazy<TreeState> lazyState,
-    InitialChild initialChild,
+    InitialChild initialChild, [
     DataProvider provider,
-  ) : super._(key, parent, lazyState, initialChild, provider);
+  ]) : super._(key, parent, lazyState, initialChild, provider);
 }
 
 class RootNode extends TreeNode {
@@ -144,4 +149,55 @@ class NodePath {
     final path = exiting.followedBy(entering);
     return NodePath._(root, to, null, path, exiting, entering);
   }
+}
+
+abstract class DataProvider<D> implements DataValue<D> {
+  D get data;
+  Object encode();
+  void decodeInto(Object input);
+  void initializeLeafDataAccessor(Object Function() getCurrentLeafData);
+
+  static LeafDataProvider<D> currentLeaf<D>() => LeafDataProvider();
+}
+
+class OwnedDataProvider<D> implements DataProvider<D> {
+  final Map<String, dynamic> Function(D data) encoder;
+  final D Function(Map<String, dynamic> json) decoder;
+  final D Function() _eval;
+  D _data;
+  OwnedDataProvider(this._eval, this.encoder, this.decoder);
+
+  D get data => _data ??= _eval();
+
+  /// Encodes the [data] value using the [Codec] provided in the constructor.
+  Object encode() => encoder(data);
+
+  void decodeInto(Object input) {
+    ArgumentError.checkNotNull('input');
+    if (!(input is Map<String, dynamic>)) {
+      throw ArgumentError.value(input, 'value',
+          'expected value of type Map<String, dynamic>, but received ${input.runtimeType}');
+    }
+    _data = decoder(input as Map<String, dynamic>);
+  }
+
+  @override
+  void initializeLeafDataAccessor(Object Function() getCurrentLeafData) {}
+}
+
+class LeafDataProvider<D> implements DataProvider<D> {
+  D Function() _getCurrentLeafData;
+  D get data => _getCurrentLeafData();
+  Object encode() => null;
+  void decodeInto(Object input) {}
+  @override
+  void initializeLeafDataAccessor(Object Function() getCurrentLeafData) =>
+      _getCurrentLeafData = () {
+        final leafData = getCurrentLeafData;
+        if (!(leafData is D)) {
+          throw StateError(
+              'Expected leaf data of type ${TypeLiteral<D>().type}, but received ${leafData?.runtimeType}');
+        }
+        return leafData as D;
+      };
 }

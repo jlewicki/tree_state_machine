@@ -321,10 +321,24 @@ void main() {
       test('should read active data states from stream ', () async {
         var sm = TreeStateMachine.forRoot(tree.dataTreeBuilder());
         await sm.start(tree.r_a_a_1_key);
+
+        // Data at leaf state
         final r_a_a_1_data = sm.currentState.data<SimpleDataC>();
         r_a_a_1_data.modelYear = '101';
+
+        // Data at interior state
         final r_a_a_data = sm.currentState.activeData<SimpleDataB>(tree.r_a_a_key);
         r_a_a_data.productNumber = 'XYZ';
+
+        // Data at root state
+        final r_data = sm.currentState.activeData<SpecialDataD>(tree.r_key);
+        r_data
+          ..playerName = 'FOO'
+          ..startYear = 2000
+          ..hiScores.add(HiScore()
+            ..game = 'foo'
+            ..score = 10);
+
         final ioController = StreamController<List<int>>();
         List<List<int>> encoded = (await Future.wait<Object>([
           sm.saveTo(ioController),
@@ -337,15 +351,25 @@ void main() {
         expect(sm.isStarted, isTrue);
         expect(sm.currentState, isNotNull);
         expect(sm.currentState.key, tree.r_a_a_1_key);
+
         expect(sm.currentState.data(), isNotNull);
         expect(sm.currentState.data(), isA<SimpleDataC>());
         expect(sm.currentState.data<SimpleDataC>().modelYear, equals('101'));
+
         expect(sm.currentState.activeData(tree.r_a_a_key), isNotNull);
         expect(sm.currentState.activeData(tree.r_a_a_key), isA<SimpleDataB>());
         expect(
           sm.currentState.activeData<SimpleDataB>(tree.r_a_a_key).productNumber,
           equals('XYZ'),
         );
+
+        expect(sm.currentState.activeData(tree.r_key), isNotNull);
+        expect(sm.currentState.activeData(tree.r_key), isA<SpecialDataD>());
+        final rootData = sm.currentState.activeData<SpecialDataD>(tree.r_key);
+        expect(rootData.playerName, equals('FOO'));
+        expect(rootData.startYear, equals(2000));
+        expect(rootData.hiScores.length, equals(1));
+        expect(rootData.hiScores[0].game, equals('foo'));
       });
 
       test('should throw if stream does not contain Map<string, dynamic>', () async {

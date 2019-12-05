@@ -1,5 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
-import 'package:tree_state_machine/src/tree_state.dart';
+import 'package:tree_state_machine/src/tree_node.dart';
 part 'tree_data.g.dart';
 
 @JsonSerializable()
@@ -37,25 +37,25 @@ class SimpleDataC {
 }
 
 @JsonSerializable()
-class PlayerData {
+class SimpleDataD {
   String playerName;
-  List<HiScore> hiScores;
-  Map<String, dynamic> toJson() => _$PlayerDataToJson(this);
-  static OwnedDataProvider<PlayerData> jsonProvider() => OwnedDataProvider(
-        () => PlayerData(),
-        _$PlayerDataToJson,
-        _$PlayerDataFromJson,
+  List<HiScore> hiScores = [];
+  Map<String, dynamic> toJson() => _$SimpleDataDToJson(this);
+  static OwnedDataProvider<SimpleDataD> jsonProvider() => OwnedDataProvider(
+        () => SimpleDataD(),
+        _$SimpleDataDToJson,
+        _$SimpleDataDFromJson,
       );
 }
 
 @JsonSerializable()
-class SpecialPlayerData extends PlayerData {
+class SpecialDataD extends SimpleDataD {
   int startYear;
-  Map<String, dynamic> toJson() => _$SpecialPlayerDataToJson(this);
-  static OwnedDataProvider<SpecialPlayerData> jsonProvider() => OwnedDataProvider(
-        () => SpecialPlayerData(),
-        _$SpecialPlayerDataToJson,
-        _$SpecialPlayerDataFromJson,
+  Map<String, dynamic> toJson() => _$SpecialDataDToJson(this);
+  static OwnedDataProvider<SpecialDataD> jsonProvider() => OwnedDataProvider(
+        () => SpecialDataD(),
+        _$SpecialDataDToJson,
+        _$SpecialDataDFromJson,
       );
 }
 

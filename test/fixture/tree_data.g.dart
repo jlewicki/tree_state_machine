@@ -12,7 +12,8 @@ SimpleDataA _$SimpleDataAFromJson(Map<String, dynamic> json) {
     ..age = json['age'] as int;
 }
 
-Map<String, dynamic> _$SimpleDataAToJson(SimpleDataA instance) => <String, dynamic>{
+Map<String, dynamic> _$SimpleDataAToJson(SimpleDataA instance) =>
+    <String, dynamic>{
       'name': instance.name,
       'age': instance.age,
     };
@@ -21,7 +22,8 @@ SimpleDataB _$SimpleDataBFromJson(Map<String, dynamic> json) {
   return SimpleDataB()..productNumber = json['productNumber'] as String;
 }
 
-Map<String, dynamic> _$SimpleDataBToJson(SimpleDataB instance) => <String, dynamic>{
+Map<String, dynamic> _$SimpleDataBToJson(SimpleDataB instance) =>
+    <String, dynamic>{
       'productNumber': instance.productNumber,
     };
 
@@ -29,33 +31,38 @@ SimpleDataC _$SimpleDataCFromJson(Map<String, dynamic> json) {
   return SimpleDataC()..modelYear = json['modelYear'] as String;
 }
 
-Map<String, dynamic> _$SimpleDataCToJson(SimpleDataC instance) => <String, dynamic>{
+Map<String, dynamic> _$SimpleDataCToJson(SimpleDataC instance) =>
+    <String, dynamic>{
       'modelYear': instance.modelYear,
     };
 
-PlayerData _$PlayerDataFromJson(Map<String, dynamic> json) {
-  return PlayerData()
+SimpleDataD _$SimpleDataDFromJson(Map<String, dynamic> json) {
+  return SimpleDataD()
     ..playerName = json['playerName'] as String
     ..hiScores = (json['hiScores'] as List)
-        ?.map((e) => e == null ? null : HiScore.fromJson(e as Map<String, dynamic>))
+        ?.map((e) =>
+            e == null ? null : HiScore.fromJson(e as Map<String, dynamic>))
         ?.toList();
 }
 
-Map<String, dynamic> _$PlayerDataToJson(PlayerData instance) => <String, dynamic>{
+Map<String, dynamic> _$SimpleDataDToJson(SimpleDataD instance) =>
+    <String, dynamic>{
       'playerName': instance.playerName,
       'hiScores': instance.hiScores,
     };
 
-SpecialPlayerData _$SpecialPlayerDataFromJson(Map<String, dynamic> json) {
-  return SpecialPlayerData()
+SpecialDataD _$SpecialDataDFromJson(Map<String, dynamic> json) {
+  return SpecialDataD()
     ..playerName = json['playerName'] as String
     ..hiScores = (json['hiScores'] as List)
-        ?.map((e) => e == null ? null : HiScore.fromJson(e as Map<String, dynamic>))
+        ?.map((e) =>
+            e == null ? null : HiScore.fromJson(e as Map<String, dynamic>))
         ?.toList()
     ..startYear = json['startYear'] as int;
 }
 
-Map<String, dynamic> _$SpecialPlayerDataToJson(SpecialPlayerData instance) => <String, dynamic>{
+Map<String, dynamic> _$SpecialDataDToJson(SpecialDataD instance) =>
+    <String, dynamic>{
       'playerName': instance.playerName,
       'hiScores': instance.hiScores,
       'startYear': instance.startYear,
