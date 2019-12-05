@@ -170,7 +170,7 @@ void main() {
           expect(handled.enteredStates, orderedEquals([r_b_key, r_b_1_key]));
         });
 
-        test('should follow initial children at to state', () async {
+        test('should follow initial children at destination state', () async {
           final buildTree = treeBuilder(messageHandlers: {
             r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_b_key),
           });
@@ -191,16 +191,28 @@ void main() {
         });
 
         test('should call initial child after state is entered', () async {
-          final buildTree = treeBuilder(messageHandlers: {
-            r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_b_key),
-          });
+          var counter = 1;
+          final entryCounters = <StateKey, int>{};
+          final initChildCounters = <StateKey, int>{};
+          final buildTree = treeBuilder(
+            createInitialChildCallback: (key) => (ctx) {
+              initChildCounters[key] = counter++;
+            },
+            createEntryHandler: (key) => (ctx) {
+              entryCounters[key] = counter++;
+            },
+            messageHandlers: {
+              r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_b_key),
+            },
+          );
           final buildCtx = BuildContext(currentLeafData);
           final rootNode = buildTree(buildCtx);
           final machine = Machine(rootNode, buildCtx.nodes);
-          final msg = Object();
 
-          final msgProcessed = await machine.processMessage(msg, r_a_a_1_key);
-          // TODO: finish
+          await machine.enterInitialState();
+          for (var parent in [r_key, r_a_key, r_a_a_key]) {
+            expect(entryCounters[parent] < initChildCounters[parent], isTrue);
+          }
         });
 
         test('should call transition handlers in order', () async {

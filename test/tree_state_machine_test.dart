@@ -536,9 +536,25 @@ void main() {
         expect(leafData.label, equals('cool'));
       });
 
-      test('shoud return data from state when available', () {});
+      test('shoud return data from state when available', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start(tree.r_b_2_key);
 
-      test('shoud return null when data not available', () {});
+        expect(sm.currentState.data<tree.ReadOnlyData>(), isNotNull);
+        // 10 is what tree builer initializes counter to.
+        expect(sm.currentState.data<tree.ReadOnlyData>().counter, equals(10));
+      });
+
+      test('shoud throw if data is a tree state', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start(tree.r_b_1_key);
+
+        expect(() => sm.currentState.data<DelegateState>(), throwsStateError);
+      });
+
+      test('shoud return null when data not available', () {
+        // TODO
+      });
     });
 
     group('activeData', () {

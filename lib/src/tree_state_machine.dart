@@ -264,11 +264,14 @@ class CurrentState {
           ? data
           : throw StateError(
               'Data for state ${node.key} of type ${data.runtimeType} does not match requested type ${TypeLiteral<D>().type}.');
-    } else if (node.state() is D && TypeLiteral<D>().type is! TreeState) {
-      // In cases where state variables are just instance fields in the TreeState, and the state implements the
-      // requested type, just return the state directly. This allows apps to read the state data without having
-      // to use DataTreeState
-      return node.state() as D;
+    } else if (node.state() is D) {
+      return !_isTypeOf<D, TreeState>()
+          // In cases where state variables are just instance fields in the TreeState, and the state implements the
+          // requested type, just return the state directly. This allows apps to read the state data without having
+          // to use DataTreeState
+          ? node.state() as D
+          : throw StateError(
+              'Requested data type ${TypeLiteral<D>().type} cannot be a ${TypeLiteral<TreeState>().type}.');
     }
     return null;
   }
@@ -335,4 +338,10 @@ class EncodableTree {
         'version': version,
         'states': states,
       };
+}
+
+bool _isTypeOf<ThisType, OfType>() => _Instance<ThisType>() is _Instance<OfType>;
+
+class _Instance<T> {
+  //
 }
