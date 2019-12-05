@@ -100,3 +100,14 @@ Map<String, dynamic> _$LeafData2ToJson(LeafData2 instance) => <String, dynamic>{
       'name': instance.name,
       'label': instance.label,
     };
+
+ReadOnlyData _$ReadOnlyDataFromJson(Map<String, dynamic> json) {
+  return ReadOnlyData(
+    json['name'] as String,
+  );
+}
+
+Map<String, dynamic> _$ReadOnlyDataToJson(ReadOnlyData instance) =>
+    <String, dynamic>{
+      'name': instance.name,
+    };

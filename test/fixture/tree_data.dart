@@ -104,3 +104,19 @@ class LeafData2 extends LeafDataBase {
         _$LeafData2FromJson,
       );
 }
+
+@JsonSerializable()
+class ReadOnlyData {
+  String _name;
+  String get name => _name;
+  ReadOnlyData(String name) {
+    _name = name;
+  }
+  Map<String, dynamic> toJson() => _$ReadOnlyDataToJson(this);
+  static OwnedDataProvider<ReadOnlyData> dataProvider([ReadOnlyData initialValue]) =>
+      OwnedDataProvider(
+        () => initialValue ?? ReadOnlyData(''),
+        _$ReadOnlyDataToJson,
+        _$ReadOnlyDataFromJson,
+      );
+}

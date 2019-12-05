@@ -266,9 +266,13 @@ class CurrentState {
               'Data for state ${node.key} of type ${data.runtimeType} does not match requested type ${TypeLiteral<D>().type}.');
     } else if (node.state() is D) {
       return !_isTypeOf<D, TreeState>()
-          // In cases where state variables are just instance fields in the TreeState, and the state implements the
-          // requested type, just return the state directly. This allows apps to read the state data without having
-          // to use DataTreeState
+          // In cases where state variables are just instance fields in the TreeState, and the
+          // state implements the requested type, just return the state directly. This allows apps
+          // to read the state data without having to use DataTreeState.
+          // Note that we check if D is a tree state, and throw if it is. The idea here is that it
+          // is risky to directy return a state to outside of the statemachine, since then external
+          // code could call onenter/onexit and potentially violate invariants. (although external
+          // code can simply do the cast themselves and work around this)
           ? node.state() as D
           : throw StateError(
               'Requested data type ${TypeLiteral<D>().type} cannot be a ${TypeLiteral<TreeState>().type}.');
