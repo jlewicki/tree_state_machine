@@ -28,12 +28,10 @@ class TreeNode {
   bool get isFinal => this is FinalNode;
   TreeState state() => _lazyState.value;
 
-  bool isActive(StateKey stateKey) {
-    return selfOrAncestor(stateKey) != null;
-  }
+  bool isActive(StateKey stateKey) => selfOrAncestor(stateKey) != null;
 
   TreeNode selfOrAncestor(StateKey stateKey) {
-    TreeNode nextNode = this;
+    var nextNode = this;
     while (nextNode != null) {
       if (nextNode.key == stateKey) {
         return nextNode;
@@ -152,6 +150,7 @@ class NodePath {
 }
 
 abstract class DataProvider<D> implements DataValue<D> {
+  @override
   D get data;
   Object encode();
   void decodeInto(Object input);
@@ -167,14 +166,16 @@ class OwnedDataProvider<D> implements DataProvider<D> {
   D _data;
   OwnedDataProvider(this._eval, this.encoder, this.decoder);
 
+  @override
   D get data => _data ??= _eval();
 
-  /// Encodes the [data] value using the [Codec] provided in the constructor.
+  @override
   Object encode() => encoder(data);
 
+  @override
   void decodeInto(Object input) {
     ArgumentError.checkNotNull('input');
-    if (!(input is Map<String, dynamic>)) {
+    if (input is! Map<String, dynamic>) {
       throw ArgumentError.value(input, 'value',
           'expected value of type Map<String, dynamic>, but received ${input.runtimeType}');
     }
@@ -188,7 +189,9 @@ class OwnedDataProvider<D> implements DataProvider<D> {
 class LeafDataProvider<D> implements DataProvider<D> {
   D Function() _getCurrentLeafData;
   D get data => _getCurrentLeafData();
+  @override
   Object encode() => null;
+  @override
   void decodeInto(Object input) {}
   @override
   void initializeLeafDataAccessor(Object Function() getCurrentLeafData) =>

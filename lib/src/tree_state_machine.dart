@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:json_annotation/json_annotation.dart';
-import 'package:tree_state_machine/src/utility.dart';
-
 import 'tree_builders.dart';
 import 'tree_state.dart';
 import 'tree_state_machine_impl.dart';
+import 'utility.dart';
 
 class TreeStateMachine {
   final Machine _machine;
@@ -209,7 +208,7 @@ class TreeStateMachine {
     }
 
     // Start state machine so that the active nodes matches that in the encoded data.
-    await this.start(activeNodes[0].key);
+    await start(activeNodes[0].key);
 
     // Restore encoded data into states in the tree
     for (var i = 0; i < activeNodes.length; ++i) {
@@ -260,12 +259,12 @@ class CurrentState {
   D activeData<D>(StateKey key) {
     final node = _treeStateMachine._machine.currentNode.selfOrAncestor(key);
     if (node.dataProvider != null) {
-      Object data = node.dataProvider.data;
+      final data = node.dataProvider.data as Object;
       return data is D
           ? data
           : throw StateError(
               'Data for state ${node.key} of type ${data.runtimeType} does not match requested type ${TypeLiteral<D>().type}.');
-    } else if (node.state() is D && !(TypeLiteral<D>().type is TreeState)) {
+    } else if (node.state() is D && TypeLiteral<D>().type is! TreeState) {
       // In cases where state variables are just instance fields in the TreeState, and the state implements the
       // requested type, just return the state directly. This allows apps to read the state data without having
       // to use DataTreeState

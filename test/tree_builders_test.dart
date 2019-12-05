@@ -67,7 +67,7 @@ void main() {
         createState: (key) {
           return theState = SimpleDataState();
         },
-        createProvider: SimpleDataA.jsonProvider,
+        provider: SimpleDataA.jsonProvider(),
       );
       final leafNode = builder(buildCtx);
 

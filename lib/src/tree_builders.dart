@@ -87,14 +87,14 @@ LeafNodeBuilder leafBuilder<T extends TreeState>({
 
 LeafNodeBuilder dataLeafBuilder<T extends DataTreeState<D>, D>({
   @required DataStateCreator<T, D> createState,
-  @required OwnedDataProvider<D> Function() createProvider,
+  @required OwnedDataProvider<D> provider,
   StateKey key,
 }) {
-  ArgumentError.checkNotNull(createProvider, 'provider');
-  return _leafBuilder<T>(key, (k, ctx) {
-    final provider = createProvider();
-    return LeafNode(k, ctx.parentNode, _dataStateCreator(createState, provider, ctx), provider);
-  });
+  ArgumentError.checkNotNull(provider, 'provider');
+  return _leafBuilder<T>(
+      key,
+      (k, ctx) =>
+          LeafNode(k, ctx.parentNode, _dataStateCreator(createState, provider, ctx), provider));
 }
 
 FinalNodeBuilder finalBuilder<T extends TreeState>({
@@ -159,14 +159,13 @@ StateCreator _dataStateCreator<T extends DataTreeState<D>, D>(
   DataStateCreator<T, D> createState,
   DataProvider<D> provider,
   BuildContext ctx,
-) {
-  return (key) {
-    final state = createState(key);
-    provider.initializeLeafDataAccessor(ctx.currentLeafData);
-    state.initializeDataValue(provider);
-    return state;
-  };
-}
+) =>
+    (key) {
+      final state = createState(key);
+      provider.initializeLeafDataAccessor(ctx.currentLeafData);
+      state.initializeDataValue(provider);
+      return state;
+    };
 
 class BuildContext {
   final TreeNode parentNode;
