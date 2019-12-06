@@ -19,7 +19,7 @@ void main() {
         provider.data.name = 'Bill';
         provider.data.age = 25;
 
-        final expected = provider.encoder(provider.data);
+        final expected = provider.encoder(provider.data) as Map<String, dynamic>;
         final actual = provider.encode();
 
         expect(actual, isA<Map<String, dynamic>>());

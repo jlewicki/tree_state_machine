@@ -12,7 +12,7 @@ class SimpleDataA {
   int age;
   Map<String, dynamic> toJson() => _$SimpleDataAToJson(this);
   static OwnedDataProvider<SimpleDataA> dataProvider([SimpleDataA initialValue]) =>
-      OwnedDataProvider(
+      OwnedDataProvider.json(
         () => initialValue ?? SimpleDataA(),
         _$SimpleDataAToJson,
         _$SimpleDataAFromJson,
@@ -24,7 +24,7 @@ class SimpleDataB {
   String productNumber;
   Map<String, dynamic> toJson() => _$SimpleDataBToJson(this);
   static OwnedDataProvider<SimpleDataB> dataProvider([SimpleDataB initialValue]) =>
-      OwnedDataProvider(
+      OwnedDataProvider.json(
         () => initialValue ?? SimpleDataB(),
         _$SimpleDataBToJson,
         _$SimpleDataBFromJson,
@@ -36,7 +36,7 @@ class SimpleDataC {
   String modelYear;
   Map<String, dynamic> toJson() => _$SimpleDataCToJson(this);
   static OwnedDataProvider<SimpleDataC> dataProvider([SimpleDataC initialValue]) =>
-      OwnedDataProvider(
+      OwnedDataProvider.json(
         () => initialValue ?? SimpleDataC(),
         _$SimpleDataCToJson,
         _$SimpleDataCFromJson,
@@ -49,7 +49,7 @@ class SimpleDataD {
   List<HiScore> hiScores = [];
   Map<String, dynamic> toJson() => _$SimpleDataDToJson(this);
   static OwnedDataProvider<SimpleDataD> dataProvider([SimpleDataD initialValue]) =>
-      OwnedDataProvider(
+      OwnedDataProvider.json(
         () => initialValue ?? SimpleDataD(),
         _$SimpleDataDToJson,
         _$SimpleDataDFromJson,
@@ -61,7 +61,7 @@ class SpecialDataD extends SimpleDataD {
   int startYear;
   Map<String, dynamic> toJson() => _$SpecialDataDToJson(this);
   static OwnedDataProvider<SpecialDataD> dataProvider([SpecialDataD initialValue]) =>
-      OwnedDataProvider(
+      OwnedDataProvider.json(
         () => initialValue ?? SpecialDataD(),
         _$SpecialDataDToJson,
         _$SpecialDataDFromJson,
@@ -75,7 +75,7 @@ class HiScore {
   HiScore();
   factory HiScore.fromJson(Map<String, dynamic> json) => _$HiScoreFromJson(json);
   Map<String, dynamic> toJson() => _$HiScoreToJson(this);
-  static OwnedDataProvider<HiScore> dataProvider() => OwnedDataProvider(
+  static OwnedDataProvider<HiScore> dataProvider() => OwnedDataProvider.json(
         () => HiScore(),
         _$HiScoreToJson,
         _$HiScoreFromJson,
@@ -91,7 +91,8 @@ class LeafDataBase {
 class LeafData1 extends LeafDataBase {
   int counter;
   Map<String, dynamic> toJson() => _$LeafData1ToJson(this);
-  static OwnedDataProvider<LeafData1> dataProvider([LeafData1 initialValue]) => OwnedDataProvider(
+  static OwnedDataProvider<LeafData1> dataProvider([LeafData1 initialValue]) =>
+      OwnedDataProvider.json(
         () => initialValue ?? LeafData1(),
         _$LeafData1ToJson,
         _$LeafData1FromJson,
@@ -102,7 +103,8 @@ class LeafData1 extends LeafDataBase {
 class LeafData2 extends LeafDataBase {
   String label;
   Map<String, dynamic> toJson() => _$LeafData2ToJson(this);
-  static OwnedDataProvider<LeafData2> dataProvider([LeafData2 initialValue]) => OwnedDataProvider(
+  static OwnedDataProvider<LeafData2> dataProvider([LeafData2 initialValue]) =>
+      OwnedDataProvider.json(
         () => initialValue ?? LeafData2(),
         _$LeafData2ToJson,
         _$LeafData2FromJson,
@@ -121,26 +123,31 @@ class ReadOnlyData {
   }
   Map<String, dynamic> toJson() => _$ReadOnlyDataToJson(this);
   static OwnedDataProvider<ReadOnlyData> dataProvider([ReadOnlyData initialValue]) =>
-      OwnedDataProvider(
+      OwnedDataProvider.json(
         () => initialValue ?? ReadOnlyData('', 1),
         _$ReadOnlyDataToJson,
         _$ReadOnlyDataFromJson,
       );
 }
 
-// abstract class Login implements Built<Login, LoginBuilder> {
-//   static Serializer<Login> get serializer => _$loginSerializer;
-//   String get username;
-//   String get password;
-
-//   factory Login([updates(LoginBuilder b)]) = _$Login;
-//   Login._();
-// }
-
-abstract class ReadOnlyData2 implements Built<ReadOnlyData2, ReadOnlyData2Builder> {
+abstract class ImmutableData implements Built<ImmutableData, ImmutableDataBuilder> {
   String get name;
-  int get counter;
-  factory ReadOnlyData2([updates(ReadOnlyData2Builder b)]) = _$ReadOnlyData2;
-  static Serializer<ReadOnlyData2> get serializer => _$readOnlyData2Serializer;
-  ReadOnlyData2._();
+  int get price;
+  factory ImmutableData([updates(ImmutableDataBuilder b)]) = _$ImmutableData;
+  static OwnedDataProvider<ImmutableData> dataProvider([ImmutableData initialValue]) =>
+      OwnedDataProvider(
+        () =>
+            initialValue ??
+            ImmutableData((b) => b
+              ..name = ''
+              ..price = 1),
+        (o) => serializers.serializeWith(_$immutableDataSerializer, o),
+        (o) => serializers.deserializeWith(_$immutableDataSerializer, o),
+      );
+
+  static Serializer<ImmutableData> get serializer => _$immutableDataSerializer;
+  ImmutableData._();
 }
+
+@SerializersFor([ImmutableData])
+final Serializers serializers = _$serializers;

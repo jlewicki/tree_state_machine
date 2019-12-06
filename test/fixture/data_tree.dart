@@ -53,8 +53,8 @@ RootNodeBuilder treeBuilder({
     children: [
       dataInteriorBuilder(
         key: r_a_key,
-        createState: (k) => createDataState<SimpleDataA>(k),
-        provider: SimpleDataA.dataProvider(_initialDataValues[r_a_key]),
+        createState: (k) => createDataState<ImmutableData>(k),
+        provider: ImmutableData.dataProvider(_initialDataValues[r_a_key]),
         initialChild: (_) => r_a_a_key,
         children: [
           dataInteriorBuilder(
@@ -75,7 +75,10 @@ RootNodeBuilder treeBuilder({
               ),
             ],
           ),
-          leafBuilder(key: r_a_1_key, createState: createState),
+          dataLeafBuilder(
+              key: r_a_1_key,
+              createState: (k) => createDataState<ImmutableData>(k),
+              provider: ImmutableData.dataProvider(_initialDataValues[r_a_1_key])),
         ],
       ),
       interiorBuilder(

@@ -6,33 +6,35 @@ part of 'tree_data.dart';
 // BuiltValueGenerator
 // **************************************************************************
 
-Serializer<ReadOnlyData2> _$readOnlyData2Serializer =
-    new _$ReadOnlyData2Serializer();
+Serializers _$serializers =
+    (new Serializers().toBuilder()..add(ImmutableData.serializer)).build();
+Serializer<ImmutableData> _$immutableDataSerializer =
+    new _$ImmutableDataSerializer();
 
-class _$ReadOnlyData2Serializer implements StructuredSerializer<ReadOnlyData2> {
+class _$ImmutableDataSerializer implements StructuredSerializer<ImmutableData> {
   @override
-  final Iterable<Type> types = const [ReadOnlyData2, _$ReadOnlyData2];
+  final Iterable<Type> types = const [ImmutableData, _$ImmutableData];
   @override
-  final String wireName = 'ReadOnlyData2';
+  final String wireName = 'ImmutableData';
 
   @override
-  Iterable<Object> serialize(Serializers serializers, ReadOnlyData2 object,
+  Iterable<Object> serialize(Serializers serializers, ImmutableData object,
       {FullType specifiedType = FullType.unspecified}) {
     final result = <Object>[
       'name',
       serializers.serialize(object.name, specifiedType: const FullType(String)),
-      'counter',
-      serializers.serialize(object.counter, specifiedType: const FullType(int)),
+      'price',
+      serializers.serialize(object.price, specifiedType: const FullType(int)),
     ];
 
     return result;
   }
 
   @override
-  ReadOnlyData2 deserialize(
+  ImmutableData deserialize(
       Serializers serializers, Iterable<Object> serialized,
       {FullType specifiedType = FullType.unspecified}) {
-    final result = new ReadOnlyData2Builder();
+    final result = new ImmutableDataBuilder();
 
     final iterator = serialized.iterator;
     while (iterator.moveNext()) {
@@ -44,8 +46,8 @@ class _$ReadOnlyData2Serializer implements StructuredSerializer<ReadOnlyData2> {
           result.name = serializers.deserialize(value,
               specifiedType: const FullType(String)) as String;
           break;
-        case 'counter':
-          result.counter = serializers.deserialize(value,
+        case 'price':
+          result.price = serializers.deserialize(value,
               specifiedType: const FullType(int)) as int;
           break;
       }
@@ -55,92 +57,90 @@ class _$ReadOnlyData2Serializer implements StructuredSerializer<ReadOnlyData2> {
   }
 }
 
-class _$ReadOnlyData2 extends ReadOnlyData2 {
+class _$ImmutableData extends ImmutableData {
   @override
   final String name;
   @override
-  final int counter;
+  final int price;
 
-  factory _$ReadOnlyData2([void Function(ReadOnlyData2Builder) updates]) =>
-      (new ReadOnlyData2Builder()..update(updates)).build();
+  factory _$ImmutableData([void Function(ImmutableDataBuilder) updates]) =>
+      (new ImmutableDataBuilder()..update(updates)).build();
 
-  _$ReadOnlyData2._({this.name, this.counter}) : super._() {
+  _$ImmutableData._({this.name, this.price}) : super._() {
     if (name == null) {
-      throw new BuiltValueNullFieldError('ReadOnlyData2', 'name');
+      throw new BuiltValueNullFieldError('ImmutableData', 'name');
     }
-    if (counter == null) {
-      throw new BuiltValueNullFieldError('ReadOnlyData2', 'counter');
+    if (price == null) {
+      throw new BuiltValueNullFieldError('ImmutableData', 'price');
     }
   }
 
   @override
-  ReadOnlyData2 rebuild(void Function(ReadOnlyData2Builder) updates) =>
+  ImmutableData rebuild(void Function(ImmutableDataBuilder) updates) =>
       (toBuilder()..update(updates)).build();
 
   @override
-  ReadOnlyData2Builder toBuilder() => new ReadOnlyData2Builder()..replace(this);
+  ImmutableDataBuilder toBuilder() => new ImmutableDataBuilder()..replace(this);
 
   @override
   bool operator ==(Object other) {
     if (identical(other, this)) return true;
-    return other is ReadOnlyData2 &&
-        name == other.name &&
-        counter == other.counter;
+    return other is ImmutableData && name == other.name && price == other.price;
   }
 
   @override
   int get hashCode {
-    return $jf($jc($jc(0, name.hashCode), counter.hashCode));
+    return $jf($jc($jc(0, name.hashCode), price.hashCode));
   }
 
   @override
   String toString() {
-    return (newBuiltValueToStringHelper('ReadOnlyData2')
+    return (newBuiltValueToStringHelper('ImmutableData')
           ..add('name', name)
-          ..add('counter', counter))
+          ..add('price', price))
         .toString();
   }
 }
 
-class ReadOnlyData2Builder
-    implements Builder<ReadOnlyData2, ReadOnlyData2Builder> {
-  _$ReadOnlyData2 _$v;
+class ImmutableDataBuilder
+    implements Builder<ImmutableData, ImmutableDataBuilder> {
+  _$ImmutableData _$v;
 
   String _name;
   String get name => _$this._name;
   set name(String name) => _$this._name = name;
 
-  int _counter;
-  int get counter => _$this._counter;
-  set counter(int counter) => _$this._counter = counter;
+  int _price;
+  int get price => _$this._price;
+  set price(int price) => _$this._price = price;
 
-  ReadOnlyData2Builder();
+  ImmutableDataBuilder();
 
-  ReadOnlyData2Builder get _$this {
+  ImmutableDataBuilder get _$this {
     if (_$v != null) {
       _name = _$v.name;
-      _counter = _$v.counter;
+      _price = _$v.price;
       _$v = null;
     }
     return this;
   }
 
   @override
-  void replace(ReadOnlyData2 other) {
+  void replace(ImmutableData other) {
     if (other == null) {
       throw new ArgumentError.notNull('other');
     }
-    _$v = other as _$ReadOnlyData2;
+    _$v = other as _$ImmutableData;
   }
 
   @override
-  void update(void Function(ReadOnlyData2Builder) updates) {
+  void update(void Function(ImmutableDataBuilder) updates) {
     if (updates != null) updates(this);
   }
 
   @override
-  _$ReadOnlyData2 build() {
-    final _$result = _$v ?? new _$ReadOnlyData2._(name: name, counter: counter);
+  _$ImmutableData build() {
+    final _$result = _$v ?? new _$ImmutableData._(name: name, price: price);
     replace(_$result);
     return _$result;
   }

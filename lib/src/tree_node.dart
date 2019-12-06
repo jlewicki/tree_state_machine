@@ -160,11 +160,23 @@ abstract class DataProvider<D> implements DataValue<D> {
 }
 
 class OwnedDataProvider<D> implements DataProvider<D> {
-  final Map<String, dynamic> Function(D data) encoder;
-  final D Function(Map<String, dynamic> json) decoder;
+  final Object Function(D data) encoder;
+  final D Function(Object json) decoder;
   final D Function() _eval;
   D _data;
   OwnedDataProvider(this._eval, this.encoder, this.decoder);
+
+  factory OwnedDataProvider.json(
+    D Function() eval,
+    Map<String, dynamic> Function(D data) encoder,
+    D Function(Map<String, Object> json) decoder,
+  ) {
+    return OwnedDataProvider(eval, encoder, (obj) {
+      return obj is Map<String, dynamic>
+          ? decoder(obj)
+          : throw ArgumentError('Value to decode must me Map<String, dynamic>');
+    });
+  }
 
   @override
   D get data => _data ??= _eval();
@@ -175,11 +187,7 @@ class OwnedDataProvider<D> implements DataProvider<D> {
   @override
   void decodeInto(Object input) {
     ArgumentError.checkNotNull('input');
-    if (input is! Map<String, dynamic>) {
-      throw ArgumentError.value(input, 'value',
-          'expected value of type Map<String, dynamic>, but received ${input.runtimeType}');
-    }
-    _data = decoder(input as Map<String, dynamic>);
+    _data = decoder(input);
   }
 
   @override
