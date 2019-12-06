@@ -1,5 +1,9 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:built_collection/built_collection.dart';
+import 'package:built_value/built_value.dart';
+import 'package:built_value/serializer.dart';
 import 'package:tree_state_machine/src/tree_node.dart';
+
 part 'tree_data.g.dart';
 
 @JsonSerializable()
@@ -108,15 +112,35 @@ class LeafData2 extends LeafDataBase {
 @JsonSerializable()
 class ReadOnlyData {
   String _name;
+  int _counter;
   String get name => _name;
-  ReadOnlyData(String name) {
+  int get counter => _counter;
+  ReadOnlyData(String name, int counter) {
     _name = name;
+    _counter = counter;
   }
   Map<String, dynamic> toJson() => _$ReadOnlyDataToJson(this);
   static OwnedDataProvider<ReadOnlyData> dataProvider([ReadOnlyData initialValue]) =>
       OwnedDataProvider(
-        () => initialValue ?? ReadOnlyData(''),
+        () => initialValue ?? ReadOnlyData('', 1),
         _$ReadOnlyDataToJson,
         _$ReadOnlyDataFromJson,
       );
+}
+
+// abstract class Login implements Built<Login, LoginBuilder> {
+//   static Serializer<Login> get serializer => _$loginSerializer;
+//   String get username;
+//   String get password;
+
+//   factory Login([updates(LoginBuilder b)]) = _$Login;
+//   Login._();
+// }
+
+abstract class ReadOnlyData2 implements Built<ReadOnlyData2, ReadOnlyData2Builder> {
+  String get name;
+  int get counter;
+  factory ReadOnlyData2([updates(ReadOnlyData2Builder b)]) = _$ReadOnlyData2;
+  static Serializer<ReadOnlyData2> get serializer => _$readOnlyData2Serializer;
+  ReadOnlyData2._();
 }
