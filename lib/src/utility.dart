@@ -41,13 +41,17 @@ class _Evaluated<T> implements _LazyValue<T> {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// TypeLiteral
+// Type trickery
 //
 
 // See https://github.com/dart-lang/sdk/issues/33297
 class TypeLiteral<T> {
   Type get type => T;
 }
+
+bool isTypeOf<ThisType, OfType>() => _Instance<ThisType>() is _Instance<OfType>;
+
+class _Instance<T> {}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ///

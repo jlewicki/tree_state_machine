@@ -1,5 +1,6 @@
 import 'dart:collection';
 import 'package:meta/meta.dart';
+import 'data_provider.dart';
 import 'tree_node.dart';
 import 'tree_state.dart';
 
@@ -9,10 +10,6 @@ typedef InteriorNodeBuilder = InteriorNode Function(BuildContext ctx);
 typedef FinalNodeBuilder = FinalNode Function(BuildContext ctx);
 typedef RootNodeBuilder = RootNode Function(BuildContext ctx);
 typedef CreateProvider<D> = DataProvider<D> Function(Object Function() currentLeafData);
-
-// CreateProvider<D> ownedDataProvider<D>(OwnedDataProvider<D> Function() create) => (_) => create();
-// CreateProvider<D> currentLeafDataProvider<D>() =>
-//     (currentLeafData) => LeafDataProvider(currentLeafData);
 
 RootNodeBuilder rootBuilder<T extends TreeState>({
   @required StateCreator<T> createState,
@@ -49,14 +46,14 @@ RootNodeBuilder dataRootBuilder<T extends DataTreeState<D>, D>({
 }
 
 InteriorNodeBuilder interiorBuilder<T extends TreeState>({
-  @required StateCreator<T> state,
+  @required StateCreator<T> createState,
   @required Iterable<ChildNodeBuilder> children,
   @required InitialChild initialChild,
   StateKey key,
 }) =>
     _interiorBuilder<T>(
       key,
-      (key, ctx) => InteriorNode(key, ctx.parentNode, state, initialChild),
+      (key, ctx) => InteriorNode(key, ctx.parentNode, createState, initialChild),
       children,
     );
 
@@ -162,7 +159,9 @@ StateCreator _dataStateCreator<T extends DataTreeState<D>, D>(
 ) =>
     (key) {
       final state = createState(key);
-      provider.initializeLeafDataAccessor(ctx.currentLeafData);
+      if (provider is CurrentLeafDataProvider) {
+        (provider as CurrentLeafDataProvider).initializeLeafDataAccessor(ctx.currentLeafData);
+      }
       state.initializeDataValue(provider);
       return state;
     };
@@ -188,3 +187,15 @@ class BuildContext {
     nodes[node.key] = node;
   }
 }
+
+// abstract class DataState<T extends DataTreeState<D>, D> {
+//   final DataStateCreator<T, D> stateCreator;
+//   final DataProvider<D> dataProvider;
+//   DataState._(this.stateCreator, this.dataProvider);
+// }
+
+// abstract class OwnedDataState<T extends DataTreeState<D>, D> {
+//   final DataStateCreator<T, D> stateCreator;
+//   final DataProvider<D> dataProvider;
+//   DataState._(this.stateCreator, this.dataProvider);
+// }

@@ -83,7 +83,7 @@ void main() {
   group('buildInterior', () {
     var nodeBuilder = interiorBuilder(
       key: stateKey,
-      state: (key) => state,
+      createState: (key) => state,
       children: [
         leafBuilder(key: childState1Key, createState: (key) => childState1),
         leafBuilder(key: childState2Key, createState: (key) => childState2),
@@ -111,7 +111,7 @@ void main() {
       var buildCtx = BuildContext(currentLeafData, parentNode);
 
       var nodeBuilder = interiorBuilder(
-        state: (key) => state,
+        createState: (key) => state,
         children: [
           leafBuilder(key: childState1Key, createState: (key) => childState1),
           leafBuilder(key: childState2Key, createState: (key) => childState2),

@@ -83,7 +83,7 @@ RootNodeBuilder treeBuilder({
       ),
       interiorBuilder(
         key: r_b_key,
-        state: createState,
+        createState: createState,
         initialChild: (_) => r_b_1_key,
         children: [
           leafBuilder(key: r_b_1_key, createState: createState),

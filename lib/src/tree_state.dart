@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:meta/meta.dart';
+import 'data_provider.dart';
 import 'utility.dart';
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -117,32 +118,38 @@ abstract class FinalTreeState implements TreeState {
   }
 }
 
-/// Provides access to an externally managed data value.
-abstract class DataValue<D> {
-  /// The data value provided by this instance.
-  D get data;
-}
+// /// Provides access to an externally managed data value.
+// abstract class DataValue<D> {
+//   /// The data value provided by this instance.
+//   D get data;
+// }
+
+// abstract class UpdateableDataValue<D> extends DataValue<D> {
+//   void update(void Function() update);
+// }
+
+// abstract class WriteableDataValue<D> extends UpdateableDataValue<D> {
+//   void replace(D Function() replace);
+// }
 
 /// A tree state that supports serialization of its state data.
 ///
 ///
 abstract class DataTreeState<D> extends TreeState {
-  DataValue<D> _dataValue;
+  DataProvider<D> _provider;
 
   /// The serializable data associated with this state.
   D get data {
-    if (_dataValue == null) {
-      throw StateError('Data value has not been initialized.');
-    }
-    return _dataValue.data;
+    assert(_provider != null);
+    return _provider.data;
   }
 
-  /// Called to initialize the data value for this instance.
+  /// Called to initialize the data provider for this instance.
   ///
   /// This will be called by the state machine immediately after it creates this state instance.
   @mustCallSuper
-  void initializeDataValue(DataValue<D> dataValue) {
-    _dataValue = dataValue;
+  void initializeDataValue(DataProvider<D> provider) {
+    _provider = provider;
   }
 }
 
@@ -239,6 +246,17 @@ abstract class MessageContext {
     Duration duration = const Duration(),
     bool periodic = false,
   });
+
+  /// The data associated with the state that is currently handling the message.
+  ///
+  /// Returns `null` if the handling state does not have an associated data provider.
+  D data<D>();
+
+  /// The data associated with an active state
+  ///
+  /// If [key] is provided, the data for the ancestor state with the specified key will be returned.
+  /// Otherwise, the data of the closest ancestor state that matches the specified type is returned.
+  D activeData<D>([StateKey key]);
 }
 
 /// Describes a transition between states that is occuring in a tree state machine.

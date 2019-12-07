@@ -414,7 +414,7 @@ void main() {
             children: [
               interiorBuilder(
                   key: tree.r_key,
-                  state: (k) => EmptyTreeState(),
+                  createState: (k) => EmptyTreeState(),
                   initialChild: (_) => tree.r_b_1_key,
                   children: [
                     leafBuilder(key: tree.r_b_1_key, createState: (k) => EmptyTreeState())

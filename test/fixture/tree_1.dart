@@ -75,7 +75,7 @@ RootNodeBuilder treeBuilder({
     children: [
       interiorBuilder(
         key: r_a_key,
-        state: createState,
+        createState: createState,
         initialChild: (ctx) {
           _initialChildCallback(r_a_key)(ctx);
           return r_a_a_key;
@@ -83,7 +83,7 @@ RootNodeBuilder treeBuilder({
         children: [
           interiorBuilder(
             key: r_a_a_key,
-            state: createState,
+            createState: createState,
             initialChild: (ctx) {
               _initialChildCallback(r_a_a_key)(ctx);
               return r_a_a_2_key;
@@ -98,7 +98,7 @@ RootNodeBuilder treeBuilder({
       ),
       interiorBuilder(
         key: r_b_key,
-        state: createState,
+        createState: createState,
         initialChild: (ctx) {
           _initialChildCallback(r_b_key)(ctx);
           return r_b_1_key;

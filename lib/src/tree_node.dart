@@ -1,3 +1,4 @@
+import 'data_provider.dart';
 import 'tree_state.dart';
 import 'utility.dart';
 
@@ -28,18 +29,7 @@ class TreeNode {
   bool get isFinal => this is FinalNode;
   TreeState state() => _lazyState.value;
 
-  bool isActive(StateKey stateKey) => selfOrAncestor(stateKey) != null;
-
-  TreeNode selfOrAncestor(StateKey stateKey) {
-    var nextNode = this;
-    while (nextNode != null) {
-      if (nextNode.key == stateKey) {
-        return nextNode;
-      }
-      nextNode = nextNode.parent;
-    }
-    return null;
-  }
+  bool isActive(StateKey stateKey) => selfOrAncestorWithKey(stateKey) != null;
 
   Iterable<TreeNode> selfAndAncestors() sync* {
     yield this;
@@ -54,6 +44,17 @@ class TreeNode {
     }
   }
 
+  TreeNode selfOrAncestorWithKey(StateKey stateKey) {
+    return selfAndAncestors().firstWhere((n) => n.key == stateKey, orElse: () => null);
+  }
+
+  TreeNode selfOrAncestorWithData<D>() {
+    return selfAndAncestors().firstWhere(
+      (n) => n.dataProvider != null && n.dataProvider is DataProvider<D>,
+      orElse: () => null,
+    );
+  }
+
   TreeNode lcaWith(TreeNode other) {
     final i1 = selfAndAncestors().toList().reversed.iterator;
     final i2 = other.selfAndAncestors().toList().reversed.iterator;
@@ -63,6 +64,36 @@ class TreeNode {
     }
     assert(lca != null, 'LCA must not be null');
     return lca;
+  }
+
+  D data<D>() => activeData<D>(this.key);
+
+  D activeData<D>([StateKey key]) {
+    final node = key != null ? selfOrAncestorWithKey(key) : selfOrAncestorWithData<D>();
+    if (node.dataProvider != null) {
+      final data = node.dataProvider.data as Object;
+      return data is D
+          ? data
+          : throw StateError(
+              'Data for state ${node.key} of type ${data.runtimeType} does not match requested type ${TypeLiteral<D>().type}.');
+    } else if (isTypeOf<Object, D>()) {
+      // Handle case where state has no data, and requested type is a generic object. We don't want
+      // to return the raw state this case, so just return null
+      return null;
+    } else if (node.state() is D) {
+      return !isTypeOf<D, TreeState>() && !isTypeOf<TreeState, D>()
+          // In cases where state variables are just instance fields in the TreeState, and the
+          // state implements the requested type, just return the state directly. This allows apps
+          // to read the state data without having to use DataTreeState.
+          // Note that we check if D is a tree state, and throw if it is. The idea here is that it
+          // is risky to directy return a state to outside of the statemachine, since then external
+          // code could call onenter/onexit and potentially violate invariants. (although external
+          // code can simply do the cast themselves and work around this)
+          ? node.state() as D
+          : throw StateError(
+              'Requested data type ${TypeLiteral<D>().type} cannot be a ${TypeLiteral<TreeState>().type} or Object or dynamic.');
+    }
+    return null;
   }
 }
 
@@ -147,68 +178,4 @@ class NodePath {
     final path = exiting.followedBy(entering);
     return NodePath._(root, to, null, path, exiting, entering);
   }
-}
-
-abstract class DataProvider<D> implements DataValue<D> {
-  @override
-  D get data;
-  Object encode();
-  void decodeInto(Object input);
-  void initializeLeafDataAccessor(Object Function() getCurrentLeafData);
-
-  static LeafDataProvider<D> currentLeaf<D>() => LeafDataProvider();
-}
-
-class OwnedDataProvider<D> implements DataProvider<D> {
-  final Object Function(D data) encoder;
-  final D Function(Object json) decoder;
-  final D Function() _eval;
-  D _data;
-  OwnedDataProvider(this._eval, this.encoder, this.decoder);
-
-  factory OwnedDataProvider.json(
-    D Function() eval,
-    Map<String, dynamic> Function(D data) encoder,
-    D Function(Map<String, Object> json) decoder,
-  ) {
-    return OwnedDataProvider(eval, encoder, (obj) {
-      return obj is Map<String, dynamic>
-          ? decoder(obj)
-          : throw ArgumentError('Value to decode must me Map<String, dynamic>');
-    });
-  }
-
-  @override
-  D get data => _data ??= _eval();
-
-  @override
-  Object encode() => encoder(data);
-
-  @override
-  void decodeInto(Object input) {
-    ArgumentError.checkNotNull('input');
-    _data = decoder(input);
-  }
-
-  @override
-  void initializeLeafDataAccessor(Object Function() getCurrentLeafData) {}
-}
-
-class LeafDataProvider<D> implements DataProvider<D> {
-  D Function() _getCurrentLeafData;
-  D get data => _getCurrentLeafData();
-  @override
-  Object encode() => null;
-  @override
-  void decodeInto(Object input) {}
-  @override
-  void initializeLeafDataAccessor(Object Function() getCurrentLeafData) =>
-      _getCurrentLeafData = () {
-        final leafData = getCurrentLeafData();
-        if (leafData is! D) {
-          throw StateError(
-              'Expected leaf data of type ${TypeLiteral<D>().type}, but received ${leafData?.runtimeType}');
-        }
-        return leafData as D;
-      };
 }

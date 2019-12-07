@@ -391,6 +391,17 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
     return node.state().onMessage(this);
   }
 
+  @override
+  D data<D>() {
+    assert(notifiedNodes.isNotEmpty);
+    return notifiedNodes.last.data<D>();
+  }
+
+  @override
+  D activeData<D>([StateKey key]) {
+    return receivingNode.activeData<D>(key);
+  }
+
   void _throwIfDisposed() {
     if (isDisposed) {
       throw StateError('This MessageContext has been disposed.');

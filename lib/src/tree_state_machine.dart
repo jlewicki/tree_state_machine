@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:json_annotation/json_annotation.dart';
 import 'tree_builders.dart';
 import 'tree_state.dart';
 import 'tree_state_machine_impl.dart';
-import 'utility.dart';
 
 class TreeStateMachine {
   final Machine _machine;
@@ -29,8 +27,7 @@ class TreeStateMachine {
     final rootNode = buildRoot(buildCtx);
     final machine = Machine(rootNode, buildCtx.nodes);
 
-    treeMachine = TreeStateMachine._(machine);
-    return treeMachine;
+    return treeMachine = TreeStateMachine._(machine);
   }
 
   factory TreeStateMachine.forLeaves(Iterable<LeafNodeBuilder> buildLeaves, StateKey initialState) {
@@ -170,7 +167,7 @@ class TreeStateMachine {
         'Found ${objectList.length} items in stream. Expected 1.',
       );
     }
-    if (!(objectList[0] is Map<String, dynamic>)) {
+    if (objectList[0] is! Map<String, dynamic>) {
       throw ArgumentError.value(
         stream,
         'stream',
@@ -251,33 +248,19 @@ class CurrentState {
   /// The [StateKey] identifying the current leaf state.
   StateKey get key => _treeStateMachine._machine.currentNode.key;
 
-  /// The state data for the current state, or `null` if the current state does not support data.
+  /// The data associated with the state that is currently handling the message.
+  ///
+  /// Returns `null` if the handling state does not have an associated data provider.
   D data<D>() {
     return activeData<D>(key);
   }
 
-  D activeData<D>(StateKey key) {
-    final node = _treeStateMachine._machine.currentNode.selfOrAncestor(key);
-    if (node.dataProvider != null) {
-      final data = node.dataProvider.data as Object;
-      return data is D
-          ? data
-          : throw StateError(
-              'Data for state ${node.key} of type ${data.runtimeType} does not match requested type ${TypeLiteral<D>().type}.');
-    } else if (node.state() is D) {
-      return !_isTypeOf<D, TreeState>()
-          // In cases where state variables are just instance fields in the TreeState, and the
-          // state implements the requested type, just return the state directly. This allows apps
-          // to read the state data without having to use DataTreeState.
-          // Note that we check if D is a tree state, and throw if it is. The idea here is that it
-          // is risky to directy return a state to outside of the statemachine, since then external
-          // code could call onenter/onexit and potentially violate invariants. (although external
-          // code can simply do the cast themselves and work around this)
-          ? node.state() as D
-          : throw StateError(
-              'Requested data type ${TypeLiteral<D>().type} cannot be a ${TypeLiteral<TreeState>().type}.');
-    }
-    return null;
+  /// The active state data of the specified type.
+  ///
+  /// If [key] is provided, the data for the ancestor state with the specified key will be returned.
+  /// Otherwise, the data of the closest ancestor state that matches the specified type is returned.
+  D activeData<D>([StateKey key]) {
+    return _treeStateMachine._machine.currentNode.activeData<D>(key);
   }
 
   /// Returns `true` if the specified state is an active state in the state machine.
@@ -308,7 +291,6 @@ class CurrentState {
 // Root state for wrapping 'flat' list of leaf states.
 class _RootState extends EmptyTreeState {}
 
-@JsonSerializable()
 class EncodableState {
   String key;
   Object encodedData;
@@ -326,7 +308,6 @@ class EncodableState {
       };
 }
 
-@JsonSerializable()
 class EncodableTree {
   String version;
   List<EncodableState> states;
@@ -342,10 +323,4 @@ class EncodableTree {
         'version': version,
         'states': states,
       };
-}
-
-bool _isTypeOf<ThisType, OfType>() => _Instance<ThisType>() is _Instance<OfType>;
-
-class _Instance<T> {
-  //
 }

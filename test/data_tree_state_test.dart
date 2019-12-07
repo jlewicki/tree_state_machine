@@ -48,9 +48,71 @@ void main() {
         expect(provider.data.age, equals(30));
       });
     });
+
+    group('replace', () {
+      test('shoud replace data with new value', () {
+        final provider = SimpleDataA.dataProvider();
+        provider.data.name = 'Bill';
+        provider.data.age = 25;
+
+        final newData = SimpleDataA()
+          ..name = 'Jim'
+          ..age = 30;
+
+        provider.replace(() => newData);
+
+        expect(provider.data.name, equals('Jim'));
+        expect(provider.data.age, equals(30));
+      });
+    });
+
+    group('replace', () {
+      test('shoud replace data with new value', () {
+        final provider = SimpleDataA.dataProvider();
+        provider.data.name = 'Bill';
+        provider.data.age = 25;
+
+        final newData = SimpleDataA()
+          ..name = 'Jim'
+          ..age = 30;
+
+        provider.replace(() => newData);
+
+        expect(provider.data.name, equals('Jim'));
+        expect(provider.data.age, equals(30));
+      });
+    });
   });
 
   group('LeafDataProvider', () {
-    test('', () {});
+    group('encode', () {
+      test('should return null', () {
+        expect(LeafDataBase.dataProvider().encode(), isNull);
+      });
+    });
+
+    group('replace', () {
+      test('should throw', () {
+        expect(() => LeafDataBase.dataProvider().replace(() => null), throwsUnsupportedError);
+      });
+    });
+
+    group('data', () {
+      test('should get data from leaf accessor', () {
+        final provider = LeafDataBase.dataProvider();
+        final leafData = LeafData1();
+        provider.initializeLeafDataAccessor(() => leafData);
+
+        expect(provider.data, same(leafData));
+      });
+
+      test('should get throw if leaf data is not compatible with D', () {
+        final provider = LeafDataBase.dataProvider();
+        final leafData = SimpleDataC();
+        provider.initializeLeafDataAccessor(() => leafData);
+
+        expect(() => provider.data, throwsStateError);
+      });
+    });
   });
 }

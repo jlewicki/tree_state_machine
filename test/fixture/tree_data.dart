@@ -1,8 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
-import 'package:built_collection/built_collection.dart';
 import 'package:built_value/built_value.dart';
 import 'package:built_value/serializer.dart';
-import 'package:tree_state_machine/src/tree_node.dart';
+import 'package:tree_state_machine/src/data_provider.dart';
 
 part 'tree_data.g.dart';
 
@@ -82,9 +81,9 @@ class HiScore {
       );
 }
 
-class LeafDataBase {
+abstract class LeafDataBase {
   String name;
-  static LeafDataProvider<LeafDataBase> dataProvider() => LeafDataProvider();
+  static CurrentLeafDataProvider<LeafDataBase> dataProvider() => CurrentLeafDataProvider();
 }
 
 @JsonSerializable()
