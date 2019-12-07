@@ -6,9 +6,7 @@ import 'fixture/tree_data.dart';
 
 class SimpleState extends EmptyTreeState {}
 
-class SimpleDataState extends EmptyDataTreeState<SimpleDataA> {
-  SimpleDataState(DataProvider<SimpleDataA> provider) : super(provider);
-}
+class SimpleDataState extends EmptyDataTreeState<SimpleDataA> {}
 
 class SimpleFinalState extends FinalTreeState {}
 
@@ -25,9 +23,11 @@ void main() {
   var finalState = SimpleFinalState();
   var finaKey = StateKey.named('final');
 
+  Object currentLeafData() => null;
+
   group('buildLeaf', () {
     test('should build a leaf node', () {
-      var buildCtx = BuildContext(parentNode);
+      var buildCtx = BuildContext(currentLeafData, parentNode);
 
       var builder = leafBuilder(key: stateKey, createState: (key) => state);
       var leafNode = builder(buildCtx);
@@ -41,7 +41,7 @@ void main() {
     });
 
     test('should build a leaf node with type-based state key', () {
-      var buildCtx = BuildContext(parentNode);
+      var buildCtx = BuildContext(currentLeafData, parentNode);
 
       var builder = leafBuilder(createState: (key) => state);
       var leafNode = builder(buildCtx);
@@ -49,7 +49,7 @@ void main() {
     });
 
     test('should add node to context', () {
-      var buildCtx = BuildContext(parentNode);
+      var buildCtx = BuildContext(currentLeafData, parentNode);
 
       var builder = leafBuilder(key: stateKey, createState: (key) => state);
       var leafNode = builder(buildCtx);
@@ -61,13 +61,13 @@ void main() {
   group('buildDataLeaf', () {
     test('should build a data leaf node', () {
       SimpleDataState theState;
-      final buildCtx = BuildContext(parentNode);
+      final buildCtx = BuildContext(currentLeafData, parentNode);
       final builder = dataLeafBuilder(
         key: stateKey,
-        createState: (key, prov) {
-          return theState = SimpleDataState(prov);
+        createState: (key) {
+          return theState = SimpleDataState();
         },
-        provider: SimpleDataA.jsonProvider(),
+        provider: SimpleDataA.dataProvider(),
       );
       final leafNode = builder(buildCtx);
 
@@ -83,7 +83,7 @@ void main() {
   group('buildInterior', () {
     var nodeBuilder = interiorBuilder(
       key: stateKey,
-      state: (key) => state,
+      createState: (key) => state,
       children: [
         leafBuilder(key: childState1Key, createState: (key) => childState1),
         leafBuilder(key: childState2Key, createState: (key) => childState2),
@@ -92,7 +92,7 @@ void main() {
     );
 
     test('should build an interior node', () {
-      var buildCtx = BuildContext(parentNode);
+      var buildCtx = BuildContext(currentLeafData, parentNode);
 
       var interiorNode = nodeBuilder(buildCtx);
 
@@ -108,10 +108,10 @@ void main() {
     });
 
     test('should build an interior node with type-based state key', () {
-      var buildCtx = BuildContext(parentNode);
+      var buildCtx = BuildContext(currentLeafData, parentNode);
 
       var nodeBuilder = interiorBuilder(
-        state: (key) => state,
+        createState: (key) => state,
         children: [
           leafBuilder(key: childState1Key, createState: (key) => childState1),
           leafBuilder(key: childState2Key, createState: (key) => childState2),
@@ -124,7 +124,7 @@ void main() {
     });
 
     test("should add node to context", () {
-      var buildCtx = BuildContext(parentNode);
+      var buildCtx = BuildContext(currentLeafData, parentNode);
 
       var interiorNode = nodeBuilder(buildCtx);
 
@@ -179,7 +179,7 @@ void main() {
     });
 
     test('should throw if built with a parent node', () {
-      var buildCtx = BuildContext(parentNode);
+      var buildCtx = BuildContext(currentLeafData, parentNode);
       expect(() => buildRoot(buildCtx), throwsArgumentError);
     });
 
@@ -197,7 +197,7 @@ void main() {
 
   group('buildFinal', () {
     test('should build a final node', () {
-      var buildCtx = BuildContext(parentNode);
+      var buildCtx = BuildContext(currentLeafData, parentNode);
 
       var buildFinal = finalBuilder(key: finaKey, createState: (key) => finalState);
       var finalNode = buildFinal(buildCtx);
@@ -211,7 +211,7 @@ void main() {
     });
 
     test('should build a leaf node with type-based state key', () {
-      var buildCtx = BuildContext(parentNode);
+      var buildCtx = BuildContext(currentLeafData, parentNode);
 
       var buildFinal = finalBuilder(createState: (key) => finalState);
       var finalNode = buildFinal(buildCtx);
@@ -220,7 +220,7 @@ void main() {
     });
 
     test('should add node to context', () {
-      var buildCtx = BuildContext(parentNode);
+      var buildCtx = BuildContext(currentLeafData, parentNode);
 
       var buildFinal = finalBuilder(key: finaKey, createState: (key) => finalState);
       var finalNode = buildFinal(buildCtx);
@@ -231,7 +231,7 @@ void main() {
 
   group('BuildContext', () {
     test('should throw if node with duplicate key is added', () {
-      var buildCtx = BuildContext(parentNode);
+      var buildCtx = BuildContext(currentLeafData, parentNode);
       var key = StateKey.named("Foo");
       var builder = leafBuilder(key: key, createState: (key) => state);
 

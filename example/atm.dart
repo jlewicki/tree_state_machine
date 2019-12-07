@@ -82,7 +82,7 @@ final atmTree = rootBuilder(
     leafBuilder(createState: (_) => MaintenanceState()),
     leafBuilder(createState: (_) => OutOfServiceState()),
     interiorBuilder(
-      state: (_) => ServingCustomerState(),
+      createState: (_) => ServingCustomerState(),
       initialChild: (_) => StateKey.forState<CustomerAuthenticationState>(),
       children: [
         leafBuilder(createState: (_) => CustomerAuthenticationState()),

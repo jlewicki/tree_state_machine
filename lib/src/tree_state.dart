@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:meta/meta.dart';
+import 'data_provider.dart';
 import 'utility.dart';
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -118,49 +118,39 @@ abstract class FinalTreeState implements TreeState {
   }
 }
 
-class DataProvider<D> {
-  final Codec<D, Object> codec;
-  final D Function() _create;
-  D _data;
-  DataProvider(this._create, this.codec);
+// /// Provides access to an externally managed data value.
+// abstract class DataValue<D> {
+//   /// The data value provided by this instance.
+//   D get data;
+// }
 
-  /// Creates [DataProvider] that can be used for JSON serialization.
-  factory DataProvider.json(
-    D Function() create,
-    Map<String, dynamic> Function(D data) encode,
-    D Function(Map<String, dynamic> json) decode,
-  ) =>
-      DataProvider(create, JsonDataCodec(encode, decode));
+// abstract class UpdateableDataValue<D> extends DataValue<D> {
+//   void update(void Function() update);
+// }
 
-  /// The data instance managed by this provider.
-  ///
-  /// The instance is created on demand using the `create` function provided in the constructor.
-  D get data => _data ??= _create();
-
-  /// Encodes the [data] value using the [Codec] provided in the constructor.
-  Object encode() => codec.encoder.convert(data);
-
-  void decodeInto(Object input) {
-    ArgumentError.checkNotNull('input');
-    _data = codec.decoder.convert(input);
-  }
-}
+// abstract class WriteableDataValue<D> extends UpdateableDataValue<D> {
+//   void replace(D Function() replace);
+// }
 
 /// A tree state that supports serialization of its state data.
 ///
 ///
 abstract class DataTreeState<D> extends TreeState {
-  /// The [DataProvider] that supports serializing and deserializing the data associated with this
-  /// state.
-  final DataProvider<D> provider;
-
-  /// Constructs a [DataTreeState].
-  DataTreeState(this.provider) {
-    ArgumentError.checkNotNull(provider, 'provider');
-  }
+  DataProvider<D> _provider;
 
   /// The serializable data associated with this state.
-  D get data => provider.data;
+  D get data {
+    assert(_provider != null);
+    return _provider.data;
+  }
+
+  /// Called to initialize the data provider for this instance.
+  ///
+  /// This will be called by the state machine immediately after it creates this state instance.
+  @mustCallSuper
+  void initializeDataValue(DataProvider<D> provider) {
+    _provider = provider;
+  }
 }
 
 /// Type of functions that are called when a state transition occurs within a state machine.
@@ -197,7 +187,6 @@ class EmptyTreeState extends TreeState {
 }
 
 class EmptyDataTreeState<D> extends DataTreeState<D> {
-  EmptyDataTreeState(DataProvider<D> provider) : super(provider);
   @override
   FutureOr<MessageResult> onMessage(MessageContext context) => context.unhandled();
 }
@@ -257,6 +246,17 @@ abstract class MessageContext {
     Duration duration = const Duration(),
     bool periodic = false,
   });
+
+  /// The data associated with the state that is currently handling the message.
+  ///
+  /// Returns `null` if the handling state does not have an associated data provider.
+  D data<D>();
+
+  /// The data associated with an active state
+  ///
+  /// If [key] is provided, the data for the ancestor state with the specified key will be returned.
+  /// Otherwise, the data of the closest ancestor state that matches the specified type is returned.
+  D activeData<D>([StateKey key]);
 }
 
 /// Describes a transition between states that is occuring in a tree state machine.
@@ -476,12 +476,11 @@ class DelegateDataState<D> extends DataTreeState<D> {
   TransitionHandler exitHandler;
   MessageHandler messageHandler;
 
-  DelegateDataState(
-    DataProvider<D> provider, {
+  DelegateDataState({
     this.entryHandler,
     this.exitHandler,
     this.messageHandler,
-  }) : super(provider) {
+  }) {
     entryHandler = entryHandler ?? emptyTransitionHandler;
     exitHandler = exitHandler ?? emptyTransitionHandler;
     messageHandler = messageHandler ?? emptyMessageHandler;

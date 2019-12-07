@@ -6,6 +6,7 @@ import 'package:test/test.dart';
 import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 import 'package:tree_state_machine/src/tree_state_machine.dart';
+import 'fixture/data_tree.dart' as data_tree;
 import 'fixture/tree_1.dart' as tree;
 import 'fixture/flat_tree_1.dart' as flat_tree;
 import 'fixture/tree_data.dart';
@@ -319,33 +320,59 @@ void main() {
       });
 
       test('should read active data states from stream ', () async {
-        var sm = TreeStateMachine.forRoot(tree.dataTreeBuilder());
+        var sm = TreeStateMachine.forRoot(data_tree.treeBuilder(initialDataValues: {
+          tree.r_a_a_1_key: LeafData1()
+            ..name = 'Yo'
+            ..counter = 10,
+          tree.r_a_key: ImmutableData((b) => b
+            ..name = 'Dude'
+            ..price = 8),
+          tree.r_key: SpecialDataD()
+            ..playerName = 'FOO'
+            ..startYear = 2000
+            ..hiScores.add(HiScore()
+              ..game = 'foo'
+              ..score = 10),
+        }));
         await sm.start(tree.r_a_a_1_key);
-        final r_a_a_1_data = sm.currentState.data<SimpleDataC>();
-        r_a_a_1_data.modelYear = '101';
-        final r_a_a_data = sm.currentState.activeData<SimpleDataB>(tree.r_a_a_key);
-        r_a_a_data.productNumber = 'XYZ';
+
         final ioController = StreamController<List<int>>();
         List<List<int>> encoded = (await Future.wait<Object>([
           sm.saveTo(ioController),
           ioController.stream.toList(),
         ]))[1];
-        sm = TreeStateMachine.forRoot(tree.dataTreeBuilder());
+        sm = TreeStateMachine.forRoot(data_tree.treeBuilder());
 
         await sm.loadFrom(Stream.fromIterable(encoded));
 
         expect(sm.isStarted, isTrue);
         expect(sm.currentState, isNotNull);
         expect(sm.currentState.key, tree.r_a_a_1_key);
+
         expect(sm.currentState.data(), isNotNull);
-        expect(sm.currentState.data(), isA<SimpleDataC>());
-        expect(sm.currentState.data<SimpleDataC>().modelYear, equals('101'));
+        expect(sm.currentState.data(), isA<LeafData1>());
+        final r_a_a_1_data = sm.currentState.data<LeafData1>();
+        expect(r_a_a_1_data.name, equals('Yo'));
+        expect(r_a_a_1_data.counter, equals(10));
+
         expect(sm.currentState.activeData(tree.r_a_a_key), isNotNull);
-        expect(sm.currentState.activeData(tree.r_a_a_key), isA<SimpleDataB>());
-        expect(
-          sm.currentState.activeData<SimpleDataB>(tree.r_a_a_key).productNumber,
-          equals('XYZ'),
-        );
+        expect(sm.currentState.activeData(tree.r_a_a_key), isA<LeafDataBase>());
+        final r_a_a_data = sm.currentState.activeData<LeafDataBase>(tree.r_a_a_key);
+        expect(r_a_a_data.name, equals('Yo'));
+
+        expect(sm.currentState.activeData(tree.r_a_key), isNotNull);
+        expect(sm.currentState.activeData(tree.r_a_key), isA<ImmutableData>());
+        final r_a_data = sm.currentState.activeData<ImmutableData>(tree.r_a_key);
+        expect(r_a_data.price, equals(8));
+        expect(r_a_data.name, equals('Dude'));
+
+        expect(sm.currentState.activeData(tree.r_key), isNotNull);
+        expect(sm.currentState.activeData(tree.r_key), isA<SpecialDataD>());
+        final rootData = sm.currentState.activeData<SpecialDataD>(tree.r_key);
+        expect(rootData.playerName, equals('FOO'));
+        expect(rootData.startYear, equals(2000));
+        expect(rootData.hiScores.length, equals(1));
+        expect(rootData.hiScores[0].game, equals('foo'));
       });
 
       test('should throw if stream does not contain Map<string, dynamic>', () async {
@@ -387,7 +414,7 @@ void main() {
             children: [
               interiorBuilder(
                   key: tree.r_key,
-                  state: (k) => EmptyTreeState(),
+                  createState: (k) => EmptyTreeState(),
                   initialChild: (_) => tree.r_b_1_key,
                   children: [
                     leafBuilder(key: tree.r_b_1_key, createState: (k) => EmptyTreeState())
@@ -498,11 +525,87 @@ void main() {
     });
 
     group('data', () {
-      test('shoud return data from provider when available', () {});
+      test('shoud return data from provider when available', () async {
+        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(initialDataValues: {
+          data_tree.r_a_a_2_key: LeafData2()
+            ..name = 'foo'
+            ..label = 'cool'
+        }));
+        await sm.start();
 
-      test('shoud return data from state when available', () {});
+        final leafData = sm.currentState.data<LeafData2>();
+        expect(leafData.name, equals('foo'));
+        expect(leafData.label, equals('cool'));
+      });
 
-      test('shoud return null when data not available', () {});
+      test('shoud return data from state when available', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start(tree.r_b_2_key);
+
+        expect(sm.currentState.data<tree.ReadOnlyData>(), isNotNull);
+        // 10 is what tree builer initializes counter to.
+        expect(sm.currentState.data<tree.ReadOnlyData>().counter, equals(10));
+      });
+
+      test('shoud throw if data is a tree state', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start(tree.r_b_1_key);
+
+        expect(() => sm.currentState.data<DelegateState>(), throwsStateError);
+      });
+
+      test('shoud return null when data not available', () {
+        // TODO
+      });
+    });
+
+    group('activeData', () {
+      test('shoud return data from leaf provider when available', () async {
+        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(initialDataValues: {
+          data_tree.r_a_a_2_key: LeafData2()
+            ..name = 'foo'
+            ..label = 'cool'
+        }));
+        await sm.start();
+
+        final leafData = sm.currentState.activeData<LeafDataBase>(data_tree.r_a_a_key);
+        expect(leafData.name, equals('foo'));
+      });
+
+      test('shoud return data from owned provider when available', () async {
+        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(
+          initialDataValues: {
+            data_tree.r_a_key: ImmutableData((b) => b
+              ..name = 'foo'
+              ..price = 10)
+          },
+        ));
+        await sm.start();
+
+        final r_a_data = sm.currentState.activeData<ImmutableData>(data_tree.r_a_key);
+        expect(r_a_data.name, equals('foo'));
+        expect(r_a_data.price, equals(10));
+      });
+
+      test('shoud return data from leaf provider after transition.', () async {
+        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(
+          initialDataValues: {
+            data_tree.r_a_a_2_key: LeafData2()
+              ..name = 'foo'
+              ..label = 'cool'
+          },
+          messageHandlers: {
+            data_tree.r_a_a_key: (ctx) => ctx.goTo(data_tree.r_a_a_1_key),
+          },
+        ));
+        await sm.start();
+
+        await sm.currentState.sendMessage(Object());
+
+        final r_a_a_2_data = sm.currentState.data<LeafData1>();
+        expect(r_a_a_2_data.name, isNull);
+        expect(r_a_a_2_data.counter, isNull);
+      });
     });
   });
 }
