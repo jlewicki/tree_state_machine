@@ -1,3 +1,5 @@
+library tree_state_machine.tree_state_machine;
+
 export 'src/data_provider.dart';
 export 'src/tree_builders.dart';
 export 'src/tree_state.dart'

@@ -4,11 +4,11 @@ import 'data_provider.dart';
 import 'tree_node.dart';
 import 'tree_state.dart';
 
-typedef ChildNodeBuilder = ChildNode Function(BuildContext ctx);
-typedef LeafNodeBuilder = LeafNode Function(BuildContext ctx);
-typedef InteriorNodeBuilder = InteriorNode Function(BuildContext ctx);
-typedef FinalNodeBuilder = FinalNode Function(BuildContext ctx);
-typedef RootNodeBuilder = RootNode Function(BuildContext ctx);
+typedef ChildNodeBuilder = ChildNode Function(TreeBuildContext ctx);
+typedef LeafNodeBuilder = LeafNode Function(TreeBuildContext ctx);
+typedef InteriorNodeBuilder = InteriorNode Function(TreeBuildContext ctx);
+typedef FinalNodeBuilder = FinalNode Function(TreeBuildContext ctx);
+typedef RootNodeBuilder = RootNode Function(TreeBuildContext ctx);
 typedef CreateProvider<D> = DataProvider<D> Function(Object Function() currentLeafData);
 
 RootNodeBuilder rootBuilder<T extends TreeState>({
@@ -107,7 +107,7 @@ FinalNodeBuilder finalBuilder<T extends TreeState>({
 
 RootNodeBuilder _rootBuilder<T extends TreeState>(
   StateKey key,
-  RootNode Function(StateKey, BuildContext) createNode,
+  RootNode Function(StateKey, TreeBuildContext) createNode,
   Iterable<ChildNodeBuilder> children,
   InitialChild initialChild,
   Iterable<FinalNodeBuilder> finalStates,
@@ -129,7 +129,7 @@ RootNodeBuilder _rootBuilder<T extends TreeState>(
 
 InteriorNodeBuilder _interiorBuilder<T extends TreeState>(
   StateKey key,
-  InteriorNode Function(StateKey, BuildContext) createNode,
+  InteriorNode Function(StateKey, TreeBuildContext) createNode,
   Iterable<ChildNodeBuilder> children,
 ) =>
     (ctx) {
@@ -143,7 +143,7 @@ InteriorNodeBuilder _interiorBuilder<T extends TreeState>(
 
 LeafNodeBuilder _leafBuilder<T extends TreeState>(
   StateKey key,
-  LeafNode Function(StateKey, BuildContext) createNode,
+  LeafNode Function(StateKey, TreeBuildContext) createNode,
 ) =>
     (ctx) {
       final nodeKey = key ?? StateKey.forState<T>();
@@ -155,7 +155,7 @@ LeafNodeBuilder _leafBuilder<T extends TreeState>(
 StateCreator _dataStateCreator<T extends DataTreeState<D>, D>(
   DataStateCreator<T, D> createState,
   DataProvider<D> provider,
-  BuildContext ctx,
+  TreeBuildContext ctx,
 ) =>
     (key) {
       final state = createState(key);
@@ -166,18 +166,18 @@ StateCreator _dataStateCreator<T extends DataTreeState<D>, D>(
       return state;
     };
 
-class BuildContext {
+class TreeBuildContext {
   final TreeNode parentNode;
   final HashMap<StateKey, TreeNode> nodes;
   final Object Function() currentLeafData;
 
-  BuildContext._(this.parentNode, this.nodes, this.currentLeafData);
+  TreeBuildContext._(this.parentNode, this.nodes, this.currentLeafData);
 
-  factory BuildContext(Object Function() currentLeafData, [TreeNode parentNode]) =>
-      BuildContext._(parentNode, HashMap(), currentLeafData);
+  factory TreeBuildContext(Object Function() currentLeafData, [TreeNode parentNode]) =>
+      TreeBuildContext._(parentNode, HashMap(), currentLeafData);
 
-  BuildContext childContext(TreeNode newParentNode) =>
-      BuildContext._(newParentNode, nodes, currentLeafData);
+  TreeBuildContext childContext(TreeNode newParentNode) =>
+      TreeBuildContext._(newParentNode, nodes, currentLeafData);
 
   void addNode(TreeNode node) {
     if (nodes.containsKey(node.key)) {
@@ -187,15 +187,3 @@ class BuildContext {
     nodes[node.key] = node;
   }
 }
-
-// abstract class DataState<T extends DataTreeState<D>, D> {
-//   final DataStateCreator<T, D> stateCreator;
-//   final DataProvider<D> dataProvider;
-//   DataState._(this.stateCreator, this.dataProvider);
-// }
-
-// abstract class OwnedDataState<T extends DataTreeState<D>, D> {
-//   final DataStateCreator<T, D> stateCreator;
-//   final DataProvider<D> dataProvider;
-//   DataState._(this.stateCreator, this.dataProvider);
-// }
