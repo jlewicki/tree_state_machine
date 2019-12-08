@@ -15,7 +15,7 @@ Object _getCurrentLeafData() => null;
 void main() {
   group('Machine', () {
     group('enterInitialState', () {
-      final buildCtx = BuildContext(_getCurrentLeafData);
+      final buildCtx = TreeBuildContext(_getCurrentLeafData);
       var buildTree = treeBuilder();
       final rootNode = buildTree(buildCtx);
       final machine = Machine(rootNode, buildCtx.nodes);
@@ -47,7 +47,7 @@ void main() {
             leafBuilder(key: r_a_1_key, createState: (key) => DelegateState()),
           ],
         );
-        final buildCtx = BuildContext(_getCurrentLeafData);
+        final buildCtx = TreeBuildContext(_getCurrentLeafData);
         final rootNode = buildTree(buildCtx);
         final machine = Machine(rootNode, buildCtx.nodes);
 
@@ -62,7 +62,7 @@ void main() {
             children: [
               leafBuilder(key: r_a_1_key, createState: (key) => DelegateState()),
             ]);
-        final buildCtx = BuildContext(_getCurrentLeafData);
+        final buildCtx = TreeBuildContext(_getCurrentLeafData);
         final rootNode = buildTree(buildCtx);
         final machine = Machine(rootNode, buildCtx.nodes);
 
@@ -73,7 +73,7 @@ void main() {
     group('processMessage', () {
       test('should throw if handling state returns null from onMessage', () {
         final buildTree = flat_tree.treeBuilder(state1Handler: (msgCtx) => null);
-        final buildCtx = BuildContext(_getCurrentLeafData);
+        final buildCtx = TreeBuildContext(_getCurrentLeafData);
         final rootNode = buildTree(buildCtx);
         final machine = Machine(rootNode, buildCtx.nodes);
 
@@ -91,7 +91,7 @@ void main() {
             return msgCtx.unhandled();
           }
         });
-        final buildCtx = BuildContext(_getCurrentLeafData);
+        final buildCtx = TreeBuildContext(_getCurrentLeafData);
         final rootNode = buildTree(buildCtx);
         final machine = Machine(rootNode, buildCtx.nodes);
 
@@ -119,7 +119,7 @@ void main() {
                 Future.delayed(Duration(milliseconds: delayInMillis), () => msgCtx.goTo(r_b_1_key)),
           },
         );
-        final buildCtx = BuildContext(_getCurrentLeafData);
+        final buildCtx = TreeBuildContext(_getCurrentLeafData);
         final rootNode = buildTree(buildCtx);
         final machine = Machine(rootNode, buildCtx.nodes);
         final msg = Object();
@@ -140,7 +140,7 @@ void main() {
           final buildTree = flat_tree.treeBuilder(state1Handler: (msgCtx) {
             return msgCtx.goTo(flat_tree.r_2_key);
           });
-          final buildCtx = BuildContext(_getCurrentLeafData);
+          final buildCtx = TreeBuildContext(_getCurrentLeafData);
           final rootNode = buildTree(buildCtx);
           final machine = Machine(rootNode, buildCtx.nodes);
 
@@ -158,7 +158,7 @@ void main() {
           final buildTree = treeBuilder(messageHandlers: {
             r_a_key: (msgCtx) => msgCtx.goTo(r_b_1_key),
           });
-          final buildCtx = BuildContext(_getCurrentLeafData);
+          final buildCtx = TreeBuildContext(_getCurrentLeafData);
           final rootNode = buildTree(buildCtx);
           final machine = Machine(rootNode, buildCtx.nodes);
 
@@ -176,7 +176,7 @@ void main() {
           final buildTree = treeBuilder(messageHandlers: {
             r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_b_key),
           });
-          final buildCtx = BuildContext(_getCurrentLeafData);
+          final buildCtx = TreeBuildContext(_getCurrentLeafData);
           final rootNode = buildTree(buildCtx);
           final machine = Machine(rootNode, buildCtx.nodes);
           final msg = Object();
@@ -207,7 +207,7 @@ void main() {
               r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_b_key),
             },
           );
-          final buildCtx = BuildContext(_getCurrentLeafData);
+          final buildCtx = TreeBuildContext(_getCurrentLeafData);
           final rootNode = buildTree(buildCtx);
           final machine = Machine(rootNode, buildCtx.nodes);
 
@@ -235,7 +235,7 @@ void main() {
               r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_b_key),
             },
           );
-          final buildCtx = BuildContext(_getCurrentLeafData);
+          final buildCtx = TreeBuildContext(_getCurrentLeafData);
           final rootNode = buildTree(buildCtx);
           final machine = Machine(rootNode, buildCtx.nodes);
 
@@ -271,7 +271,7 @@ void main() {
               );
             }
           });
-          final buildCtx = BuildContext(_getCurrentLeafData);
+          final buildCtx = TreeBuildContext(_getCurrentLeafData);
           final rootNode = buildTree(buildCtx);
           final machine = Machine(rootNode, buildCtx.nodes);
           final msg = Object();
@@ -292,7 +292,7 @@ void main() {
           final buildTree = treeBuilder(messageHandlers: {
             r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_X_key),
           });
-          final buildCtx = BuildContext(_getCurrentLeafData);
+          final buildCtx = TreeBuildContext(_getCurrentLeafData);
           final rootNode = buildTree(buildCtx);
           final machine = Machine(rootNode, buildCtx.nodes);
           final msg = Object();
@@ -312,7 +312,7 @@ void main() {
       group('UnhandledResult', () {
         test('should try to handle message with all ancestor states', () async {
           final buildTree = treeBuilder();
-          final buildCtx = BuildContext(_getCurrentLeafData);
+          final buildCtx = TreeBuildContext(_getCurrentLeafData);
           final rootNode = buildTree(buildCtx);
           final machine = Machine(rootNode, buildCtx.nodes);
           final msg = Object();
@@ -332,7 +332,7 @@ void main() {
           final buildTree = treeBuilder(messageHandlers: {
             r_a_a_1_key: (msgCtx) => msgCtx.stay(),
           });
-          final buildCtx = BuildContext(_getCurrentLeafData);
+          final buildCtx = TreeBuildContext(_getCurrentLeafData);
           final rootNode = buildTree(buildCtx);
           final machine = Machine(rootNode, buildCtx.nodes);
 
@@ -350,7 +350,7 @@ void main() {
           final buildTree = treeBuilder(messageHandlers: {
             r_a_key: (msgCtx) => msgCtx.stay(),
           });
-          final buildCtx = BuildContext(_getCurrentLeafData);
+          final buildCtx = TreeBuildContext(_getCurrentLeafData);
           final rootNode = buildTree(buildCtx);
           final machine = Machine(rootNode, buildCtx.nodes);
 
@@ -370,7 +370,7 @@ void main() {
           final buildTree = treeBuilder(messageHandlers: {
             r_a_a_1_key: (msgCtx) => msgCtx.goToSelf(),
           });
-          final buildCtx = BuildContext(_getCurrentLeafData);
+          final buildCtx = TreeBuildContext(_getCurrentLeafData);
           final rootNode = buildTree(buildCtx);
           final machine = Machine(rootNode, buildCtx.nodes);
 
@@ -389,7 +389,7 @@ void main() {
           final buildTree = treeBuilder(messageHandlers: {
             r_a_key: (msgCtx) => msgCtx.goToSelf(),
           });
-          final buildCtx = BuildContext(_getCurrentLeafData);
+          final buildCtx = TreeBuildContext(_getCurrentLeafData);
           final rootNode = buildTree(buildCtx);
           final machine = Machine(rootNode, buildCtx.nodes);
 
@@ -426,7 +426,7 @@ void main() {
               );
             }
           });
-          final buildCtx = BuildContext(_getCurrentLeafData);
+          final buildCtx = TreeBuildContext(_getCurrentLeafData);
           final rootNode = buildTree(buildCtx);
           final machine = Machine(rootNode, buildCtx.nodes);
 
@@ -460,7 +460,7 @@ void main() {
           return machine.currentNode.data();
         }
 
-        final buildCtx = BuildContext(getCurrentLeafData);
+        final buildCtx = TreeBuildContext(getCurrentLeafData);
         final rootNode = buildTree(buildCtx);
         machine = Machine(rootNode, buildCtx.nodes);
         await machine.enterInitialState();
@@ -480,7 +480,7 @@ void main() {
             return ctx.unhandled();
           },
         );
-        final buildCtx = BuildContext(_getCurrentLeafData);
+        final buildCtx = TreeBuildContext(_getCurrentLeafData);
         final rootNode = buildTree(buildCtx);
         final machine = Machine(rootNode, buildCtx.nodes);
         await machine.enterInitialState();
@@ -515,7 +515,7 @@ void main() {
             }
           },
         );
-        final buildCtx = BuildContext(_getCurrentLeafData);
+        final buildCtx = TreeBuildContext(_getCurrentLeafData);
         final rootNode = buildTree(buildCtx);
         final machine = Machine(rootNode, buildCtx.nodes);
         await machine.enterInitialState();
@@ -553,7 +553,7 @@ void main() {
             }
           },
         );
-        final buildCtx = BuildContext(_getCurrentLeafData);
+        final buildCtx = TreeBuildContext(_getCurrentLeafData);
         final rootNode = buildTree(buildCtx);
         final machine = Machine(rootNode, buildCtx.nodes);
         await machine.enterInitialState();
@@ -595,7 +595,7 @@ void main() {
             }
           },
         );
-        final buildCtx = BuildContext(_getCurrentLeafData);
+        final buildCtx = TreeBuildContext(_getCurrentLeafData);
         final rootNode = buildTree(buildCtx);
         final machine = Machine(rootNode, buildCtx.nodes);
         await machine.enterInitialState();
@@ -650,7 +650,7 @@ void main() {
             }
           },
         );
-        final buildCtx = BuildContext(_getCurrentLeafData);
+        final buildCtx = TreeBuildContext(_getCurrentLeafData);
         final rootNode = buildTree(buildCtx);
         final machine = Machine(rootNode, buildCtx.nodes);
         await machine.enterInitialState();
@@ -682,7 +682,7 @@ void main() {
             }
           },
         );
-        final buildCtx = BuildContext(_getCurrentLeafData);
+        final buildCtx = TreeBuildContext(_getCurrentLeafData);
         final rootNode = buildTree(buildCtx);
         final machine = Machine(rootNode, buildCtx.nodes);
         await machine.enterInitialState();
@@ -729,7 +729,7 @@ void main() {
             }
           },
         );
-        final buildCtx = BuildContext(_getCurrentLeafData);
+        final buildCtx = TreeBuildContext(_getCurrentLeafData);
         final rootNode = buildTree(buildCtx);
         final machine = Machine(rootNode, buildCtx.nodes);
 

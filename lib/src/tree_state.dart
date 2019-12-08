@@ -3,7 +3,7 @@ import 'package:meta/meta.dart';
 import 'data_provider.dart';
 import 'utility.dart';
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+//==================================================================================================
 //
 // Keys
 //
@@ -52,7 +52,7 @@ class _ValueKey<T> extends StateKey {
   String toString() => 'StateKey($value)';
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+//==================================================================================================
 //
 // States
 //
@@ -118,20 +118,6 @@ abstract class FinalTreeState implements TreeState {
   }
 }
 
-// /// Provides access to an externally managed data value.
-// abstract class DataValue<D> {
-//   /// The data value provided by this instance.
-//   D get data;
-// }
-
-// abstract class UpdateableDataValue<D> extends DataValue<D> {
-//   void update(void Function() update);
-// }
-
-// abstract class WriteableDataValue<D> extends UpdateableDataValue<D> {
-//   void replace(D Function() replace);
-// }
-
 /// A tree state that supports serialization of its state data.
 ///
 ///
@@ -191,7 +177,7 @@ class EmptyDataTreeState<D> extends DataTreeState<D> {
   FutureOr<MessageResult> onMessage(MessageContext context) => context.unhandled();
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+//==================================================================================================
 //
 // Contexts
 //
@@ -344,7 +330,7 @@ class Transition {
   }
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+//==================================================================================================
 ///
 /// Message Results
 ///
@@ -387,7 +373,7 @@ class UnhandledResult extends MessageResult {
   static final UnhandledResult value = UnhandledResult._();
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+//==================================================================================================
 ///
 /// Processing results
 ///
@@ -446,7 +432,7 @@ class ProcessingError extends MessageProcessed {
       : super._(message, receivingState);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+//==================================================================================================
 ///
 /// Utility classes
 ///

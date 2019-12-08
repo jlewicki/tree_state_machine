@@ -23,7 +23,7 @@ class TreeStateMachine {
       return treeMachine.currentState.data();
     }
 
-    final buildCtx = BuildContext(getCurrentLeafData);
+    final buildCtx = TreeBuildContext(getCurrentLeafData);
     final rootNode = buildRoot(buildCtx);
     final machine = Machine(rootNode, buildCtx.nodes);
 
