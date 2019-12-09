@@ -60,7 +60,23 @@ class _ValueKey<T> extends StateKey {
 /// An individual state within a tree state machine.
 ///
 /// A tree state is defined by its behavior in response to messages, represented by the [onMessage]
-/// implementation.
+/// override. This method is called when the state is an active state within a state machine and a
+/// message is sent to the machine for processing. The [onMessage] override returns a [MessageResult]
+/// indicating if the message was handled, and if a state transition should occur.
+///
+/// In addition, [onEnter] and [onExit] can be overriden to perform initialization or establish
+/// invariants that must hold while the state is active.
+/// ```dart
+/// class MyState extends TreeState {
+///   FutureOr<MessageResult> onMessage(MessageContext context) {
+///     final msg = context.message;
+///     if (msg is SomeMessage) {
+///       return context.goTo(StateKey.forState<AnotherState>());
+///     }
+///     return context.unhandled();
+///   }
+/// }
+/// ```
 abstract class TreeState {
   /// Called when this state is being entered during a state transition.
   ///
@@ -95,7 +111,7 @@ abstract class TreeState {
 /// A final state within a tree state machine.
 ///
 /// A final state indicates that that state machine has completed processing. No further message
-/// handline or state transitions can occur once a final state has been entered.
+/// handling or state transitions can occur once a final state has been entered.
 ///
 /// A tree state machine may contain as many final states as necessary, in order to reflect the
 /// different completion conditions of the state tree.

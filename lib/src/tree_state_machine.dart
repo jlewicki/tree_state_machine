@@ -4,6 +4,41 @@ import 'tree_builders.dart';
 import 'tree_state.dart';
 import 'tree_state_machine_impl.dart';
 
+/// A state machine that manages transitions among states that are arranged hierarchically into a tree.
+///
+/// A [TreeStateMachine] is constructed with a [RootNodeBuilder] that will create the particular tree of states that
+/// the state machine manages. After the state machine is constructed, calling [start] will (asynchronously) enter the
+/// initial state for the tree. Once the machine is started, [currentState] will return information about the current
+/// state of the tree. Additionally, [CurrentState.sendMessage] can be used to send messages to the state for
+/// processing, which may result in a transition to a new state.
+///
+/// The tree of states for a [TreeStateMachine] always has a single root state, and two or more leaf states. There may
+/// be any number of interior states
+///
+/// ```dart
+/// final treeBuilder = rootBuilder(
+///   children: [
+///     leafBuilder(),
+///     leafBuilder(),
+///   ]
+/// );
+/// final machine = TreeStateMachine(treeBuilder);
+/// await machine.start();
+/// machine.currentState.sendMessage(MyMessage());
+/// ```
+///
+/// [TreeStateMachine] provides several event streams that may be used to observe how messages sent to the machine are
+/// processed, and what state transitions occur. [processedMessages] yields an event for every message that is processed
+/// by the tree, whether or not the message was handled successfully, and whether or not a transition occurred as a
+/// result of the message. [handledMessages] is a convenience stream that yield an event when only when a message is
+/// successfully handled. [transitions] yields an event each time a transition between states occurs.
+///
+/// See also:
+///
+///  * [UML State Machines](https://en.wikipedia.org/wiki/UML_state_machine), for background information on UML
+///   (hierarchical) state machines.
+///  * [State Machine Diagrams](https://www.uml-diagrams.org/state-machine-diagrams.html), for further description of
+///   UML state machine diagrams.
 class TreeStateMachine {
   final Machine _machine;
   final StreamController<Transition> _transitions = StreamController.broadcast();

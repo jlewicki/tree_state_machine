@@ -1,3 +1,6 @@
+/// A library for creating and using tree (hierarchical) state machines.
+/// 
+/// 
 library tree_state_machine.tree_state_machine;
 
 export 'src/data_provider.dart';
