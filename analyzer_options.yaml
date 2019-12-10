@@ -1,4 +1,7 @@
 analyzer:
+  exclude:
+    # GRRR: https://github.com/dart-lang/sdk/issues/34069
+    - lib/**.g.dart
   strong-mode:
     implicit-casts: false
     implicit-dynamic: false

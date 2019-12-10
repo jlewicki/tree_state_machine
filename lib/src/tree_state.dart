@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:meta/meta.dart';
+import 'data_provider.dart';
+import 'utility.dart';
 
+//==================================================================================================
 //
 // Keys
 //
@@ -18,7 +21,7 @@ abstract class StateKey {
   ///
   /// This may be useful if each state in a tree is represented by its own [TreeState] subclass, and
   /// therefore a unique name for the state can be inferred from the type name.
-  static StateKey forState<T extends TreeState>() => _ValueKey<Type>(_TypeLiteral<T>().type);
+  static StateKey forState<T extends TreeState>() => _ValueKey<Type>(TypeLiteral<T>().type);
 }
 
 @immutable
@@ -49,11 +52,7 @@ class _ValueKey<T> extends StateKey {
   String toString() => 'StateKey($value)';
 }
 
-// Wacky: https://github.com/dart-lang/sdk/issues/33297
-class _TypeLiteral<T> {
-  Type get type => T;
-}
-
+//==================================================================================================
 //
 // States
 //
@@ -61,8 +60,31 @@ class _TypeLiteral<T> {
 /// An individual state within a tree state machine.
 ///
 /// A tree state is defined by its behavior in response to messages, represented by the [onMessage]
-/// implementation.
+/// override. This method is called when the state is an active state within a state machine and a
+/// message is sent to the machine for processing. The [onMessage] override returns a [MessageResult]
+/// indicating if the message was handled, and if a state transition should occur.
+///
+/// In addition, [onEnter] and [onExit] can be overriden to perform initialization or establish
+/// invariants that must hold while the state is active.
+/// ```dart
+/// class MyState extends TreeState {
+///   FutureOr<MessageResult> onMessage(MessageContext context) {
+///     final msg = context.message;
+///     if (msg is SomeMessage) {
+///       return context.goTo(StateKey.forState<AnotherState>());
+///     }
+///     return context.unhandled();
+///   }
+/// }
+/// ```
 abstract class TreeState {
+  /// Called when this state is being entered during a state transition.
+  ///
+  /// Subclasses can overide to initialize data associated with the state.
+  ///
+  /// Note that this method should be idempotent. It is possible, if unlikely, that when recovering
+  /// from an error condition this method might be called more than once without a corresponding
+  /// call to [onExit].
   FutureOr<void> onEnter(TransitionContext context) {}
 
   /// Processes a message that has been sent to this state.
@@ -76,27 +98,60 @@ abstract class TreeState {
   /// to handle the message.
   FutureOr<MessageResult> onMessage(MessageContext context);
 
+  /// Called when this state is being exited during a state transition.
+  ///
+  /// Subclasses can overide to dispose of resources or execute cleanup logic.
+  ///
+  /// Note that this method should be idempotent. It is possible, if unlikely, that when recovering
+  /// from an error condition this method might be called more than once without a corresponding
+  /// call to [onEnter].
   FutureOr<void> onExit(TransitionContext context) {}
 }
 
 /// A final state within a tree state machine.
 ///
 /// A final state indicates that that state machine has completed processing. No further message
-/// handline or state transitions can occur once a final state has been entered.
+/// handling or state transitions can occur once a final state has been entered.
 ///
 /// A tree state machine may contain as many final states as necessary, in order to reflect the
 /// different completion conditions of the state tree.
-abstract class FinalTreeState extends TreeState {
-  @nonVirtual
+abstract class FinalTreeState implements TreeState {
   @override
+  FutureOr<void> onEnter(TransitionContext context) {}
+
+  /// Final states cannot be exited, so a [StateError] is thrown if called.
+  @override
+  @nonVirtual
   FutureOr<void> onExit(TransitionContext context) {
     throw StateError('Can not leave a final state.');
   }
 
-  @nonVirtual
+  /// Final states cannot handle messages, so a [StateError] is thrown if called.
   @override
+  @nonVirtual
   FutureOr<MessageResult> onMessage(MessageContext context) {
     throw StateError('Can not send message to a final state');
+  }
+}
+
+/// A tree state that supports serialization of its state data.
+///
+///
+abstract class DataTreeState<D> extends TreeState {
+  DataProvider<D> _provider;
+
+  /// The serializable data associated with this state.
+  D get data {
+    assert(_provider != null);
+    return _provider.data;
+  }
+
+  /// Called to initialize the data provider for this instance.
+  ///
+  /// This will be called by the state machine immediately after it creates this state instance.
+  @mustCallSuper
+  void initializeDataValue(DataProvider<D> provider) {
+    _provider = provider;
   }
 }
 
@@ -127,10 +182,21 @@ final TransitionHandler emptyTransitionHandler = (_) {};
 /// A [MessageHandler] that always returns [MessageContext.unhandled].
 final MessageHandler emptyMessageHandler = (ctx) => ctx.unhandled();
 
+/// A tree state that always returns [MessageContext.unhandled].
 class EmptyTreeState extends TreeState {
   @override
   FutureOr<MessageResult> onMessage(MessageContext context) => context.unhandled();
 }
+
+class EmptyDataTreeState<D> extends DataTreeState<D> {
+  @override
+  FutureOr<MessageResult> onMessage(MessageContext context) => context.unhandled();
+}
+
+//==================================================================================================
+//
+// Contexts
+//
 
 /// Provides information to a state about the message that is being processed.
 abstract class MessageContext {
@@ -182,6 +248,17 @@ abstract class MessageContext {
     Duration duration = const Duration(),
     bool periodic = false,
   });
+
+  /// The data associated with the state that is currently handling the message.
+  ///
+  /// Returns `null` if the handling state does not have an associated data provider.
+  D data<D>();
+
+  /// The data associated with an active state
+  ///
+  /// If [key] is provided, the data for the ancestor state with the specified key will be returned.
+  /// Otherwise, the data of the closest ancestor state that matches the specified type is returned.
+  D activeData<D>([StateKey key]);
 }
 
 /// Describes a transition between states that is occuring in a tree state machine.
@@ -225,6 +302,62 @@ abstract class TransitionContext {
   void post(Object message);
 }
 
+/// Describes a transition between states in a state machine.
+@immutable
+class Transition {
+  /// The starting leaf state of the transition.
+  final StateKey from;
+
+  /// The final leaf state of the transition.
+  final StateKey to;
+
+  /// Complete list of states that were traversed (exited states followed by entered states) during
+  /// the transition.
+  ///
+  /// The first state in the list is [from], and the last state in the list is [to].
+  final List<StateKey> traversed;
+
+  /// The states that were exited during the transition.
+  ///
+  /// The order of the states in the list reflects the order the states were exited.
+  final List<StateKey> exited;
+
+  /// The states that were entered during the transition.
+  ///
+  /// The order of the states in the list reflects the order the states were entered.
+  final List<StateKey> entered;
+
+  /// The states that are active in the state machine after the transition completed.
+  ///
+  /// These state are ordered from the current leaf state to the root,
+  final List<StateKey> active;
+
+  /// Constructs a [Transition] instance.
+  Transition(
+    this.from,
+    this.to,
+    Iterable<StateKey> traversed,
+    Iterable<StateKey> exited,
+    Iterable<StateKey> entered,
+    Iterable<StateKey> active,
+  )   : assert(traversed.first == from, 'from must be the same as the first traversed state'),
+        assert(traversed.last == to, 'from must be the same as the last traversed state'),
+        assert(exited.isEmpty || exited.first == from, 'from must be same as first exited state'),
+        assert(entered.last == to, 'to must be same as last entered state'),
+        this.traversed = (traversed ?? const []).toList(growable: false),
+        this.exited = (exited ?? const []).toList(growable: false),
+        this.entered = (entered ?? const []).toList(growable: false),
+        this.active = (active ?? const []).toList(growable: false) {
+    ArgumentError.checkNotNull(from, 'from');
+    ArgumentError.checkNotNull(to, 'to');
+  }
+}
+
+//==================================================================================================
+///
+/// Message Results
+///
+
 /// Base class for describing the results of processing a state machine message.
 ///
 /// Instances of this class are created by calling methods on [MessageContext], for example
@@ -263,6 +396,70 @@ class UnhandledResult extends MessageResult {
   static final UnhandledResult value = UnhandledResult._();
 }
 
+//==================================================================================================
+///
+/// Processing results
+///
+
+/// Base class for types describing how a message was processed by a state machine.
+@immutable
+abstract class MessageProcessed {
+  /// The message that was processed.
+  final Object message;
+
+  /// The leaf state that first received the message.
+  final StateKey receivingState;
+
+  const MessageProcessed._(this.message, this.receivingState);
+}
+
+/// A [MessageProcessed] indicating that a state successfully handled a message.
+///
+/// A state transition might have taken place part of handling the message. If this is true
+@immutable
+class HandledMessage extends MessageProcessed {
+  /// The state that handled the message.
+  ///
+  /// This state might be different from [receivingState], if receiving state returned
+  /// [MessageContext.unhandled] and delegated handling to an ancestor state.
+  final StateKey handlingState;
+
+  /// Returns a [Transition] describing the state transition that took place as a result of
+  /// processing the message, or `null` if there was no transition.
+  final Transition transition;
+
+  const HandledMessage(
+    Object message,
+    StateKey receivingState,
+    this.handlingState, [
+    this.transition,
+  ]) : super._(message, receivingState);
+
+  // Get rid of these?
+  Iterable<StateKey> get exitedStates => transition?.exited ?? const [];
+  Iterable<StateKey> get enteredStates => transition?.entered ?? const [];
+}
+
+@immutable
+class UnhandledMessage extends MessageProcessed {
+  final Iterable<StateKey> notifiedStates;
+  const UnhandledMessage(Object message, StateKey receivingState, this.notifiedStates)
+      : super._(message, receivingState);
+}
+
+@immutable
+class ProcessingError extends MessageProcessed {
+  final Object error;
+  final StackTrace stackTrace;
+  const ProcessingError(Object message, StateKey receivingState, this.error, this.stackTrace)
+      : super._(message, receivingState);
+}
+
+//==================================================================================================
+///
+/// Utility classes
+///
+
 /// A tree state that delegates its behavior to one or more external functions.
 class DelegateState extends TreeState {
   TransitionHandler entryHandler;
@@ -282,6 +479,30 @@ class DelegateState extends TreeState {
   FutureOr<void> onExit(TransitionContext context) => exitHandler(context);
 }
 
+/// A data tree state that delegates its behavior to one or more external functions.
+class DelegateDataState<D> extends DataTreeState<D> {
+  TransitionHandler entryHandler;
+  TransitionHandler exitHandler;
+  MessageHandler messageHandler;
+
+  DelegateDataState({
+    this.entryHandler,
+    this.exitHandler,
+    this.messageHandler,
+  }) {
+    entryHandler = entryHandler ?? emptyTransitionHandler;
+    exitHandler = exitHandler ?? emptyTransitionHandler;
+    messageHandler = messageHandler ?? emptyMessageHandler;
+  }
+  @override
+  FutureOr<void> onEnter(TransitionContext context) => entryHandler(context);
+  @override
+  FutureOr<MessageResult> onMessage(MessageContext context) => messageHandler(context);
+  @override
+  FutureOr<void> onExit(TransitionContext context) => exitHandler(context);
+}
+
+/// A final tree state that delegates its behavior to one or more external functions.
 class DelegateFinalState extends FinalTreeState {
   TransitionHandler entryHandler;
 
@@ -290,230 +511,4 @@ class DelegateFinalState extends FinalTreeState {
   }
   @override
   FutureOr<void> onEnter(TransitionContext context) => entryHandler(context);
-
-  @override
-  FutureOr<void> onExit(TransitionContext context) {}
 }
-
-/// Describes a transition between states in a state machine.
-@immutable
-class Transition {
-  /// The starting leaf state of the transition.
-  final StateKey from;
-
-  /// The final leaf state of the transition.
-  final StateKey to;
-
-  /// Complete list of states that were traversed (exited states followed by entered states) during
-  /// the transition.
-  ///
-  /// The first state in the list is [from], and the last state in the list is [to].
-  final List<StateKey> traversed;
-
-  /// The states that were exited during the transition.
-  ///
-  /// The order of the states in the list reflects the order the states were exited.
-  final List<StateKey> exited;
-
-  /// The states that were entered during the transition.
-  ///
-  /// The order of the states in the list reflects the order the states were entered.
-  final List<StateKey> entered;
-
-  /// Constructs a [Transition] instance.
-  Transition(
-    this.from,
-    this.to,
-    Iterable<StateKey> traversed,
-    Iterable<StateKey> exited,
-    Iterable<StateKey> entered,
-  )   : assert(traversed.first == from, 'from must be the same as the first traversed state'),
-        assert(traversed.last == to, 'from must be the same as the last traversed state'),
-        assert(exited.isEmpty || exited.first == from, 'from must be same as first exited state'),
-        assert(entered.last == to, 'to must be same as last entered state'),
-        this.traversed = (traversed ?? const []).toList(growable: false),
-        this.exited = (exited ?? const []).toList(growable: false),
-        this.entered = (entered ?? const []).toList(growable: false) {
-    ArgumentError.checkNotNull(from, 'from');
-    ArgumentError.checkNotNull(to, 'to');
-  }
-}
-
-@immutable
-abstract class MessageProcessed {
-  final Object message;
-  final StateKey receivingState;
-  const MessageProcessed(this.message, this.receivingState);
-}
-
-@immutable
-class HandledMessage extends MessageProcessed {
-  final StateKey handlingState;
-  final Transition transition;
-  const HandledMessage(
-    Object message,
-    StateKey receivingState,
-    this.handlingState, [
-    this.transition,
-  ]) : super(message, receivingState);
-
-  Iterable<StateKey> get exitedStates => transition?.exited ?? const [];
-  Iterable<StateKey> get enteredStates => transition?.entered ?? const [];
-}
-
-@immutable
-class UnhandledMessage extends MessageProcessed {
-  final Iterable<StateKey> notifiedStates;
-  const UnhandledMessage(Object message, StateKey receivingState, this.notifiedStates)
-      : super(message, receivingState);
-}
-
-@immutable
-class ProcessingError extends MessageProcessed {
-  final Object error;
-  final StackTrace stackTrace;
-  const ProcessingError(Object message, StateKey receivingState, this.error, this.stackTrace)
-      : super(message, receivingState);
-}
-
-// Food for thought
-// typedef L<T> = List<T> Function<S>(S, {T Function(int, S) factory});
-// https://github.com/dart-lang/sdk/blob/master/docs/language/informal/generic-function-type-alias.md
-
-// abstract class StateData {}
-// /**
-//  * Represents a state within a tree (i.e. hierarchical) state machine that has associated state data of type [D].
-//  */
-// abstract class DataTreeState<D extends StateData> extends TreeState {}
-
-// /**
-//  * Represents a state within a tree (i.e. hierarchical) state machine that has associated state data of type [D].
-//  */
-// abstract class DataTreeState<D extends StateData> implements TreeState {
-//   final StateKey key;
-//   DataTreeState(this.key) {
-//     if (key == null) throw ArgumentError.notNull("key");
-//   }
-// }
-
-// /**
-//  * Represents a state within a tree (i.e. hierarchical) state machine.
-//  */
-// abstract class TreeState {
-//   /**
-//    * Creates a state handler representing the message processing behavior of the state.
-//    */
-//   StateHandler createHandler();
-// }
-
-// abstract class StateData {}
-
-// /**
-//  * Represents a state within a tree (i.e. hierarchical) state machine that has associated state data of type [D].
-//  */
-// abstract class DataTreeState<D extends StateData> extends TreeState {}
-
-// /**
-//  * Signature of functions that can process a state machine message.
-//  */
-// typedef Future<MessageResult> MessageHandler(MessageContext context);
-
-// /**
-//  * Signature of functions that can process a state machine message of type M.
-//  */
-// typedef Future<MessageResult> MessageHandler1<M>(MessageContext1<M> context);
-
-// /**
-//  * Signature of functions that can observe a state transition.
-//  */
-// typedef Future TransitionHandler(TransitionContext context);
-
-// /**
-//  * Defines methods for creating various kinds of [MessageResult].
-//  */
-// mixin MessageResultBuilder {
-//   /**
-//    * Creates a [MessageResult] indicating that the state machine should transition a new state.
-//    */
-//   MessageResult goTo(TreeState create()) {
-//     return _GoTo(create);
-//   }
-
-//   /**
-//    * Creates a [MessageResult] indicating that the state machine should transition a new state, initialized with the
-//    * specified state data.
-//    */
-//   MessageResult goToWithData<D extends StateData>(DataTreeState<D> create(), D initialData) {
-//     return _GoToWith(create, initialData);
-//   }
-
-//   /**
-//    * Creates a [MessageResult] indicating that the current state did not recognize the message being processed, and
-//    * therefore did not handle the message.
-//    *
-//    * The state machine should therefore give each ancestor states an opportunity to process the message
-//    */
-//   MessageResult unhandled() {
-//     return unhandledInstance;
-//   }
-// }
-
-// class MessageContext with MessageResultBuilder {
-//   final Object message;
-//   MessageContext(this.message);
-// }
-
-// class MessageContext1<M> with MessageResultBuilder {
-//   final M message;
-//   MessageContext1(this.message);
-// }
-
-// class TransitionContext {}
-
-// abstract class MessageResult {}
-
-// class StateHandler {
-//   final TransitionHandler onEnter;
-//   final MessageHandler onMessage;
-//   final TransitionHandler onExit;
-//   static final StateHandler noOp = StateHandler(null, null, null);
-
-//   StateHandler(this.onEnter, this.onMessage, this.onExit);
-// }
-
-// Type _typeOf<T>() => T;
-
-// StateHandler createMessageHandler<M>(
-//     {TransitionHandler onEnter,
-//     @required MessageHandler1<M> onMessage,
-//     TransitionHandler onExit,
-//     bool throwOnUnknownMessage = false}) {
-//   MessageHandler rawHandler = (MessageContext ctx) {
-//     if (ctx.message is M) {
-//       return onMessage(MessageContext1(ctx.message as M));
-//     } else if (throwOnUnknownMessage) {
-//       final msg = 'Expected message type ${_typeOf<M>()}, received ${ctx.message.runtimeType}';
-//       return Future.error(Exception(msg));
-//     }
-//     return Future.value(ctx.unhandled());
-//   };
-
-//   return StateHandler(onEnter, rawHandler, onExit);
-// }
-
-// class _GoTo extends MessageResult {
-//   final Lazy<TreeState> targetState;
-//   _GoTo(TreeState create()) : targetState = Lazy(create);
-// }
-
-// class _GoToWith<D extends StateData> extends MessageResult {
-//   final Lazy<DataTreeState<D>> targetState;
-//   final D initialData;
-//   _GoToWith(DataTreeState<D> create(), this.initialData) : targetState = Lazy(create);
-// }
-
-// class _Unhandled extends MessageResult {
-//   _Unhandled._() {}
-// }
-
-// final unhandledInstance = _Unhandled._();

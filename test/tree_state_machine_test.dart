@@ -1,11 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:async/async.dart';
 import 'package:test/test.dart';
+import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 import 'package:tree_state_machine/src/tree_state_machine.dart';
-import 'tree_1.dart' as tree;
-import 'flat_tree_1.dart' as flat_tree;
+import 'fixture/data_tree.dart' as data_tree;
+import 'fixture/tree_1.dart' as tree;
+import 'fixture/flat_tree_1.dart' as flat_tree;
+import 'fixture/tree_data.dart';
 
 void main() {
   group('TreeStateMachine', () {
@@ -250,6 +254,199 @@ void main() {
         expect(sm.isEnded, isTrue);
       });
     });
+
+    group('saveTo', () {
+      test('should throw if sink is null', () {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        expect(() => sm.saveTo(null), throwsArgumentError);
+      });
+
+      test('should throw if machine is not started', () {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        expect(() => sm.saveTo(StreamController()), throwsStateError);
+      });
+
+      test('should write state data of active states to sink ', () async {
+        final ioController = StreamController<List<int>>();
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start();
+
+        final results = await Future.wait<Object>([
+          sm.saveTo(ioController),
+          ioController.stream.transform(utf8.decoder).transform(json.decoder).toList(),
+        ]);
+        final jsonList = results[1] as List<Object>;
+
+        expect(jsonList.length, equals(1));
+        expect(jsonList[0], isA<Map<String, dynamic>>());
+
+        final encodableTree = EncodableTree.fromJson(jsonList[0]);
+        expect(encodableTree.states, isNotNull);
+        expect(
+            encodableTree.states.map((s) => s.key),
+            orderedEquals(
+              sm.currentState.activeStates.map((s) => s.toString()),
+            ));
+      });
+    });
+
+    group('loadFrom', () {
+      test('should throw if stream is null', () {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        expect(() => sm.loadFrom(null), throwsArgumentError);
+      });
+
+      test('should throw if machine is started', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start();
+        expect(() => sm.loadFrom(StreamController<List<int>>().stream), throwsStateError);
+      });
+
+      test('should read active states from stream ', () async {
+        var sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start(tree.r_b_1_key);
+        final ioController = StreamController<List<int>>();
+        List<List<int>> encoded = (await Future.wait<Object>([
+          sm.saveTo(ioController),
+          ioController.stream.toList(),
+        ]))[1];
+        sm = TreeStateMachine.forRoot(tree.treeBuilder());
+
+        await sm.loadFrom(Stream.fromIterable(encoded));
+
+        expect(sm.isStarted, isTrue);
+        expect(sm.currentState, isNotNull);
+        expect(sm.currentState.key, tree.r_b_1_key);
+      });
+
+      test('should read active data states from stream ', () async {
+        var sm = TreeStateMachine.forRoot(data_tree.treeBuilder(initialDataValues: {
+          tree.r_a_a_1_key: LeafData1()
+            ..name = 'Yo'
+            ..counter = 10,
+          tree.r_a_key: ImmutableData((b) => b
+            ..name = 'Dude'
+            ..price = 8),
+          tree.r_key: SpecialDataD()
+            ..playerName = 'FOO'
+            ..startYear = 2000
+            ..hiScores.add(HiScore()
+              ..game = 'foo'
+              ..score = 10),
+        }));
+        await sm.start(tree.r_a_a_1_key);
+
+        final ioController = StreamController<List<int>>();
+        List<List<int>> encoded = (await Future.wait<Object>([
+          sm.saveTo(ioController),
+          ioController.stream.toList(),
+        ]))[1];
+        sm = TreeStateMachine.forRoot(data_tree.treeBuilder());
+
+        await sm.loadFrom(Stream.fromIterable(encoded));
+
+        expect(sm.isStarted, isTrue);
+        expect(sm.currentState, isNotNull);
+        expect(sm.currentState.key, tree.r_a_a_1_key);
+
+        expect(sm.currentState.data(), isNotNull);
+        expect(sm.currentState.data(), isA<LeafData1>());
+        final r_a_a_1_data = sm.currentState.data<LeafData1>();
+        expect(r_a_a_1_data.name, equals('Yo'));
+        expect(r_a_a_1_data.counter, equals(10));
+
+        expect(sm.currentState.activeData(tree.r_a_a_key), isNotNull);
+        expect(sm.currentState.activeData(tree.r_a_a_key), isA<LeafDataBase>());
+        final r_a_a_data = sm.currentState.activeData<LeafDataBase>(tree.r_a_a_key);
+        expect(r_a_a_data.name, equals('Yo'));
+
+        expect(sm.currentState.activeData(tree.r_a_key), isNotNull);
+        expect(sm.currentState.activeData(tree.r_a_key), isA<ImmutableData>());
+        final r_a_data = sm.currentState.activeData<ImmutableData>(tree.r_a_key);
+        expect(r_a_data.price, equals(8));
+        expect(r_a_data.name, equals('Dude'));
+
+        expect(sm.currentState.activeData(tree.r_key), isNotNull);
+        expect(sm.currentState.activeData(tree.r_key), isA<SpecialDataD>());
+        final rootData = sm.currentState.activeData<SpecialDataD>(tree.r_key);
+        expect(rootData.playerName, equals('FOO'));
+        expect(rootData.startYear, equals(2000));
+        expect(rootData.hiScores.length, equals(1));
+        expect(rootData.hiScores[0].game, equals('foo'));
+      });
+
+      test('should throw if stream does not contain Map<string, dynamic>', () async {
+        var sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        var byteStream = Stream.fromIterable(<Object>['A', 'B']).transform(json.fuse(utf8).encoder);
+
+        expect(() async => await sm.loadFrom(byteStream), throwsArgumentError);
+      });
+
+      test('should throw if machine does not contain states from stream', () async {
+        var sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start(tree.r_b_1_key);
+        final ioController = StreamController<List<int>>();
+        List<List<int>> encoded = (await Future.wait<Object>([
+          sm.saveTo(ioController),
+          ioController.stream.toList(),
+        ]))[1];
+
+        sm = TreeStateMachine.forRoot(flat_tree.treeBuilder());
+        expect(() async => await sm.loadFrom(Stream.fromIterable(encoded)), throwsStateError);
+      });
+
+      test(
+          'should throw if active state path in stream is different from active state path in machine',
+          () async {
+        var sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start(tree.r_b_1_key);
+        final ioController = StreamController<List<int>>();
+        List<List<int>> encoded = (await Future.wait<Object>([
+          sm.saveTo(ioController),
+          ioController.stream.toList(),
+        ]))[1];
+
+        // Define another tree that shares keys but has a different shape
+        final buildOtherTree = rootBuilder(
+            key: tree.r_b_key,
+            createState: (k) => EmptyTreeState(),
+            initialChild: (_) => tree.r_key,
+            children: [
+              interiorBuilder(
+                  key: tree.r_key,
+                  createState: (k) => EmptyTreeState(),
+                  initialChild: (_) => tree.r_b_1_key,
+                  children: [
+                    leafBuilder(key: tree.r_b_1_key, createState: (k) => EmptyTreeState())
+                  ])
+            ]);
+
+        sm = TreeStateMachine.forRoot(buildOtherTree);
+
+        expect(() async => await sm.loadFrom(Stream.fromIterable(encoded)), throwsStateError);
+      });
+    });
+
+    test('should throw if stream has nodes thay are not in machine', () async {
+      var sm = TreeStateMachine.forRoot(tree.treeBuilder());
+      await sm.start(tree.r_b_1_key);
+      final ioController = StreamController<List<int>>();
+      List<List<int>> encoded = (await Future.wait<Object>([
+        sm.saveTo(ioController),
+        ioController.stream.toList(),
+      ]))[1];
+
+      // Define another tree that shares keys but has a different shape
+      final buildOtherTree = rootBuilder(
+          key: tree.r_b_key,
+          createState: (k) => EmptyTreeState(),
+          initialChild: (_) => tree.r_b_1_key,
+          children: [
+            leafBuilder(key: tree.r_b_1_key, createState: (k) => EmptyTreeState()),
+          ]);
+      sm = TreeStateMachine.forRoot(buildOtherTree);
+      expect(() async => await sm.loadFrom(Stream.fromIterable(encoded)), throwsStateError);
+    });
   });
 
   group('CurrentState', () {
@@ -324,6 +521,90 @@ void main() {
         await sm.start();
 
         expect(() => sm.currentState.isActiveState(null), throwsArgumentError);
+      });
+    });
+
+    group('data', () {
+      test('shoud return data from provider when available', () async {
+        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(initialDataValues: {
+          data_tree.r_a_a_2_key: LeafData2()
+            ..name = 'foo'
+            ..label = 'cool'
+        }));
+        await sm.start();
+
+        final leafData = sm.currentState.data<LeafData2>();
+        expect(leafData.name, equals('foo'));
+        expect(leafData.label, equals('cool'));
+      });
+
+      test('shoud return data from state when available', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start(tree.r_b_2_key);
+
+        expect(sm.currentState.data<tree.ReadOnlyData>(), isNotNull);
+        // 10 is what tree builer initializes counter to.
+        expect(sm.currentState.data<tree.ReadOnlyData>().counter, equals(10));
+      });
+
+      test('shoud throw if data is a tree state', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start(tree.r_b_1_key);
+
+        expect(() => sm.currentState.data<DelegateState>(), throwsStateError);
+      });
+
+      test('shoud return null when data not available', () {
+        // TODO
+      });
+    });
+
+    group('activeData', () {
+      test('shoud return data from leaf provider when available', () async {
+        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(initialDataValues: {
+          data_tree.r_a_a_2_key: LeafData2()
+            ..name = 'foo'
+            ..label = 'cool'
+        }));
+        await sm.start();
+
+        final leafData = sm.currentState.activeData<LeafDataBase>(data_tree.r_a_a_key);
+        expect(leafData.name, equals('foo'));
+      });
+
+      test('shoud return data from owned provider when available', () async {
+        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(
+          initialDataValues: {
+            data_tree.r_a_key: ImmutableData((b) => b
+              ..name = 'foo'
+              ..price = 10)
+          },
+        ));
+        await sm.start();
+
+        final r_a_data = sm.currentState.activeData<ImmutableData>(data_tree.r_a_key);
+        expect(r_a_data.name, equals('foo'));
+        expect(r_a_data.price, equals(10));
+      });
+
+      test('shoud return data from leaf provider after transition.', () async {
+        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(
+          initialDataValues: {
+            data_tree.r_a_a_2_key: LeafData2()
+              ..name = 'foo'
+              ..label = 'cool'
+          },
+          messageHandlers: {
+            data_tree.r_a_a_key: (ctx) => ctx.goTo(data_tree.r_a_a_1_key),
+          },
+        ));
+        await sm.start();
+
+        await sm.currentState.sendMessage(Object());
+
+        final r_a_a_2_data = sm.currentState.data<LeafData1>();
+        expect(r_a_a_2_data.name, isNull);
+        expect(r_a_a_2_data.counter, isNull);
       });
     });
   });
