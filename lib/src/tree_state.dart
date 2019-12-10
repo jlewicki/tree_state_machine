@@ -327,6 +327,11 @@ class Transition {
   /// The order of the states in the list reflects the order the states were entered.
   final List<StateKey> entered;
 
+  /// The states that are active in the state machine after the transition completed.
+  ///
+  /// These state are ordered from the current leaf state to the root,
+  final List<StateKey> active;
+
   /// Constructs a [Transition] instance.
   Transition(
     this.from,
@@ -334,13 +339,15 @@ class Transition {
     Iterable<StateKey> traversed,
     Iterable<StateKey> exited,
     Iterable<StateKey> entered,
+    Iterable<StateKey> active,
   )   : assert(traversed.first == from, 'from must be the same as the first traversed state'),
         assert(traversed.last == to, 'from must be the same as the last traversed state'),
         assert(exited.isEmpty || exited.first == from, 'from must be same as first exited state'),
         assert(entered.last == to, 'to must be same as last entered state'),
         this.traversed = (traversed ?? const []).toList(growable: false),
         this.exited = (exited ?? const []).toList(growable: false),
-        this.entered = (entered ?? const []).toList(growable: false) {
+        this.entered = (entered ?? const []).toList(growable: false),
+        this.active = (active ?? const []).toList(growable: false) {
     ArgumentError.checkNotNull(from, 'from');
     ArgumentError.checkNotNull(to, 'to');
   }

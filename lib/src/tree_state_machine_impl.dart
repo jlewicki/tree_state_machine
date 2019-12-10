@@ -305,7 +305,8 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
 
   Transition toTransition() {
     assert(endNode.isLeaf, 'Transition did not end at a leaf node.');
-    return Transition(from, end, traversed(), exited, entered);
+    return Transition(
+        from, end, traversed(), exited, entered, endNode.selfAndAncestors().map((n) => n.key));
   }
 
   void _throwIfDisposed() {

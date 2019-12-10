@@ -300,7 +300,7 @@ class CurrentState {
 
   /// Returns `true` if the specified state is an active state in the state machine.
   ///
-  /// The current state, and all of its ancestor states, are active states.
+  /// The current leaf state, and all of its ancestor states, are considered active states.
   bool isActiveState(StateKey key) {
     ArgumentError.checkNotNull(key, 'key');
     return _treeStateMachine._machine.currentNode.isActive(key);
@@ -308,7 +308,7 @@ class CurrentState {
 
   /// Returns [StateKey]s identifying the states that are currently active in the state machine.
   ///
-  /// The current state is first in the list, followed by its ancestor states, and ending at
+  /// The current leaf state is first in the list, followed by its ancestor states, and ending at
   /// the root state.
   List<StateKey> get activeStates =>
       _treeStateMachine._machine.currentNode.selfAndAncestors().map((n) => n.key).toList();

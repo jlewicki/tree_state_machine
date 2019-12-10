@@ -192,6 +192,25 @@ void main() {
           expect(handled.enteredStates, orderedEquals([r_b_key, r_b_1_key]));
         });
 
+        test('should include transition in result', () async {
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_b_key),
+          });
+          final buildCtx = TreeBuildContext(_getCurrentLeafData);
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+          final msg = Object();
+
+          final msgProcessed = await machine.processMessage(msg, r_a_a_1_key);
+
+          expect(msgProcessed, isA<HandledMessage>());
+          final handled = msgProcessed as HandledMessage;
+          expect(handled.transition, isNotNull);
+
+          expectPath(handled.transition, [r_a_a_1_key, r_a_a_key, r_a_key], [r_b_key, r_b_1_key]);
+          expect(handled.transition.active, [r_b_1_key, r_b_key, r_key]);
+        });
+
         test('should call initial child after state is entered', () async {
           var counter = 1;
           final entryCounters = <StateKey, int>{};
@@ -745,17 +764,17 @@ void main() {
 }
 
 void expectPath(
-  Transition transCtx,
+  Transition transition,
   Iterable<StateKey> exited,
   Iterable<StateKey> entered, {
   StateKey to,
 }) {
-  expect(transCtx.from, equals(exited.isNotEmpty ? exited.first : entered.first));
-  expect(transCtx.to, equals(entered.last));
-  expect(transCtx.exited, orderedEquals(exited));
-  expect(transCtx.entered, orderedEquals(entered));
+  expect(transition.from, equals(exited.isNotEmpty ? exited.first : entered.first));
+  expect(transition.to, equals(entered.last));
+  expect(transition.exited, orderedEquals(exited));
+  expect(transition.entered, orderedEquals(entered));
   expect(
-    transCtx.traversed,
+    transition.traversed,
     orderedEquals(exited.followedBy(entered)),
   );
 }
