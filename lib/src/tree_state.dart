@@ -138,7 +138,9 @@ abstract class FinalTreeState implements TreeState {
 
 /// A final state that indicates a state machihe was explicitly stopped by external code (as
 /// opposed to transitioning to a final state when processing a message.)
-class StoppedTreeState extends FinalTreeState {}
+class StoppedTreeState extends FinalTreeState {
+  static final key = StateKey.named('!StateTreeMachine.Stopped!');
+}
 
 /// A tree state that supports serialization of its state data.
 ///
@@ -394,6 +396,10 @@ class InternalTransitionResult extends MessageResult {
 class SelfTransitionResult extends MessageResult {
   final FutureOr<void> Function(TransitionContext) transitionAction;
   SelfTransitionResult([this.transitionAction]) : super._();
+}
+
+class StopResult extends MessageResult {
+  StopResult() : super._();
 }
 
 /// A [MessageResult] indicating that a state did not recognize or handle a message,

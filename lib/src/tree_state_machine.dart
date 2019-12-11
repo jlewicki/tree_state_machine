@@ -46,6 +46,7 @@ class TreeStateMachine {
   final StreamController<Transition> _transitions = StreamController.broadcast();
   final StreamController<MessageProcessed> _processedMessages = StreamController.broadcast();
   bool _isStarted = false;
+  Future<Transition> _startFuture;
   CurrentState _currentState;
 
   TreeStateMachine._(this._machine);
@@ -144,16 +145,38 @@ class TreeStateMachine {
   /// from the root until a leaf node is reached.
   ///
   /// A [StateError] is thrown if [start] has already been called.
-  Future<Transition> start([StateKey initialStateKey]) async {
+  Future<Transition> start([StateKey initialStateKey]) {
     if (isStarted) {
       throw StateError('This TreeStateMachine has already been started.');
     }
 
-    final transition = await _machine.enterInitialState(initialStateKey);
-    _currentState = CurrentState._(this);
-    _transitions.add(transition);
-    _isStarted = true;
-    return transition;
+    if (_startFuture == null) {
+      _startFuture = _machine.enterInitialState(initialStateKey).then((transition) {
+        _currentState = CurrentState._(this);
+        _transitions.add(transition);
+        _isStarted = true;
+        _startFuture = null;
+        return transition;
+      });
+    }
+    return _startFuture;
+  }
+
+  /// Stops the state machine.
+  ///
+  /// Stopping the state machine will cause a transition to the [StoppedTreeState]. This transition
+  /// is irrevokable, and the message handler of the current leaf state will not be called.
+  ///
+  /// When the returned future completes, the state machine will be in a final state, and [isEnded]
+  /// will return true.
+  ///
+  /// It is safe to call this method when [isEnded] is `true`, but a [StateError] is thrown if
+  /// [start] has not been called.
+  Future stop() {
+    if (!isStarted) {
+      throw StateError('This TreeStateMachine has not been started.');
+    }
+    return this.isEnded ? Future.value() : _processMessage(stopMessage);
   }
 
   /// Writes the active state data of the state machine to the specified sink.

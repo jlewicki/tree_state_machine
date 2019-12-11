@@ -42,6 +42,13 @@ void main() {
         expect(() async => sm.start(), throwsStateError);
       });
 
+      test('should return same future when called more than once', () async {
+        final sm = TreeStateMachine.forLeaves(flat_tree.leaves, flat_tree.r_1_key);
+        final future1 = sm.start();
+        final future2 = sm.start();
+        expect(future1, same(future2));
+      });
+
       test('should set current state to initial state', () async {
         final sm = TreeStateMachine.forRoot(tree.treeBuilder());
 
@@ -70,6 +77,52 @@ void main() {
             tree.r_a_a_2_key,
           ]),
         );
+      });
+    });
+
+    group('stop', () {
+      test('should transition to Stopped state', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start();
+
+        await sm.stop();
+
+        expect(sm.isEnded, isTrue);
+        expect(sm.currentState, isNotNull);
+        expect(sm.currentState.key, equals(StoppedTreeState.key));
+      });
+
+      test('should not dispatch message to current state', () async {
+        var onMessageCalled = false;
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+          tree.r_a_a_2_key: (ctx) {
+            onMessageCalled = true;
+            return ctx.unhandled();
+          }
+        }));
+        await sm.start();
+
+        await sm.stop();
+
+        expect(sm.isEnded, isTrue);
+        expect(onMessageCalled, isFalse);
+      });
+
+      test('should emit transition', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start();
+        final transitionsQ = StreamQueue(sm.transitions);
+
+        final qItems = await Future.wait([transitionsQ.next, sm.stop()]);
+
+        final transition = qItems[0];
+        expect(transition.from, equals(tree.r_a_a_2_key));
+        expect(transition.to, equals(StoppedTreeState.key));
+      });
+
+      test('should throw if not started', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        expect(() => sm.stop(), throwsStateError);
       });
     });
 

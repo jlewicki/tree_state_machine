@@ -69,9 +69,8 @@ class Machine {
     }
 
     final msgCtx = MachineMessageContext(message, _currentNode.node, this);
-    final msgResult = identical(message, stopMessage)
-        ? GoToResult(stoppedStateKey)
-        : await _handleMessage(currentNode, msgCtx);
+    final msgResult =
+        identical(message, stopMessage) ? StopResult() : await _handleMessage(currentNode, msgCtx);
     final msgProcessed = await _handleMessageResult(msgResult, msgCtx);
     msgCtx.dispose();
     return msgProcessed;
@@ -105,6 +104,8 @@ class Machine {
       return _handleInternalTransition(result, msgCtx);
     } else if (result is SelfTransitionResult) {
       return _handleSelfTransition(result, msgCtx);
+    } else if (result is StopResult) {
+      return _handleStop(msgCtx);
     }
     assert(false, 'Unrecognized message result ${result.runtimeType}');
     return null;
@@ -169,6 +170,18 @@ class Machine {
       msgCtx.message,
       msgCtx.receivingNode.key,
       msgCtx.handlingNode.key,
+      transition,
+    );
+  }
+
+  Future<HandledMessage> _handleStop(MachineMessageContext msgCtx) async {
+    final toNode = _node(StoppedTreeState.key);
+    final path = NodePath(msgCtx.receivingNode, toNode.node);
+    final transition = await _doTransition(path);
+    return HandledMessage(
+      msgCtx.message,
+      StoppedTreeState.key,
+      StoppedTreeState.key,
       transition,
     );
   }
@@ -241,8 +254,8 @@ class Machine {
   }
 
   static void _addStoppedNode(TreeNode rootNode, Map<StateKey, TreeNode> nodesByKey) {
-    final stoppedState = LeafNode(stoppedStateKey, rootNode, (_) => StoppedTreeState());
-    nodesByKey[stoppedStateKey] = stoppedState;
+    final stoppedState = FinalNode(StoppedTreeState.key, rootNode, (_) => StoppedTreeState());
+    nodesByKey[StoppedTreeState.key] = stoppedState;
     rootNode.children.add(stoppedState);
   }
 }
@@ -447,4 +460,3 @@ class MachineNode {
 }
 
 final stopMessage = Object();
-final stoppedStateKey = StateKey.named('!TreeStateMachine.StoppedState!');
