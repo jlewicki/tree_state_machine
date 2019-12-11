@@ -4,13 +4,13 @@ import 'tree_builders.dart';
 import 'tree_state.dart';
 import 'tree_state_machine_impl.dart';
 
-/// A state machine that manages transitions among states that are arranged hierarchically into a
+/// A state machine that manages transitions among [TreeState]s that are arranged hierarchically into a
 /// tree.
 ///
 /// A [TreeStateMachine] is constructed with a [RootNodeBuilder] that will create the particular
 /// tree of states that the state machine manages. After the state machine is constructed, calling
-/// [start] will (asynchronously) enter the initial state for the tree. Once the machine is started,
-/// [currentState] will return information about the current state of the tree. Additionally,
+/// [start] (asynchronously) enters the initial state for the tree. Once the machine is started,
+/// [currentState] returns information about the current state of the tree. Additionally,
 /// [CurrentState.sendMessage] can be used to send messages to the state for processing, which may
 /// result in a transition to a new state.
 ///
@@ -135,9 +135,9 @@ class TreeStateMachine {
   ///
   /// [initialStateKey] may be used to indicate the initial state. If provided, the state machine
   /// will transition from the root state to this state. If the initial state is a leaf state, that
-  /// still will be the current state when the retured future completes. Otherwise, the state
-  /// machine will follow the initial child path for the initial state, until a leaf node is
-  /// reached. This leaf will be then become the current state when the retured future completes
+  /// will be the current state when the retured future completes. Otherwise, the state machine will
+  /// follow the initial child path for the initial state, until a leaf node is reached. This leaf
+  /// becomes the current state when the retured future completes.
   ///
   /// If no initial state is specifed, the state machine will follow the initial child path starting
   /// from the root until a leaf node is reached.
