@@ -579,6 +579,48 @@ void main() {
 
         expect(() => sm.currentState.sendMessage(null), throwsArgumentError);
       });
+
+      test('should queue messages', () async {
+        final msg1 = Object();
+        final msg2 = Object();
+        final msg3 = Object();
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder(
+          messageHandlers: {
+            tree.r_a_a_2_key: (msgCtx) =>
+                msgCtx.message == msg1 ? msgCtx.goTo(tree.r_a_a_1_key) : msgCtx.unhandled(),
+            tree.r_a_a_1_key: (msgCtx) =>
+                msgCtx.message == msg2 ? msgCtx.goTo(tree.r_b_1_key) : msgCtx.unhandled(),
+            tree.r_b_1_key: (msgCtx) =>
+                msgCtx.message == msg3 ? msgCtx.goTo(tree.r_b_2_key) : msgCtx.unhandled(),
+          },
+        ));
+        await sm.start();
+
+        final msg1Future = sm.currentState.sendMessage(msg1);
+        final msg2Future = sm.currentState.sendMessage(msg2);
+        final msg3Future = sm.currentState.sendMessage(msg3);
+
+        await Future.wait([msg1Future, msg2Future, msg3Future]);
+        expect(sm.currentState.key, equals(tree.r_b_2_key));
+
+        var result = await msg1Future;
+        expect(result, isA<HandledMessage>());
+        var handled = result as HandledMessage;
+        expect(handled.receivingState, equals(tree.r_a_a_2_key));
+        expect(handled.transition.to, equals(tree.r_a_a_1_key));
+
+        result = await msg2Future;
+        expect(result, isA<HandledMessage>());
+        handled = result as HandledMessage;
+        expect(handled.receivingState, equals(tree.r_a_a_1_key));
+        expect(handled.transition.to, equals(tree.r_b_1_key));
+
+        result = await msg3Future;
+        expect(result, isA<HandledMessage>());
+        handled = result as HandledMessage;
+        expect(handled.receivingState, equals(tree.r_b_1_key));
+        expect(handled.transition.to, equals(tree.r_b_2_key));
+      });
     });
 
     group('isActiveState', () {

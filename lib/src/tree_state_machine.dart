@@ -45,11 +45,14 @@ class TreeStateMachine {
   final Machine _machine;
   final StreamController<Transition> _transitions = StreamController.broadcast();
   final StreamController<MessageProcessed> _processedMessages = StreamController.broadcast();
+  final StreamController<_QueuedMessage> _messageQueue = StreamController.broadcast();
   bool _isStarted = false;
   Future<Transition> _startFuture;
   CurrentState _currentState;
 
-  TreeStateMachine._(this._machine);
+  TreeStateMachine._(this._machine) {
+    _messageQueue.stream.listen(this._onMessage);
+  }
 
   factory TreeStateMachine.forRoot(RootNodeBuilder buildRoot) {
     ArgumentError.checkNotNull(buildRoot, 'buildRoot');
@@ -176,7 +179,13 @@ class TreeStateMachine {
     if (!isStarted) {
       throw StateError('This TreeStateMachine has not been started.');
     }
-    return this.isEnded ? Future.value() : _processMessage(stopMessage);
+    return this.isEnded
+        ? Future.value()
+        : _processMessage(stopMessage).then((_) {
+            _processedMessages.close();
+            _transitions.close();
+            _messageQueue.close();
+          });
   }
 
   /// Writes the active state data of the state machine to the specified sink.
@@ -285,7 +294,7 @@ class TreeStateMachine {
     }
   }
 
-  Future<MessageProcessed> _processMessage(Object message) async {
+  void _onMessage(_QueuedMessage queuedMessage) async {
     MessageProcessed result;
     Transition transition;
     final receivingState = _machine.currentNode.key;
@@ -298,18 +307,24 @@ class TreeStateMachine {
     }
 
     try {
-      result = await _machine.processMessage(message);
+      result = await _machine.processMessage(queuedMessage.message);
       transition = result is HandledMessage ? result.transition : null;
-      // Note that our stream controllers are async, so that this method will complete before events
-      // are visible to listeners.
       raiseEvents(result, transition);
     } catch (ex, stack) {
-      result = FailedMessage(message, receivingState, ex, stack);
+      result = FailedMessage(queuedMessage.message, receivingState, ex, stack);
       raiseEvents(result);
-      //rethrow;
     }
 
-    return result;
+    queuedMessage.completer.complete(result);
+  }
+
+  Future<MessageProcessed> _processMessage(Object message) async {
+    // Add the message to the stream processor, which includes a buffering mechanism. That ensures
+    // messages will be processed in-order, when messages are sent to the state machine without
+    // waiting for earlier messages to be procesed.
+    final completer = Completer<MessageProcessed>();
+    _messageQueue.add(_QueuedMessage(message, completer));
+    return completer.future;
   }
 }
 
@@ -353,6 +368,9 @@ class CurrentState {
 
   /// Sends the specified message to the current leaf state for processing.
   ///
+  /// Messages are buffered and processed in-order, so it is safe to call [sendMessage] multiple
+  /// times without waiting for the futures returned by earlier calls to complete.
+  ///
   /// Returns a future that yields a [MessageProcessed] describing how the message was processed,
   /// and any state transition that occured.
   Future<MessageProcessed> sendMessage(Object message) {
@@ -361,9 +379,17 @@ class CurrentState {
   }
 }
 
+// Helper class pairing a message, and the completer that will signal the message was processed.
+class _QueuedMessage {
+  final Object message;
+  final Completer<MessageProcessed> completer;
+  _QueuedMessage(this.message, this.completer);
+}
+
 // Root state for wrapping 'flat' list of leaf states.
 class _RootState extends EmptyTreeState {}
 
+// Serialiable data for an active state in the tree.
 class EncodableState {
   String key;
   Object encodedData;
@@ -381,6 +407,7 @@ class EncodableState {
       };
 }
 
+// Serializable data for the state tree.
 class EncodableTree {
   String version;
   List<EncodableState> states;
