@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+
 import 'tree_node.dart';
 import 'tree_state.dart';
 
@@ -12,11 +13,15 @@ class Machine {
   Machine._(this.rootNode, this.nodes);
 
   factory Machine(TreeNode rootNode, Map<StateKey, TreeNode> nodesByKey) {
+    // Add an extra node to represent externally stopped state
+    _addStoppedNode(rootNode, nodesByKey);
+
     final machineRoot = MachineNode(rootNode);
     final machineNodes = HashMap<StateKey, MachineNode>();
     for (final entry in nodesByKey.entries) {
       machineNodes[entry.key] = MachineNode(entry.value);
     }
+
     return Machine._(machineRoot, machineNodes);
   }
 
@@ -64,7 +69,9 @@ class Machine {
     }
 
     final msgCtx = MachineMessageContext(message, _currentNode.node, this);
-    final msgResult = await _handleMessage(currentNode, msgCtx);
+    final msgResult = identical(message, stopMessage)
+        ? GoToResult(stoppedStateKey)
+        : await _handleMessage(currentNode, msgCtx);
     final msgProcessed = await _handleMessageResult(msgResult, msgCtx);
     msgCtx.dispose();
     return msgProcessed;
@@ -231,6 +238,12 @@ class Machine {
       );
     }
     return machineNode;
+  }
+
+  static void _addStoppedNode(TreeNode rootNode, Map<StateKey, TreeNode> nodesByKey) {
+    final stoppedState = LeafNode(stoppedStateKey, rootNode, (_) => StoppedTreeState());
+    nodesByKey[stoppedStateKey] = stoppedState;
+    rootNode.children.add(stoppedState);
   }
 }
 
@@ -432,3 +445,6 @@ class MachineNode {
     }
   }
 }
+
+final stopMessage = Object();
+final stoppedStateKey = StateKey.named('!TreeStateMachine.StoppedState!');

@@ -1,5 +1,7 @@
 import 'dart:collection';
+
 import 'package:meta/meta.dart';
+
 import 'data_provider.dart';
 import 'tree_node.dart';
 import 'tree_state.dart';
