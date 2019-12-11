@@ -448,10 +448,10 @@ class UnhandledMessage extends MessageProcessed {
 }
 
 @immutable
-class ProcessingError extends MessageProcessed {
+class FailedMessage extends MessageProcessed {
   final Object error;
   final StackTrace stackTrace;
-  const ProcessingError(Object message, StateKey receivingState, this.error, this.stackTrace)
+  const FailedMessage(Object message, StateKey receivingState, this.error, this.stackTrace)
       : super._(message, receivingState);
 }
 

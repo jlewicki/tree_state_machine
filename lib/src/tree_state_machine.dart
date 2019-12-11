@@ -4,34 +4,35 @@ import 'tree_builders.dart';
 import 'tree_state.dart';
 import 'tree_state_machine_impl.dart';
 
-/// A state machine that manages transitions among states that are arranged hierarchically into a tree.
+/// A state machine that manages transitions among states that are arranged hierarchically into a
+/// tree.
 ///
-/// A [TreeStateMachine] is constructed with a [RootNodeBuilder] that will create the particular tree of states that
-/// the state machine manages. After the state machine is constructed, calling [start] will (asynchronously) enter the
-/// initial state for the tree. Once the machine is started, [currentState] will return information about the current
-/// state of the tree. Additionally, [CurrentState.sendMessage] can be used to send messages to the state for
-/// processing, which may result in a transition to a new state.
+/// A [TreeStateMachine] is constructed with a [RootNodeBuilder] that will create the particular
+/// tree of states that the state machine manages. After the state machine is constructed, calling
+/// [start] will (asynchronously) enter the initial state for the tree. Once the machine is started,
+/// [currentState] will return information about the current state of the tree. Additionally,
+/// [CurrentState.sendMessage] can be used to send messages to the state for processing, which may
+/// result in a transition to a new state.
 ///
-/// The tree of states for a [TreeStateMachine] always has a single root state, and two or more leaf states. There may
-/// be any number of interior states
+/// [TreeStateMachine] provides several event streams that may be used to observe how messages sent
+/// to the machine are processed, and what state transitions occur.
+///  * [processedMessages] yields an event for every message that is processed by the tree, whether
+///    or not the message was handled successfully, and whether or not a transition occurred as a
+///    result of the message.
+///  * [handledMessages] is a convenience stream that yield an event when only when a message is
+///    successfully handled.
+///  * [transitions] yields an event each time a transition between states occurs.
 ///
-/// ```dart
-/// final treeBuilder = rootBuilder(
-///   children: [
-///     leafBuilder(),
-///     leafBuilder(),
-///   ]
-/// );
-/// final machine = TreeStateMachine(treeBuilder);
-/// await machine.start();
-/// machine.currentState.sendMessage(MyMessage());
-/// ```
+/// ## Error Handling
 ///
-/// [TreeStateMachine] provides several event streams that may be used to observe how messages sent to the machine are
-/// processed, and what state transitions occur. [processedMessages] yields an event for every message that is processed
-/// by the tree, whether or not the message was handled successfully, and whether or not a transition occurred as a
-/// result of the message. [handledMessages] is a convenience stream that yield an event when only when a message is
-/// successfully handled. [transitions] yields an event each time a transition between states occurs.
+/// Errors may occur when as state processes a message. This can happen in the [TreeState.onMessage]
+/// handler while the state is processing the message, or it can happen during a state transition
+/// in the [TreeState.onExit] handler of one of the states that is being exited, or in the
+/// [TreeState.onEnter] handler of one of the states that is being entered.
+///
+/// In either case the state machine catches the error internally, converts it to a [FailedMessage],
+/// and yields it from he future returned from [CurrentState.sendMessage]. The [FailedMessage] is
+/// also emitted on he [failedMessages] stream.
 ///
 /// See also:
 ///
@@ -99,7 +100,7 @@ class TreeStateMachine {
   /// machine.
   Stream<Transition> get transitions => _transitions.stream;
 
-  /// Stream of [MessageProcessed] events.
+  /// Broadcast stream of [MessageProcessed] events.
   ///
   /// A [MessageProcessed] event is raised on this stream when a message was processed by a state
   /// within the state machine. The result of this processing may have resulted in a state
@@ -111,7 +112,7 @@ class TreeStateMachine {
   /// type of the event to determine what occurred.
   Stream<MessageProcessed> get processedMessages => _processedMessages.stream;
 
-  /// Stream of [HandledMessage] events.
+  /// Broadcast stream of [HandledMessage] events.
   ///
   /// A [HandledMessage] is raised on this stream when a message was successfully handled a state
   /// within the state machine.
@@ -120,14 +121,14 @@ class TreeStateMachine {
   Stream<HandledMessage> get handledMessages =>
       Stream.castFrom(processedMessages.where((mp) => mp is HandledMessage));
 
-  /// Stream of [ProcessingError] events.
+  /// Broadcast stream of [FailedMessage] events.
   ///
-  /// A [ProcessingError] is raised on this stream when an error was thrown from one of a states
+  /// A [FailedMessage] is raised on this stream when an error was thrown from one of a states
   /// handler functions while a message was being handled or during a state transition.
   ///
-  /// Note that the [ProcessingError] is also raised on the [processedMessages] stream.
-  Stream<ProcessingError> get errors =>
-      Stream.castFrom(processedMessages.where((mp) => mp is ProcessingError));
+  /// Note that the [FailedMessage] is also raised on the [processedMessages] stream.
+  Stream<FailedMessage> get failedMessages =>
+      Stream.castFrom(processedMessages.where((mp) => mp is FailedMessage));
 
   /// Starts the state machine, transitioning the current state to the initial state of the state
   /// tree.
@@ -154,11 +155,11 @@ class TreeStateMachine {
     return transition;
   }
 
-  /// Writes the active states of the state machine to the specified sink.
+  /// Writes the active state data of the state machine to the specified sink.
   ///
-  /// Saving the active states allows the state of running state machine to be written to external
-  /// storage. This state can be reloaded at a later time, potentially in a seperate application
-  /// session, into the state machine using [loadFrom].
+  /// Saving the active state data allows the state of running state machine to be written to
+  /// external storage. This state can be reloaded at a later time, potentially in a seperate
+  /// application session, into the state machine using [loadFrom].
   ///
   /// Only information about the active states (the current leaf state and its ancestors) is saved.
   /// This means that when restoring, the state machine on which [loadFrom] is called must be
@@ -189,6 +190,14 @@ class TreeStateMachine {
         .pipe(sink);
   }
 
+  /// Initializes the active state data of the state machhine by reading the specified stream.
+  ///
+  /// The data contained in [stream] should have been generated by a previous call to [saveTo] on
+  /// a state machine that is was constructed with the same tree definition as this machine.
+  ///
+  /// Note that this method can only be called on a state machine that has not been started. When
+  /// the returned future completes, the state machine will have been started, with the current state
+  /// matching the current state recorded in the stream.
   Future loadFrom(Stream<List<int>> stream) async {
     ArgumentError.checkNotNull(stream, 'stream');
     if (isStarted) {
@@ -257,25 +266,30 @@ class TreeStateMachine {
     Transition transition;
     final receivingState = _machine.currentNode.key;
 
+    void raiseEvents(MessageProcessed result, [Transition transition]) {
+      _processedMessages.add(result);
+      if (transition != null) {
+        _transitions.add(transition);
+      }
+    }
+
     try {
       result = await _machine.processMessage(message);
       transition = result is HandledMessage ? result.transition : null;
+      // Note that our stream controllers are async, so that this method will complete before events
+      // are visible to listeners.
+      raiseEvents(result, transition);
     } catch (ex, stack) {
-      result = ProcessingError(message, receivingState, ex, stack);
-    }
-
-    // Raise events. Note that our stream controllers are async, so that this method will complete
-    // before events are visible to listeners.
-    _processedMessages.add(result);
-    if (transition != null) {
-      _transitions.add(transition);
+      result = FailedMessage(message, receivingState, ex, stack);
+      raiseEvents(result);
+      //rethrow;
     }
 
     return result;
   }
 }
 
-/// Describes the state that is the current leaf state of a [TreeStateMachine].
+/// Describes the current leaf state of a [TreeStateMachine].
 class CurrentState {
   final TreeStateMachine _treeStateMachine;
   CurrentState._(this._treeStateMachine);

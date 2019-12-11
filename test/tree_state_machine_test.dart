@@ -6,9 +6,10 @@ import 'package:test/test.dart';
 import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 import 'package:tree_state_machine/src/tree_state_machine.dart';
+
 import 'fixture/data_tree.dart' as data_tree;
-import 'fixture/tree_1.dart' as tree;
 import 'fixture/flat_tree_1.dart' as flat_tree;
+import 'fixture/tree_1.dart' as tree;
 import 'fixture/tree_data.dart';
 
 void main() {
@@ -120,7 +121,7 @@ void main() {
         expect(msgProcessed.message, same(msg));
       });
 
-      test('should return ProcessingError if exception is thrown in message handler', () async {
+      test('should return FailedMessage if error is thrown in message handler', () async {
         final ex = Exception('oops');
         final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
           tree.r_a_a_2_key: (ctx) => throw ex,
@@ -130,21 +131,21 @@ void main() {
         final message = Object();
         final result = await sm.currentState.sendMessage(message);
 
-        expect(result, isA<ProcessingError>());
-        final error = result as ProcessingError;
+        expect(result, isA<FailedMessage>());
+        final error = result as FailedMessage;
         expect(error.message, same(message));
         expect(error.receivingState, equals(tree.r_a_a_2_key));
         expect(error.error, same(ex));
       });
 
-      test('should emit ProcessingError if exception is thrown in message handler', () async {
+      test('should emit FailedMessage if error is thrown in entry handler', () async {
         final ex = Exception('oops');
         final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
           tree.r_a_a_2_key: (ctx) => throw ex,
         }));
         await sm.start();
 
-        final errorsQ = StreamQueue(sm.errors);
+        final errorsQ = StreamQueue(sm.failedMessages);
 
         final msg = Object();
         final qItems = await Future.wait(
@@ -154,20 +155,25 @@ void main() {
         final msgProcessed = qItems[0];
         expect(msgProcessed.receivingState, equals(tree.r_a_a_2_key));
         expect(msgProcessed.message, same(msg));
-        expect(msgProcessed, isA<ProcessingError>());
-        final error = msgProcessed as ProcessingError;
+        expect(msgProcessed, isA<FailedMessage>());
+        final error = msgProcessed as FailedMessage;
         expect(error.error, same(ex));
         expect(error.stackTrace, isNotNull);
       });
 
-      test('should emit ProcessingError if exception is thrown in transition handler', () async {
+      test('should emit FailedMessage if error is thrown in exit handler', () async {
         final ex = Exception('oops');
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
-          tree.r_a_a_2_key: (ctx) => throw ex,
-        }));
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder(
+          messageHandlers: {
+            tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_b_1_key),
+          },
+          exitHandlers: {
+            tree.r_a_key: (ctx) => throw ex,
+          },
+        ));
         await sm.start();
 
-        final errorsQ = StreamQueue(sm.errors);
+        final errorsQ = StreamQueue(sm.failedMessages);
 
         final msg = Object();
         final qItems = await Future.wait(
@@ -177,13 +183,41 @@ void main() {
         final msgProcessed = qItems[0];
         expect(msgProcessed.receivingState, equals(tree.r_a_a_2_key));
         expect(msgProcessed.message, same(msg));
-        expect(msgProcessed, isA<ProcessingError>());
-        final error = msgProcessed as ProcessingError;
+        expect(msgProcessed, isA<FailedMessage>());
+        final error = msgProcessed as FailedMessage;
         expect(error.error, same(ex));
         expect(error.stackTrace, isNotNull);
       });
 
-      test('should keep current state if exception is thrown in message handler', () async {
+      test('should emit FailedMessage if exception is thrown in onEnter handler', () async {
+        final ex = Exception('oops');
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder(
+          messageHandlers: {
+            tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_b_1_key),
+          },
+          entryHandlers: {
+            tree.r_b_key: (ctx) => throw ex,
+          },
+        ));
+        await sm.start();
+
+        final errorsQ = StreamQueue(sm.failedMessages);
+
+        final msg = Object();
+        final qItems = await Future.wait(
+          [errorsQ.next, sm.currentState.sendMessage(msg)],
+        );
+
+        final msgProcessed = qItems[0];
+        expect(msgProcessed.receivingState, equals(tree.r_a_a_2_key));
+        expect(msgProcessed.message, same(msg));
+        expect(msgProcessed, isA<FailedMessage>());
+        final error = msgProcessed as FailedMessage;
+        expect(error.error, same(ex));
+        expect(error.stackTrace, isNotNull);
+      });
+
+      test('should keep current state if error is thrown in message handler', () async {
         final ex = Exception('oops');
         final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
           tree.r_a_a_2_key: (ctx) => throw ex,
@@ -193,14 +227,14 @@ void main() {
         final message = Object();
         final result = await sm.currentState.sendMessage(message);
 
-        expect(result, isA<ProcessingError>());
-        final error = result as ProcessingError;
+        expect(result, isA<FailedMessage>());
+        final error = result as FailedMessage;
         expect(error.message, same(message));
         expect(error.receivingState, equals(tree.r_a_a_2_key));
         expect(error.error, same(ex));
       });
 
-      test('should keep current state if exception is thrown in transition handler', () async {
+      test('should keep current state if error is thrown in transition handler', () async {
         final ex = Exception('oops');
         final sm = TreeStateMachine.forRoot(tree.treeBuilder(
           messageHandlers: {
@@ -215,8 +249,8 @@ void main() {
         final message = Object();
         final result = await sm.currentState.sendMessage(message);
 
-        expect(result, isA<ProcessingError>());
-        final error = result as ProcessingError;
+        expect(result, isA<FailedMessage>());
+        final error = result as FailedMessage;
         expect(error.message, same(message));
         expect(error.receivingState, equals(tree.r_a_a_2_key));
         expect(error.error, same(ex));
