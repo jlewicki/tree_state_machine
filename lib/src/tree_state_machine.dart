@@ -1,5 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+
+import 'package:tree_state_machine/src/lifecycle.dart';
+import 'package:tree_state_machine/tree_state_machine.dart';
+
 import 'tree_builders.dart';
 import 'tree_state.dart';
 import 'tree_state_machine_impl.dart';
@@ -42,12 +46,15 @@ import 'tree_state_machine_impl.dart';
 ///   UML state machine diagrams.
 class TreeStateMachine {
   final Machine _machine;
+  final Lifecycle _lifecycle = Lifecycle();
   final StreamController<Transition> _transitions = StreamController.broadcast();
   final StreamController<MessageProcessed> _processedMessages = StreamController.broadcast();
-  bool _isStarted = false;
+  final StreamController<_QueuedMessage> _messageQueue = StreamController.broadcast();
   CurrentState _currentState;
 
-  TreeStateMachine._(this._machine);
+  TreeStateMachine._(this._machine) {
+    _messageQueue.stream.listen(this._onMessage);
+  }
 
   factory TreeStateMachine.forRoot(RootNodeBuilder buildRoot) {
     ArgumentError.checkNotNull(buildRoot, 'buildRoot');
@@ -81,13 +88,14 @@ class TreeStateMachine {
     ));
   }
 
-  /// Returns `true` if [start] has been called.
-  bool get isStarted => _isStarted;
+  /// Returns `true` if the future returned by [start] has completed..
+  bool get isStarted => _lifecycle.isStarted;
 
   /// Returns `true` if the state machine has ended.
   ///
-  /// A state machine ends when a final state is entered.
-  bool get isEnded => isStarted && _machine.currentNode.isFinal;
+  /// A state machine ends when a final state is entered. This may have occurred because transition
+  /// to a final state has occurred as result of processing a message, or because [stop] was called.
+  bool get isEnded => _machine.currentNode?.isFinal ?? false;
 
   /// The current state of the state machine.
   ///
@@ -142,17 +150,37 @@ class TreeStateMachine {
   /// If no initial state is specifed, the state machine will follow the initial child path starting
   /// from the root until a leaf node is reached.
   ///
-  /// A [StateError] is thrown if [start] has already been called.
-  Future<Transition> start([StateKey initialStateKey]) async {
-    if (isStarted) {
-      throw StateError('This TreeStateMachine has already been started.');
-    }
+  /// It is safe to call [start] when the state machine is already started. It is also safe to call
+  /// [start] if the state machine has been stopped, in which case the state machine will be
+  /// restarted, and will re-enter the initial state.
+  Future start([StateKey initialStateKey]) {
+    return _lifecycle.start(() async {
+      final transition = await _machine.enterInitialState(initialStateKey);
+      _currentState = CurrentState._(this);
+      _transitions.add(transition);
+      return transition;
+    });
+  }
 
-    final transition = await _machine.enterInitialState(initialStateKey);
-    _currentState = CurrentState._(this);
-    _transitions.add(transition);
-    _isStarted = true;
-    return transition;
+  /// Stops the state machine.
+  ///
+  /// Stopping the state machine will cause a transition to the [StoppedTreeState]. This transition
+  /// is irrevokable, and the message handler of the current leaf state will not be called.
+  ///
+  /// When the returned future completes, the state machine will be in a final state, and [isEnded]
+  /// will return true.
+  ///
+  /// It is safe to call this method when [isEnded] is `true`.
+  Future stop() {
+    return _lifecycle.stop(() => _processMessage(stopMessage));
+  }
+
+  void dispose() {
+    _lifecycle.dispose(() {
+      _transitions.close();
+      _processedMessages.close();
+      _messageQueue.close();
+    });
   }
 
   /// Writes the active state data of the state machine to the specified sink.
@@ -261,7 +289,7 @@ class TreeStateMachine {
     }
   }
 
-  Future<MessageProcessed> _processMessage(Object message) async {
+  void _onMessage(_QueuedMessage queuedMessage) async {
     MessageProcessed result;
     Transition transition;
     final receivingState = _machine.currentNode.key;
@@ -274,18 +302,24 @@ class TreeStateMachine {
     }
 
     try {
-      result = await _machine.processMessage(message);
+      result = await _machine.processMessage(queuedMessage.message);
       transition = result is HandledMessage ? result.transition : null;
-      // Note that our stream controllers are async, so that this method will complete before events
-      // are visible to listeners.
       raiseEvents(result, transition);
     } catch (ex, stack) {
-      result = FailedMessage(message, receivingState, ex, stack);
+      result = FailedMessage(queuedMessage.message, receivingState, ex, stack);
       raiseEvents(result);
-      //rethrow;
     }
 
-    return result;
+    queuedMessage.completer.complete(result);
+  }
+
+  Future<MessageProcessed> _processMessage(Object message) async {
+    // Add the message to the stream processor, which includes a buffering mechanism. That ensures
+    // messages will be processed in-order, when messages are sent to the state machine without
+    // waiting for earlier messages to be procesed.
+    final completer = Completer<MessageProcessed>();
+    _messageQueue.add(_QueuedMessage(message, completer));
+    return completer.future;
   }
 }
 
@@ -329,6 +363,9 @@ class CurrentState {
 
   /// Sends the specified message to the current leaf state for processing.
   ///
+  /// Messages are buffered and processed in-order, so it is safe to call [sendMessage] multiple
+  /// times without waiting for the futures returned by earlier calls to complete.
+  ///
   /// Returns a future that yields a [MessageProcessed] describing how the message was processed,
   /// and any state transition that occured.
   Future<MessageProcessed> sendMessage(Object message) {
@@ -337,9 +374,17 @@ class CurrentState {
   }
 }
 
+// Helper class pairing a message, and the completer that will signal the message was processed.
+class _QueuedMessage {
+  final Object message;
+  final Completer<MessageProcessed> completer;
+  _QueuedMessage(this.message, this.completer);
+}
+
 // Root state for wrapping 'flat' list of leaf states.
 class _RootState extends EmptyTreeState {}
 
+// Serialiable data for an active state in the tree.
 class EncodableState {
   String key;
   Object encodedData;
@@ -357,6 +402,7 @@ class EncodableState {
       };
 }
 
+// Serializable data for the state tree.
 class EncodableTree {
   String version;
   List<EncodableState> states;

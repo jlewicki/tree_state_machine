@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+
 import 'tree_node.dart';
 import 'tree_state.dart';
 
@@ -12,11 +13,15 @@ class Machine {
   Machine._(this.rootNode, this.nodes);
 
   factory Machine(TreeNode rootNode, Map<StateKey, TreeNode> nodesByKey) {
+    // Add an extra node to represent externally stopped state
+    _addStoppedNode(rootNode, nodesByKey);
+
     final machineRoot = MachineNode(rootNode);
     final machineNodes = HashMap<StateKey, MachineNode>();
     for (final entry in nodesByKey.entries) {
       machineNodes[entry.key] = MachineNode(entry.value);
     }
+
     return Machine._(machineRoot, machineNodes);
   }
 
@@ -56,7 +61,7 @@ class Machine {
       await enterInitialState(initialNode.node.key);
     }
 
-    // If the state machine is in a final state, do not dispatch the message for proccessing,
+    // If the state machine is in a final state, do not dispatch the message for processing,
     // since there is no point.
     if (currentNode.isFinal) {
       final msgProcessed = UnhandledMessage(message, currentNode.key, const []);
@@ -64,7 +69,8 @@ class Machine {
     }
 
     final msgCtx = MachineMessageContext(message, _currentNode.node, this);
-    final msgResult = await _handleMessage(currentNode, msgCtx);
+    final msgResult =
+        identical(message, stopMessage) ? StopResult() : await _handleMessage(currentNode, msgCtx);
     final msgProcessed = await _handleMessageResult(msgResult, msgCtx);
     msgCtx.dispose();
     return msgProcessed;
@@ -98,6 +104,8 @@ class Machine {
       return _handleInternalTransition(result, msgCtx);
     } else if (result is SelfTransitionResult) {
       return _handleSelfTransition(result, msgCtx);
+    } else if (result is StopResult) {
+      return _handleStop(msgCtx);
     }
     assert(false, 'Unrecognized message result ${result.runtimeType}');
     return null;
@@ -162,6 +170,18 @@ class Machine {
       msgCtx.message,
       msgCtx.receivingNode.key,
       msgCtx.handlingNode.key,
+      transition,
+    );
+  }
+
+  Future<HandledMessage> _handleStop(MachineMessageContext msgCtx) async {
+    final toNode = _node(StoppedTreeState.key);
+    final path = NodePath(msgCtx.receivingNode, toNode.node);
+    final transition = await _doTransition(path);
+    return HandledMessage(
+      msgCtx.message,
+      StoppedTreeState.key,
+      StoppedTreeState.key,
       transition,
     );
   }
@@ -231,6 +251,12 @@ class Machine {
       );
     }
     return machineNode;
+  }
+
+  static void _addStoppedNode(TreeNode rootNode, Map<StateKey, TreeNode> nodesByKey) {
+    final stoppedState = FinalNode(StoppedTreeState.key, rootNode, (_) => StoppedTreeState());
+    nodesByKey[StoppedTreeState.key] = stoppedState;
+    rootNode.children.add(stoppedState);
   }
 }
 
@@ -432,3 +458,5 @@ class MachineNode {
     }
   }
 }
+
+final stopMessage = Object();

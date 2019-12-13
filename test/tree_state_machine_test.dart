@@ -36,20 +36,27 @@ void main() {
     });
 
     group('start', () {
-      test('should throw when already started', () async {
+      test('should remain started if already started', () async {
         final sm = TreeStateMachine.forLeaves(flat_tree.leaves, flat_tree.r_1_key);
         await sm.start();
-        expect(() async => sm.start(), throwsStateError);
+        await sm.start();
+        expect(sm.isStarted, isTrue);
+      });
+
+      test('should return same future when called more than once', () async {
+        final sm = TreeStateMachine.forLeaves(flat_tree.leaves, flat_tree.r_1_key);
+        final future1 = sm.start();
+        final future2 = sm.start();
+        expect(future1, same(future2));
       });
 
       test('should set current state to initial state', () async {
         final sm = TreeStateMachine.forRoot(tree.treeBuilder());
 
-        final initialTransition = await sm.start();
+        await sm.start();
 
         expect(sm.currentState, isNotNull);
         expect(sm.currentState.key, equals(tree.r_a_a_2_key));
-        expect(sm.currentState.key, equals(initialTransition.to));
       });
 
       test('should emit transition', () async {
@@ -70,6 +77,67 @@ void main() {
             tree.r_a_a_2_key,
           ]),
         );
+      });
+
+      test('should restart if stopped', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start();
+        await sm.stop();
+
+        final transitionsQ = StreamQueue(sm.transitions);
+        final qItems = await Future.wait([transitionsQ.next, sm.start()]);
+
+        expect(sm.currentState, isNotNull);
+        expect(sm.currentState.key, equals(tree.r_a_a_2_key));
+        final transition = qItems[0];
+        expect(transition.from, equals(tree.r_key));
+        expect(transition.to, equals(tree.r_a_a_2_key));
+      });
+    });
+
+    group('stop', () {
+      test('should transition to Stopped state', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start();
+
+        await sm.stop();
+
+        expect(sm.isEnded, isTrue);
+        expect(sm.currentState, isNotNull);
+        expect(sm.currentState.key, equals(StoppedTreeState.key));
+      });
+
+      test('should not dispatch message to current state', () async {
+        var onMessageCalled = false;
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+          tree.r_a_a_2_key: (ctx) {
+            onMessageCalled = true;
+            return ctx.unhandled();
+          }
+        }));
+        await sm.start();
+
+        await sm.stop();
+
+        expect(sm.isEnded, isTrue);
+        expect(onMessageCalled, isFalse);
+      });
+
+      test('should emit transition', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start();
+        final transitionsQ = StreamQueue(sm.transitions);
+
+        final qItems = await Future.wait([transitionsQ.next, sm.stop()]);
+
+        final transition = qItems[0];
+        expect(transition.from, equals(tree.r_a_a_2_key));
+        expect(transition.to, equals(StoppedTreeState.key));
+      });
+
+      test('should throw if not started', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        expect(() => sm.stop(), throwsStateError);
       });
     });
 
@@ -526,6 +594,48 @@ void main() {
 
         expect(() => sm.currentState.sendMessage(null), throwsArgumentError);
       });
+
+      test('should queue messages', () async {
+        final msg1 = Object();
+        final msg2 = Object();
+        final msg3 = Object();
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder(
+          messageHandlers: {
+            tree.r_a_a_2_key: (msgCtx) =>
+                msgCtx.message == msg1 ? msgCtx.goTo(tree.r_a_a_1_key) : msgCtx.unhandled(),
+            tree.r_a_a_1_key: (msgCtx) =>
+                msgCtx.message == msg2 ? msgCtx.goTo(tree.r_b_1_key) : msgCtx.unhandled(),
+            tree.r_b_1_key: (msgCtx) =>
+                msgCtx.message == msg3 ? msgCtx.goTo(tree.r_b_2_key) : msgCtx.unhandled(),
+          },
+        ));
+        await sm.start();
+
+        final msg1Future = sm.currentState.sendMessage(msg1);
+        final msg2Future = sm.currentState.sendMessage(msg2);
+        final msg3Future = sm.currentState.sendMessage(msg3);
+
+        await Future.wait([msg1Future, msg2Future, msg3Future]);
+        expect(sm.currentState.key, equals(tree.r_b_2_key));
+
+        var result = await msg1Future;
+        expect(result, isA<HandledMessage>());
+        var handled = result as HandledMessage;
+        expect(handled.receivingState, equals(tree.r_a_a_2_key));
+        expect(handled.transition.to, equals(tree.r_a_a_1_key));
+
+        result = await msg2Future;
+        expect(result, isA<HandledMessage>());
+        handled = result as HandledMessage;
+        expect(handled.receivingState, equals(tree.r_a_a_1_key));
+        expect(handled.transition.to, equals(tree.r_b_1_key));
+
+        result = await msg3Future;
+        expect(result, isA<HandledMessage>());
+        handled = result as HandledMessage;
+        expect(handled.receivingState, equals(tree.r_b_1_key));
+        expect(handled.transition.to, equals(tree.r_b_2_key));
+      });
     });
 
     group('isActiveState', () {
@@ -588,8 +698,11 @@ void main() {
         expect(() => sm.currentState.data<DelegateState>(), throwsStateError);
       });
 
-      test('shoud return null when data not available', () {
-        // TODO
+      test('shoud return null when data not available', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start();
+
+        expect(sm.currentState.data<tree.ReadOnlyData>(), isNull);
       });
     });
 
