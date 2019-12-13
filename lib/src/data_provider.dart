@@ -21,6 +21,7 @@ abstract class DataProvider<D> {
   void update(void Function() update);
 }
 
+/// A data provider that owns an updatable data instance of type `D`.
 class OwnedDataProvider<D> implements DataProvider<D> {
   final Object Function(D data) encoder;
   final D Function(Object encoded) decoder;
@@ -67,6 +68,8 @@ class OwnedDataProvider<D> implements DataProvider<D> {
   }
 }
 
+/// A data provider that provides a view of a data instance that is owned by the current leaf state
+/// of a state machine.
 class CurrentLeafDataProvider<D> implements DataProvider<D> {
   D Function() _getCurrentLeafData;
   @override

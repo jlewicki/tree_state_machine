@@ -9,14 +9,6 @@ void doDispose() {}
 
 void main() {
   group('Lifecycle', () {
-    // Lifecycle lifecycle({
-    //   Future Function() doStart,
-    //   Future Function() doStop,
-    //   void Function() doDispose,
-    // }) =>
-    //     Lifecycle(
-    //       doDispose ?? () {},
-    //     );
     Lifecycle lifecycle() => Lifecycle();
 
     group('start', () {
