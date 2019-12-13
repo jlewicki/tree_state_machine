@@ -5,17 +5,19 @@ final isDisposedError = TypeMatcher<DisposedError>();
 final Matcher throwsDisposedError = throwsA(isDisposedError);
 Future doStart() => Future.delayed(Duration(milliseconds: 100));
 Future doStop() => Future.delayed(Duration(milliseconds: 100));
+void doDispose() {}
 
 void main() {
   group('Lifecycle', () {
-    Lifecycle lifecycle({
-      Future Function() doStart,
-      Future Function() doStop,
-      void Function() doDispose,
-    }) =>
-        Lifecycle(
-          doDispose ?? () {},
-        );
+    // Lifecycle lifecycle({
+    //   Future Function() doStart,
+    //   Future Function() doStop,
+    //   void Function() doDispose,
+    // }) =>
+    //     Lifecycle(
+    //       doDispose ?? () {},
+    //     );
+    Lifecycle lifecycle() => Lifecycle();
 
     group('start', () {
       test('should be starting before future completes', () async {
@@ -66,7 +68,7 @@ void main() {
 
       test('should throw error when disposed', () async {
         final l = lifecycle();
-        l.dispose();
+        l.dispose(doDispose);
 
         expect(() => l.start(doStart), throwsDisposedError);
       });
@@ -95,6 +97,7 @@ void main() {
         final l = lifecycle();
         await l.start(() async {
           startCount += 1;
+          return startCount;
         });
         expect(startCount, equals(1));
       });
@@ -163,7 +166,7 @@ void main() {
 
       test('should yield error when disposed', () async {
         final l = lifecycle();
-        l.dispose();
+        l.dispose(doDispose);
 
         expect(() => l.stop(doStart), throwsDisposedError);
       });
@@ -198,6 +201,7 @@ void main() {
 
         await l.stop(() async {
           stopCount += 1;
+          return stopCount;
         });
         expect(stopCount, equals(1));
       });
@@ -221,63 +225,109 @@ void main() {
 
     group('dispose', () {
       test('should be disposed when new', () async {
+        var disposeCount = 0;
+        void doDispose() {
+          disposeCount += 1;
+        }
+
         final l = lifecycle();
 
-        l.dispose();
+        l.dispose(doDispose);
 
         expect(l.isDisposed, isTrue);
+        expect(disposeCount, equals(1));
       });
 
-      test('should be disposed when started', () async {
+      test('should be disposed when starting', () async {
+        var disposeCount = 0;
+        void doDispose() {
+          disposeCount += 1;
+        }
+
         final l = lifecycle();
         await l.start(doStart);
 
-        l.dispose();
+        l.dispose(doDispose);
 
         expect(l.isDisposed, isTrue);
+        expect(disposeCount, equals(1));
+      });
+
+      test('should be disposed when started', () async {
+        var disposeCount = 0;
+        void doDispose() {
+          disposeCount += 1;
+        }
+
+        final l = lifecycle();
+        await l.start(doStart);
+
+        l.dispose(doDispose);
+
+        expect(l.isDisposed, isTrue);
+        expect(disposeCount, equals(1));
       });
 
       test('should be disposed when stopping', () async {
+        var disposeCount = 0;
+        void doDispose() {
+          disposeCount += 1;
+        }
+
         final l = lifecycle();
         await l.start(doStart);
         l.stop(doStop);
 
-        l.dispose();
+        l.dispose(doDispose);
 
         expect(l.isDisposed, isTrue);
+        expect(disposeCount, equals(1));
       });
 
       test('should be disposed when stopped', () async {
+        var disposeCount = 0;
+        void doDispose() {
+          disposeCount += 1;
+        }
+
         final l = lifecycle();
         await l.start(doStart);
         await l.stop(doStop);
 
-        l.dispose();
+        l.dispose(doDispose);
 
         expect(l.isDisposed, isTrue);
+        expect(disposeCount, equals(1));
       });
 
-      test('should call doDispose callback', () async {
+      test('should be disposed when disposed', () async {
         var disposeCount = 0;
-        final l = lifecycle(doDispose: () {
+        void doDispose() {
           disposeCount += 1;
-        });
-        await l.start(doStart);
+        }
 
-        l.dispose();
-        expect(disposeCount, equals(1));
+        final l = lifecycle();
+        l.dispose(doDispose);
+        disposeCount = 0;
+
+        l.dispose(doDispose);
+
+        expect(l.isDisposed, isTrue);
+        expect(disposeCount, equals(0));
       });
 
       test('should call doDispose callback only once if called more than once', () async {
         var disposeCount = 0;
-        final l = lifecycle(doDispose: () {
+        void doDispose() {
           disposeCount += 1;
-        });
+        }
+
+        final l = lifecycle();
         await l.start(doStart);
 
-        l.dispose();
-        l.dispose();
-        l.dispose();
+        l.dispose(doDispose);
+        l.dispose(doDispose);
+        l.dispose(doDispose);
         expect(disposeCount, equals(1));
       });
     });

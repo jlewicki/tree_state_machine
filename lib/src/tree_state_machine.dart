@@ -46,19 +46,13 @@ import 'tree_state_machine_impl.dart';
 ///   UML state machine diagrams.
 class TreeStateMachine {
   final Machine _machine;
-  final Lifecycle _lifecycle;
-  final StreamController<Transition> _transitions;
-  final StreamController<MessageProcessed> _processedMessages;
-  final StreamController<_QueuedMessage> _messageQueue;
+  final Lifecycle _lifecycle = Lifecycle();
+  final StreamController<Transition> _transitions = StreamController.broadcast();
+  final StreamController<MessageProcessed> _processedMessages = StreamController.broadcast();
+  final StreamController<_QueuedMessage> _messageQueue = StreamController.broadcast();
   CurrentState _currentState;
 
-  TreeStateMachine._(
-    this._machine,
-    this._lifecycle,
-    this._transitions,
-    this._processedMessages,
-    this._messageQueue,
-  ) {
+  TreeStateMachine._(this._machine) {
     _messageQueue.stream.listen(this._onMessage);
   }
 
@@ -75,17 +69,8 @@ class TreeStateMachine {
     final buildCtx = TreeBuildContext(getCurrentLeafData);
     final rootNode = buildRoot(buildCtx);
     final machine = Machine(rootNode, buildCtx.nodes);
-    final transitions = StreamController<Transition>.broadcast();
-    final processedMessages = StreamController<MessageProcessed>.broadcast();
-    final messageQueue = StreamController<_QueuedMessage>.broadcast();
-    final lifecycle = Lifecycle(() {
-      transitions.close();
-      processedMessages.close();
-      messageQueue.close();
-    });
 
-    return treeMachine =
-        TreeStateMachine._(machine, lifecycle, transitions, processedMessages, messageQueue);
+    return treeMachine = TreeStateMachine._(machine);
   }
 
   factory TreeStateMachine.forLeaves(Iterable<LeafNodeBuilder> buildLeaves, StateKey initialState) {
@@ -188,6 +173,14 @@ class TreeStateMachine {
   /// It is safe to call this method when [isEnded] is `true`.
   Future stop() {
     return _lifecycle.stop(() => _processMessage(stopMessage));
+  }
+
+  void dispose() {
+    _lifecycle.dispose(() {
+      _transitions.close();
+      _processedMessages.close();
+      _messageQueue.close();
+    });
   }
 
   /// Writes the active state data of the state machine to the specified sink.

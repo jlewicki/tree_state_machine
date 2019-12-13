@@ -80,7 +80,18 @@ void main() {
       });
 
       test('should restart if stopped', () async {
-        // TODO: finish me
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start();
+        await sm.stop();
+
+        final transitionsQ = StreamQueue(sm.transitions);
+        final qItems = await Future.wait([transitionsQ.next, sm.start()]);
+
+        expect(sm.currentState, isNotNull);
+        expect(sm.currentState.key, equals(tree.r_a_a_2_key));
+        final transition = qItems[0];
+        expect(transition.from, equals(tree.r_key));
+        expect(transition.to, equals(tree.r_a_a_2_key));
       });
     });
 
@@ -687,8 +698,11 @@ void main() {
         expect(() => sm.currentState.data<DelegateState>(), throwsStateError);
       });
 
-      test('shoud return null when data not available', () {
-        // TODO: finish me
+      test('shoud return null when data not available', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start();
+
+        expect(sm.currentState.data<tree.ReadOnlyData>(), isNull);
       });
     });
 
