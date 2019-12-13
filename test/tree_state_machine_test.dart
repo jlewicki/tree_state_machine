@@ -36,10 +36,11 @@ void main() {
     });
 
     group('start', () {
-      test('should throw when already started', () async {
+      test('should remain started if already started', () async {
         final sm = TreeStateMachine.forLeaves(flat_tree.leaves, flat_tree.r_1_key);
         await sm.start();
-        expect(() async => sm.start(), throwsStateError);
+        await sm.start();
+        expect(sm.isStarted, isTrue);
       });
 
       test('should return same future when called more than once', () async {
@@ -52,11 +53,10 @@ void main() {
       test('should set current state to initial state', () async {
         final sm = TreeStateMachine.forRoot(tree.treeBuilder());
 
-        final initialTransition = await sm.start();
+        await sm.start();
 
         expect(sm.currentState, isNotNull);
         expect(sm.currentState.key, equals(tree.r_a_a_2_key));
-        expect(sm.currentState.key, equals(initialTransition.to));
       });
 
       test('should emit transition', () async {
@@ -77,6 +77,10 @@ void main() {
             tree.r_a_a_2_key,
           ]),
         );
+      });
+
+      test('should restart if stopped', () async {
+        // TODO: finish me
       });
     });
 
@@ -684,7 +688,7 @@ void main() {
       });
 
       test('shoud return null when data not available', () {
-        // TODO
+        // TODO: finish me
       });
     });
 

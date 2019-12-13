@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:tree_state_machine/src/lifecycle.dart';
+import 'package:tree_state_machine/tree_state_machine.dart';
+
 import 'tree_builders.dart';
 import 'tree_state.dart';
 import 'tree_state_machine_impl.dart';
@@ -43,14 +46,19 @@ import 'tree_state_machine_impl.dart';
 ///   UML state machine diagrams.
 class TreeStateMachine {
   final Machine _machine;
-  final StreamController<Transition> _transitions = StreamController.broadcast();
-  final StreamController<MessageProcessed> _processedMessages = StreamController.broadcast();
-  final StreamController<_QueuedMessage> _messageQueue = StreamController.broadcast();
-  bool _isStarted = false;
-  Future<Transition> _startFuture;
+  final Lifecycle _lifecycle;
+  final StreamController<Transition> _transitions;
+  final StreamController<MessageProcessed> _processedMessages;
+  final StreamController<_QueuedMessage> _messageQueue;
   CurrentState _currentState;
 
-  TreeStateMachine._(this._machine) {
+  TreeStateMachine._(
+    this._machine,
+    this._lifecycle,
+    this._transitions,
+    this._processedMessages,
+    this._messageQueue,
+  ) {
     _messageQueue.stream.listen(this._onMessage);
   }
 
@@ -67,8 +75,17 @@ class TreeStateMachine {
     final buildCtx = TreeBuildContext(getCurrentLeafData);
     final rootNode = buildRoot(buildCtx);
     final machine = Machine(rootNode, buildCtx.nodes);
+    final transitions = StreamController<Transition>.broadcast();
+    final processedMessages = StreamController<MessageProcessed>.broadcast();
+    final messageQueue = StreamController<_QueuedMessage>.broadcast();
+    final lifecycle = Lifecycle(() {
+      transitions.close();
+      processedMessages.close();
+      messageQueue.close();
+    });
 
-    return treeMachine = TreeStateMachine._(machine);
+    return treeMachine =
+        TreeStateMachine._(machine, lifecycle, transitions, processedMessages, messageQueue);
   }
 
   factory TreeStateMachine.forLeaves(Iterable<LeafNodeBuilder> buildLeaves, StateKey initialState) {
@@ -86,13 +103,14 @@ class TreeStateMachine {
     ));
   }
 
-  /// Returns `true` if [start] has been called.
-  bool get isStarted => _isStarted;
+  /// Returns `true` if the future returned by [start] has completed..
+  bool get isStarted => _lifecycle.isStarted;
 
   /// Returns `true` if the state machine has ended.
   ///
-  /// A state machine ends when a final state is entered.
-  bool get isEnded => isStarted && _machine.currentNode.isFinal;
+  /// A state machine ends when a final state is entered. This may have occurred because transition
+  /// to a final state has occurred as result of processing a message, or because [stop] was called.
+  bool get isEnded => _machine.currentNode?.isFinal ?? false;
 
   /// The current state of the state machine.
   ///
@@ -147,22 +165,16 @@ class TreeStateMachine {
   /// If no initial state is specifed, the state machine will follow the initial child path starting
   /// from the root until a leaf node is reached.
   ///
-  /// A [StateError] is thrown if [start] has already been called.
-  Future<Transition> start([StateKey initialStateKey]) {
-    if (isStarted) {
-      throw StateError('This TreeStateMachine has already been started.');
-    }
-
-    if (_startFuture == null) {
-      _startFuture = _machine.enterInitialState(initialStateKey).then((transition) {
-        _currentState = CurrentState._(this);
-        _transitions.add(transition);
-        _isStarted = true;
-        _startFuture = null;
-        return transition;
-      });
-    }
-    return _startFuture;
+  /// It is safe to call [start] when the state machine is already started. It is also safe to call
+  /// [start] if the state machine has been stopped, in which case the state machine will be
+  /// restarted, and will re-enter the initial state.
+  Future start([StateKey initialStateKey]) {
+    return _lifecycle.start(() async {
+      final transition = await _machine.enterInitialState(initialStateKey);
+      _currentState = CurrentState._(this);
+      _transitions.add(transition);
+      return transition;
+    });
   }
 
   /// Stops the state machine.
@@ -173,19 +185,9 @@ class TreeStateMachine {
   /// When the returned future completes, the state machine will be in a final state, and [isEnded]
   /// will return true.
   ///
-  /// It is safe to call this method when [isEnded] is `true`, but a [StateError] is thrown if
-  /// [start] has not been called.
+  /// It is safe to call this method when [isEnded] is `true`.
   Future stop() {
-    if (!isStarted) {
-      throw StateError('This TreeStateMachine has not been started.');
-    }
-    return this.isEnded
-        ? Future.value()
-        : _processMessage(stopMessage).then((_) {
-            _processedMessages.close();
-            _transitions.close();
-            _messageQueue.close();
-          });
+    return _lifecycle.stop(() => _processMessage(stopMessage));
   }
 
   /// Writes the active state data of the state machine to the specified sink.

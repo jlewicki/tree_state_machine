@@ -61,7 +61,7 @@ class Machine {
       await enterInitialState(initialNode.node.key);
     }
 
-    // If the state machine is in a final state, do not dispatch the message for proccessing,
+    // If the state machine is in a final state, do not dispatch the message for processing,
     // since there is no point.
     if (currentNode.isFinal) {
       final msgProcessed = UnhandledMessage(message, currentNode.key, const []);
