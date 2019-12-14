@@ -457,6 +457,11 @@ class MachineNode {
       timer.cancel();
     }
   }
+
+  void dispose() {
+    cancelTimers();
+    node.dataProvider?.dispose();
+  }
 }
 
 final stopMessage = Object();

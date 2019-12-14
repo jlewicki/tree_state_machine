@@ -1,16 +1,17 @@
 import 'dart:async';
 
 import 'package:test/test.dart';
+import 'package:tree_state_machine/src/data_provider.dart';
 import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 import 'package:tree_state_machine/src/tree_state_machine_impl.dart';
 
-import 'fixture/tree_1.dart';
-import 'fixture/flat_tree_1.dart' as flat_tree;
 import 'fixture/data_tree.dart' as data_tree;
+import 'fixture/flat_tree_1.dart' as flat_tree;
+import 'fixture/tree_1.dart';
 import 'fixture/tree_data.dart';
 
-Object _getCurrentLeafData() => null;
+final _getCurrentLeafData = DelegateObservableData();
 
 void main() {
   group('Machine', () {
@@ -475,11 +476,9 @@ void main() {
         );
 
         Machine machine;
-        Object getCurrentLeafData() {
-          return machine.currentNode.data();
-        }
-
-        final buildCtx = TreeBuildContext(getCurrentLeafData);
+        final buildCtx = TreeBuildContext(
+          DelegateObservableData(getData: () => machine.currentNode.data()),
+        );
         final rootNode = buildTree(buildCtx);
         machine = Machine(rootNode, buildCtx.nodes);
         await machine.enterInitialState();

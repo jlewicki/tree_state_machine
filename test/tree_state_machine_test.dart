@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:async/async.dart';
 import 'package:test/test.dart';
@@ -138,6 +139,88 @@ void main() {
       test('should throw if not started', () async {
         final sm = TreeStateMachine.forRoot(tree.treeBuilder());
         expect(() => sm.stop(), throwsStateError);
+      });
+    });
+
+    group('dispose', () {
+      test('should be disposed', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start();
+
+        sm.dispose();
+
+        expect(sm.isDisposed, isTrue);
+        expect(sm.isStarted, isFalse);
+        expect(sm.isEnded, isFalse);
+      });
+
+      test('should close streams', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final transitionsQ = StreamQueue(sm.transitions);
+        final processedMessagesQ = StreamQueue(sm.processedMessages);
+        final handledMessagesQ = StreamQueue(sm.handledMessages);
+        final failedMessagesQ = StreamQueue(sm.failedMessages);
+        await sm.start();
+
+        sm.dispose();
+
+        final hasNexts = await Future.wait([
+          transitionsQ.hasNext,
+          processedMessagesQ.hasNext,
+          handledMessagesQ.hasNext,
+          failedMessagesQ.hasNext,
+        ]);
+
+        for (var hasNext in hasNexts) {
+          expect(hasNext, isFalse);
+        }
+      });
+
+      test('should dispose data providers', () async {
+        final r_provider = SpecialDataD.dataProvider();
+        final r_a_provider = ImmutableData.dataProvider();
+        final r_a_a_provider = LeafDataBase.dataProvider();
+        final r_a_a_1_provider = LeafData1.dataProvider();
+        final r_a_a_2_provider = LeafData2.dataProvider();
+        final r_a_1_provider = ImmutableData.dataProvider();
+
+        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(
+          dataProviders: {
+            data_tree.r_key: r_provider,
+            data_tree.r_a_key: r_a_provider,
+            data_tree.r_a_a_key: r_a_a_provider,
+            data_tree.r_a_a_1_key: r_a_a_1_provider,
+            data_tree.r_a_a_2_key: r_a_a_2_provider,
+            data_tree.r_a_1_key: r_a_1_provider,
+          },
+        ));
+        await sm.start();
+        final qs = [
+          StreamQueue(r_provider.stream),
+          StreamQueue(r_a_provider.stream),
+          StreamQueue(r_provider.stream),
+          StreamQueue(r_a_a_provider.stream),
+          StreamQueue(r_a_a_1_provider.stream),
+          StreamQueue(r_a_a_2_provider.stream),
+          StreamQueue(r_a_1_provider.stream),
+        ];
+
+        sm.dispose();
+
+        for (var q in qs) {
+          var hasNext = await q.hasNext;
+          expect(hasNext, isFalse);
+        }
+      });
+
+      test('should do nothing if already disposed', () async {
+        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder());
+        await sm.start();
+        sm.dispose();
+
+        sm.dispose();
+
+        expect(sm.isDisposed, isTrue);
       });
     });
 
@@ -669,7 +752,7 @@ void main() {
     });
 
     group('data', () {
-      test('shoud return data from provider when available', () async {
+      test('should return data from provider when available', () async {
         final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(initialDataValues: {
           data_tree.r_a_a_2_key: LeafData2()
             ..name = 'foo'
@@ -682,7 +765,7 @@ void main() {
         expect(leafData.label, equals('cool'));
       });
 
-      test('shoud return data from state when available', () async {
+      test('should return data from state when available', () async {
         final sm = TreeStateMachine.forRoot(tree.treeBuilder());
         await sm.start(tree.r_b_2_key);
 
@@ -691,14 +774,14 @@ void main() {
         expect(sm.currentState.data<tree.ReadOnlyData>().counter, equals(10));
       });
 
-      test('shoud throw if data is a tree state', () async {
+      test('should throw if data is a tree state', () async {
         final sm = TreeStateMachine.forRoot(tree.treeBuilder());
         await sm.start(tree.r_b_1_key);
 
         expect(() => sm.currentState.data<DelegateState>(), throwsStateError);
       });
 
-      test('shoud return null when data not available', () async {
+      test('should return null when data not available', () async {
         final sm = TreeStateMachine.forRoot(tree.treeBuilder());
         await sm.start();
 
@@ -707,7 +790,7 @@ void main() {
     });
 
     group('activeData', () {
-      test('shoud return data from leaf provider when available', () async {
+      test('should return data from leaf provider when available', () async {
         final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(initialDataValues: {
           data_tree.r_a_a_2_key: LeafData2()
             ..name = 'foo'
@@ -719,7 +802,7 @@ void main() {
         expect(leafData.name, equals('foo'));
       });
 
-      test('shoud return data from owned provider when available', () async {
+      test('should return data from owned provider when available', () async {
         final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(
           initialDataValues: {
             data_tree.r_a_key: ImmutableData((b) => b
@@ -734,7 +817,7 @@ void main() {
         expect(r_a_data.price, equals(10));
       });
 
-      test('shoud return data from leaf provider after transition.', () async {
+      test('should return data from leaf provider after transition.', () async {
         final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(
           initialDataValues: {
             data_tree.r_a_a_2_key: LeafData2()

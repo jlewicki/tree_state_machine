@@ -154,6 +154,20 @@ abstract class DataTreeState<D> extends TreeState {
     return _provider.data;
   }
 
+  /// Calls the specified function to produce a new data value, and replaces [data] with this value.
+  @protected
+  void replaceData(D Function() replace) {
+    _provider.replace(replace);
+  }
+
+  /// Calls the specified function that updates the current data value.
+  ///
+  /// Note that in the future this may result in a change notification.
+  @protected
+  void updateData(void Function() update) {
+    _provider.update(update);
+  }
+
   /// Called to initialize the data provider for this instance.
   ///
   /// This will be called by the state machine immediately after it creates this state instance.
@@ -189,17 +203,6 @@ final TransitionHandler emptyTransitionHandler = (_) {};
 
 /// A [MessageHandler] that always returns [MessageContext.unhandled].
 final MessageHandler emptyMessageHandler = (ctx) => ctx.unhandled();
-
-/// A tree state that always returns [MessageContext.unhandled].
-class EmptyTreeState extends TreeState {
-  @override
-  FutureOr<MessageResult> onMessage(MessageContext context) => context.unhandled();
-}
-
-class EmptyDataTreeState<D> extends DataTreeState<D> {
-  @override
-  FutureOr<MessageResult> onMessage(MessageContext context) => context.unhandled();
-}
 
 //==================================================================================================
 //
@@ -362,9 +365,9 @@ class Transition {
 }
 
 //==================================================================================================
-///
-/// Message Results
-///
+//
+// Message Results
+//
 
 /// Base class for describing the results of processing a state machine message.
 ///
@@ -409,9 +412,9 @@ class UnhandledResult extends MessageResult {
 }
 
 //==================================================================================================
-///
-/// Processing results
-///
+//
+// Processing results
+//
 
 /// Base class for types describing how a message was processed by a state machine.
 @immutable
@@ -468,9 +471,20 @@ class FailedMessage extends MessageProcessed {
 }
 
 //==================================================================================================
-///
-/// Utility classes
-///
+//
+// Utility classes
+//
+
+/// A tree state that always returns [MessageContext.unhandled].
+class EmptyTreeState extends TreeState {
+  @override
+  FutureOr<MessageResult> onMessage(MessageContext context) => context.unhandled();
+}
+
+class EmptyDataTreeState<D> extends DataTreeState<D> {
+  @override
+  FutureOr<MessageResult> onMessage(MessageContext context) => context.unhandled();
+}
 
 /// A tree state that delegates its behavior to one or more external functions.
 class DelegateState extends TreeState {

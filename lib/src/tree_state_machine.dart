@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:tree_state_machine/src/lifecycle.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
+import 'data_provider.dart';
+import 'lifecycle.dart';
 import 'tree_builders.dart';
 import 'tree_state.dart';
 import 'tree_state_machine_impl.dart';
+import 'utility.dart';
 
 /// A state machine that manages transitions among [TreeState]s that are arranged hierarchically into a
 /// tree.
@@ -59,14 +62,11 @@ class TreeStateMachine {
   factory TreeStateMachine.forRoot(RootNodeBuilder buildRoot) {
     ArgumentError.checkNotNull(buildRoot, 'buildRoot');
 
-    // This is twisty, since we have indirect circular dependency between getCurrentLeafData and
-    // TreeStateMachine
+    // This is twisty, since we have an indirect circular dependency between
+    // CurrentLeafObservableData and TreeStateMachine
     TreeStateMachine treeMachine;
-    Object getCurrentLeafData() {
-      return treeMachine.currentState.data();
-    }
-
-    final buildCtx = TreeBuildContext(getCurrentLeafData);
+    final currentLeafData = CurrentLeafObservableData(Lazy(() => treeMachine));
+    final buildCtx = TreeBuildContext(currentLeafData);
     final rootNode = buildRoot(buildCtx);
     final machine = Machine(rootNode, buildCtx.nodes);
 
@@ -96,6 +96,9 @@ class TreeStateMachine {
   /// A state machine ends when a final state is entered. This may have occurred because transition
   /// to a final state has occurred as result of processing a message, or because [stop] was called.
   bool get isEnded => _machine.currentNode?.isFinal ?? false;
+
+  /// Returns `true` if [dispose] has been called.
+  bool get isDisposed => _lifecycle.isDisposed;
 
   /// The current state of the state machine.
   ///
@@ -180,6 +183,9 @@ class TreeStateMachine {
       _transitions.close();
       _processedMessages.close();
       _messageQueue.close();
+      for (var node in _machine.nodes.values) {
+        node.dispose();
+      }
     });
   }
 
@@ -418,4 +424,23 @@ class EncodableTree {
         'version': version,
         'states': states,
       };
+}
+
+class CurrentLeafObservableData extends ObservableData<Object> {
+  final Lazy<TreeStateMachine> _machine;
+  final Lazy<Stream<Object>> _stream;
+  CurrentLeafObservableData(this._machine)
+      : _stream = Lazy(() => _machine.value.transitions.switchMap((trans) {
+              assert(_machine.value._machine.currentNode != null);
+              final dataProvider = _machine.value._machine.currentNode.dataProvider;
+              return dataProvider is ObservableData<Object>
+                  ? (dataProvider as ObservableData<Object>).stream
+                  : Stream.empty();
+            }));
+
+  @override
+  Object get data => _machine.value._machine.currentNode?.data();
+
+  @override
+  Stream<Object> get stream => _stream.value;
 }

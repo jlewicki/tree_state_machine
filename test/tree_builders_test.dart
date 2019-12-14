@@ -1,4 +1,5 @@
 import 'package:test/test.dart';
+import 'package:tree_state_machine/src/data_provider.dart';
 import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_node.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
@@ -23,7 +24,7 @@ void main() {
   var finalState = SimpleFinalState();
   var finaKey = StateKey.named('final');
 
-  Object currentLeafData() => null;
+  final currentLeafData = DelegateObservableData();
 
   group('buildLeaf', () {
     test('should build a leaf node', () {

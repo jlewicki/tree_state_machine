@@ -1,3 +1,4 @@
+import 'package:tree_state_machine/src/data_provider.dart';
 import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 
@@ -21,6 +22,7 @@ RootNodeBuilder treeBuilder({
   Map<StateKey, MessageHandler> messageHandlers,
   Map<StateKey, TransitionHandler> exitHandlers,
   Map<StateKey, Object> initialDataValues,
+  Map<StateKey, DataProvider> dataProviders,
 }) {
   final _createEntryHandler = createEntryHandler ?? (_) => emptyTransitionHandler;
   final _createExitHandler = createExitHandler ?? (_) => emptyTransitionHandler;
@@ -29,6 +31,7 @@ RootNodeBuilder treeBuilder({
   final _messageHandlers = messageHandlers ?? {};
   final _exitHandlers = exitHandlers ?? {};
   final _initialDataValues = initialDataValues ?? {};
+  final _dataProviders = dataProviders ?? {};
 
   TreeState createState(StateKey key) => DelegateState(
         entryHandler: _entryHandlers[key] ?? _createEntryHandler(key),
@@ -42,10 +45,16 @@ RootNodeBuilder treeBuilder({
         exitHandler: _exitHandlers[key] ?? _createExitHandler(key),
       );
 
+  DataProvider<D> createDataProvider<D>(StateKey key, DataProvider<D> Function() defaultProvider) =>
+      _dataProviders[key] ?? defaultProvider();
+
   return dataRootBuilder(
     key: r_key,
     createState: (k) => createDataState<SpecialDataD>(k),
-    provider: SpecialDataD.dataProvider(_initialDataValues[r_key]),
+    provider: createDataProvider<SpecialDataD>(
+      r_key,
+      () => SpecialDataD.dataProvider(_initialDataValues[r_key]),
+    ),
     initialChild: (_) => r_a_key,
     finalStates: [
       finalBuilder(key: r_X_key, createState: (key) => DelegateFinalState(_exitHandlers[key])),
@@ -54,31 +63,47 @@ RootNodeBuilder treeBuilder({
       dataInteriorBuilder(
         key: r_a_key,
         createState: (k) => createDataState<ImmutableData>(k),
-        provider: ImmutableData.dataProvider(_initialDataValues[r_a_key]),
+        provider: createDataProvider<ImmutableData>(
+          r_a_key,
+          () => ImmutableData.dataProvider(_initialDataValues[r_a_key]),
+        ),
         initialChild: (_) => r_a_a_key,
         children: [
           dataInteriorBuilder(
             key: r_a_a_key,
             createState: (k) => createDataState<LeafDataBase>(k),
-            provider: LeafDataBase.dataProvider(),
+            provider: createDataProvider<LeafDataBase>(
+              r_a_a_key,
+              () => LeafDataBase.dataProvider(),
+            ),
             initialChild: (_) => r_a_a_2_key,
             children: [
               dataLeafBuilder(
                 key: r_a_a_1_key,
                 createState: (k) => createDataState<LeafData1>(k),
-                provider: LeafData1.dataProvider(_initialDataValues[r_a_a_1_key]),
+                provider: createDataProvider<LeafData1>(
+                  r_a_a_1_key,
+                  () => LeafData1.dataProvider(_initialDataValues[r_a_a_1_key]),
+                ) as OwnedDataProvider<LeafData1>,
               ),
               dataLeafBuilder(
                 key: r_a_a_2_key,
                 createState: (k) => createDataState<LeafData2>(k),
-                provider: LeafData2.dataProvider(_initialDataValues[r_a_a_2_key]),
+                provider: createDataProvider<LeafData2>(
+                  r_a_a_2_key,
+                  () => LeafData2.dataProvider(_initialDataValues[r_a_a_2_key]),
+                ) as OwnedDataProvider<LeafData2>,
               ),
             ],
           ),
           dataLeafBuilder(
-              key: r_a_1_key,
-              createState: (k) => createDataState<ImmutableData>(k),
-              provider: ImmutableData.dataProvider(_initialDataValues[r_a_1_key])),
+            key: r_a_1_key,
+            createState: (k) => createDataState<ImmutableData>(k),
+            provider: createDataProvider<ImmutableData>(
+              r_a_1_key,
+              () => ImmutableData.dataProvider(_initialDataValues[r_a_1_key]),
+            ) as OwnedDataProvider<ImmutableData>,
+          ),
         ],
       ),
       interiorBuilder(

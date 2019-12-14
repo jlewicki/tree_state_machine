@@ -162,7 +162,7 @@ StateCreator _dataStateCreator<T extends DataTreeState<D>, D>(
     (key) {
       final state = createState(key);
       if (provider is CurrentLeafDataProvider) {
-        (provider as CurrentLeafDataProvider).initializeLeafDataAccessor(ctx.currentLeafData);
+        (provider as CurrentLeafDataProvider).initializeLeafData(ctx.currentLeafData);
       }
       state.initializeDataValue(provider);
       return state;
@@ -171,11 +171,11 @@ StateCreator _dataStateCreator<T extends DataTreeState<D>, D>(
 class TreeBuildContext {
   final TreeNode parentNode;
   final HashMap<StateKey, TreeNode> nodes;
-  final Object Function() currentLeafData;
+  final ObservableData<Object> currentLeafData;
 
   TreeBuildContext._(this.parentNode, this.nodes, this.currentLeafData);
 
-  factory TreeBuildContext(Object Function() currentLeafData, [TreeNode parentNode]) =>
+  factory TreeBuildContext(ObservableData<Object> currentLeafData, [TreeNode parentNode]) =>
       TreeBuildContext._(parentNode, HashMap(), currentLeafData);
 
   TreeBuildContext childContext(TreeNode newParentNode) =>
