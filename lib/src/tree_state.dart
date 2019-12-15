@@ -219,7 +219,7 @@ abstract class MessageContext {
   ///
   /// A [TransitionHandler] may optionally be specified, indicating a function that should be called
   /// during the transition between states.
-  MessageResult goTo(StateKey targetStateKey, {TransitionHandler transitionAction});
+  MessageResult goTo(StateKey targetStateKey, {TransitionHandler transitionAction, Object payload});
 
   /// Returns a [MessageResult] indicating that an internal transition should occur.
   ///
@@ -291,6 +291,13 @@ abstract class TransitionContext {
   /// This will refer to the final leaf state of the transition, including the result of following
   /// the initial child path rooted at [to], if [to] referes to a non-leaf state.
   StateKey get end;
+
+  /// The optional payload for this transition.
+  ///
+  /// When a state transition is initiated with [MessageContext.goTo], the caller may provide an
+  /// optional payload value that provides further context for the transition to the target state.
+  /// This property makes this payload accessible during the transition.
+  Object get payload;
 
   /// The path of states in the tree starting at [from] and ending at [to].
   Iterable<StateKey> get path;
@@ -384,7 +391,8 @@ class GoToResult extends MessageResult {
   /// Indicates the state to which the state machine should transition.
   final StateKey toStateKey;
   final FutureOr<void> Function(TransitionContext) transitionAction;
-  GoToResult(this.toStateKey, [this.transitionAction]) : super._();
+  final Object payload;
+  GoToResult(this.toStateKey, [this.transitionAction, this.payload]) : super._();
 }
 
 /// A [MessageResult] indicating that a message was sucessfully handled, and an internal transition

@@ -120,7 +120,7 @@ class Machine {
   }) async {
     final toNode = _node(result.toStateKey);
     final path = NodePath(msgCtx.receivingNode, toNode.node);
-    final transition = await _doTransition(path, result.transitionAction);
+    final transition = await _doTransition(path, result.transitionAction, result.payload);
     return HandledMessage(
       msgCtx.message,
       msgCtx.receivingNode.key,
@@ -191,8 +191,9 @@ class Machine {
   Future<Transition> _doTransition(
     NodePath path, [
     TransitionHandler transitionAction,
+    Object payload,
   ]) async {
-    final transCtx = MachineTransitionContext(path, this);
+    final transCtx = MachineTransitionContext(path, this, payload);
 
     final exitHandlers = path.exiting.map((n) => () => transCtx.onExit(n));
     final actionHandler = () => (transitionAction ?? emptyTransitionHandler)(transCtx);
@@ -265,11 +266,16 @@ class Machine {
 class MachineTransitionContext with DisposableMixin implements TransitionContext {
   final NodePath nodePath;
   TreeNode toNode;
+  final Object _payload;
   final List<TreeNode> _enteredNodes = [];
   final List<TreeNode> _exitedNodes = [];
   final Machine _machine;
 
-  MachineTransitionContext(this.nodePath, this._machine) : toNode = nodePath.to {
+  MachineTransitionContext(
+    this.nodePath,
+    this._machine,
+    this._payload,
+  ) : toNode = nodePath.to {
     // In general we always start a transition at a leaf node. However, when the state machine
     // starts, there is a transition from the root node to the initial starting state for the
     // machine.
@@ -291,6 +297,8 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
   Iterable<StateKey> traversed() => exited.followedBy(entered);
   @override
   StateKey get end => entered.last;
+  @override
+  Object get payload => _payload;
 
   @override
   void post(Object message) {
@@ -366,9 +374,13 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
   final Object message;
 
   @override
-  MessageResult goTo(StateKey targetStateKey, {TransitionHandler transitionAction}) {
+  MessageResult goTo(
+    StateKey targetStateKey, {
+    TransitionHandler transitionAction,
+    Object payload,
+  }) {
     _throwIfDisposed();
-    return GoToResult(targetStateKey, transitionAction);
+    return GoToResult(targetStateKey, transitionAction, payload);
   }
 
   @override

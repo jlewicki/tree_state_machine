@@ -327,6 +327,30 @@ void main() {
           expect(handled.exitedStates, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
           expect(handled.enteredStates, orderedEquals([r_X_key]));
         });
+
+        test('should pass payload to transition context', () async {
+          final payload = Object();
+          final payloadMap = <StateKey, Object>{};
+          final buildTree = treeBuilder(
+            messageHandlers: {
+              r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_b_1_key, payload: payload),
+            },
+            createExitHandler: (key) => (ctx) => payloadMap[key] = ctx.payload,
+            createEntryHandler: (key) => (ctx) => payloadMap[key] = ctx.payload,
+          );
+          final buildCtx = TreeBuildContext(_getCurrentLeafData);
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+          final msg = Object();
+
+          await machine.processMessage(msg, r_a_a_1_key);
+
+          final exited = [r_a_a_1_key, r_a_a_key, r_a_key];
+          final entered = [r_b_key, r_b_1_key];
+          for (var key in exited.followedBy(entered)) {
+            expect(payloadMap[key], same(payload));
+          }
+        });
       });
 
       group('UnhandledResult', () {
