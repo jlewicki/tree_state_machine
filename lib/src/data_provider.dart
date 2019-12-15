@@ -40,7 +40,7 @@ class OwnedDataProvider<D> implements DataProvider<D>, ObservableData<D> {
   final Object Function(D data) encoder;
   final D Function(Object encoded) decoder;
   final D Function() _eval;
-  final StreamController<D> _controller = StreamController.broadcast();
+  final BehaviorSubject<D> _controller = BehaviorSubject();
   D _data;
 
   OwnedDataProvider(this._eval, this.encoder, this.decoder);
@@ -58,7 +58,13 @@ class OwnedDataProvider<D> implements DataProvider<D>, ObservableData<D> {
   }
 
   @override
-  D get data => _data ??= _eval();
+  D get data {
+    if (_data == null) {
+      _data = _eval();
+      _controller.add(_data);
+    }
+    return _data;
+  }
 
   @override
   Stream<D> get stream => _controller.stream;

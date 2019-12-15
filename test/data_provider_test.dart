@@ -78,8 +78,8 @@ void main() {
           ..name = 'Jim'
           ..age = 30;
 
-        final future = q.next;
         provider.replace(() => newData);
+        final future = q.next;
         final qItems = await Future.wait([future]);
 
         final emitted = qItems[0];

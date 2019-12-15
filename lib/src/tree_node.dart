@@ -70,17 +70,18 @@ class TreeNode {
 
   D activeData<D>([StateKey key]) {
     final node = key != null ? selfOrAncestorWithKey(key) : selfOrAncestorWithData<D>();
-    if (node.dataProvider != null) {
+    if (node?.dataProvider != null) {
       final data = node.dataProvider.data as Object;
       return data is D
           ? data
           : throw StateError(
-              'Data for state ${node.key} of type ${data.runtimeType} does not match requested type ${TypeLiteral<D>().type}.');
+              'Data for state ${node.key} of type ${data.runtimeType} does not match '
+              'requested type ${TypeLiteral<D>().type}.');
     } else if (isTypeOf<Object, D>()) {
       // Handle case where state has no data, and requested type is a generic object. We don't want
       // to return the raw state this case, so just return null
       return null;
-    } else if (node.state() is D) {
+    } else if (node?.state() is D) {
       return !isTypeOf<D, TreeState>() && !isTypeOf<TreeState, D>()
           // In cases where state variables are just instance fields in the TreeState, and the
           // state implements the requested type, just return the state directly. This allows apps
@@ -90,10 +91,30 @@ class TreeNode {
           // code could call onenter/onexit and potentially violate invariants. (although external
           // code can simply do the cast themselves and work around this)
           ? node.state() as D
-          : throw StateError(
-              'Requested data type ${TypeLiteral<D>().type} cannot be a ${TypeLiteral<TreeState>().type} or Object or dynamic.');
+          : throw StateError('Requested data type ${TypeLiteral<D>().type} cannot be a '
+              '${TypeLiteral<TreeState>().type} or Object or dynamic.');
     }
     return null;
+  }
+
+  Stream<D> stream<D>([StateKey key]) {
+    final node = key != null ? selfOrAncestorWithKey(key) : selfOrAncestorWithData<D>();
+    if (node?.dataProvider != null) {
+      if (node.dataProvider is ObservableData<D>) {
+        return (node.dataProvider as ObservableData<D>).stream;
+      } else if (node.dataProvider.data is D) {
+        return Stream.value(node.dataProvider.data);
+      }
+      throw StateError(
+          'Data for state ${node.key} of type ${data.runtimeType} does not match requested type '
+          '${TypeLiteral<D>().type}.');
+    }
+
+    var msg = 'Unable to find a ${TypeLiteral<D>().type} data source';
+    if (key != null) {
+      msg += ' for state $key';
+    }
+    throw StateError(msg);
   }
 }
 

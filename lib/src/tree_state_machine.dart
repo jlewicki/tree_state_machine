@@ -203,6 +203,7 @@ class TreeStateMachine {
   /// be thrown.
   Future saveTo(StreamSink<List<int>> sink) {
     ArgumentError.checkNotNull(sink, 'sink');
+    _lifecycle.throwIfDisposed();
     if (!isStarted) {
       throw StateError('This TreeStateMachine must be started before saving the tree.');
     }
@@ -234,6 +235,7 @@ class TreeStateMachine {
   /// matching the current state recorded in the stream.
   Future loadFrom(Stream<List<int>> stream) async {
     ArgumentError.checkNotNull(stream, 'stream');
+    _lifecycle.throwIfDisposed();
     if (isStarted) {
       throw StateError('This TreeStateMachine must not be started before loading the tree.');
     }
@@ -320,6 +322,7 @@ class TreeStateMachine {
   }
 
   Future<MessageProcessed> _processMessage(Object message) async {
+    _lifecycle.throwIfDisposed();
     // Add the message to the stream processor, which includes a buffering mechanism. That ensures
     // messages will be processed in-order, when messages are sent to the state machine without
     // waiting for earlier messages to be procesed.
@@ -350,6 +353,18 @@ class CurrentState {
   /// Otherwise, the data of the closest ancestor state that matches the specified type is returned.
   D activeData<D>([StateKey key]) {
     return _treeStateMachine._machine.currentNode.activeData<D>(key);
+  }
+
+  /// Data stream of the specified type.
+  ///
+  /// If [key] is provided, the data stream for the ancestor state with the specified key will be
+  /// returned. Otherwise, the data stream of the closest ancestor state that matches the specified
+  /// type is returned.
+  ///
+  /// If stata data can be resolved, but it does not support streaming, a single value stream with
+  /// the current state data is returned.
+  Stream<D> stream<D>([StateKey key]) {
+    return _treeStateMachine._machine.currentNode.stream<D>(key);
   }
 
   /// Returns `true` if the specified state is an active state in the state machine.
@@ -426,6 +441,7 @@ class EncodableTree {
       };
 }
 
+/// Provides read-only access to the data of the current leaf node of the state machine.
 class CurrentLeafObservableData extends ObservableData<Object> {
   final Lazy<TreeStateMachine> _machine;
   final Lazy<Stream<Object>> _stream;

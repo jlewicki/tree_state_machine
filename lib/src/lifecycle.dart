@@ -21,6 +21,12 @@ class Lifecycle {
     status = status.dispose(doDispose);
   }
 
+  void throwIfDisposed() {
+    if (this.isDisposed) {
+      throw DisposedError();
+    }
+  }
+
   /// Starts the lifecycle, moving it to the Starting state.
   ///
   /// When the returned future completes, the lifecycle will be in the Started state.
