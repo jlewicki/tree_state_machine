@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:collection';
 
+import 'package:tree_state_machine/src/utility.dart';
+
 import 'tree_node.dart';
 import 'tree_state.dart';
 
@@ -431,7 +433,7 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
 
   void _throwIfDisposed() {
     if (isDisposed) {
-      throw StateError('This MessageContext has been disposed.');
+      throw DisposedError('This MessageContext has been disposed.');
     }
   }
 }

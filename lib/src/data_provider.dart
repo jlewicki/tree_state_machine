@@ -39,11 +39,12 @@ abstract class DataProvider<D> {
 class OwnedDataProvider<D> implements DataProvider<D>, ObservableData<D> {
   final Object Function(D data) encoder;
   final D Function(Object encoded) decoder;
-  final D Function() _eval;
-  final BehaviorSubject<D> _controller = BehaviorSubject();
-  D _data;
+  Lazy<BehaviorSubject<D>> _lazySubject;
+  bool _disposed = false;
 
-  OwnedDataProvider(this._eval, this.encoder, this.decoder);
+  OwnedDataProvider(D Function() eval, this.encoder, this.decoder) {
+    _lazySubject = Lazy(() => BehaviorSubject<D>.seeded(eval()));
+  }
 
   factory OwnedDataProvider.json(
     D Function() eval,
@@ -59,33 +60,35 @@ class OwnedDataProvider<D> implements DataProvider<D>, ObservableData<D> {
 
   @override
   D get data {
-    if (_data == null) {
-      _data = _eval();
-      _controller.add(_data);
-    }
-    return _data;
+    _throwIfDisposed();
+    return _lazySubject.value.value;
   }
 
   @override
-  Stream<D> get stream => _controller.stream;
+  Stream<D> get stream {
+    _throwIfDisposed();
+    return _lazySubject.value.stream;
+  }
 
   @override
   Object encode() => encoder(data);
 
   @override
   void decodeInto(Object input) {
+    _throwIfDisposed();
     ArgumentError.checkNotNull('input');
-    _data = decoder(input);
+    _lazySubject.value.add(decoder(input));
   }
 
   @override
   void replace(D Function() replace) {
-    _data = replace();
-    _controller.add(_data);
+    _throwIfDisposed();
+    _lazySubject.value.add(replace());
   }
 
   @override
   void update(void Function() update) {
+    _throwIfDisposed();
     replace(() {
       update();
       return data;
@@ -94,33 +97,64 @@ class OwnedDataProvider<D> implements DataProvider<D>, ObservableData<D> {
 
   @override
   void dispose() {
-    _controller.close();
+    _disposed = true;
+    if (_lazySubject.hasValue) {
+      _lazySubject.value.close();
+    }
+  }
+
+  void _throwIfDisposed() {
+    if (_disposed) {
+      throw DisposedError();
+    }
   }
 }
 
 /// A data provider that provides a view of a data instance that is owned by the current leaf state
 /// of a state machine.
 class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
-  ObservableData<Object> _observableLeafData;
-  StreamController<D> _controller = StreamController.broadcast();
-  Stream<D> _stream;
+  StreamSubscription _subscription;
+  Lazy<BehaviorSubject<D>> _lazySubject;
+  bool _disposed = false;
 
   void initializeLeafData(ObservableData<Object> observableLeafData) {
     ArgumentError.checkNotNull(observableLeafData, 'observableLeafData');
-    _observableLeafData = observableLeafData;
-    _stream = _observableLeafData.stream.map(_leafDataAsD).mergeWith([_controller.stream]);
+    _lazySubject = Lazy(() {
+      // Seed with current value, which ensures that subscribers to the stream are sent the current
+      // value (in a future microtask)
+      var skippedFirstSame = false;
+      var subject = BehaviorSubject.seeded(_leafDataAsD(observableLeafData.data));
+      // Note that we skip adding if its the same value. Otherwise this subscription might
+      // immediately receive (in a future microtask) the current leaf value (if the source is a
+      // behavior subject). Since we seeded our subject with this value, we don't want to emit an
+      // indentical value unnecessarily. We only do this once though, in case the source emits when
+      // the current leaf value is mutated as opposed to producing a new intstance.
+      _subscription = observableLeafData.stream.map(_leafDataAsD).skipWhile((v) {
+        if (skippedFirstSame) return false;
+        if (identical(v, subject.value)) {
+          skippedFirstSame = true;
+          return true;
+        }
+        return false;
+      }).listen(subject.add);
+      return subject;
+    });
   }
+
+  BehaviorSubject<D> get subject => _lazySubject.value;
 
   @override
   D get data {
-    assert(_observableLeafData != null, 'initializeLeafData has not been called.');
-    return _leafDataAsD(_observableLeafData.data);
+    _throwIfDisposed();
+    assert(_lazySubject != null, 'initializeLeafData has not been called.');
+    return _lazySubject.value.value;
   }
 
   @override
   Stream<D> get stream {
-    assert(_stream != null, 'initializeLeafData has not been called.');
-    return _stream;
+    _throwIfDisposed();
+    assert(_lazySubject != null, 'initializeLeafData has not been called.');
+    return _lazySubject.value;
   }
 
   @override
@@ -131,8 +165,9 @@ class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
 
   @override
   void update(void Function() update) {
+    _throwIfDisposed();
     update();
-    _controller.add(data);
+    _lazySubject.value.add(data);
   }
 
   /// Throws [UnsupportedError] if called.
@@ -146,7 +181,11 @@ class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
 
   @override
   void dispose() {
-    _controller.close();
+    _disposed = true;
+    if (_lazySubject.hasValue) {
+      _subscription?.cancel();
+      _lazySubject.value.close();
+    }
   }
 
   D _leafDataAsD(Object leafData) {
@@ -155,6 +194,12 @@ class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
           'Expected leaf data of type ${TypeLiteral<D>().type}, but received ${leafData?.runtimeType}');
     }
     return leafData as D;
+  }
+
+  void _throwIfDisposed() {
+    if (_disposed) {
+      throw DisposedError();
+    }
   }
 }
 

@@ -1,4 +1,5 @@
 import 'package:async/async.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:test/test.dart';
 import 'package:tree_state_machine/src/data_provider.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
@@ -122,6 +123,7 @@ void main() {
       test('should close stream', () async {
         final provider = SimpleDataA.dataProvider();
         final q = StreamQueue(provider.stream);
+        await q.skip(1); // Skip 1 because current value is always emitted.
 
         provider.dispose();
 
@@ -145,12 +147,11 @@ void main() {
     });
 
     group('data', () {
-      test('should get data from leaf accessor', () {
+      test('should get data from leaf accessor', () async {
         final provider = LeafDataBase.dataProvider();
-        final leafData = LeafData1();
-        provider.initializeLeafData(DelegateObservableData(getData: () => leafData));
-
-        expect(provider.data, same(leafData));
+        final leafDataProvider = LeafData1.dataProvider();
+        provider.initializeLeafData(leafDataProvider);
+        expect(provider.data, same(leafDataProvider.data));
       });
 
       test('should get throw if leaf data is not compatible with D', () {
@@ -199,14 +200,35 @@ void main() {
 
     group('dispose', () {
       test('should close stream', () async {
+        final leafProvider = LeafData1.dataProvider();
+        leafProvider.data.name = 'Bill';
+        leafProvider.data.counter = 25;
+
         final provider = LeafDataBase.dataProvider();
-        provider.initializeLeafData(DelegateObservableData());
+        provider.initializeLeafData(leafProvider);
         final q = StreamQueue(provider.stream);
+        // Skip 1 because current value is always sent to stream by BehaviorSubject, and we don't
+        // care about that value for the purposes of this test.
+        q.skip(1);
 
         provider.dispose();
 
         var hasNext = await q.hasNext;
         expect(hasNext, isFalse);
+      });
+
+      test('BehaviorSubject test', () async {
+        final subject = BehaviorSubject<int>();
+        subject.add(1);
+
+        int count = 0;
+        subject.listen((d) {
+          count = count + 1;
+        });
+        await 0;
+        subject.close();
+        await 0;
+        expect(count, equals(1));
       });
     });
   });

@@ -204,6 +204,12 @@ void main() {
           StreamQueue(r_a_1_provider.stream),
         ];
 
+        // Skip the 'current' value events that are immediately sent by BehaviurSubject on
+        // subscription, since they are not important for this test.
+        for (var q in qs) {
+          await q.skip(1);
+        }
+
         sm.dispose();
 
         for (var q in qs) {

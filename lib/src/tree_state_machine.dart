@@ -11,8 +11,8 @@ import 'tree_state.dart';
 import 'tree_state_machine_impl.dart';
 import 'utility.dart';
 
-/// A state machine that manages transitions among [TreeState]s that are arranged hierarchically into a
-/// tree.
+/// A state machine that manages transitions among [TreeState]s that are arranged hierarchically
+/// into a tree.
 ///
 /// A [TreeStateMachine] is constructed with a [RootNodeBuilder] that will create the particular
 /// tree of states that the state machine manages. After the state machine is constructed, calling
@@ -43,10 +43,10 @@ import 'utility.dart';
 ///
 /// See also:
 ///
-///  * [UML State Machines](https://en.wikipedia.org/wiki/UML_state_machine), for background information on UML
-///   (hierarchical) state machines.
-///  * [State Machine Diagrams](https://www.uml-diagrams.org/state-machine-diagrams.html), for further description of
-///   UML state machine diagrams.
+///  * [UML State Machines](https://en.wikipedia.org/wiki/UML_state_machine), for background
+///    information on UML (hierarchical) state machines.
+///  * [State Machine Diagrams](https://www.uml-diagrams.org/state-machine-diagrams.html), for
+///    further description of UML state machine diagrams.
 class TreeStateMachine {
   final Machine _machine;
   final Lifecycle _lifecycle = Lifecycle();
@@ -105,13 +105,13 @@ class TreeStateMachine {
   /// This will return `null` if [start] has not been called.
   CurrentState get currentState => _currentState;
 
-  /// Stream of [Transition] events.
+  /// A broadcast stream of [Transition] events.
   ///
   /// A [Transition] is emitted on this stream when a state transition occurs within the state
   /// machine.
   Stream<Transition> get transitions => _transitions.stream;
 
-  /// Broadcast stream of [MessageProcessed] events.
+  /// A broadcast stream of [MessageProcessed] events.
   ///
   /// A [MessageProcessed] event is raised on this stream when a message was processed by a state
   /// within the state machine. The result of this processing may have resulted in a state
@@ -123,7 +123,7 @@ class TreeStateMachine {
   /// type of the event to determine what occurred.
   Stream<MessageProcessed> get processedMessages => _processedMessages.stream;
 
-  /// Broadcast stream of [HandledMessage] events.
+  /// A broadcast stream of [HandledMessage] events.
   ///
   /// A [HandledMessage] is raised on this stream when a message was successfully handled a state
   /// within the state machine.
@@ -132,7 +132,7 @@ class TreeStateMachine {
   Stream<HandledMessage> get handledMessages =>
       Stream.castFrom(processedMessages.where((mp) => mp is HandledMessage));
 
-  /// Broadcast stream of [FailedMessage] events.
+  /// A broadcast stream of [FailedMessage] events.
   ///
   /// A [FailedMessage] is raised on this stream when an error was thrown from one of a states
   /// handler functions while a message was being handled or during a state transition.
@@ -355,7 +355,7 @@ class CurrentState {
     return _treeStateMachine._machine.currentNode.activeData<D>(key);
   }
 
-  /// Data stream of the specified type.
+  /// The active state data stream of the specified type.
   ///
   /// If [key] is provided, the data stream for the ancestor state with the specified key will be
   /// returned. Otherwise, the data stream of the closest ancestor state that matches the specified
@@ -363,7 +363,7 @@ class CurrentState {
   ///
   /// If stata data can be resolved, but it does not support streaming, a single value stream with
   /// the current state data is returned.
-  Stream<D> stream<D>([StateKey key]) {
+  Stream<D> activeStream<D>([StateKey key]) {
     return _treeStateMachine._machine.currentNode.stream<D>(key);
   }
 
@@ -375,7 +375,7 @@ class CurrentState {
     return _treeStateMachine._machine.currentNode.isActive(key);
   }
 
-  /// Returns [StateKey]s identifying the states that are currently active in the state machine.
+  /// The  [StateKey]s identifying the states that are currently active in the state machine.
   ///
   /// The current leaf state is first in the list, followed by its ancestor states, and ending at
   /// the root state.

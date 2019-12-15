@@ -68,11 +68,12 @@ class _ValueKey<T> extends StateKey {
 ///
 /// In addition, [onEnter] and [onExit] can be overriden to perform initialization or establish
 /// invariants that must hold while the state is active.
+///
+/// This example shows an example of initiating a state transition in response to a message:
 /// ```dart
 /// class MyState extends TreeState {
 ///   FutureOr<MessageResult> onMessage(MessageContext context) {
-///     final msg = context.message;
-///     if (msg is SomeMessage) {
+///     if (context.message is SomeMessage) {
 ///       return context.goTo(StateKey.forState<AnotherState>());
 ///     }
 ///     return context.unhandled();
@@ -82,7 +83,7 @@ class _ValueKey<T> extends StateKey {
 abstract class TreeState {
   /// Called when this state is being entered during a state transition.
   ///
-  /// Subclasses can overide to initialize data associated with the state.
+  /// Subclasses can overide to initialize data or acquire resources associated with this state.
   ///
   /// Note that this method should be idempotent. It is possible, if unlikely, that when recovering
   /// from an error condition this method might be called more than once without a corresponding
