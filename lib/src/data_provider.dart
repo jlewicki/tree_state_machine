@@ -5,8 +5,7 @@ import 'package:rxdart/rxdart.dart';
 import 'utility.dart';
 
 abstract class ObservableData<D> {
-  D get data;
-  Stream<D> get stream;
+  ValueStream<D> get dataStream;
 }
 
 abstract class DataProvider<D> {
@@ -59,16 +58,13 @@ class OwnedDataProvider<D> implements DataProvider<D>, ObservableData<D> {
   }
 
   @override
-  D get data {
+  ValueStream<D> get dataStream {
     _throwIfDisposed();
-    return _lazySubject.value.value;
+    return _lazySubject.value;
   }
 
   @override
-  Stream<D> get stream {
-    _throwIfDisposed();
-    return _lazySubject.value.stream;
-  }
+  D get data => dataStream.value;
 
   @override
   Object encode() => encoder(data);
@@ -123,13 +119,13 @@ class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
       // Seed with current value, which ensures that subscribers to the stream are sent the current
       // value (in a future microtask)
       var skippedFirstSame = false;
-      var subject = BehaviorSubject.seeded(_leafDataAsD(observableLeafData.data));
+      var subject = BehaviorSubject.seeded(_leafDataAsD(observableLeafData.dataStream.value));
       // Note that we skip adding if its the same value. Otherwise this subscription might
       // immediately receive (in a future microtask) the current leaf value (if the source is a
       // behavior subject). Since we seeded our subject with this value, we don't want to emit an
       // indentical value unnecessarily. We only do this once though, in case the source emits when
       // the current leaf value is mutated as opposed to producing a new intstance.
-      _subscription = observableLeafData.stream.map(_leafDataAsD).skipWhile((v) {
+      _subscription = observableLeafData.dataStream.map(_leafDataAsD).skipWhile((v) {
         if (skippedFirstSame) return false;
         if (identical(v, subject.value)) {
           skippedFirstSame = true;
@@ -141,21 +137,15 @@ class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
     });
   }
 
-  BehaviorSubject<D> get subject => _lazySubject.value;
-
   @override
-  D get data {
-    _throwIfDisposed();
-    assert(_lazySubject != null, 'initializeLeafData has not been called.');
-    return _lazySubject.value.value;
-  }
-
-  @override
-  Stream<D> get stream {
+  ValueStream<D> get dataStream {
     _throwIfDisposed();
     assert(_lazySubject != null, 'initializeLeafData has not been called.');
     return _lazySubject.value;
   }
+
+  @override
+  D get data => dataStream.value;
 
   @override
   Object encode() => null;
@@ -205,16 +195,22 @@ class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
 
 /// An [ObservableData] that delegates its behavior to external functions.
 class DelegateObservableData<D> extends ObservableData<D> {
-  final D Function() _getData;
-  final Lazy<Stream<D>> _lazyStream;
+  Lazy<BehaviorSubject<D>> _lazySubject;
 
-  DelegateObservableData({D Function() getData, Stream<D> Function() createStream})
-      : _getData = getData ?? (() => null),
-        _lazyStream = Lazy(createStream ?? () => Stream.empty());
+  DelegateObservableData({D Function() getData, Stream<D> Function() createStream}) {
+    _lazySubject = Lazy(() {
+      var subject = getData != null ? BehaviorSubject<D>.seeded(getData()) : BehaviorSubject();
+      if (createStream != null) {
+        subject.addStream(createStream());
+      }
+      return subject;
+    });
+  }
+
+  factory DelegateObservableData.single(D data) {
+    return DelegateObservableData(getData: () => data);
+  }
 
   @override
-  D get data => _getData();
-
-  @override
-  Stream<D> get stream => _lazyStream.value;
+  ValueStream<D> get dataStream => _lazySubject.value;
 }

@@ -344,18 +344,10 @@ class CurrentState {
   ///
   /// Returns `null` if the handling state does not have an associated data provider.
   D data<D>() {
-    return activeData<D>(key);
+    return dataStream<D>(key)?.value;
   }
 
-  /// The active state data of the specified type.
-  ///
-  /// If [key] is provided, the data for the ancestor state with the specified key will be returned.
-  /// Otherwise, the data of the closest ancestor state that matches the specified type is returned.
-  D activeData<D>([StateKey key]) {
-    return _treeStateMachine._machine.currentNode.activeData<D>(key);
-  }
-
-  /// The active state data stream of the specified type.
+  /// The data stream of the specified type for an active state.
   ///
   /// If [key] is provided, the data stream for the ancestor state with the specified key will be
   /// returned. Otherwise, the data stream of the closest ancestor state that matches the specified
@@ -363,8 +355,8 @@ class CurrentState {
   ///
   /// If stata data can be resolved, but it does not support streaming, a single value stream with
   /// the current state data is returned.
-  Stream<D> activeStream<D>([StateKey key]) {
-    return _treeStateMachine._machine.currentNode.stream<D>(key);
+  ValueStream<D> dataStream<D>([StateKey key]) {
+    return _treeStateMachine._machine.currentNode.dataStream<D>(key);
   }
 
   /// Returns `true` if the specified state is an active state in the state machine.
@@ -442,21 +434,25 @@ class EncodableTree {
 }
 
 /// Provides read-only access to the data of the current leaf node of the state machine.
-class CurrentLeafObservableData extends ObservableData<Object> {
-  final Lazy<TreeStateMachine> _machine;
-  final Lazy<Stream<Object>> _stream;
-  CurrentLeafObservableData(this._machine)
-      : _stream = Lazy(() => _machine.value.transitions.switchMap((trans) {
-              assert(_machine.value._machine.currentNode != null);
-              final dataProvider = _machine.value._machine.currentNode.dataProvider;
-              return dataProvider is ObservableData<Object>
-                  ? (dataProvider as ObservableData<Object>).stream
-                  : Stream.empty();
-            }));
+class CurrentLeafObservableData implements ObservableData<Object> {
+  final Lazy<BehaviorSubject<Object>> _lazySubject;
+
+  CurrentLeafObservableData(Lazy<TreeStateMachine> machine)
+      : _lazySubject = Lazy(() {
+          var values = machine.value.transitions.switchMap((trans) {
+            assert(machine.value._machine.currentNode != null);
+            final dataProvider = machine.value._machine.currentNode.dataProvider;
+            return dataProvider is ObservableData<Object>
+                ? (dataProvider as ObservableData<Object>).dataStream
+                : Stream.empty();
+          });
+          var initialValue = machine.value._machine.currentNode?.data();
+          var subject =
+              initialValue != null ? BehaviorSubject.seeded(initialValue) : BehaviorSubject();
+          subject.addStream(values);
+          return subject;
+        });
 
   @override
-  Object get data => _machine.value._machine.currentNode?.data();
-
-  @override
-  Stream<Object> get stream => _stream.value;
+  ValueStream<Object> get dataStream => _lazySubject.value;
 }

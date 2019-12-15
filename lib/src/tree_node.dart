@@ -1,3 +1,5 @@
+import 'package:rxdart/rxdart.dart';
+
 import 'data_provider.dart';
 import 'tree_state.dart';
 import 'utility.dart';
@@ -66,17 +68,22 @@ class TreeNode {
     return lca;
   }
 
-  D data<D>() => activeData<D>(this.key);
+  D data<D>() => dataStream<D>(this.key)?.value;
 
-  D activeData<D>([StateKey key]) {
+  ValueStream<D> dataStream<D>([StateKey key]) {
     final node = key != null ? selfOrAncestorWithKey(key) : selfOrAncestorWithData<D>();
     if (node?.dataProvider != null) {
-      final data = node.dataProvider.data as Object;
-      return data is D
-          ? data
-          : throw StateError(
-              'Data for state ${node.key} of type ${data.runtimeType} does not match '
-              'requested type ${TypeLiteral<D>().type}.');
+      if (node.dataProvider is ObservableData<D>) {
+        return (node.dataProvider as ObservableData<D>).dataStream;
+      } else if (node.dataProvider.data is D) {
+        return DelegateObservableData(
+          getData: () => node.dataProvider.data,
+          createStream: () => Stream.value(node.dataProvider.data),
+        ).dataStream;
+      }
+      throw StateError(
+          'Data for state ${node.key} of type ${data.runtimeType} does not match requested type '
+          '${TypeLiteral<D>().type}.');
     } else if (isTypeOf<Object, D>()) {
       // Handle case where state has no data, and requested type is a generic object. We don't want
       // to return the raw state this case, so just return null
@@ -90,31 +97,11 @@ class TreeNode {
           // is risky to directy return a state to outside of the statemachine, since then external
           // code could call onenter/onexit and potentially violate invariants. (although external
           // code can simply do the cast themselves and work around this)
-          ? node.state() as D
+          ? DelegateObservableData.single(node.state() as D).dataStream
           : throw StateError('Requested data type ${TypeLiteral<D>().type} cannot be a '
               '${TypeLiteral<TreeState>().type} or Object or dynamic.');
     }
     return null;
-  }
-
-  Stream<D> stream<D>([StateKey key]) {
-    final node = key != null ? selfOrAncestorWithKey(key) : selfOrAncestorWithData<D>();
-    if (node?.dataProvider != null) {
-      if (node.dataProvider is ObservableData<D>) {
-        return (node.dataProvider as ObservableData<D>).stream;
-      } else if (node.dataProvider.data is D) {
-        return Stream.value(node.dataProvider.data);
-      }
-      throw StateError(
-          'Data for state ${node.key} of type ${data.runtimeType} does not match requested type '
-          '${TypeLiteral<D>().type}.');
-    }
-
-    var msg = 'Unable to find a ${TypeLiteral<D>().type} data source';
-    if (key != null) {
-      msg += ' for state $key';
-    }
-    throw StateError(msg);
   }
 }
 

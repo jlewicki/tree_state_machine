@@ -195,13 +195,13 @@ void main() {
         ));
         await sm.start();
         final qs = [
-          StreamQueue(r_provider.stream),
-          StreamQueue(r_a_provider.stream),
-          StreamQueue(r_provider.stream),
-          StreamQueue(r_a_a_provider.stream),
-          StreamQueue(r_a_a_1_provider.stream),
-          StreamQueue(r_a_a_2_provider.stream),
-          StreamQueue(r_a_1_provider.stream),
+          StreamQueue(r_provider.dataStream),
+          StreamQueue(r_a_provider.dataStream),
+          StreamQueue(r_provider.dataStream),
+          StreamQueue(r_a_a_provider.dataStream),
+          StreamQueue(r_a_a_1_provider.dataStream),
+          StreamQueue(r_a_a_2_provider.dataStream),
+          StreamQueue(r_a_1_provider.dataStream),
         ];
 
         // Skip the 'current' value events that are immediately sent by BehaviurSubject on
@@ -545,20 +545,20 @@ void main() {
         expect(r_a_a_1_data.name, equals('Yo'));
         expect(r_a_a_1_data.counter, equals(10));
 
-        expect(sm.currentState.activeData(tree.r_a_a_key), isNotNull);
-        expect(sm.currentState.activeData(tree.r_a_a_key), isA<LeafDataBase>());
-        final r_a_a_data = sm.currentState.activeData<LeafDataBase>(tree.r_a_a_key);
+        expect(sm.currentState.dataStream(tree.r_a_a_key).value, isNotNull);
+        expect(sm.currentState.dataStream(tree.r_a_a_key).value, isA<LeafDataBase>());
+        final r_a_a_data = sm.currentState.dataStream<LeafDataBase>(tree.r_a_a_key).value;
         expect(r_a_a_data.name, equals('Yo'));
 
-        expect(sm.currentState.activeData(tree.r_a_key), isNotNull);
-        expect(sm.currentState.activeData(tree.r_a_key), isA<ImmutableData>());
-        final r_a_data = sm.currentState.activeData<ImmutableData>(tree.r_a_key);
+        expect(sm.currentState.dataStream(tree.r_a_key).value, isNotNull);
+        expect(sm.currentState.dataStream(tree.r_a_key).value, isA<ImmutableData>());
+        final r_a_data = sm.currentState.dataStream<ImmutableData>(tree.r_a_key).value;
         expect(r_a_data.price, equals(8));
         expect(r_a_data.name, equals('Dude'));
 
-        expect(sm.currentState.activeData(tree.r_key), isNotNull);
-        expect(sm.currentState.activeData(tree.r_key), isA<SpecialDataD>());
-        final rootData = sm.currentState.activeData<SpecialDataD>(tree.r_key);
+        expect(sm.currentState.dataStream(tree.r_key).value, isNotNull);
+        expect(sm.currentState.dataStream(tree.r_key).value, isA<SpecialDataD>());
+        final rootData = sm.currentState.dataStream<SpecialDataD>(tree.r_key).value;
         expect(rootData.playerName, equals('FOO'));
         expect(rootData.startYear, equals(2000));
         expect(rootData.hiScores.length, equals(1));
@@ -803,7 +803,7 @@ void main() {
         }));
         await sm.start();
 
-        final leafData = sm.currentState.activeData<LeafDataBase>(data_tree.r_a_a_key);
+        final leafData = sm.currentState.dataStream<LeafDataBase>(data_tree.r_a_a_key).value;
         expect(leafData.name, equals('foo'));
       });
 
@@ -817,7 +817,7 @@ void main() {
         ));
         await sm.start();
 
-        final r_a_data = sm.currentState.activeData<ImmutableData>(data_tree.r_a_key);
+        final r_a_data = sm.currentState.dataStream<ImmutableData>(data_tree.r_a_key).value;
         expect(r_a_data.name, equals('foo'));
         expect(r_a_data.price, equals(10));
       });

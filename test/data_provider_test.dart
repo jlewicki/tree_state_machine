@@ -71,7 +71,7 @@ void main() {
 
       test('should emit on stream', () async {
         final provider = SimpleDataA.dataProvider();
-        final q = StreamQueue(provider.stream);
+        final q = StreamQueue(provider.dataStream);
         provider.data.name = 'Bill';
         provider.data.age = 25;
 
@@ -103,7 +103,7 @@ void main() {
 
       test('should emit on stream', () async {
         final provider = SimpleDataA.dataProvider();
-        final q = StreamQueue(provider.stream);
+        final q = StreamQueue(provider.dataStream);
         provider.data.name = 'Bill';
         provider.data.age = 25;
 
@@ -122,7 +122,7 @@ void main() {
     group('dispose', () {
       test('should close stream', () async {
         final provider = SimpleDataA.dataProvider();
-        final q = StreamQueue(provider.stream);
+        final q = StreamQueue(provider.dataStream);
         await q.skip(1); // Skip 1 because current value is always emitted.
 
         provider.dispose();
@@ -186,7 +186,7 @@ void main() {
 
         final provider = LeafDataBase.dataProvider();
         provider.initializeLeafData(leafProvider);
-        final q = StreamQueue(provider.stream);
+        final q = StreamQueue(provider.dataStream);
 
         final future = q.next;
         provider.update(() => provider.data.name = 'Jim');
@@ -206,7 +206,7 @@ void main() {
 
         final provider = LeafDataBase.dataProvider();
         provider.initializeLeafData(leafProvider);
-        final q = StreamQueue(provider.stream);
+        final q = StreamQueue(provider.dataStream);
         // Skip 1 because current value is always sent to stream by BehaviorSubject, and we don't
         // care about that value for the purposes of this test.
         q.skip(1);
