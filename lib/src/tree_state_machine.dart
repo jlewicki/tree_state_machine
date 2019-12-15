@@ -1,15 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:tree_state_machine/src/lifecycle.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
+import 'data_provider.dart';
+import 'lifecycle.dart';
 import 'tree_builders.dart';
 import 'tree_state.dart';
 import 'tree_state_machine_impl.dart';
+import 'utility.dart';
 
-/// A state machine that manages transitions among [TreeState]s that are arranged hierarchically into a
-/// tree.
+/// A state machine that manages transitions among [TreeState]s that are arranged hierarchically
+/// into a tree.
 ///
 /// A [TreeStateMachine] is constructed with a [RootNodeBuilder] that will create the particular
 /// tree of states that the state machine manages. After the state machine is constructed, calling
@@ -40,10 +43,10 @@ import 'tree_state_machine_impl.dart';
 ///
 /// See also:
 ///
-///  * [UML State Machines](https://en.wikipedia.org/wiki/UML_state_machine), for background information on UML
-///   (hierarchical) state machines.
-///  * [State Machine Diagrams](https://www.uml-diagrams.org/state-machine-diagrams.html), for further description of
-///   UML state machine diagrams.
+///  * [UML State Machines](https://en.wikipedia.org/wiki/UML_state_machine), for background
+///    information on UML (hierarchical) state machines.
+///  * [State Machine Diagrams](https://www.uml-diagrams.org/state-machine-diagrams.html), for
+///    further description of UML state machine diagrams.
 class TreeStateMachine {
   final Machine _machine;
   final Lifecycle _lifecycle = Lifecycle();
@@ -59,14 +62,11 @@ class TreeStateMachine {
   factory TreeStateMachine.forRoot(RootNodeBuilder buildRoot) {
     ArgumentError.checkNotNull(buildRoot, 'buildRoot');
 
-    // This is twisty, since we have indirect circular dependency between getCurrentLeafData and
-    // TreeStateMachine
+    // This is twisty, since we have an indirect circular dependency between
+    // CurrentLeafObservableData and TreeStateMachine
     TreeStateMachine treeMachine;
-    Object getCurrentLeafData() {
-      return treeMachine.currentState.data();
-    }
-
-    final buildCtx = TreeBuildContext(getCurrentLeafData);
+    final currentLeafData = CurrentLeafObservableData(Lazy(() => treeMachine));
+    final buildCtx = TreeBuildContext(currentLeafData);
     final rootNode = buildRoot(buildCtx);
     final machine = Machine(rootNode, buildCtx.nodes);
 
@@ -97,18 +97,21 @@ class TreeStateMachine {
   /// to a final state has occurred as result of processing a message, or because [stop] was called.
   bool get isEnded => _machine.currentNode?.isFinal ?? false;
 
+  /// Returns `true` if [dispose] has been called.
+  bool get isDisposed => _lifecycle.isDisposed;
+
   /// The current state of the state machine.
   ///
   /// This will return `null` if [start] has not been called.
   CurrentState get currentState => _currentState;
 
-  /// Stream of [Transition] events.
+  /// A broadcast stream of [Transition] events.
   ///
   /// A [Transition] is emitted on this stream when a state transition occurs within the state
   /// machine.
   Stream<Transition> get transitions => _transitions.stream;
 
-  /// Broadcast stream of [MessageProcessed] events.
+  /// A broadcast stream of [MessageProcessed] events.
   ///
   /// A [MessageProcessed] event is raised on this stream when a message was processed by a state
   /// within the state machine. The result of this processing may have resulted in a state
@@ -120,7 +123,7 @@ class TreeStateMachine {
   /// type of the event to determine what occurred.
   Stream<MessageProcessed> get processedMessages => _processedMessages.stream;
 
-  /// Broadcast stream of [HandledMessage] events.
+  /// A broadcast stream of [HandledMessage] events.
   ///
   /// A [HandledMessage] is raised on this stream when a message was successfully handled a state
   /// within the state machine.
@@ -129,7 +132,7 @@ class TreeStateMachine {
   Stream<HandledMessage> get handledMessages =>
       Stream.castFrom(processedMessages.where((mp) => mp is HandledMessage));
 
-  /// Broadcast stream of [FailedMessage] events.
+  /// A broadcast stream of [FailedMessage] events.
   ///
   /// A [FailedMessage] is raised on this stream when an error was thrown from one of a states
   /// handler functions while a message was being handled or during a state transition.
@@ -180,6 +183,9 @@ class TreeStateMachine {
       _transitions.close();
       _processedMessages.close();
       _messageQueue.close();
+      for (var node in _machine.nodes.values) {
+        node.dispose();
+      }
     });
   }
 
@@ -197,6 +203,7 @@ class TreeStateMachine {
   /// be thrown.
   Future saveTo(StreamSink<List<int>> sink) {
     ArgumentError.checkNotNull(sink, 'sink');
+    _lifecycle.throwIfDisposed();
     if (!isStarted) {
       throw StateError('This TreeStateMachine must be started before saving the tree.');
     }
@@ -228,6 +235,7 @@ class TreeStateMachine {
   /// matching the current state recorded in the stream.
   Future loadFrom(Stream<List<int>> stream) async {
     ArgumentError.checkNotNull(stream, 'stream');
+    _lifecycle.throwIfDisposed();
     if (isStarted) {
       throw StateError('This TreeStateMachine must not be started before loading the tree.');
     }
@@ -314,6 +322,7 @@ class TreeStateMachine {
   }
 
   Future<MessageProcessed> _processMessage(Object message) async {
+    _lifecycle.throwIfDisposed();
     // Add the message to the stream processor, which includes a buffering mechanism. That ensures
     // messages will be processed in-order, when messages are sent to the state machine without
     // waiting for earlier messages to be procesed.
@@ -335,15 +344,19 @@ class CurrentState {
   ///
   /// Returns `null` if the handling state does not have an associated data provider.
   D data<D>() {
-    return activeData<D>(key);
+    return dataStream<D>(key)?.value;
   }
 
-  /// The active state data of the specified type.
+  /// The data stream of the specified type for an active state.
   ///
-  /// If [key] is provided, the data for the ancestor state with the specified key will be returned.
-  /// Otherwise, the data of the closest ancestor state that matches the specified type is returned.
-  D activeData<D>([StateKey key]) {
-    return _treeStateMachine._machine.currentNode.activeData<D>(key);
+  /// If [key] is provided, the data stream for the ancestor state with the specified key will be
+  /// returned. Otherwise, the data stream of the closest ancestor state that matches the specified
+  /// type is returned.
+  ///
+  /// If stata data can be resolved, but it does not support streaming, a single value stream with
+  /// the current state data is returned.
+  ValueStream<D> dataStream<D>([StateKey key]) {
+    return _treeStateMachine._machine.currentNode.dataStream<D>(key);
   }
 
   /// Returns `true` if the specified state is an active state in the state machine.
@@ -354,7 +367,7 @@ class CurrentState {
     return _treeStateMachine._machine.currentNode.isActive(key);
   }
 
-  /// Returns [StateKey]s identifying the states that are currently active in the state machine.
+  /// The  [StateKey]s identifying the states that are currently active in the state machine.
   ///
   /// The current leaf state is first in the list, followed by its ancestor states, and ending at
   /// the root state.
@@ -418,4 +431,28 @@ class EncodableTree {
         'version': version,
         'states': states,
       };
+}
+
+/// Provides read-only access to the data of the current leaf node of the state machine.
+class CurrentLeafObservableData implements ObservableData<Object> {
+  final Lazy<BehaviorSubject<Object>> _lazySubject;
+
+  CurrentLeafObservableData(Lazy<TreeStateMachine> machine)
+      : _lazySubject = Lazy(() {
+          var values = machine.value.transitions.switchMap((trans) {
+            assert(machine.value._machine.currentNode != null);
+            final dataProvider = machine.value._machine.currentNode.dataProvider;
+            return dataProvider is ObservableData<Object>
+                ? (dataProvider as ObservableData<Object>).dataStream
+                : Stream.empty();
+          });
+          var initialValue = machine.value._machine.currentNode?.data();
+          var subject =
+              initialValue != null ? BehaviorSubject.seeded(initialValue) : BehaviorSubject();
+          subject.addStream(values);
+          return subject;
+        });
+
+  @override
+  ValueStream<Object> get dataStream => _lazySubject.value;
 }

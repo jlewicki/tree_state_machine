@@ -1,4 +1,5 @@
 import 'package:test/test.dart';
+import 'package:tree_state_machine/src/data_provider.dart';
 import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_node.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
@@ -23,7 +24,7 @@ void main() {
   var finalState = SimpleFinalState();
   var finaKey = StateKey.named('final');
 
-  Object currentLeafData() => null;
+  final currentLeafData = DelegateObservableData();
 
   group('buildLeaf', () {
     test('should build a leaf node', () {
@@ -67,7 +68,7 @@ void main() {
         createState: (key) {
           return theState = SimpleDataState();
         },
-        provider: SimpleDataA.dataProvider(),
+        createProvider: SimpleDataA.dataProvider,
       );
       final leafNode = builder(buildCtx);
 
@@ -77,6 +78,18 @@ void main() {
       expect(leafNode.state(), same(theState));
       expect(leafNode.parent, same(parentNode));
       expect(leafNode.children, isEmpty);
+    });
+
+    test('should create new data provider', () {
+      final builder = dataLeafBuilder(
+        key: stateKey,
+        createState: (key) => SimpleDataState(),
+        createProvider: SimpleDataA.dataProvider,
+      );
+      final leafNode1 = builder(TreeBuildContext(currentLeafData, parentNode));
+      final leafNode2 = builder(TreeBuildContext(currentLeafData, parentNode));
+
+      expect(identical(leafNode1.dataProvider, leafNode2.dataProvider), isFalse);
     });
   });
 
@@ -132,6 +145,42 @@ void main() {
       interiorNode.children.forEach((c) {
         expect(buildCtx.nodes[c.key], equals(c));
       });
+    });
+  });
+
+  group('buildDataInterior', () {
+    test('should build a data leaf node', () {
+      SimpleDataState theState;
+      final buildCtx = TreeBuildContext(currentLeafData, parentNode);
+      final builder = dataInteriorBuilder(
+          key: stateKey,
+          createState: (key) {
+            return theState = SimpleDataState();
+          },
+          createProvider: SimpleDataA.dataProvider,
+          initialChild: (_) => StateKey.forState<SimpleState>(),
+          children: [leafBuilder(createState: (_) => new SimpleState())]);
+      final interiorNode = builder(buildCtx);
+
+      expect(interiorNode, isNotNull);
+      expect(interiorNode.key, equals(stateKey));
+      expect(interiorNode.isInterior, isTrue);
+      expect(interiorNode.state(), same(theState));
+      expect(interiorNode.parent, same(parentNode));
+      expect(interiorNode.children.length, equals(1));
+    });
+
+    test('should create new data provider', () {
+      final builder = dataInteriorBuilder(
+          key: stateKey,
+          createState: (key) => SimpleDataState(),
+          createProvider: SimpleDataA.dataProvider,
+          initialChild: (_) => StateKey.forState<SimpleState>(),
+          children: [leafBuilder(createState: (_) => new SimpleState())]);
+      final node1 = builder(TreeBuildContext(currentLeafData, parentNode));
+      final node2 = builder(TreeBuildContext(currentLeafData, parentNode));
+
+      expect(identical(node1.dataProvider, node2.dataProvider), isFalse);
     });
   });
 
@@ -192,6 +241,42 @@ void main() {
       rootNode.children.forEach((c) {
         expect(buildCtx.nodes[c.key], equals(c));
       });
+    });
+  });
+
+  group('buildDataRoot', () {
+    test('should build a data leaf node', () {
+      SimpleDataState theState;
+      final buildCtx = TreeBuildContext(currentLeafData, null);
+      final builder = dataRootBuilder(
+          key: stateKey,
+          createState: (key) {
+            return theState = SimpleDataState();
+          },
+          createProvider: SimpleDataA.dataProvider,
+          initialChild: (_) => StateKey.forState<SimpleState>(),
+          children: [leafBuilder(createState: (_) => new SimpleState())]);
+      final rootNode = builder(buildCtx);
+
+      expect(rootNode, isNotNull);
+      expect(rootNode.key, equals(stateKey));
+      expect(rootNode.isRoot, isTrue);
+      expect(rootNode.state(), same(theState));
+      expect(rootNode.parent, isNull);
+      expect(rootNode.children.length, equals(1));
+    });
+
+    test('should create new data provider', () {
+      final builder = dataRootBuilder(
+          key: stateKey,
+          createState: (key) => SimpleDataState(),
+          createProvider: SimpleDataA.dataProvider,
+          initialChild: (_) => StateKey.forState<SimpleState>(),
+          children: [leafBuilder(createState: (_) => new SimpleState())]);
+      final node1 = builder(TreeBuildContext(currentLeafData, null));
+      final node2 = builder(TreeBuildContext(currentLeafData, null));
+
+      expect(identical(node1.dataProvider, node2.dataProvider), isFalse);
     });
   });
 

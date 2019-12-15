@@ -1,16 +1,17 @@
 import 'dart:async';
 
 import 'package:test/test.dart';
+import 'package:tree_state_machine/src/data_provider.dart';
 import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 import 'package:tree_state_machine/src/tree_state_machine_impl.dart';
 
-import 'fixture/tree_1.dart';
-import 'fixture/flat_tree_1.dart' as flat_tree;
 import 'fixture/data_tree.dart' as data_tree;
+import 'fixture/flat_tree_1.dart' as flat_tree;
+import 'fixture/tree_1.dart';
 import 'fixture/tree_data.dart';
 
-Object _getCurrentLeafData() => null;
+final _getCurrentLeafData = DelegateObservableData();
 
 void main() {
   group('Machine', () {
@@ -326,6 +327,30 @@ void main() {
           expect(handled.exitedStates, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
           expect(handled.enteredStates, orderedEquals([r_X_key]));
         });
+
+        test('should pass payload to transition context', () async {
+          final payload = Object();
+          final payloadMap = <StateKey, Object>{};
+          final buildTree = treeBuilder(
+            messageHandlers: {
+              r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_b_1_key, payload: payload),
+            },
+            createExitHandler: (key) => (ctx) => payloadMap[key] = ctx.payload,
+            createEntryHandler: (key) => (ctx) => payloadMap[key] = ctx.payload,
+          );
+          final buildCtx = TreeBuildContext(_getCurrentLeafData);
+          final rootNode = buildTree(buildCtx);
+          final machine = Machine(rootNode, buildCtx.nodes);
+          final msg = Object();
+
+          await machine.processMessage(msg, r_a_a_1_key);
+
+          final exited = [r_a_a_1_key, r_a_a_key, r_a_key];
+          final entered = [r_b_key, r_b_1_key];
+          for (var key in exited.followedBy(entered)) {
+            expect(payloadMap[key], same(payload));
+          }
+        });
       });
 
       group('UnhandledResult', () {
@@ -475,11 +500,9 @@ void main() {
         );
 
         Machine machine;
-        Object getCurrentLeafData() {
-          return machine.currentNode.data();
-        }
-
-        final buildCtx = TreeBuildContext(getCurrentLeafData);
+        final buildCtx = TreeBuildContext(
+          DelegateObservableData(getData: () => machine.currentNode.data()),
+        );
         final rootNode = buildTree(buildCtx);
         machine = Machine(rootNode, buildCtx.nodes);
         await machine.enterInitialState();

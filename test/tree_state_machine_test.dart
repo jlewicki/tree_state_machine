@@ -141,6 +141,94 @@ void main() {
       });
     });
 
+    group('dispose', () {
+      test('should be disposed', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        await sm.start();
+
+        sm.dispose();
+
+        expect(sm.isDisposed, isTrue);
+        expect(sm.isStarted, isFalse);
+        expect(sm.isEnded, isFalse);
+      });
+
+      test('should close streams', () async {
+        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final transitionsQ = StreamQueue(sm.transitions);
+        final processedMessagesQ = StreamQueue(sm.processedMessages);
+        final handledMessagesQ = StreamQueue(sm.handledMessages);
+        final failedMessagesQ = StreamQueue(sm.failedMessages);
+        await sm.start();
+
+        sm.dispose();
+
+        final hasNexts = await Future.wait([
+          transitionsQ.hasNext,
+          processedMessagesQ.hasNext,
+          handledMessagesQ.hasNext,
+          failedMessagesQ.hasNext,
+        ]);
+
+        for (var hasNext in hasNexts) {
+          expect(hasNext, isFalse);
+        }
+      });
+
+      test('should dispose data providers', () async {
+        final r_provider = SpecialDataD.dataProvider();
+        final r_a_provider = ImmutableData.dataProvider();
+        final r_a_a_provider = LeafDataBase.dataProvider();
+        final r_a_a_1_provider = LeafData1.dataProvider();
+        final r_a_a_2_provider = LeafData2.dataProvider();
+        final r_a_1_provider = ImmutableData.dataProvider();
+
+        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(
+          dataProviders: {
+            data_tree.r_key: r_provider,
+            data_tree.r_a_key: r_a_provider,
+            data_tree.r_a_a_key: r_a_a_provider,
+            data_tree.r_a_a_1_key: r_a_a_1_provider,
+            data_tree.r_a_a_2_key: r_a_a_2_provider,
+            data_tree.r_a_1_key: r_a_1_provider,
+          },
+        ));
+        await sm.start();
+        final qs = [
+          StreamQueue(r_provider.dataStream),
+          StreamQueue(r_a_provider.dataStream),
+          StreamQueue(r_provider.dataStream),
+          StreamQueue(r_a_a_provider.dataStream),
+          StreamQueue(r_a_a_1_provider.dataStream),
+          StreamQueue(r_a_a_2_provider.dataStream),
+          StreamQueue(r_a_1_provider.dataStream),
+        ];
+
+        // Skip the 'current' value events that are immediately sent by BehaviurSubject on
+        // subscription, since they are not important for this test.
+        for (var q in qs) {
+          await q.skip(1);
+        }
+
+        sm.dispose();
+
+        for (var q in qs) {
+          var hasNext = await q.hasNext;
+          expect(hasNext, isFalse);
+        }
+      });
+
+      test('should do nothing if already disposed', () async {
+        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder());
+        await sm.start();
+        sm.dispose();
+
+        sm.dispose();
+
+        expect(sm.isDisposed, isTrue);
+      });
+    });
+
     group('processMessage', () {
       test('should update current state key', () async {
         final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
@@ -457,20 +545,20 @@ void main() {
         expect(r_a_a_1_data.name, equals('Yo'));
         expect(r_a_a_1_data.counter, equals(10));
 
-        expect(sm.currentState.activeData(tree.r_a_a_key), isNotNull);
-        expect(sm.currentState.activeData(tree.r_a_a_key), isA<LeafDataBase>());
-        final r_a_a_data = sm.currentState.activeData<LeafDataBase>(tree.r_a_a_key);
+        expect(sm.currentState.dataStream(tree.r_a_a_key).value, isNotNull);
+        expect(sm.currentState.dataStream(tree.r_a_a_key).value, isA<LeafDataBase>());
+        final r_a_a_data = sm.currentState.dataStream<LeafDataBase>(tree.r_a_a_key).value;
         expect(r_a_a_data.name, equals('Yo'));
 
-        expect(sm.currentState.activeData(tree.r_a_key), isNotNull);
-        expect(sm.currentState.activeData(tree.r_a_key), isA<ImmutableData>());
-        final r_a_data = sm.currentState.activeData<ImmutableData>(tree.r_a_key);
+        expect(sm.currentState.dataStream(tree.r_a_key).value, isNotNull);
+        expect(sm.currentState.dataStream(tree.r_a_key).value, isA<ImmutableData>());
+        final r_a_data = sm.currentState.dataStream<ImmutableData>(tree.r_a_key).value;
         expect(r_a_data.price, equals(8));
         expect(r_a_data.name, equals('Dude'));
 
-        expect(sm.currentState.activeData(tree.r_key), isNotNull);
-        expect(sm.currentState.activeData(tree.r_key), isA<SpecialDataD>());
-        final rootData = sm.currentState.activeData<SpecialDataD>(tree.r_key);
+        expect(sm.currentState.dataStream(tree.r_key).value, isNotNull);
+        expect(sm.currentState.dataStream(tree.r_key).value, isA<SpecialDataD>());
+        final rootData = sm.currentState.dataStream<SpecialDataD>(tree.r_key).value;
         expect(rootData.playerName, equals('FOO'));
         expect(rootData.startYear, equals(2000));
         expect(rootData.hiScores.length, equals(1));
@@ -669,7 +757,7 @@ void main() {
     });
 
     group('data', () {
-      test('shoud return data from provider when available', () async {
+      test('should return data from provider when available', () async {
         final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(initialDataValues: {
           data_tree.r_a_a_2_key: LeafData2()
             ..name = 'foo'
@@ -682,7 +770,7 @@ void main() {
         expect(leafData.label, equals('cool'));
       });
 
-      test('shoud return data from state when available', () async {
+      test('should return data from state when available', () async {
         final sm = TreeStateMachine.forRoot(tree.treeBuilder());
         await sm.start(tree.r_b_2_key);
 
@@ -691,14 +779,14 @@ void main() {
         expect(sm.currentState.data<tree.ReadOnlyData>().counter, equals(10));
       });
 
-      test('shoud throw if data is a tree state', () async {
+      test('should throw if data is a tree state', () async {
         final sm = TreeStateMachine.forRoot(tree.treeBuilder());
         await sm.start(tree.r_b_1_key);
 
         expect(() => sm.currentState.data<DelegateState>(), throwsStateError);
       });
 
-      test('shoud return null when data not available', () async {
+      test('should return null when data not available', () async {
         final sm = TreeStateMachine.forRoot(tree.treeBuilder());
         await sm.start();
 
@@ -707,7 +795,7 @@ void main() {
     });
 
     group('activeData', () {
-      test('shoud return data from leaf provider when available', () async {
+      test('should return data from leaf provider when available', () async {
         final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(initialDataValues: {
           data_tree.r_a_a_2_key: LeafData2()
             ..name = 'foo'
@@ -715,11 +803,11 @@ void main() {
         }));
         await sm.start();
 
-        final leafData = sm.currentState.activeData<LeafDataBase>(data_tree.r_a_a_key);
+        final leafData = sm.currentState.dataStream<LeafDataBase>(data_tree.r_a_a_key).value;
         expect(leafData.name, equals('foo'));
       });
 
-      test('shoud return data from owned provider when available', () async {
+      test('should return data from owned provider when available', () async {
         final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(
           initialDataValues: {
             data_tree.r_a_key: ImmutableData((b) => b
@@ -729,12 +817,12 @@ void main() {
         ));
         await sm.start();
 
-        final r_a_data = sm.currentState.activeData<ImmutableData>(data_tree.r_a_key);
+        final r_a_data = sm.currentState.dataStream<ImmutableData>(data_tree.r_a_key).value;
         expect(r_a_data.name, equals('foo'));
         expect(r_a_data.price, equals(10));
       });
 
-      test('shoud return data from leaf provider after transition.', () async {
+      test('should return data from leaf provider after transition.', () async {
         final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(
           initialDataValues: {
             data_tree.r_a_a_2_key: LeafData2()

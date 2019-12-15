@@ -10,12 +10,12 @@ environment:
 dependencies:
   async: ^2.4.0
   meta: ^1.1.8
-  json_annotation: ^3.0.0
-  built_collection: ^4.3.0
-  built_value: ^7.0.0
+  rxdart: ^0.23.1
 
 dev_dependencies:
- 
+  built_collection: ^4.3.0
+  built_value: ^7.0.0
+  json_annotation: ^3.0.0
   build_runner: ^1.0.0
   built_value_generator: ^7.0.0
   json_serializable: ^3.2.0

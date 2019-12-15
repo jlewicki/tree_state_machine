@@ -1,6 +1,7 @@
 import 'dart:collection';
 
 import 'package:meta/meta.dart';
+import 'package:tree_state_machine/src/utility.dart';
 
 import 'data_provider.dart';
 import 'tree_node.dart';
@@ -32,15 +33,22 @@ RootNodeBuilder dataRootBuilder<T extends DataTreeState<D>, D>({
   @required DataStateCreator<T, D> createState,
   @required Iterable<ChildNodeBuilder> children,
   @required InitialChild initialChild,
-  @required DataProvider<D> provider,
+  @required DataProvider<D> Function() createProvider,
   StateKey key,
   Iterable<FinalNodeBuilder> finalStates,
 }) {
-  ArgumentError.checkNotNull(provider, 'provider');
+  ArgumentError.checkNotNull(createProvider, 'provider');
   return _rootBuilder<T>(
     key,
-    (key, ctx) =>
-        RootNode(key, _dataStateCreator(createState, provider, ctx), initialChild, provider),
+    (key, ctx) {
+      final lazyProvider = Lazy(createProvider);
+      return RootNode(
+        key,
+        _dataStateCreator(createState, lazyProvider.value, ctx),
+        initialChild,
+        lazyProvider.value,
+      );
+    },
     children,
     initialChild,
     finalStates,
@@ -63,14 +71,23 @@ InteriorNodeBuilder dataInteriorBuilder<T extends DataTreeState<D>, D>({
   @required DataStateCreator<T, D> createState,
   @required Iterable<ChildNodeBuilder> children,
   @required InitialChild initialChild,
-  @required DataProvider<D> provider,
+  @required DataProvider<D> Function() createProvider,
   StateKey key,
 }) {
-  ArgumentError.checkNotNull(provider, 'provider');
+  ArgumentError.checkNotNull(createProvider, 'provider');
+
   return _interiorBuilder<T>(
     key,
-    (key, ctx) => InteriorNode(
-        key, ctx.parentNode, _dataStateCreator(createState, provider, ctx), initialChild, provider),
+    (key, ctx) {
+      final lazyProvider = Lazy(createProvider);
+      return InteriorNode(
+        key,
+        ctx.parentNode,
+        _dataStateCreator(createState, lazyProvider.value, ctx),
+        initialChild,
+        lazyProvider.value,
+      );
+    },
     children,
   );
 }
@@ -86,14 +103,23 @@ LeafNodeBuilder leafBuilder<T extends TreeState>({
 
 LeafNodeBuilder dataLeafBuilder<T extends DataTreeState<D>, D>({
   @required DataStateCreator<T, D> createState,
-  @required OwnedDataProvider<D> provider,
+  @required OwnedDataProvider<D> Function() createProvider,
   StateKey key,
 }) {
-  ArgumentError.checkNotNull(provider, 'provider');
+  ArgumentError.checkNotNull(createProvider, 'provider');
+
   return _leafBuilder<T>(
-      key,
-      (k, ctx) =>
-          LeafNode(k, ctx.parentNode, _dataStateCreator(createState, provider, ctx), provider));
+    key,
+    (k, ctx) {
+      final lazyProvider = Lazy(createProvider);
+      return LeafNode(
+        k,
+        ctx.parentNode,
+        _dataStateCreator(createState, lazyProvider.value, ctx),
+        lazyProvider.value,
+      );
+    },
+  );
 }
 
 FinalNodeBuilder finalBuilder<T extends TreeState>({
@@ -162,7 +188,7 @@ StateCreator _dataStateCreator<T extends DataTreeState<D>, D>(
     (key) {
       final state = createState(key);
       if (provider is CurrentLeafDataProvider) {
-        (provider as CurrentLeafDataProvider).initializeLeafDataAccessor(ctx.currentLeafData);
+        (provider as CurrentLeafDataProvider).initializeLeafData(ctx.currentLeafData);
       }
       state.initializeDataValue(provider);
       return state;
@@ -171,11 +197,11 @@ StateCreator _dataStateCreator<T extends DataTreeState<D>, D>(
 class TreeBuildContext {
   final TreeNode parentNode;
   final HashMap<StateKey, TreeNode> nodes;
-  final Object Function() currentLeafData;
+  final ObservableData<Object> currentLeafData;
 
   TreeBuildContext._(this.parentNode, this.nodes, this.currentLeafData);
 
-  factory TreeBuildContext(Object Function() currentLeafData, [TreeNode parentNode]) =>
+  factory TreeBuildContext(ObservableData<Object> currentLeafData, [TreeNode parentNode]) =>
       TreeBuildContext._(parentNode, HashMap(), currentLeafData);
 
   TreeBuildContext childContext(TreeNode newParentNode) =>

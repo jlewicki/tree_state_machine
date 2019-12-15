@@ -68,11 +68,12 @@ class _ValueKey<T> extends StateKey {
 ///
 /// In addition, [onEnter] and [onExit] can be overriden to perform initialization or establish
 /// invariants that must hold while the state is active.
+///
+/// This example shows an example of initiating a state transition in response to a message:
 /// ```dart
 /// class MyState extends TreeState {
 ///   FutureOr<MessageResult> onMessage(MessageContext context) {
-///     final msg = context.message;
-///     if (msg is SomeMessage) {
+///     if (context.message is SomeMessage) {
 ///       return context.goTo(StateKey.forState<AnotherState>());
 ///     }
 ///     return context.unhandled();
@@ -82,7 +83,7 @@ class _ValueKey<T> extends StateKey {
 abstract class TreeState {
   /// Called when this state is being entered during a state transition.
   ///
-  /// Subclasses can overide to initialize data associated with the state.
+  /// Subclasses can overide to initialize data or acquire resources associated with this state.
   ///
   /// Note that this method should be idempotent. It is possible, if unlikely, that when recovering
   /// from an error condition this method might be called more than once without a corresponding
@@ -154,6 +155,20 @@ abstract class DataTreeState<D> extends TreeState {
     return _provider.data;
   }
 
+  /// Calls the specified function to produce a new data value, and replaces [data] with this value.
+  @protected
+  void replaceData(D Function() replace) {
+    _provider.replace(replace);
+  }
+
+  /// Calls the specified function that updates the current data value.
+  ///
+  /// Note that in the future this may result in a change notification.
+  @protected
+  void updateData(void Function() update) {
+    _provider.update(update);
+  }
+
   /// Called to initialize the data provider for this instance.
   ///
   /// This will be called by the state machine immediately after it creates this state instance.
@@ -190,17 +205,6 @@ final TransitionHandler emptyTransitionHandler = (_) {};
 /// A [MessageHandler] that always returns [MessageContext.unhandled].
 final MessageHandler emptyMessageHandler = (ctx) => ctx.unhandled();
 
-/// A tree state that always returns [MessageContext.unhandled].
-class EmptyTreeState extends TreeState {
-  @override
-  FutureOr<MessageResult> onMessage(MessageContext context) => context.unhandled();
-}
-
-class EmptyDataTreeState<D> extends DataTreeState<D> {
-  @override
-  FutureOr<MessageResult> onMessage(MessageContext context) => context.unhandled();
-}
-
 //==================================================================================================
 //
 // Contexts
@@ -215,7 +219,7 @@ abstract class MessageContext {
   ///
   /// A [TransitionHandler] may optionally be specified, indicating a function that should be called
   /// during the transition between states.
-  MessageResult goTo(StateKey targetStateKey, {TransitionHandler transitionAction});
+  MessageResult goTo(StateKey targetStateKey, {TransitionHandler transitionAction, Object payload});
 
   /// Returns a [MessageResult] indicating that an internal transition should occur.
   ///
@@ -287,6 +291,13 @@ abstract class TransitionContext {
   /// This will refer to the final leaf state of the transition, including the result of following
   /// the initial child path rooted at [to], if [to] referes to a non-leaf state.
   StateKey get end;
+
+  /// The optional payload for this transition.
+  ///
+  /// When a state transition is initiated with [MessageContext.goTo], the caller may provide an
+  /// optional payload value that provides further context for the transition to the target state.
+  /// This property makes this payload accessible during the transition.
+  Object get payload;
 
   /// The path of states in the tree starting at [from] and ending at [to].
   Iterable<StateKey> get path;
@@ -362,9 +373,9 @@ class Transition {
 }
 
 //==================================================================================================
-///
-/// Message Results
-///
+//
+// Message Results
+//
 
 /// Base class for describing the results of processing a state machine message.
 ///
@@ -380,7 +391,8 @@ class GoToResult extends MessageResult {
   /// Indicates the state to which the state machine should transition.
   final StateKey toStateKey;
   final FutureOr<void> Function(TransitionContext) transitionAction;
-  GoToResult(this.toStateKey, [this.transitionAction]) : super._();
+  final Object payload;
+  GoToResult(this.toStateKey, [this.transitionAction, this.payload]) : super._();
 }
 
 /// A [MessageResult] indicating that a message was sucessfully handled, and an internal transition
@@ -409,9 +421,9 @@ class UnhandledResult extends MessageResult {
 }
 
 //==================================================================================================
-///
-/// Processing results
-///
+//
+// Processing results
+//
 
 /// Base class for types describing how a message was processed by a state machine.
 @immutable
@@ -468,9 +480,20 @@ class FailedMessage extends MessageProcessed {
 }
 
 //==================================================================================================
-///
-/// Utility classes
-///
+//
+// Utility classes
+//
+
+/// A tree state that always returns [MessageContext.unhandled].
+class EmptyTreeState extends TreeState {
+  @override
+  FutureOr<MessageResult> onMessage(MessageContext context) => context.unhandled();
+}
+
+class EmptyDataTreeState<D> extends DataTreeState<D> {
+  @override
+  FutureOr<MessageResult> onMessage(MessageContext context) => context.unhandled();
+}
 
 /// A tree state that delegates its behavior to one or more external functions.
 class DelegateState extends TreeState {

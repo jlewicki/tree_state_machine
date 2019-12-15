@@ -2,6 +2,15 @@ import 'dart:convert';
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //
+// Errors
+//
+
+class DisposedError extends StateError {
+  DisposedError([String message = 'This object has been disposed']) : super(message);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//
 // Lazy
 //
 
@@ -23,6 +32,10 @@ class Lazy<T> {
       _value = (_value as _Deferred<T>).eval();
     }
     return (_value as _Evaluated<T>).value;
+  }
+
+  bool get hasValue {
+    return _value is _Evaluated<T>;
   }
 }
 

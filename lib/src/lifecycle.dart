@@ -1,8 +1,6 @@
 import 'package:async/async.dart';
 
-class DisposedError extends StateError {
-  DisposedError() : super('This object has been disposed');
-}
+import 'utility.dart';
 
 /// Defines the lifecycle of a [TreeStateMachine].
 ///
@@ -19,6 +17,12 @@ class Lifecycle {
 
   void dispose(void Function() doDispose) {
     status = status.dispose(doDispose);
+  }
+
+  void throwIfDisposed() {
+    if (this.isDisposed) {
+      throw DisposedError();
+    }
   }
 
   /// Starts the lifecycle, moving it to the Starting state.
