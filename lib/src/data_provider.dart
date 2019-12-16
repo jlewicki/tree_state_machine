@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:meta/meta.dart';
 import 'package:rxdart/rxdart.dart';
 
 import 'utility.dart';
@@ -20,7 +21,7 @@ abstract class ObservableData<D> {
 /// to a value of this type using a [DataProvider]. Doing so provides:
 ///
 ///   * Support for (de)serialization of this data when the state is active, and state machine is
-///     saved using [TreeStateMachive.saveTo].
+///     saved using [TreeStateMachine.saveTo].
 ///   * Support for change notification as the data changes over time. This can be useful for
 ///     keeping a user interface up to date with the data associated with the state.
 abstract class DataProvider<D> {
@@ -128,6 +129,12 @@ class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
   Lazy<BehaviorSubject<D>> _lazySubject;
   bool _disposed = false;
 
+  /// Called to initialize this provider with an [ObservableData] that provides access to the data
+  /// of the current leaf state.
+  ///
+  /// This is called by during initialization of the state tree, and is not intended to be used by
+  /// application code.
+  @mustCallSuper
   void initializeLeafData(ObservableData<Object> observableLeafData) {
     ArgumentError.checkNotNull(observableLeafData, 'observableLeafData');
     _lazySubject = Lazy(() {
@@ -180,6 +187,7 @@ class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
   /// Because this provider does not own the leaf data (which is likely a subtype of `D`), replacing
   /// with a new value is not allowed.
   @override
+  @alwaysThrows
   void replace(D Function() replace) {
     throw UnsupportedError('Leaf data provider cannot replace a value');
   }
