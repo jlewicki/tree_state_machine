@@ -75,7 +75,7 @@ class DelegateFinalState extends FinalTreeState {
 
 /// An [ObservableData] that delegates its behavior to external functions.
 class DelegateObservableData<D> extends ObservableData<D> {
-  Lazy<BehaviorSubject<D>> _lazySubject;
+  Lazy<DataSubject<D>> _lazySubject;
 
   /// Constructs a [DelegateObservableData] that calls [getData] and [createStream] to obtain its
   /// values.
@@ -85,7 +85,7 @@ class DelegateObservableData<D> extends ObservableData<D> {
       if (createStream != null) {
         subject.addStream(createStream());
       }
-      return subject;
+      return DataSubject(subject);
     });
   }
 
@@ -93,5 +93,5 @@ class DelegateObservableData<D> extends ObservableData<D> {
   factory DelegateObservableData.single(D data) => DelegateObservableData(getData: () => data);
 
   @override
-  ValueStream<D> get dataStream => _lazySubject.value;
+  DataStream<D> get dataStream => _lazySubject.value;
 }

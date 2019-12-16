@@ -6,27 +6,39 @@ import 'package:rxdart/rxdart.dart';
 import 'errors.dart';
 import 'utility.dart';
 
-/// Provides access to a [ValueStream] describing how a data value of type `D` changes over time.
+/// A [Stream] that provides synchronous access to the last emitted item.
+///
+/// Note that is identical to the `ValueStream` interface from RxDart.  It is duplicated here to
+/// avoid exposing RxDart types as part of the public API of this library.
+abstract class DataStream<T> implements Stream<T> {
+  /// Last emitted value, or `null` if there has been no emission yet.
+  T get value;
+
+  /// `True` if at least one event has been emitted.
+  bool get hasValue;
+}
+
+/// Provides access to a [DataStream] describing how a data value of type `D` changes over time.
 ///
 /// [ObservableData] is typically used to provide read-only access to the data associated with a
 /// [DataTreeState].
 abstract class ObservableData<D> {
-  /// A stream providing synchronous access to the current data value
-  ValueStream<D> get dataStream;
+  /// A stream providing synchronous access to the current data value.
+  DataStream<D> get dataStream;
 }
 
 /// Provides access to the data value associated with a [DataTreeState].
 ///
 /// While a state can maintain various data values during its lifecycle in member fields private to
 /// the state, it can be convenient to package these values into their own type, and mediate access
-/// to a value of this type using a [DataProvider]. Doing so provides:
+/// to a value of that type using a [DataProvider]. Doing so provides:
 ///
-///   * Support for (de)serialization of this data when the state is active, and state machine is
-///     saved using [TreeStateMachine.saveTo].
+///   * Support for (de)serialization of this data when the state is active, and the state machine
+///     is saved using [TreeStateMachine.saveTo].
 ///   * Support for change notification as the data changes over time. This can be useful for
 ///     keeping a user interface up to date with the data associated with the state.
 abstract class DataProvider<D> {
-  /// The data associated with this provider.
+  /// The current data value for this provider.
   D get data;
 
   /// Encodes the data associated with this provider into a format appropriate for serialization.
@@ -55,11 +67,11 @@ abstract class DataProvider<D> {
 class OwnedDataProvider<D> implements DataProvider<D>, ObservableData<D> {
   final Object Function(D data) encoder;
   final D Function(Object encoded) decoder;
-  Lazy<BehaviorSubject<D>> _lazySubject;
+  Lazy<DataSubject<D>> _lazySubject;
   bool _disposed = false;
 
   OwnedDataProvider(D Function() eval, this.encoder, this.decoder) {
-    _lazySubject = Lazy(() => BehaviorSubject<D>.seeded(eval()));
+    _lazySubject = Lazy(() => DataSubject(BehaviorSubject<D>.seeded(eval())));
   }
 
   factory OwnedDataProvider.json(
@@ -75,7 +87,7 @@ class OwnedDataProvider<D> implements DataProvider<D>, ObservableData<D> {
   }
 
   @override
-  ValueStream<D> get dataStream {
+  DataStream<D> get dataStream {
     _throwIfDisposed();
     return _lazySubject.value;
   }
@@ -90,13 +102,13 @@ class OwnedDataProvider<D> implements DataProvider<D>, ObservableData<D> {
   void decodeInto(Object input) {
     _throwIfDisposed();
     ArgumentError.checkNotNull('input');
-    _lazySubject.value.add(decoder(input));
+    _lazySubject.value.wrappedSubject.add(decoder(input));
   }
 
   @override
   void replace(D Function() replace) {
     _throwIfDisposed();
-    _lazySubject.value.add(replace());
+    _lazySubject.value.wrappedSubject.add(replace());
   }
 
   @override
@@ -112,7 +124,7 @@ class OwnedDataProvider<D> implements DataProvider<D>, ObservableData<D> {
   void dispose() {
     _disposed = true;
     if (_lazySubject.hasValue) {
-      _lazySubject.value.close();
+      _lazySubject.value.wrappedSubject.close();
     }
   }
 
@@ -127,7 +139,7 @@ class OwnedDataProvider<D> implements DataProvider<D>, ObservableData<D> {
 /// of a state machine.
 class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
   StreamSubscription _subscription;
-  Lazy<BehaviorSubject<D>> _lazySubject;
+  Lazy<DataSubject<D>> _lazySubject;
   bool _disposed = false;
 
   /// Called to initialize this provider with an [ObservableData] that provides access to the data
@@ -156,12 +168,12 @@ class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
         }
         return false;
       }).listen(subject.add);
-      return subject;
+      return DataSubject(subject);
     });
   }
 
   @override
-  ValueStream<D> get dataStream {
+  DataStream<D> get dataStream {
     _throwIfDisposed();
     assert(_lazySubject != null, 'initializeLeafData has not been called.');
     return _lazySubject.value;
@@ -180,7 +192,7 @@ class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
   void update(void Function() update) {
     _throwIfDisposed();
     update();
-    _lazySubject.value.add(data);
+    _lazySubject.value.wrappedSubject.add(data);
   }
 
   /// Throws [UnsupportedError] if called.
@@ -198,7 +210,7 @@ class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
     _disposed = true;
     if (_lazySubject.hasValue) {
       _subscription?.cancel();
-      _lazySubject.value.close();
+      _lazySubject.value.wrappedSubject.close();
     }
   }
 
@@ -215,4 +227,15 @@ class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
       throw DisposedError();
     }
   }
+}
+
+/// Adapts a BehaviorSubject to the [DataStream] interface.
+class DataSubject<T> extends StreamView<T> implements DataStream<T>, ValueStream<T> {
+  final BehaviorSubject<T> _subject;
+  DataSubject(this._subject) : super(_subject.stream) {}
+  BehaviorSubject<T> get wrappedSubject => _subject;
+  @override
+  T get value => _subject.value;
+  @override
+  bool get hasValue => _subject.hasValue;
 }

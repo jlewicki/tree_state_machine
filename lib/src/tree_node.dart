@@ -71,7 +71,7 @@ class TreeNode {
 
   D data<D>() => dataStream<D>(key)?.value;
 
-  ValueStream<D> dataStream<D>([StateKey key]) {
+  DataStream<D> dataStream<D>([StateKey key]) {
     final node = key != null ? selfOrAncestorWithKey(key) : selfOrAncestorWithData<D>();
     if (node?.dataProvider != null) {
       if (node.dataProvider is ObservableData<D>) {

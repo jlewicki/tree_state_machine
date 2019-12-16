@@ -125,6 +125,7 @@ abstract class FinalTreeState implements TreeState {
   /// Final states cannot be exited, so a [StateError] is thrown if called.
   @override
   @nonVirtual
+  @alwaysThrows
   FutureOr<void> onExit(TransitionContext context) {
     throw StateError('Can not leave a final state.');
   }
@@ -132,6 +133,7 @@ abstract class FinalTreeState implements TreeState {
   /// Final states cannot handle messages, so a [StateError] is thrown if called.
   @override
   @nonVirtual
+  @alwaysThrows
   FutureOr<MessageResult> onMessage(MessageContext context) {
     throw StateError('Can not send message to a final state');
   }
@@ -139,6 +141,7 @@ abstract class FinalTreeState implements TreeState {
 
 /// A final state that indicates a state machihe was explicitly stopped by external code (as
 /// opposed to transitioning to a final state when processing a message.)
+@sealed
 class StoppedTreeState extends FinalTreeState {
   static final key = StateKey.named('!StateTreeMachine.Stopped!');
 }

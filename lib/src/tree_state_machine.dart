@@ -362,7 +362,7 @@ class CurrentState {
   ///
   /// If stata data can be resolved, but it does not support streaming, a single value stream with
   /// the current state data is returned.
-  ValueStream<D> dataStream<D>([StateKey key]) {
+  DataStream<D> dataStream<D>([StateKey key]) {
     return _treeStateMachine._machine.currentNode.dataStream<D>(key);
   }
 
@@ -442,7 +442,7 @@ class EncodableTree {
 
 /// Provides read-only access to the data of the current leaf node of the state machine.
 class CurrentLeafObservableData implements ObservableData<Object> {
-  final Lazy<BehaviorSubject<Object>> _lazySubject;
+  final Lazy<DataSubject<Object>> _lazySubject;
 
   CurrentLeafObservableData(Lazy<TreeStateMachine> machine)
       : _lazySubject = Lazy(() {
@@ -458,9 +458,9 @@ class CurrentLeafObservableData implements ObservableData<Object> {
               ? BehaviorSubject.seeded(initialValue)
               : BehaviorSubject<Object>();
           subject.addStream(values);
-          return subject;
+          return DataSubject(subject);
         });
 
   @override
-  ValueStream<Object> get dataStream => _lazySubject.value;
+  DataStream<Object> get dataStream => _lazySubject.value;
 }
