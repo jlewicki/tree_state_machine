@@ -2,15 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:rxdart/rxdart.dart';
-import 'package:tree_state_machine/src/helpers.dart';
-import 'package:tree_state_machine/src/tree_builders.dart';
-import 'package:tree_state_machine/src/tree_node.dart';
-import 'package:tree_state_machine/tree_state_machine.dart';
 
+import 'builders/tree_builders.dart';
 import 'data_provider.dart';
 import 'lifecycle.dart';
+import 'tree_node.dart';
 import 'tree_node_builder.dart';
-import 'tree_builders.dart';
 import 'tree_state.dart';
 import 'tree_state_machine_impl.dart';
 import 'utility.dart';
@@ -406,7 +403,10 @@ class _QueuedMessage {
 }
 
 // Root state for wrapping 'flat' list of leaf states.
-class _RootState extends EmptyTreeState {}
+class _RootState extends TreeState {
+  @override
+  FutureOr<MessageResult> onMessage(MessageContext context) => context.unhandled();
+}
 
 // Serialiable data for an active state in the tree.
 class EncodableState {

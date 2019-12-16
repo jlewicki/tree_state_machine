@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:tree_state_machine/tree_state_machine.dart';
-import 'package:tree_state_machine/src/tree_builders.dart';
+import 'package:tree_state_machine/src/builders/tree_builders.dart';
 
 // https://docs.spring.io/spring-statemachine/docs/1.1.1.RELEASE/reference/htmlsingle/#statemachine-examples-turnstile
 
