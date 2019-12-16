@@ -6,29 +6,41 @@ import '../tree_node_builder.dart';
 import '../tree_state.dart';
 import '../utility.dart';
 
-/// Describes how to build a root node in a state tree.
+/// A definition of the root node in a state tree.
+///
+/// When a [TreeStateMachine] is started, it will use this definition to create the tree of nodes
+/// that controls the behavior of the state machine.
 @sealed
 @immutable
 class Root<T extends TreeState> implements NodeBuilder<RootNode> {
+  /// The key that uniquely identifies the node within the tree.
   final StateKey key;
 
-  /// Function used to create the [TreeState] that defines the behavior of the root state.
+  /// Function used to create the [TreeState] that defines the behavior of the root node.
   final StateCreator<T> createState;
 
-  /// Builders that will create the child states of this root state.
+  /// Builders that will create the child states of this root node.
+  ///
+  /// The root node always has a least one child node.
   final Iterable<NodeBuilder<ChildNode>> children;
 
-  /// Function that selects the initial child state, when this state is entered.
+  /// Function that selects the initial child state, when the root state is entered.
   final InitialChild initialChild;
+
+  /// Builders that will create the final states (if any) of this root node.
   final Iterable<NodeBuilder<FinalNode>> finalStates;
 
+  /// Constructs a [Root].
+  ///
+  /// [createState], [children], and [initialChild] must not be null.
   Root({
     @required this.createState,
     @required this.children,
     @required this.initialChild,
-    this.key,
-    this.finalStates,
-  });
+    StateKey key,
+    Iterable<NodeBuilder<FinalNode>> finalStates,
+  })  : key = key ?? StateKey.forState<T>(),
+        finalStates = finalStates ?? const [];
 
   @override
   RootNode build(TreeBuildContext context) {

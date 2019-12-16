@@ -75,7 +75,9 @@ class TreeStateMachine {
   }
 
   factory TreeStateMachine.forLeaves(
-      Iterable<NodeBuilder<LeafNode>> buildLeaves, StateKey initialState) {
+    Iterable<NodeBuilder<LeafNode>> buildLeaves,
+    StateKey initialState,
+  ) {
     ArgumentError.checkNotNull(buildLeaves, 'buildLeaves');
     ArgumentError.checkNotNull(initialState, 'initialState');
     if (buildLeaves.length < 2) {

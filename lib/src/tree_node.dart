@@ -8,7 +8,7 @@ typedef StateCreator<T extends TreeState> = T Function(StateKey key);
 typedef DataStateCreator<T extends DataTreeState<D>, D> = T Function(StateKey key);
 
 /// A node within a state tree.
-class TreeNode {
+abstract class TreeNode {
   final Lazy<TreeState> _lazyState;
   final StateKey key;
   final TreeNode parent;
