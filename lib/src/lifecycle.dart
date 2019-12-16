@@ -1,6 +1,6 @@
 import 'package:async/async.dart';
 
-import 'utility.dart';
+import 'errors.dart';
 
 /// Defines the lifecycle of a [TreeStateMachine].
 ///
@@ -14,16 +14,6 @@ class Lifecycle {
   bool get isStarting => status is _Starting;
   bool get isStopped => status is _Stopped;
   bool get isStopping => status is _Stopping;
-
-  void dispose(void Function() doDispose) {
-    status = status.dispose(doDispose);
-  }
-
-  void throwIfDisposed() {
-    if (isDisposed) {
-      throw DisposedError();
-    }
-  }
 
   /// Starts the lifecycle, moving it to the Starting state.
   ///
@@ -48,8 +38,34 @@ class Lifecycle {
     status = transition.state;
     return transition.nextState;
   }
+
+  /// Disposes the lifecycle, moving it to the Disposed state.
+  ///
+  /// This is irrevocable, and the liefecycle is permanently disposed.
+  void dispose(void Function() doDispose) {
+    status = status.dispose(doDispose);
+  }
+
+  /// Throws [DisposedError] if this lifecycle has been disposed.
+  void throwIfDisposed([String message]) {
+    if (isDisposed) {
+      throw DisposedError(message);
+    }
+  }
 }
 
+/// Base class for states represenging [TreeStateMachine] lifecycle.
+abstract class _LifecycleState {
+  _Disposed dispose(void Function() onDispose);
+
+  LifecycleTransition<_Started> start(Future<_Started> Function() doStart) =>
+      throw StateError('Unable to start from lifecycle state $runtimeType');
+
+  LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) =>
+      throw StateError('Unable to start from lifecycle state $runtimeType');
+}
+
+/// An asynchronous transition between lifecycle states.
 class LifecycleTransition<T extends _LifecycleState> {
   final _LifecycleState state;
   final Future<T> nextState;
@@ -79,18 +95,6 @@ class _Disposed extends _LifecycleState {
   LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) => throw DisposedError();
 }
 
-/// Base class for states represenging [TreeStateMachine] lifecycle.
-abstract class _LifecycleState {
-  _Disposed dispose(void Function() onDispose);
-
-  LifecycleTransition<_Started> start(Future<_Started> Function() doStart) =>
-      throw StateError('Unable to start from lifecycle state $runtimeType');
-
-  LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) =>
-      throw StateError('Unable to start from lifecycle state $runtimeType');
-}
-
-/// Base class for states of the TreeStateMachine lifecycle
 class _Started extends _LifecycleState {
   final Object value;
   _Started(this.value);

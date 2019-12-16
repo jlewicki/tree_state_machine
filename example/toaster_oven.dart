@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:tree_state_machine/src/helpers.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 // https://en.wikipedia.org/wiki/UML_state_machine

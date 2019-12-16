@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:rxdart/rxdart.dart';
+import 'package:tree_state_machine/src/helpers.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 import 'data_provider.dart';

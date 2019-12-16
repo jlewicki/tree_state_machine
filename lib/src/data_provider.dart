@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:meta/meta.dart';
 import 'package:rxdart/rxdart.dart';
 
+import 'errors.dart';
 import 'utility.dart';
 
 /// Provides access to a [ValueStream] describing how a data value of type `D` changes over time.
@@ -214,26 +215,4 @@ class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
       throw DisposedError();
     }
   }
-}
-
-/// An [ObservableData] that delegates its behavior to external functions.
-class DelegateObservableData<D> extends ObservableData<D> {
-  Lazy<BehaviorSubject<D>> _lazySubject;
-
-  DelegateObservableData({D Function() getData, Stream<D> Function() createStream}) {
-    _lazySubject = Lazy(() {
-      var subject = getData != null ? BehaviorSubject<D>.seeded(getData()) : BehaviorSubject<D>();
-      if (createStream != null) {
-        subject.addStream(createStream());
-      }
-      return subject;
-    });
-  }
-
-  factory DelegateObservableData.single(D data) {
-    return DelegateObservableData(getData: () => data);
-  }
-
-  @override
-  ValueStream<D> get dataStream => _lazySubject.value;
 }

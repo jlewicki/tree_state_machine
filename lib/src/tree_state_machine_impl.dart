@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 
-import 'package:tree_state_machine/src/utility.dart';
-
+import 'errors.dart';
 import 'tree_node.dart';
 import 'tree_state.dart';
 

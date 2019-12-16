@@ -1,4 +1,5 @@
 import 'package:tree_state_machine/src/data_provider.dart';
+import 'package:tree_state_machine/src/helpers.dart';
 import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 
