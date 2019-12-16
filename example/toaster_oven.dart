@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:tree_state_machine/src/helpers.dart';
+import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 // https://en.wikipedia.org/wiki/UML_state_machine
@@ -125,20 +126,20 @@ class DoorOpenState extends EmptyTreeState {
 /// State tree
 ///
 
-RootNodeBuilder createToasterOvenBuilder(OvenLight light, HeatingElement heater) {
-  return rootBuilder(
+Root createToasterOvenBuilder(OvenLight light, HeatingElement heater) {
+  return Root(
       createState: (_) => RootState(),
       initialChild: (_) => StateKey.forState<HeatingState>(),
       children: [
-        interiorBuilder(
+        Interior(
           createState: (_) => HeatingState(heater),
           initialChild: (_) => StateKey.forState<ToastingState>(),
           children: [
-            leafBuilder(createState: (_) => ToastingState(heater)),
-            leafBuilder(createState: (_) => BakingState(heater)),
+            Leaf(createState: (_) => ToastingState(heater)),
+            Leaf(createState: (_) => BakingState(heater)),
           ],
         ),
-        leafBuilder(createState: (_) => DoorOpenState(light)),
+        Leaf(createState: (_) => DoorOpenState(light)),
       ]);
 }
 

@@ -3,10 +3,13 @@ import 'dart:convert';
 
 import 'package:rxdart/rxdart.dart';
 import 'package:tree_state_machine/src/helpers.dart';
+import 'package:tree_state_machine/src/tree_builders.dart';
+import 'package:tree_state_machine/src/tree_node.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 import 'data_provider.dart';
 import 'lifecycle.dart';
+import 'tree_node_builder.dart';
 import 'tree_builders.dart';
 import 'tree_state.dart';
 import 'tree_state_machine_impl.dart';
@@ -60,7 +63,7 @@ class TreeStateMachine {
     _messageQueue.stream.listen(_onMessage);
   }
 
-  factory TreeStateMachine.forRoot(RootNodeBuilder buildRoot) {
+  factory TreeStateMachine(NodeBuilder<RootNode> rootBuilder) {
     ArgumentError.checkNotNull(buildRoot, 'buildRoot');
 
     // This is twisty, since we have an indirect circular dependency between
@@ -68,13 +71,14 @@ class TreeStateMachine {
     TreeStateMachine treeMachine;
     final currentLeafData = CurrentLeafObservableData(Lazy(() => treeMachine));
     final buildCtx = TreeBuildContext(currentLeafData);
-    final rootNode = buildRoot(buildCtx);
+    final rootNode = rootBuilder.build(buildCtx);
     final machine = Machine(rootNode, buildCtx.nodes);
 
     return treeMachine = TreeStateMachine._(machine);
   }
 
-  factory TreeStateMachine.forLeaves(Iterable<LeafNodeBuilder> buildLeaves, StateKey initialState) {
+  factory TreeStateMachine.forLeaves(
+      Iterable<NodeBuilder<LeafNode>> buildLeaves, StateKey initialState) {
     ArgumentError.checkNotNull(buildLeaves, 'buildLeaves');
     ArgumentError.checkNotNull(initialState, 'initialState');
     if (buildLeaves.length < 2) {
@@ -82,7 +86,7 @@ class TreeStateMachine {
       throw ArgumentError.value(buildLeaves, 'buildLeaves', msg);
     }
 
-    return TreeStateMachine.forRoot(rootBuilder(
+    return TreeStateMachine(Root(
       createState: (key) => _RootState(),
       children: buildLeaves,
       initialChild: (_) => initialState,

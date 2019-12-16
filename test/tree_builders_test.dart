@@ -2,6 +2,7 @@ import 'package:test/test.dart';
 import 'package:tree_state_machine/src/helpers.dart';
 import 'package:tree_state_machine/src/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_node.dart';
+import 'package:tree_state_machine/src/tree_node_builder.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 import 'fixture/tree_data.dart';
 
@@ -26,12 +27,12 @@ void main() {
 
   final currentLeafData = DelegateObservableData();
 
-  group('buildLeaf', () {
+  group('Leaf', () {
     test('should build a leaf node', () {
       var buildCtx = TreeBuildContext(currentLeafData, parentNode);
 
-      var builder = leafBuilder(key: stateKey, createState: (key) => state);
-      var leafNode = builder(buildCtx);
+      var builder = Leaf(key: stateKey, createState: (key) => state);
+      var leafNode = builder.build(buildCtx);
 
       expect(leafNode, isNotNull);
       expect(leafNode.key, equals(stateKey));
@@ -44,33 +45,33 @@ void main() {
     test('should build a leaf node with type-based state key', () {
       var buildCtx = TreeBuildContext(currentLeafData, parentNode);
 
-      var builder = leafBuilder(createState: (key) => state);
-      var leafNode = builder(buildCtx);
+      var builder = Leaf(createState: (key) => state);
+      var leafNode = builder.build(buildCtx);
       expect(leafNode.key, equals(StateKey.forState<SimpleState>()));
     });
 
     test('should add node to context', () {
       var buildCtx = TreeBuildContext(currentLeafData, parentNode);
 
-      var builder = leafBuilder(key: stateKey, createState: (key) => state);
-      var leafNode = builder(buildCtx);
+      var builder = Leaf(key: stateKey, createState: (key) => state);
+      var leafNode = builder.build(buildCtx);
 
       expect(buildCtx.nodes[stateKey], equals(leafNode));
     });
   });
 
-  group('buildDataLeaf', () {
+  group('LeafWithData', () {
     test('should build a data leaf node', () {
       SimpleDataState theState;
       final buildCtx = TreeBuildContext(currentLeafData, parentNode);
-      final builder = dataLeafBuilder(
+      final builder = LeafWithData(
         key: stateKey,
         createState: (key) {
           return theState = SimpleDataState();
         },
         createProvider: SimpleDataA.dataProvider,
       );
-      final leafNode = builder(buildCtx);
+      final leafNode = builder.build(buildCtx);
 
       expect(leafNode, isNotNull);
       expect(leafNode.key, equals(stateKey));
@@ -81,25 +82,25 @@ void main() {
     });
 
     test('should create new data provider', () {
-      final builder = dataLeafBuilder(
+      final builder = LeafWithData(
         key: stateKey,
         createState: (key) => SimpleDataState(),
         createProvider: SimpleDataA.dataProvider,
       );
-      final leafNode1 = builder(TreeBuildContext(currentLeafData, parentNode));
-      final leafNode2 = builder(TreeBuildContext(currentLeafData, parentNode));
+      final leafNode1 = builder.build(TreeBuildContext(currentLeafData, parentNode));
+      final leafNode2 = builder.build(TreeBuildContext(currentLeafData, parentNode));
 
       expect(identical(leafNode1.dataProvider, leafNode2.dataProvider), isFalse);
     });
   });
 
-  group('buildInterior', () {
-    var nodeBuilder = interiorBuilder(
+  group('Interior', () {
+    var interiorBuilder = Interior(
       key: stateKey,
       createState: (key) => state,
       children: [
-        leafBuilder(key: childState1Key, createState: (key) => childState1),
-        leafBuilder(key: childState2Key, createState: (key) => childState2),
+        Leaf(key: childState1Key, createState: (key) => childState1),
+        Leaf(key: childState2Key, createState: (key) => childState2),
       ],
       initialChild: (_) => childState1Key,
     );
@@ -107,7 +108,7 @@ void main() {
     test('should build an interior node', () {
       var buildCtx = TreeBuildContext(currentLeafData, parentNode);
 
-      var interiorNode = nodeBuilder(buildCtx);
+      var interiorNode = interiorBuilder.build(buildCtx);
 
       expect(interiorNode, isNotNull);
       expect(interiorNode.key, equals(stateKey));
@@ -123,23 +124,23 @@ void main() {
     test('should build an interior node with type-based state key', () {
       var buildCtx = TreeBuildContext(currentLeafData, parentNode);
 
-      var nodeBuilder = interiorBuilder(
+      var nodeBuilder = Interior(
         createState: (key) => state,
         children: [
-          leafBuilder(key: childState1Key, createState: (key) => childState1),
-          leafBuilder(key: childState2Key, createState: (key) => childState2),
+          Leaf(key: childState1Key, createState: (key) => childState1),
+          Leaf(key: childState2Key, createState: (key) => childState2),
         ],
         initialChild: (_) => childState1Key,
       );
 
-      var interiorNode = nodeBuilder(buildCtx);
+      var interiorNode = nodeBuilder.build(buildCtx);
       expect(interiorNode.key, equals(StateKey.forState<SimpleState>()));
     });
 
     test("should add node to context", () {
       var buildCtx = TreeBuildContext(currentLeafData, parentNode);
 
-      var interiorNode = nodeBuilder(buildCtx);
+      var interiorNode = interiorBuilder.build(buildCtx);
 
       expect(buildCtx.nodes[stateKey], equals(interiorNode));
       interiorNode.children.forEach((c) {
@@ -148,19 +149,19 @@ void main() {
     });
   });
 
-  group('buildDataInterior', () {
+  group('InteriorWithData', () {
     test('should build a data leaf node', () {
       SimpleDataState theState;
       final buildCtx = TreeBuildContext(currentLeafData, parentNode);
-      final builder = dataInteriorBuilder(
+      final builder = InteriorWithData(
           key: stateKey,
           createState: (key) {
             return theState = SimpleDataState();
           },
           createProvider: SimpleDataA.dataProvider,
           initialChild: (_) => StateKey.forState<SimpleState>(),
-          children: [leafBuilder(createState: (_) => new SimpleState())]);
-      final interiorNode = builder(buildCtx);
+          children: [Leaf(createState: (_) => new SimpleState())]);
+      final interiorNode = builder.build(buildCtx);
 
       expect(interiorNode, isNotNull);
       expect(interiorNode.key, equals(stateKey));
@@ -171,26 +172,26 @@ void main() {
     });
 
     test('should create new data provider', () {
-      final builder = dataInteriorBuilder(
+      final builder = InteriorWithData(
           key: stateKey,
           createState: (key) => SimpleDataState(),
           createProvider: SimpleDataA.dataProvider,
           initialChild: (_) => StateKey.forState<SimpleState>(),
-          children: [leafBuilder(createState: (_) => new SimpleState())]);
-      final node1 = builder(TreeBuildContext(currentLeafData, parentNode));
-      final node2 = builder(TreeBuildContext(currentLeafData, parentNode));
+          children: [Leaf(createState: (_) => new SimpleState())]);
+      final node1 = builder.build(TreeBuildContext(currentLeafData, parentNode));
+      final node2 = builder.build(TreeBuildContext(currentLeafData, parentNode));
 
       expect(identical(node1.dataProvider, node2.dataProvider), isFalse);
     });
   });
 
-  group('buildRoot', () {
-    var buildRoot = rootBuilder(
+  group('Root', () {
+    var rootBuilder = Root(
       key: stateKey,
       createState: (key) => state,
       children: [
-        leafBuilder(key: childState1Key, createState: (key) => childState1),
-        leafBuilder(key: childState2Key, createState: (key) => childState2),
+        Leaf(key: childState1Key, createState: (key) => childState1),
+        Leaf(key: childState2Key, createState: (key) => childState2),
       ],
       initialChild: (_) => childState1Key,
     );
@@ -198,7 +199,7 @@ void main() {
     test('should build a root node', () {
       var buildCtx = TreeBuildContext(null);
 
-      var rootNode = buildRoot(buildCtx);
+      var rootNode = rootBuilder.build(buildCtx);
 
       expect(rootNode, isNotNull);
       expect(rootNode.key, equals(stateKey));
@@ -214,28 +215,28 @@ void main() {
     test('should build a root node with type-based state key', () {
       var buildCtx = TreeBuildContext(null);
 
-      var buildRoot = rootBuilder(
+      var rootBuilder = Root(
         createState: (key) => state,
         children: [
-          leafBuilder(key: childState1Key, createState: (key) => childState1),
-          leafBuilder(key: childState2Key, createState: (key) => childState2),
+          Leaf(key: childState1Key, createState: (key) => childState1),
+          Leaf(key: childState2Key, createState: (key) => childState2),
         ],
         initialChild: (_) => childState1Key,
       );
 
-      var rootNode = buildRoot(buildCtx);
+      var rootNode = rootBuilder.build(buildCtx);
       expect(rootNode.key, equals(StateKey.forState<SimpleState>()));
     });
 
     test('should throw if built with a parent node', () {
       var buildCtx = TreeBuildContext(currentLeafData, parentNode);
-      expect(() => buildRoot(buildCtx), throwsArgumentError);
+      expect(() => rootBuilder.build(buildCtx), throwsArgumentError);
     });
 
     test('should add node to context', () {
       var buildCtx = TreeBuildContext(null);
 
-      var rootNode = buildRoot(buildCtx);
+      var rootNode = rootBuilder.build(buildCtx);
 
       expect(buildCtx.nodes[stateKey], equals(rootNode));
       rootNode.children.forEach((c) {
@@ -244,19 +245,19 @@ void main() {
     });
   });
 
-  group('buildDataRoot', () {
+  group('RootWithData', () {
     test('should build a data leaf node', () {
       SimpleDataState theState;
       final buildCtx = TreeBuildContext(currentLeafData, null);
-      final builder = dataRootBuilder(
+      final builder = RootWithData(
           key: stateKey,
           createState: (key) {
             return theState = SimpleDataState();
           },
           createProvider: SimpleDataA.dataProvider,
           initialChild: (_) => StateKey.forState<SimpleState>(),
-          children: [leafBuilder(createState: (_) => new SimpleState())]);
-      final rootNode = builder(buildCtx);
+          children: [Leaf(createState: (_) => new SimpleState())]);
+      final rootNode = builder.build(buildCtx);
 
       expect(rootNode, isNotNull);
       expect(rootNode.key, equals(stateKey));
@@ -267,25 +268,25 @@ void main() {
     });
 
     test('should create new data provider', () {
-      final builder = dataRootBuilder(
+      final builder = RootWithData(
           key: stateKey,
           createState: (key) => SimpleDataState(),
           createProvider: SimpleDataA.dataProvider,
           initialChild: (_) => StateKey.forState<SimpleState>(),
-          children: [leafBuilder(createState: (_) => new SimpleState())]);
-      final node1 = builder(TreeBuildContext(currentLeafData, null));
-      final node2 = builder(TreeBuildContext(currentLeafData, null));
+          children: [Leaf(createState: (_) => new SimpleState())]);
+      final node1 = builder.build(TreeBuildContext(currentLeafData, null));
+      final node2 = builder.build(TreeBuildContext(currentLeafData, null));
 
       expect(identical(node1.dataProvider, node2.dataProvider), isFalse);
     });
   });
 
-  group('buildFinal', () {
+  group('Final', () {
     test('should build a final node', () {
       var buildCtx = TreeBuildContext(currentLeafData, parentNode);
 
-      var buildFinal = finalBuilder(key: finaKey, createState: (key) => finalState);
-      var finalNode = buildFinal(buildCtx);
+      var finalBuilder = Final(key: finaKey, createState: (key) => finalState);
+      var finalNode = finalBuilder.build(buildCtx);
 
       expect(finalNode, isNotNull);
       expect(finalNode.key, equals(finaKey));
@@ -298,8 +299,8 @@ void main() {
     test('should build a leaf node with type-based state key', () {
       var buildCtx = TreeBuildContext(currentLeafData, parentNode);
 
-      var buildFinal = finalBuilder(createState: (key) => finalState);
-      var finalNode = buildFinal(buildCtx);
+      var finalBuilder = Final(createState: (key) => finalState);
+      var finalNode = finalBuilder.build(buildCtx);
 
       expect(finalNode.key, equals(StateKey.forState<SimpleFinalState>()));
     });
@@ -307,8 +308,8 @@ void main() {
     test('should add node to context', () {
       var buildCtx = TreeBuildContext(currentLeafData, parentNode);
 
-      var buildFinal = finalBuilder(key: finaKey, createState: (key) => finalState);
-      var finalNode = buildFinal(buildCtx);
+      var buildFinal = Final(key: finaKey, createState: (key) => finalState);
+      var finalNode = buildFinal.build(buildCtx);
 
       expect(buildCtx.nodes[finaKey], equals(finalNode));
     });
@@ -318,11 +319,11 @@ void main() {
     test('should throw if node with duplicate key is added', () {
       var buildCtx = TreeBuildContext(currentLeafData, parentNode);
       var key = StateKey.named("Foo");
-      var builder = leafBuilder(key: key, createState: (key) => state);
+      var builder = Leaf(key: key, createState: (key) => state);
 
-      builder(buildCtx);
+      builder.build(buildCtx);
 
-      expect(() => builder(buildCtx), throwsArgumentError);
+      expect(() => builder.build(buildCtx), throwsArgumentError);
     });
   });
 }

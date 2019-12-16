@@ -1,9 +1,7 @@
 import 'package:async/async.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:test/test.dart';
-import 'package:tree_state_machine/src/data_provider.dart';
 import 'package:tree_state_machine/src/helpers.dart';
-import 'package:tree_state_machine/src/tree_state.dart';
 
 import 'fixture/tree_data.dart';
 

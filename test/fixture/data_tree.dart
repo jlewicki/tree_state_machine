@@ -1,6 +1,8 @@
 import 'package:tree_state_machine/src/data_provider.dart';
 import 'package:tree_state_machine/src/helpers.dart';
 import 'package:tree_state_machine/src/tree_builders.dart';
+import 'package:tree_state_machine/src/tree_node.dart';
+import 'package:tree_state_machine/src/tree_node_builder.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 
 import 'tree_data.dart';
@@ -15,7 +17,7 @@ final r_b_key = StateKey.named('r_b');
 final r_b_1_key = StateKey.named('r_b_1');
 final r_X_key = StateKey.named('r_X');
 
-RootNodeBuilder treeBuilder({
+NodeBuilder<RootNode> treeBuilder({
   TransitionHandler createEntryHandler(StateKey key),
   TransitionHandler createExitHandler(StateKey key),
   MessageHandler createMessageHandler(StateKey key),
@@ -54,7 +56,7 @@ RootNodeBuilder treeBuilder({
           StateKey key, CurrentLeafDataProvider<D> Function() defaultProvider) =>
       () => _dataProviders[key] ?? defaultProvider();
 
-  return dataRootBuilder(
+  return RootWithData(
     key: r_key,
     createState: (k) => createDataState<SpecialDataD>(k),
     createProvider: createOwnedDataProvider<SpecialDataD>(
@@ -63,10 +65,10 @@ RootNodeBuilder treeBuilder({
     ),
     initialChild: (_) => r_a_key,
     finalStates: [
-      finalBuilder(key: r_X_key, createState: (key) => DelegateFinalState(_exitHandlers[key])),
+      Final(key: r_X_key, createState: (key) => DelegateFinalState(_exitHandlers[key])),
     ],
     children: [
-      dataInteriorBuilder(
+      InteriorWithData(
         key: r_a_key,
         createState: (k) => createDataState<ImmutableData>(k),
         createProvider: createOwnedDataProvider<ImmutableData>(
@@ -75,7 +77,7 @@ RootNodeBuilder treeBuilder({
         ),
         initialChild: (_) => r_a_a_key,
         children: [
-          dataInteriorBuilder(
+          InteriorWithData(
             key: r_a_a_key,
             createState: (k) => createDataState<LeafDataBase>(k),
             createProvider: createLeafDataProvider<LeafDataBase>(
@@ -84,7 +86,7 @@ RootNodeBuilder treeBuilder({
             ),
             initialChild: (_) => r_a_a_2_key,
             children: [
-              dataLeafBuilder(
+              LeafWithData(
                 key: r_a_a_1_key,
                 createState: (k) => createDataState<LeafData1>(k),
                 createProvider: createOwnedDataProvider<LeafData1>(
@@ -92,7 +94,7 @@ RootNodeBuilder treeBuilder({
                   () => LeafData1.dataProvider(_initialDataValues[r_a_a_1_key]),
                 ),
               ),
-              dataLeafBuilder(
+              LeafWithData(
                 key: r_a_a_2_key,
                 createState: (k) => createDataState<LeafData2>(k),
                 createProvider: createOwnedDataProvider<LeafData2>(
@@ -102,7 +104,7 @@ RootNodeBuilder treeBuilder({
               ),
             ],
           ),
-          dataLeafBuilder(
+          LeafWithData(
             key: r_a_1_key,
             createState: (k) => createDataState<ImmutableData>(k),
             createProvider: createOwnedDataProvider<ImmutableData>(
@@ -112,12 +114,12 @@ RootNodeBuilder treeBuilder({
           ),
         ],
       ),
-      interiorBuilder(
+      Interior(
         key: r_b_key,
         createState: createState,
         initialChild: (_) => r_b_1_key,
         children: [
-          leafBuilder(key: r_b_1_key, createState: createState),
+          Leaf(key: r_b_1_key, createState: createState),
         ],
       ),
     ],

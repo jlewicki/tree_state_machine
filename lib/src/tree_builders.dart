@@ -1,217 +1,216 @@
-import 'dart:collection';
-
 import 'package:meta/meta.dart';
-import 'package:tree_state_machine/src/utility.dart';
 
 import 'data_provider.dart';
 import 'tree_node.dart';
+import 'tree_node_builder.dart';
 import 'tree_state.dart';
+import 'utility.dart';
 
-typedef ChildNodeBuilder = ChildNode Function(TreeBuildContext ctx);
-typedef LeafNodeBuilder = LeafNode Function(TreeBuildContext ctx);
-typedef InteriorNodeBuilder = InteriorNode Function(TreeBuildContext ctx);
-typedef FinalNodeBuilder = FinalNode Function(TreeBuildContext ctx);
-typedef RootNodeBuilder = RootNode Function(TreeBuildContext ctx);
-typedef CreateProvider<D> = DataProvider<D> Function(Object Function() currentLeafData);
+@sealed
+@immutable
+class Root<T extends TreeState> implements NodeBuilder<RootNode> {
+  final StateCreator<T> createState;
+  final Iterable<NodeBuilder<ChildNode>> children;
+  final InitialChild initialChild;
+  final StateKey key;
+  final Iterable<NodeBuilder<FinalNode>> finalStates;
 
-RootNodeBuilder rootBuilder<T extends TreeState>({
-  @required StateCreator<T> createState,
-  @required Iterable<ChildNodeBuilder> children,
-  @required InitialChild initialChild,
-  StateKey key,
-  Iterable<FinalNodeBuilder> finalStates,
-}) =>
-    _rootBuilder<T>(
+  Root({
+    @required this.createState,
+    @required this.children,
+    @required this.initialChild,
+    this.key,
+    this.finalStates,
+  });
+
+  @override
+  RootNode build(TreeBuildContext context) {
+    return buildRoot<T>(
+      context,
       key,
-      (key, ctx) => RootNode(key, createState, initialChild),
+      (key) => RootNode(key, createState, initialChild),
       children,
       initialChild,
       finalStates,
     );
-
-RootNodeBuilder dataRootBuilder<T extends DataTreeState<D>, D>({
-  @required DataStateCreator<T, D> createState,
-  @required Iterable<ChildNodeBuilder> children,
-  @required InitialChild initialChild,
-  @required DataProvider<D> Function() createProvider,
-  StateKey key,
-  Iterable<FinalNodeBuilder> finalStates,
-}) {
-  ArgumentError.checkNotNull(createProvider, 'provider');
-  return _rootBuilder<T>(
-    key,
-    (key, ctx) {
-      final lazyProvider = Lazy(createProvider);
-      return RootNode(
-        key,
-        _dataStateCreator(createState, lazyProvider.value, ctx),
-        initialChild,
-        lazyProvider.value,
-      );
-    },
-    children,
-    initialChild,
-    finalStates,
-  );
+  }
 }
 
-InteriorNodeBuilder interiorBuilder<T extends TreeState>({
-  @required StateCreator<T> createState,
-  @required Iterable<ChildNodeBuilder> children,
-  @required InitialChild initialChild,
-  StateKey key,
-}) =>
-    _interiorBuilder<T>(
+@sealed
+@immutable
+class RootWithData<T extends DataTreeState<D>, D> implements NodeBuilder<RootNode> {
+  final DataStateCreator<T, D> createState;
+  final Iterable<NodeBuilder<ChildNode>> children;
+  final InitialChild initialChild;
+  final DataProvider<D> Function() createProvider;
+  final StateKey key;
+  final Iterable<NodeBuilder<FinalNode>> finalStates;
+
+  RootWithData({
+    @required this.createState,
+    @required this.children,
+    @required this.initialChild,
+    @required this.createProvider,
+    this.key,
+    this.finalStates,
+  });
+
+  @override
+  RootNode build(TreeBuildContext context) {
+    return buildRoot<T>(
+      context,
       key,
-      (key, ctx) => InteriorNode(key, ctx.parentNode, createState, initialChild),
+      (key) {
+        final lazyProvider = Lazy(createProvider);
+        return RootNode(
+          key,
+          stateCreatorWithDataInitialization(
+              createState, lazyProvider.value, context.currentLeafData),
+          initialChild,
+          lazyProvider.value,
+        );
+      },
+      children,
+      initialChild,
+      finalStates,
+    );
+  }
+}
+
+@sealed
+@immutable
+class Interior<T extends TreeState> implements NodeBuilder<InteriorNode> {
+  final StateCreator<T> createState;
+  final Iterable<NodeBuilder<ChildNode>> children;
+  final InitialChild initialChild;
+  final key;
+
+  Interior({
+    @required this.createState,
+    @required this.children,
+    @required this.initialChild,
+    this.key,
+  });
+
+  @override
+  InteriorNode build(TreeBuildContext context) {
+    return buildInterior<T>(
+      context,
+      key,
+      (key) => InteriorNode(key, context.parentNode, createState, initialChild),
       children,
     );
-
-InteriorNodeBuilder dataInteriorBuilder<T extends DataTreeState<D>, D>({
-  @required DataStateCreator<T, D> createState,
-  @required Iterable<ChildNodeBuilder> children,
-  @required InitialChild initialChild,
-  @required DataProvider<D> Function() createProvider,
-  StateKey key,
-}) {
-  ArgumentError.checkNotNull(createProvider, 'provider');
-
-  return _interiorBuilder<T>(
-    key,
-    (key, ctx) {
-      final lazyProvider = Lazy(createProvider);
-      return InteriorNode(
-        key,
-        ctx.parentNode,
-        _dataStateCreator(createState, lazyProvider.value, ctx),
-        initialChild,
-        lazyProvider.value,
-      );
-    },
-    children,
-  );
+  }
 }
 
-LeafNodeBuilder leafBuilder<T extends TreeState>({
-  @required StateCreator<T> createState,
-  StateKey key,
-}) =>
-    _leafBuilder<T>(
+@sealed
+@immutable
+class InteriorWithData<T extends DataTreeState<D>, D> implements NodeBuilder<InteriorNode> {
+  final DataStateCreator<T, D> createState;
+  final Iterable<NodeBuilder<ChildNode>> children;
+  final InitialChild initialChild;
+  final DataProvider<D> Function() createProvider;
+  final StateKey key;
+
+  InteriorWithData({
+    @required this.createState,
+    @required this.children,
+    @required this.initialChild,
+    @required this.createProvider,
+    this.key,
+  });
+
+  @override
+  InteriorNode build(TreeBuildContext context) {
+    return buildInterior<T>(
+      context,
       key,
-      (k, ctx) => LeafNode(k, ctx.parentNode, createState),
+      (key) {
+        final lazyProvider = Lazy(createProvider);
+        return InteriorNode(
+          key,
+          context.parentNode,
+          stateCreatorWithDataInitialization(
+              createState, lazyProvider.value, context.currentLeafData),
+          initialChild,
+          lazyProvider.value,
+        );
+      },
+      children,
     );
-
-LeafNodeBuilder dataLeafBuilder<T extends DataTreeState<D>, D>({
-  @required DataStateCreator<T, D> createState,
-  @required OwnedDataProvider<D> Function() createProvider,
-  StateKey key,
-}) {
-  ArgumentError.checkNotNull(createProvider, 'provider');
-
-  return _leafBuilder<T>(
-    key,
-    (k, ctx) {
-      final lazyProvider = Lazy(createProvider);
-      return LeafNode(
-        k,
-        ctx.parentNode,
-        _dataStateCreator(createState, lazyProvider.value, ctx),
-        lazyProvider.value,
-      );
-    },
-  );
+  }
 }
 
-FinalNodeBuilder finalBuilder<T extends TreeState>({
-  @required StateCreator<T> createState,
-  StateKey key,
-}) =>
-    (ctx) {
-      final nodeKey = key ?? StateKey.forState<T>();
-      final leaf = FinalNode(nodeKey, ctx.parentNode, createState);
-      ctx.addNode(leaf);
-      return leaf;
-    };
+@sealed
+@immutable
+class Leaf<T extends TreeState> implements NodeBuilder<LeafNode> {
+  final StateCreator<T> createState;
+  final StateKey key;
 
-RootNodeBuilder _rootBuilder<T extends TreeState>(
-  StateKey key,
-  RootNode Function(StateKey, TreeBuildContext) createNode,
-  Iterable<ChildNodeBuilder> children,
-  InitialChild initialChild,
-  Iterable<FinalNodeBuilder> finalStates,
-) =>
-    (ctx) {
-      if (ctx.parentNode != null) {
-        throw ArgumentError.value(ctx, 'ctx', 'Unexpected parent node for root node');
-      }
-      final nodeKey = key ?? StateKey.forState<T>();
-      final root = createNode(nodeKey, ctx);
-      final childContext = ctx.childContext(root);
-      root.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
-      if (finalStates != null) {
-        root.children.addAll(finalStates.map((childBuilder) => childBuilder(childContext)));
-      }
-      ctx.addNode(root);
-      return root;
-    };
+  Leaf({
+    @required this.createState,
+    this.key,
+  });
 
-InteriorNodeBuilder _interiorBuilder<T extends TreeState>(
-  StateKey key,
-  InteriorNode Function(StateKey, TreeBuildContext) createNode,
-  Iterable<ChildNodeBuilder> children,
-) =>
-    (ctx) {
-      final nodeKey = key ?? StateKey.forState<T>();
-      final interior = createNode(nodeKey, ctx);
-      final childContext = ctx.childContext(interior);
-      interior.children.addAll(children.map((childBuilder) => childBuilder(childContext)));
-      ctx.addNode(interior);
-      return interior;
-    };
+  @override
+  LeafNode build(TreeBuildContext context) {
+    return buildLeaf<T>(
+      context,
+      key,
+      (k) => LeafNode(k, context.parentNode, createState),
+    );
+  }
+}
 
-LeafNodeBuilder _leafBuilder<T extends TreeState>(
-  StateKey key,
-  LeafNode Function(StateKey, TreeBuildContext) createNode,
-) =>
-    (ctx) {
-      final nodeKey = key ?? StateKey.forState<T>();
-      final leaf = createNode(nodeKey, ctx);
-      ctx.addNode(leaf);
-      return leaf;
-    };
+@sealed
+@immutable
+class LeafWithData<T extends DataTreeState<D>, D> implements NodeBuilder<LeafNode> {
+  final DataStateCreator<T, D> createState;
+  final OwnedDataProvider<D> Function() createProvider;
+  final StateKey key;
 
-StateCreator _dataStateCreator<T extends DataTreeState<D>, D>(
-  DataStateCreator<T, D> createState,
-  DataProvider<D> provider,
-  TreeBuildContext ctx,
-) =>
-    (key) {
-      final state = createState(key);
-      if (provider is CurrentLeafDataProvider) {
-        (provider as CurrentLeafDataProvider).initializeLeafData(ctx.currentLeafData);
-      }
-      state.initializeDataValue(provider);
-      return state;
-    };
+  LeafWithData({
+    @required this.createState,
+    @required this.createProvider,
+    this.key,
+  });
 
-class TreeBuildContext {
-  final TreeNode parentNode;
-  final HashMap<StateKey, TreeNode> nodes;
-  final ObservableData<Object> currentLeafData;
+  @override
+  LeafNode build(TreeBuildContext context) {
+    return buildLeaf<T>(
+      context,
+      key,
+      (k) {
+        final lazyProvider = Lazy(createProvider);
+        return LeafNode(
+          k,
+          context.parentNode,
+          stateCreatorWithDataInitialization(
+              createState, lazyProvider.value, context.currentLeafData),
+          lazyProvider.value,
+        );
+      },
+    );
+  }
+}
 
-  TreeBuildContext._(this.parentNode, this.nodes, this.currentLeafData);
+@sealed
+@immutable
+class Final<T extends FinalTreeState> implements NodeBuilder<FinalNode> {
+  final StateCreator<T> createState;
+  final StateKey key;
 
-  factory TreeBuildContext(ObservableData<Object> currentLeafData, [TreeNode parentNode]) =>
-      TreeBuildContext._(parentNode, HashMap(), currentLeafData);
+  Final({
+    @required this.createState,
+    this.key,
+  });
 
-  TreeBuildContext childContext(TreeNode newParentNode) =>
-      TreeBuildContext._(newParentNode, nodes, currentLeafData);
-
-  void addNode(TreeNode node) {
-    if (nodes.containsKey(node.key)) {
-      final msg = 'A state with key ${node.key} has already been added to the state tree.';
-      throw ArgumentError.value(node, 'node', msg);
-    }
-    nodes[node.key] = node;
+  @override
+  FinalNode build(TreeBuildContext context) {
+    return buildLeaf<T>(
+      context,
+      key,
+      (k) => FinalNode(k, context.parentNode, createState),
+    );
   }
 }

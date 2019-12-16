@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:tree_state_machine/tree_state_machine.dart';
+import 'package:tree_state_machine/src/tree_builders.dart';
 
 // https://docs.spring.io/spring-statemachine/docs/1.1.1.RELEASE/reference/htmlsingle/#statemachine-examples-turnstile
 
@@ -27,8 +28,8 @@ class UnlockedState extends TreeState {
 }
 
 final turnstileStates = [
-  leafBuilder(createState: (_) => LockedState()),
-  leafBuilder(createState: (_) => UnlockedState()),
+  Leaf(createState: (_) => LockedState()),
+  Leaf(createState: (_) => UnlockedState()),
 ];
 
 final stateMachine = TreeStateMachine.forLeaves(

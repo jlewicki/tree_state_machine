@@ -1,5 +1,3 @@
-import 'package:rxdart/rxdart.dart';
-
 import 'data_provider.dart';
 import 'helpers.dart';
 import 'tree_state.dart';
@@ -9,6 +7,7 @@ typedef InitialChild = StateKey Function(TransitionContext ctx);
 typedef StateCreator<T extends TreeState> = T Function(StateKey key);
 typedef DataStateCreator<T extends DataTreeState<D>, D> = T Function(StateKey key);
 
+/// A node within a state tree.
 class TreeNode {
   final Lazy<TreeState> _lazyState;
   final StateKey key;

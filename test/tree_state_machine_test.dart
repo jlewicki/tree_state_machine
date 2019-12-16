@@ -32,7 +32,7 @@ void main() {
       });
 
       test('should be constructed with null root', () {
-        expect(() => TreeStateMachine.forRoot(null), throwsArgumentError);
+        expect(() => TreeStateMachine(null), throwsArgumentError);
       });
     });
 
@@ -52,7 +52,7 @@ void main() {
       });
 
       test('should set current state to initial state', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
 
         await sm.start();
 
@@ -61,7 +61,7 @@ void main() {
       });
 
       test('should emit transition', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         final transitionsQ = StreamQueue(sm.transitions);
 
         final qItems = await Future.wait([transitionsQ.next, sm.start()]);
@@ -81,7 +81,7 @@ void main() {
       });
 
       test('should restart if stopped', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         await sm.start();
         await sm.stop();
 
@@ -98,7 +98,7 @@ void main() {
 
     group('stop', () {
       test('should transition to Stopped state', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         await sm.start();
 
         await sm.stop();
@@ -110,7 +110,7 @@ void main() {
 
       test('should not dispatch message to current state', () async {
         var onMessageCalled = false;
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+        final sm = TreeStateMachine(tree.treeBuilder(messageHandlers: {
           tree.r_a_a_2_key: (ctx) {
             onMessageCalled = true;
             return ctx.unhandled();
@@ -125,7 +125,7 @@ void main() {
       });
 
       test('should emit transition', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         await sm.start();
         final transitionsQ = StreamQueue(sm.transitions);
 
@@ -137,14 +137,14 @@ void main() {
       });
 
       test('should throw if not started', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         expect(() => sm.stop(), throwsStateError);
       });
     });
 
     group('dispose', () {
       test('should be disposed', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         await sm.start();
 
         sm.dispose();
@@ -155,7 +155,7 @@ void main() {
       });
 
       test('should close streams', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         final transitionsQ = StreamQueue(sm.transitions);
         final processedMessagesQ = StreamQueue(sm.processedMessages);
         final handledMessagesQ = StreamQueue(sm.handledMessages);
@@ -184,7 +184,7 @@ void main() {
         final r_a_a_2_provider = LeafData2.dataProvider();
         final r_a_1_provider = ImmutableData.dataProvider();
 
-        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(
+        final sm = TreeStateMachine(data_tree.treeBuilder(
           dataProviders: {
             data_tree.r_key: r_provider,
             data_tree.r_a_key: r_a_provider,
@@ -220,7 +220,7 @@ void main() {
       });
 
       test('should do nothing if already disposed', () async {
-        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder());
+        final sm = TreeStateMachine(data_tree.treeBuilder());
         await sm.start();
         sm.dispose();
 
@@ -232,7 +232,7 @@ void main() {
 
     group('processMessage', () {
       test('should update current state key', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+        final sm = TreeStateMachine(tree.treeBuilder(messageHandlers: {
           tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_a_a_1_key),
         }));
         await sm.start();
@@ -244,7 +244,7 @@ void main() {
       });
 
       test('should emit transition event after emitting processedMessage', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+        final sm = TreeStateMachine(tree.treeBuilder(messageHandlers: {
           tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_a_a_1_key),
         }));
         await sm.start();
@@ -261,7 +261,7 @@ void main() {
       });
 
       test('should emit processedMessage event', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+        final sm = TreeStateMachine(tree.treeBuilder(messageHandlers: {
           // This processes message, but does not result in a transition
           tree.r_a_a_2_key: (ctx) => ctx.stay(),
         }));
@@ -280,7 +280,7 @@ void main() {
 
       test('should return FailedMessage if error is thrown in message handler', () async {
         final ex = Exception('oops');
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+        final sm = TreeStateMachine(tree.treeBuilder(messageHandlers: {
           tree.r_a_a_2_key: (ctx) => throw ex,
         }));
         await sm.start();
@@ -297,7 +297,7 @@ void main() {
 
       test('should emit FailedMessage if error is thrown in entry handler', () async {
         final ex = Exception('oops');
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+        final sm = TreeStateMachine(tree.treeBuilder(messageHandlers: {
           tree.r_a_a_2_key: (ctx) => throw ex,
         }));
         await sm.start();
@@ -320,7 +320,7 @@ void main() {
 
       test('should emit FailedMessage if error is thrown in exit handler', () async {
         final ex = Exception('oops');
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder(
+        final sm = TreeStateMachine(tree.treeBuilder(
           messageHandlers: {
             tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_b_1_key),
           },
@@ -348,7 +348,7 @@ void main() {
 
       test('should emit FailedMessage if exception is thrown in onEnter handler', () async {
         final ex = Exception('oops');
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder(
+        final sm = TreeStateMachine(tree.treeBuilder(
           messageHandlers: {
             tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_b_1_key),
           },
@@ -376,7 +376,7 @@ void main() {
 
       test('should keep current state if error is thrown in message handler', () async {
         final ex = Exception('oops');
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+        final sm = TreeStateMachine(tree.treeBuilder(messageHandlers: {
           tree.r_a_a_2_key: (ctx) => throw ex,
         }));
         await sm.start();
@@ -393,7 +393,7 @@ void main() {
 
       test('should keep current state if error is thrown in transition handler', () async {
         final ex = Exception('oops');
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder(
+        final sm = TreeStateMachine(tree.treeBuilder(
           messageHandlers: {
             tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_b_1_key),
           },
@@ -416,7 +416,7 @@ void main() {
 
     group('isEnded', () {
       test('should return false if state machine is not started', () {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+        final sm = TreeStateMachine(tree.treeBuilder(messageHandlers: {
           // This processes message, but does not result in a transition
           tree.r_a_a_2_key: (ctx) => ctx.stay(),
         }));
@@ -425,7 +425,7 @@ void main() {
       });
 
       test('should return false if current state is not final', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+        final sm = TreeStateMachine(tree.treeBuilder(messageHandlers: {
           // This processes message, but does not result in a transition
           tree.r_a_a_2_key: (ctx) => ctx.stay(),
         }));
@@ -435,7 +435,7 @@ void main() {
       });
 
       test('should return true if current state is final', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+        final sm = TreeStateMachine(tree.treeBuilder(messageHandlers: {
           // This processes message, but does not result in a transition
           tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_X_key),
         }));
@@ -448,18 +448,18 @@ void main() {
 
     group('saveTo', () {
       test('should throw if sink is null', () {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         expect(() => sm.saveTo(null), throwsArgumentError);
       });
 
       test('should throw if machine is not started', () {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         expect(() => sm.saveTo(StreamController()), throwsStateError);
       });
 
       test('should write state data of active states to sink ', () async {
         final ioController = StreamController<List<int>>();
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         await sm.start();
 
         final results = await Future.wait<Object>([
@@ -483,25 +483,25 @@ void main() {
 
     group('loadFrom', () {
       test('should throw if stream is null', () {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         expect(() => sm.loadFrom(null), throwsArgumentError);
       });
 
       test('should throw if machine is started', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         await sm.start();
         expect(() => sm.loadFrom(StreamController<List<int>>().stream), throwsStateError);
       });
 
       test('should read active states from stream ', () async {
-        var sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        var sm = TreeStateMachine(tree.treeBuilder());
         await sm.start(tree.r_b_1_key);
         final ioController = StreamController<List<int>>();
         List<List<int>> encoded = (await Future.wait<Object>([
           sm.saveTo(ioController),
           ioController.stream.toList(),
         ]))[1];
-        sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        sm = TreeStateMachine(tree.treeBuilder());
 
         await sm.loadFrom(Stream.fromIterable(encoded));
 
@@ -511,7 +511,7 @@ void main() {
       });
 
       test('should read active data states from stream ', () async {
-        var sm = TreeStateMachine.forRoot(data_tree.treeBuilder(initialDataValues: {
+        var sm = TreeStateMachine(data_tree.treeBuilder(initialDataValues: {
           tree.r_a_a_1_key: LeafData1()
             ..name = 'Yo'
             ..counter = 10,
@@ -532,7 +532,7 @@ void main() {
           sm.saveTo(ioController),
           ioController.stream.toList(),
         ]))[1];
-        sm = TreeStateMachine.forRoot(data_tree.treeBuilder());
+        sm = TreeStateMachine(data_tree.treeBuilder());
 
         await sm.loadFrom(Stream.fromIterable(encoded));
 
@@ -567,14 +567,14 @@ void main() {
       });
 
       test('should throw if stream does not contain Map<string, dynamic>', () async {
-        var sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        var sm = TreeStateMachine(tree.treeBuilder());
         var byteStream = Stream.fromIterable(<Object>['A', 'B']).transform(json.fuse(utf8).encoder);
 
         expect(() async => await sm.loadFrom(byteStream), throwsArgumentError);
       });
 
       test('should throw if machine does not contain states from stream', () async {
-        var sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        var sm = TreeStateMachine(tree.treeBuilder());
         await sm.start(tree.r_b_1_key);
         final ioController = StreamController<List<int>>();
         List<List<int>> encoded = (await Future.wait<Object>([
@@ -582,14 +582,14 @@ void main() {
           ioController.stream.toList(),
         ]))[1];
 
-        sm = TreeStateMachine.forRoot(flat_tree.treeBuilder());
+        sm = TreeStateMachine(flat_tree.treeBuilder());
         expect(() async => await sm.loadFrom(Stream.fromIterable(encoded)), throwsStateError);
       });
 
       test(
           'should throw if active state path in stream is different from active state path in machine',
           () async {
-        var sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        var sm = TreeStateMachine(tree.treeBuilder());
         await sm.start(tree.r_b_1_key);
         final ioController = StreamController<List<int>>();
         List<List<int>> encoded = (await Future.wait<Object>([
@@ -598,28 +598,26 @@ void main() {
         ]))[1];
 
         // Define another tree that shares keys but has a different shape
-        final buildOtherTree = rootBuilder(
+        final buildOtherTree = Root(
             key: tree.r_b_key,
             createState: (k) => EmptyTreeState(),
             initialChild: (_) => tree.r_key,
             children: [
-              interiorBuilder(
+              Interior(
                   key: tree.r_key,
                   createState: (k) => EmptyTreeState(),
                   initialChild: (_) => tree.r_b_1_key,
-                  children: [
-                    leafBuilder(key: tree.r_b_1_key, createState: (k) => EmptyTreeState())
-                  ])
+                  children: [Leaf(key: tree.r_b_1_key, createState: (k) => EmptyTreeState())])
             ]);
 
-        sm = TreeStateMachine.forRoot(buildOtherTree);
+        sm = TreeStateMachine(buildOtherTree);
 
         expect(() async => await sm.loadFrom(Stream.fromIterable(encoded)), throwsStateError);
       });
     });
 
     test('should throw if stream has nodes thay are not in machine', () async {
-      var sm = TreeStateMachine.forRoot(tree.treeBuilder());
+      var sm = TreeStateMachine(tree.treeBuilder());
       await sm.start(tree.r_b_1_key);
       final ioController = StreamController<List<int>>();
       List<List<int>> encoded = (await Future.wait<Object>([
@@ -628,14 +626,14 @@ void main() {
       ]))[1];
 
       // Define another tree that shares keys but has a different shape
-      final buildOtherTree = rootBuilder(
+      final buildOtherTree = Root(
           key: tree.r_b_key,
           createState: (k) => EmptyTreeState(),
           initialChild: (_) => tree.r_b_1_key,
           children: [
-            leafBuilder(key: tree.r_b_1_key, createState: (k) => EmptyTreeState()),
+            Leaf(key: tree.r_b_1_key, createState: (k) => EmptyTreeState()),
           ]);
-      sm = TreeStateMachine.forRoot(buildOtherTree);
+      sm = TreeStateMachine(buildOtherTree);
       expect(() async => await sm.loadFrom(Stream.fromIterable(encoded)), throwsStateError);
     });
   });
@@ -643,14 +641,14 @@ void main() {
   group('CurrentState', () {
     group('key', () {
       test('should return initial state after starting', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         await sm.start();
 
         expect(sm.currentState.key, equals(tree.initialStateKey));
       });
 
       test('should return current state after transition', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+        final sm = TreeStateMachine(tree.treeBuilder(messageHandlers: {
           tree.initialStateKey: (msgCtx) => msgCtx.goTo(tree.r_b_1_key),
         }));
         await sm.start();
@@ -663,7 +661,7 @@ void main() {
 
     group('sendMessage', () {
       test('should dispatch to state machine for processing', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder(messageHandlers: {
+        final sm = TreeStateMachine(tree.treeBuilder(messageHandlers: {
           tree.initialStateKey: (msgCtx) => msgCtx.stay(),
         }));
         await sm.start();
@@ -678,7 +676,7 @@ void main() {
       });
 
       test('should throw if message is null', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         await sm.start();
 
         expect(() => sm.currentState.sendMessage(null), throwsArgumentError);
@@ -688,7 +686,7 @@ void main() {
         final msg1 = Object();
         final msg2 = Object();
         final msg3 = Object();
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder(
+        final sm = TreeStateMachine(tree.treeBuilder(
           messageHandlers: {
             tree.r_a_a_2_key: (msgCtx) =>
                 msgCtx.message == msg1 ? msgCtx.goTo(tree.r_a_a_1_key) : msgCtx.unhandled(),
@@ -729,28 +727,28 @@ void main() {
 
     group('isActiveState', () {
       test('should return true for current state', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         await sm.start();
 
         expect(sm.currentState.isActiveState(tree.initialStateKey), isTrue);
       });
 
       test('should return true for ancestor of current state', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         await sm.start();
 
         expect(sm.currentState.isActiveState(tree.r_a_key), isTrue);
       });
 
       test('should return false for non-ancestor of current state', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         await sm.start();
 
         expect(sm.currentState.isActiveState(tree.r_b_key), isFalse);
       });
 
       test('should throw if key is null', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         await sm.start();
 
         expect(() => sm.currentState.isActiveState(null), throwsArgumentError);
@@ -759,7 +757,7 @@ void main() {
 
     group('data', () {
       test('should return data from provider when available', () async {
-        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(initialDataValues: {
+        final sm = TreeStateMachine(data_tree.treeBuilder(initialDataValues: {
           data_tree.r_a_a_2_key: LeafData2()
             ..name = 'foo'
             ..label = 'cool'
@@ -772,7 +770,7 @@ void main() {
       });
 
       test('should return data from state when available', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         await sm.start(tree.r_b_2_key);
 
         expect(sm.currentState.data<tree.ReadOnlyData>(), isNotNull);
@@ -781,14 +779,14 @@ void main() {
       });
 
       test('should throw if data is a tree state', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         await sm.start(tree.r_b_1_key);
 
         expect(() => sm.currentState.data<DelegateState>(), throwsStateError);
       });
 
       test('should return null when data not available', () async {
-        final sm = TreeStateMachine.forRoot(tree.treeBuilder());
+        final sm = TreeStateMachine(tree.treeBuilder());
         await sm.start();
 
         expect(sm.currentState.data<tree.ReadOnlyData>(), isNull);
@@ -797,7 +795,7 @@ void main() {
 
     group('activeData', () {
       test('should return data from leaf provider when available', () async {
-        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(initialDataValues: {
+        final sm = TreeStateMachine(data_tree.treeBuilder(initialDataValues: {
           data_tree.r_a_a_2_key: LeafData2()
             ..name = 'foo'
             ..label = 'cool'
@@ -809,7 +807,7 @@ void main() {
       });
 
       test('should return data from owned provider when available', () async {
-        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(
+        final sm = TreeStateMachine(data_tree.treeBuilder(
           initialDataValues: {
             data_tree.r_a_key: ImmutableData((b) => b
               ..name = 'foo'
@@ -824,7 +822,7 @@ void main() {
       });
 
       test('should return data from leaf provider after transition.', () async {
-        final sm = TreeStateMachine.forRoot(data_tree.treeBuilder(
+        final sm = TreeStateMachine(data_tree.treeBuilder(
           initialDataValues: {
             data_tree.r_a_a_2_key: LeafData2()
               ..name = 'foo'
