@@ -256,7 +256,7 @@ abstract class MessageContext {
   /// The returned [Dispose] can be used to cancel the scheduled messaging (periodic or
   /// otherwise).
   Dispose schedule(
-    Object message(), {
+    Object Function() message, {
     Duration duration = const Duration(),
     bool periodic = false,
   });
@@ -363,10 +363,10 @@ class Transition {
         assert(traversed.last == to, 'from must be the same as the last traversed state'),
         assert(exited.isEmpty || exited.first == from, 'from must be same as first exited state'),
         assert(entered.last == to, 'to must be same as last entered state'),
-        this.traversed = (traversed ?? const []).toList(growable: false),
-        this.exited = (exited ?? const []).toList(growable: false),
-        this.entered = (entered ?? const []).toList(growable: false),
-        this.active = (active ?? const []).toList(growable: false) {
+        traversed = (traversed ?? const []).toList(growable: false),
+        exited = (exited ?? const []).toList(growable: false),
+        entered = (entered ?? const []).toList(growable: false),
+        active = (active ?? const []).toList(growable: false) {
     ArgumentError.checkNotNull(from, 'from');
     ArgumentError.checkNotNull(to, 'to');
   }

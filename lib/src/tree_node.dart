@@ -68,18 +68,19 @@ class TreeNode {
     return lca;
   }
 
-  D data<D>() => dataStream<D>(this.key)?.value;
+  D data<D>() => dataStream<D>(key)?.value;
 
   ValueStream<D> dataStream<D>([StateKey key]) {
     final node = key != null ? selfOrAncestorWithKey(key) : selfOrAncestorWithData<D>();
     if (node?.dataProvider != null) {
       if (node.dataProvider is ObservableData<D>) {
         return (node.dataProvider as ObservableData<D>).dataStream;
-      } else if (node.dataProvider.data is D) {
-        return DelegateObservableData(
-          getData: () => node.dataProvider.data,
-          createStream: () => Stream.value(node.dataProvider.data),
-        ).dataStream;
+      } else {
+        Object data = node.dataProvider.data;
+        if (data is D) {
+          return DelegateObservableData<D>(
+              getData: () => data, createStream: () => Stream.value(data)).dataStream;
+        }
       }
       throw StateError(
           'Data for state ${node.key} of type ${data.runtimeType} does not match requested type '

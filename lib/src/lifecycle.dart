@@ -20,7 +20,7 @@ class Lifecycle {
   }
 
   void throwIfDisposed() {
-    if (this.isDisposed) {
+    if (isDisposed) {
       throw DisposedError();
     }
   }
@@ -57,6 +57,7 @@ class LifecycleTransition<T extends _LifecycleState> {
 }
 
 class _Constructed extends _LifecycleState {
+  @override
   _Disposed dispose(void Function() onDispose) {
     onDispose();
     return _Disposed();
@@ -125,12 +126,12 @@ class _Starting extends _LifecycleState {
 
   @override
   LifecycleTransition<_Started> start(Future<_Started> Function() doStart) =>
-      LifecycleTransition(this, this.future);
+      LifecycleTransition(this, future);
 
   @override
   LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) => LifecycleTransition(
         this,
-        this.future.then((started) => started.stop(doStop).nextState),
+        future.then((started) => started.stop(doStop).nextState),
       );
 }
 
@@ -168,10 +169,10 @@ class _Stopping extends _LifecycleState {
   @override
   LifecycleTransition<_Started> start(Future<_Started> Function() doStart) => LifecycleTransition(
         this,
-        this.future.then((_) => _Constructed().start(doStart).nextState),
+        future.then((_) => _Constructed().start(doStart).nextState),
       );
 
   @override
   LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) =>
-      LifecycleTransition(this, this.future);
+      LifecycleTransition(this, future);
 }

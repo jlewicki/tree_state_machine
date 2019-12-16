@@ -56,7 +56,7 @@ class TreeStateMachine {
   CurrentState _currentState;
 
   TreeStateMachine._(this._machine) {
-    _messageQueue.stream.listen(this._onMessage);
+    _messageQueue.stream.listen(_onMessage);
   }
 
   factory TreeStateMachine.forRoot(RootNodeBuilder buildRoot) {
@@ -178,6 +178,13 @@ class TreeStateMachine {
     return _lifecycle.stop(() => _processMessage(stopMessage));
   }
 
+  /// Disposes the state machine.
+  ///
+  /// Disposing the state machine completes the all of its streams, and will permanently mark it as
+  /// disposed and unusable. Any future calls to methods that update the state machine will throw a
+  /// [DisposedError].
+  ///
+  /// It is safe to call this method more than once.
   void dispose() {
     _lifecycle.dispose(() {
       _transitions.close();
@@ -262,9 +269,8 @@ class TreeStateMachine {
     final encodableTree = EncodableTree.fromJson(objectList[0] as Map<String, dynamic>);
     final nodesForTree = encodableTree.states.map((es) {
       final treeNode = nodesByStringKey[es.key];
-      return treeNode != null
-          ? treeNode
-          : throw StateError('State machine does not contain state with key ${es.key}');
+      return treeNode ??
+          (throw StateError('State machine does not contain state with key ${es.key}'));
     }).toList();
 
     // Make sure that node hierarchy matches that in the encoded data
@@ -444,11 +450,12 @@ class CurrentLeafObservableData implements ObservableData<Object> {
             final dataProvider = machine.value._machine.currentNode.dataProvider;
             return dataProvider is ObservableData<Object>
                 ? (dataProvider as ObservableData<Object>).dataStream
-                : Stream.empty();
+                : Stream<Object>.empty();
           });
-          var initialValue = machine.value._machine.currentNode?.data();
-          var subject =
-              initialValue != null ? BehaviorSubject.seeded(initialValue) : BehaviorSubject();
+          var initialValue = machine.value._machine.currentNode?.data<Object>();
+          var subject = initialValue != null
+              ? BehaviorSubject.seeded(initialValue)
+              : BehaviorSubject<Object>();
           subject.addStream(values);
           return subject;
         });

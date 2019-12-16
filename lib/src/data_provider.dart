@@ -4,10 +4,25 @@ import 'package:rxdart/rxdart.dart';
 
 import 'utility.dart';
 
+/// Provides access to a [ValueStream] describing how a data value of type `D` changes over time.
+///
+/// [ObservableData] is typically used to provide read-only access to the data associated with a
+/// [DataTreeState].
 abstract class ObservableData<D> {
+  /// A stream providing synchronous access to the current data value
   ValueStream<D> get dataStream;
 }
 
+/// Provides access to the data value associated with a [DataTreeState].
+///
+/// While a state can maintain various data values during its lifecycle in member fields private to
+/// the state, it can be convenient to package these values into their own type, and mediate access
+/// to a value of this type using a [DataProvider]. Doing so provides:
+///
+///   * Support for (de)serialization of this data when the state is active, and state machine is
+///     saved using [TreeStateMachive.saveTo].
+///   * Support for change notification as the data changes over time. This can be useful for
+///     keeping a user interface up to date with the data associated with the state.
 abstract class DataProvider<D> {
   /// The data associated with this provider.
   D get data;
@@ -199,7 +214,7 @@ class DelegateObservableData<D> extends ObservableData<D> {
 
   DelegateObservableData({D Function() getData, Stream<D> Function() createStream}) {
     _lazySubject = Lazy(() {
-      var subject = getData != null ? BehaviorSubject<D>.seeded(getData()) : BehaviorSubject();
+      var subject = getData != null ? BehaviorSubject<D>.seeded(getData()) : BehaviorSubject<D>();
       if (createStream != null) {
         subject.addStream(createStream());
       }
