@@ -272,7 +272,7 @@ class LeafWithData<T extends DataTreeState<D>, D> extends Leaf<T> {
 
   @override
   TreeNode build(TreeBuildContext context) =>
-      context.buildDataLeaf<T, D>(key, createState, createProvider);
+      context.buildLeafWithData<T, D>(key, createState, createProvider);
 }
 
 /// Describes how to build a leaf node in a state tree.

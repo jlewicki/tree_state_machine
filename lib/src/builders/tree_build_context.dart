@@ -78,6 +78,7 @@ class TreeBuildContext {
   TreeBuildContext childContext(TreeNode newParentNode) =>
       TreeBuildContext._(newParentNode, nodes, currentLeafData);
 
+  /// Builds a root node.
   TreeNode buildRoot<T extends TreeState>(
     StateKey key,
     StateCreator<T> createState,
@@ -88,6 +89,7 @@ class TreeBuildContext {
     return _buildRoot(TreeNode.root(key, createState, initialChild), children, finalStates);
   }
 
+  /// Builds a root node with associated state data.
   TreeNode buildRootWithData<T extends DataTreeState<D>, D>(
     StateKey key,
     StateCreator<T> createState,
@@ -108,6 +110,7 @@ class TreeBuildContext {
         finalStates);
   }
 
+  /// Builds an interior node.
   TreeNode buildInterior<T extends TreeState>(
     StateKey key,
     StateCreator<T> createState,
@@ -120,6 +123,7 @@ class TreeBuildContext {
     );
   }
 
+  /// Builds an interior node with associated state data.
   TreeNode buildInteriorWithData<T extends DataTreeState<D>, D>(
     StateKey key,
     StateCreator<T> createState,
@@ -140,6 +144,7 @@ class TreeBuildContext {
     );
   }
 
+  /// Builds a leaf node
   TreeNode buildLeaf<T extends TreeState>(
     StateKey key,
     StateCreator<T> createState, {
@@ -150,7 +155,8 @@ class TreeBuildContext {
         : TreeNode.leaf(key, parentNode, createState));
   }
 
-  TreeNode buildDataLeaf<T extends DataTreeState<D>, D>(
+  /// Builds a leaf node with associated state data.
+  TreeNode buildLeafWithData<T extends DataTreeState<D>, D>(
     StateKey key,
     StateCreator<T> createState,
     OwnedDataProvider<D> Function() createProvider,
