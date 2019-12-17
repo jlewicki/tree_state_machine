@@ -1,28 +1,37 @@
 import 'dart:collection';
 
+import 'package:meta/meta.dart';
+
 import '../data_provider.dart';
 import '../tree_node.dart';
 import '../tree_state.dart';
 
-/// Base interface for types that identity the types of node in a state tree.
-class TaggedNode {}
+/// Base interface for types that identity the types of [TreeNode] in a state tree.
+class NodeKind {}
 
-/// Tags a node as a root node.
-class RootNode implements TaggedNode {}
+/// Labels a [TreeNode] as a root node.
+class RootNode implements NodeKind {}
 
-/// Tags a node as a child node.
+/// Labels a node as a child node.
 ///
 /// A child node is an a node that can be a child of another node.
-class ChildNode implements TaggedNode {}
+class ChildNode implements NodeKind {}
 
-/// Tags a node as an interior node node.
+/// Labels a [TreeNode] as an interior node node.
 class InteriorNode implements ChildNode {}
 
+/// Labels a [TreeNode] as a leaf node.
 class LeafNode implements ChildNode {}
 
+// Labels a [TreeNode] as a final node.
 class FinalNode implements LeafNode {}
 
-abstract class NodeBuilder<N extends TaggedNode> {
+/// Defines a method for building a tree node of the [NodeKind] specified by `N`.
+///
+/// This interface is infrastructure, and is not intended to be called by application code.
+abstract class NodeBuilder<N extends NodeKind> {
+  /// Constructs a new [TreeNode] of the kind specified by `N`
+  @factory
   TreeNode build(TreeBuildContext context);
 }
 

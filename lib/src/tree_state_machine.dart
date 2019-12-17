@@ -30,6 +30,32 @@ import 'utility.dart';
 ///    successfully handled.
 ///  * [transitions] yields an event each time a transition between states occurs.
 ///
+/// The following example demonstrates constructing a new state machine, starting it, and then
+/// sending a message for processing:
+/// ```dart
+/// void main() async {
+///   var stateMachine = TreeStateMachine(Root(
+///     createState: (key) => MyRootState(),
+///     initialChild: (transitionContext) => StateKey.forState<MyLeafState1>(),
+///     children: [
+///       Interior(
+///         createState: (key) => MyInteriorState(),
+///         initialChild: (transitionContext) => StateKey.forState<MyLeafState1>(),
+///         children: [
+///           Leaf(createState: (key) => MyLeafState1()),
+///           Leaf(createState: (key) => MyLeafState2()),
+///         ]
+///       ),
+///       Leaf(createState: (key) => MyLeafState3()),
+///     ])
+///   );
+///
+///   await stateMachine.start();
+///
+///   var messageProcessed = await stateMachine.currentState.sendMessage(MyMessage());
+/// }
+/// ```
+///
 /// ## Error Handling
 ///
 /// Errors may occur when as state processes a message. This can happen in the [TreeState.onMessage]
