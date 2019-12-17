@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:tree_state_machine/src/helpers.dart';
-import 'package:tree_state_machine/src/builders/tree_builders.dart';
+import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/tree_state_helpers.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 // See https://www.uml-diagrams.org/bank-atm-uml-state-machine-diagram-example.html?context=stm-examples

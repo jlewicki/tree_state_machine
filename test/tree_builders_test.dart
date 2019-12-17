@@ -1,9 +1,9 @@
 import 'package:test/test.dart';
-import 'package:tree_state_machine/src/helpers.dart';
-import 'package:tree_state_machine/src/builders/tree_builders.dart';
 import 'package:tree_state_machine/src/tree_node.dart';
-import 'package:tree_state_machine/src/tree_node_builder.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
+import 'package:tree_state_machine/tree_state_helpers.dart';
+import 'package:tree_state_machine/tree_builders.dart';
+
 import 'fixture/tree_data.dart';
 
 class SimpleState extends EmptyTreeState {}
@@ -21,7 +21,7 @@ void main() {
   var childState2Key = StateKey.named('childState2');
   var parentState = SimpleState();
   var parentKey = StateKey.named('parent');
-  var parentNode = RootNode(parentKey, (key) => parentState, null);
+  var parentNode = TreeNode.root(parentKey, (key) => parentState, null);
   var finalState = SimpleFinalState();
   var finaKey = StateKey.named('final');
 
@@ -230,7 +230,7 @@ void main() {
 
     test('should throw if built with a parent node', () {
       var buildCtx = TreeBuildContext(currentLeafData, parentNode);
-      expect(() => rootBuilder.build(buildCtx), throwsArgumentError);
+      expect(() => rootBuilder.build(buildCtx), throwsStateError);
     });
 
     test('should add node to context', () {

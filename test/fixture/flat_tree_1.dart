@@ -1,8 +1,6 @@
-import 'package:tree_state_machine/src/helpers.dart';
-import 'package:tree_state_machine/src/builders/tree_builders.dart';
-import 'package:tree_state_machine/src/tree_node.dart';
-import 'package:tree_state_machine/src/tree_node_builder.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
+import 'package:tree_state_machine/tree_state_helpers.dart';
+import 'package:tree_state_machine/tree_builders.dart';
 
 final r_key = StateKey.named('root');
 final r_1_key = StateKey.named('leaf1');

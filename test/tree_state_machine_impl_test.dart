@@ -1,11 +1,10 @@
 import 'dart:async';
 
 import 'package:test/test.dart';
-import 'package:tree_state_machine/src/helpers.dart';
-import 'package:tree_state_machine/src/builders/tree_builders.dart';
-import 'package:tree_state_machine/src/tree_node_builder.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 import 'package:tree_state_machine/src/tree_state_machine_impl.dart';
+import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/tree_state_helpers.dart';
 
 import 'fixture/data_tree.dart' as data_tree;
 import 'fixture/flat_tree_1.dart' as flat_tree;

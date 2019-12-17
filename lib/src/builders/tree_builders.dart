@@ -2,9 +2,9 @@ import 'package:meta/meta.dart';
 
 import '../data_provider.dart';
 import '../tree_node.dart';
-import '../tree_node_builder.dart';
 import '../tree_state.dart';
 import '../utility.dart';
+import 'tree_build_context.dart';
 
 /// A definition of the root node in a state tree.
 ///
@@ -43,11 +43,10 @@ class Root<T extends TreeState> implements NodeBuilder<RootNode> {
         finalStates = finalStates ?? const [];
 
   @override
-  RootNode build(TreeBuildContext context) {
-    return buildRoot<T>(
-      context,
+  TreeNode build(TreeBuildContext context) {
+    return context.buildRoot<T>(
       key,
-      (key) => RootNode(key, createState, initialChild),
+      (key) => TreeNode.root(key, createState, initialChild),
       children,
       initialChild,
       finalStates,
@@ -76,15 +75,14 @@ class RootWithData<T extends DataTreeState<D>, D> implements NodeBuilder<RootNod
   });
 
   @override
-  RootNode build(TreeBuildContext context) {
-    return buildRoot<T>(
-      context,
+  TreeNode build(TreeBuildContext context) {
+    return context.buildRoot<T>(
       key,
       (key) {
         final lazyProvider = Lazy(createProvider);
-        return RootNode(
+        return TreeNode.root(
           key,
-          stateCreatorWithDataInitialization(
+          context.stateCreatorWithDataInitialization(
               createState, lazyProvider.value, context.currentLeafData),
           initialChild,
           lazyProvider.value,
@@ -107,7 +105,7 @@ class Interior<T extends TreeState> implements NodeBuilder<InteriorNode> {
   final StateCreator<T> createState;
   final Iterable<NodeBuilder<ChildNode>> children;
   final InitialChild initialChild;
-  final key;
+  final StateKey key;
 
   Interior({
     @required this.createState,
@@ -117,11 +115,10 @@ class Interior<T extends TreeState> implements NodeBuilder<InteriorNode> {
   });
 
   @override
-  InteriorNode build(TreeBuildContext context) {
-    return buildInterior<T>(
-      context,
+  TreeNode build(TreeBuildContext context) {
+    return context.buildInterior<T>(
       key,
-      (key) => InteriorNode(key, context.parentNode, createState, initialChild),
+      (key) => TreeNode.interior(key, context.parentNode, createState, initialChild),
       children,
     );
   }
@@ -149,16 +146,15 @@ class InteriorWithData<T extends DataTreeState<D>, D> implements NodeBuilder<Int
   });
 
   @override
-  InteriorNode build(TreeBuildContext context) {
-    return buildInterior<T>(
-      context,
+  TreeNode build(TreeBuildContext context) {
+    return context.buildInterior<T>(
       key,
       (key) {
         final lazyProvider = Lazy(createProvider);
-        return InteriorNode(
+        return TreeNode.interior(
           key,
           context.parentNode,
-          stateCreatorWithDataInitialization(
+          context.stateCreatorWithDataInitialization(
               createState, lazyProvider.value, context.currentLeafData),
           initialChild,
           lazyProvider.value,
@@ -181,11 +177,10 @@ class Leaf<T extends TreeState> implements NodeBuilder<LeafNode> {
   });
 
   @override
-  LeafNode build(TreeBuildContext context) {
-    return buildLeaf<T>(
-      context,
+  TreeNode build(TreeBuildContext context) {
+    return context.buildLeaf<T>(
       key,
-      (k) => LeafNode(k, context.parentNode, createState),
+      (k) => TreeNode.leaf(k, context.parentNode, createState),
     );
   }
 }
@@ -204,16 +199,15 @@ class LeafWithData<T extends DataTreeState<D>, D> implements NodeBuilder<LeafNod
   });
 
   @override
-  LeafNode build(TreeBuildContext context) {
-    return buildLeaf<T>(
-      context,
+  TreeNode build(TreeBuildContext context) {
+    return context.buildLeaf<T>(
       key,
       (k) {
         final lazyProvider = Lazy(createProvider);
-        return LeafNode(
+        return TreeNode.leaf(
           k,
           context.parentNode,
-          stateCreatorWithDataInitialization(
+          context.stateCreatorWithDataInitialization(
               createState, lazyProvider.value, context.currentLeafData),
           lazyProvider.value,
         );
@@ -234,11 +228,10 @@ class Final<T extends FinalTreeState> implements NodeBuilder<FinalNode> {
   });
 
   @override
-  FinalNode build(TreeBuildContext context) {
-    return buildLeaf<T>(
-      context,
+  TreeNode build(TreeBuildContext context) {
+    return context.buildLeaf<T>(
       key,
-      (k) => FinalNode(k, context.parentNode, createState),
+      (k) => TreeNode.finalNode(k, context.parentNode, createState),
     );
   }
 }

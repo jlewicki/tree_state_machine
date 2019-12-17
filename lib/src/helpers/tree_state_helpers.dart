@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:rxdart/rxdart.dart';
 
-import 'data_provider.dart';
-import 'tree_state.dart';
-import 'utility.dart';
+import '../data_provider.dart';
+import '../tree_state.dart';
+import '../utility.dart';
 
 /// A [TreeState] that always returns [MessageContext.unhandled].
 class EmptyTreeState extends TreeState {

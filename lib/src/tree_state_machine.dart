@@ -2,12 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:rxdart/rxdart.dart';
+import 'package:tree_state_machine/tree_builders.dart';
 
-import 'builders/tree_builders.dart';
 import 'data_provider.dart';
 import 'lifecycle.dart';
-import 'tree_node.dart';
-import 'tree_node_builder.dart';
+import 'builders/tree_build_context.dart';
 import 'tree_state.dart';
 import 'tree_state_machine_impl.dart';
 import 'utility.dart';
@@ -61,7 +60,7 @@ class TreeStateMachine {
   }
 
   factory TreeStateMachine(NodeBuilder<RootNode> rootBuilder) {
-    ArgumentError.checkNotNull(buildRoot, 'buildRoot');
+    ArgumentError.checkNotNull(rootBuilder, 'buildRoot');
 
     // This is twisty, since we have an indirect circular dependency between
     // CurrentLeafObservableData and TreeStateMachine
@@ -374,7 +373,7 @@ class CurrentState {
   /// The current leaf state, and all of its ancestor states, are considered active states.
   bool isActiveState(StateKey key) {
     ArgumentError.checkNotNull(key, 'key');
-    return _treeStateMachine._machine.currentNode.isActive(key);
+    return _treeStateMachine._machine.currentNode.isSelfOrAncestor(key);
   }
 
   /// The  [StateKey]s identifying the states that are currently active in the state machine.
