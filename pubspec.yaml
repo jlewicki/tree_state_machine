@@ -1,8 +1,7 @@
 name: tree_state_machine
 version: 0.5.0
 description: Hierachical state machine library. 
-authors:
-  - John Lewicki <jlewicki@gmail.com>
+homepage: https://github.com/jlewicki/tree_state_machine
 
 environment:
   sdk: '>=2.5.0 <3.0.0'
