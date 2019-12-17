@@ -3,7 +3,6 @@ import 'package:meta/meta.dart';
 import '../data_provider.dart';
 import '../tree_node.dart';
 import '../tree_state.dart';
-import '../utility.dart';
 import 'tree_build_context.dart';
 
 /// A definition of the root node in a state tree.
@@ -40,7 +39,7 @@ class Root<T extends TreeState> implements NodeBuilder<RootNode> {
   /// The key that uniquely identifies the node within the tree.
   ///
   /// The key is optional when constructing the [Root]. If it is not provided, a key will be
-  /// automatically created using the type name of [T] as the key name.
+  /// automatically created using the type name of `T` as the key name.
   final StateKey key;
 
   /// Function used to create the [TreeState] of type `T` that defines the behavior of the root
@@ -64,10 +63,10 @@ class Root<T extends TreeState> implements NodeBuilder<RootNode> {
   ///
   /// [createState], [children], and [initialChild] must not be null.
   Root({
+    StateKey key,
     @required this.createState,
     @required this.children,
     @required this.initialChild,
-    StateKey key,
     Iterable<NodeBuilder<FinalNode>> finalStates,
   })  : key = key ?? StateKey.forState<T>(),
         finalStates = finalStates ?? const [] {
@@ -86,54 +85,38 @@ class Root<T extends TreeState> implements NodeBuilder<RootNode> {
       );
 }
 
-/// Describes how to build a root node with associated state data iof type `D` in a state tree.
+/// Describes how to build a root node in a state tree, with associated state data of type `D`.
 ///
 /// [RootWithData] behaves similarly to [Root], except that a function to create the [DataProvider]
 /// that manages the data for the state must be provided.
+///
+/// See also:
+///
+///   * [DataTreeState], which is a tree state that has associated state data.
+///   * [DataProvider], which mediates access to the state data.
 @sealed
 @immutable
-class RootWithData<T extends DataTreeState<D>, D> implements NodeBuilder<RootNode> {
-  /// The key that uniquely identifies the node within the tree.
-  ///
-  /// The key is optional when constructing the [Root]. If it is not provided, a key will be
-  /// automatically created using the type name of [T] as the key name.
-  final StateKey key;
-
-  /// Function used to create the [TreeState] of type `T` that defines the behavior of the root
-  /// node.
-  ///
-  /// The function is provided the [key] that identifies this node.
-  final DataStateCreator<T, D> createState;
-
-  /// Builders that will create the child states of this root node.
-  ///
-  /// The root node always has a least one child node.
-  final Iterable<NodeBuilder<ChildNode>> children;
-
-  /// Function that selects the initial child state, when the root state is entered.
-  final InitialChild initialChild;
-
+class RootWithData<T extends DataTreeState<D>, D> extends Root<T> {
   /// Function used to create the [DataProvider] that manages the data for the state.
   final DataProvider<D> Function() createProvider;
-
-  /// Builders that will create the final states (if any) of this root node.
-  final Iterable<NodeBuilder<FinalNode>> finalStates;
 
   /// Constructs a [RootWithData].
   ///
   /// [createState], [children], [initialChild], and [createProvider] must not be null.
   RootWithData({
-    @required this.createState,
-    @required this.children,
-    @required this.initialChild,
-    @required this.createProvider,
     StateKey key,
+    @required DataStateCreator<T, D> createState,
+    @required Iterable<NodeBuilder<ChildNode>> children,
+    @required InitialChild initialChild,
+    @required this.createProvider,
     Iterable<NodeBuilder<FinalNode>> finalStates,
-  })  : key = key ?? StateKey.forState<T>(),
-        finalStates = finalStates ?? const [] {
-    assert(createState != null);
-    assert(children != null);
-    assert(initialChild != null);
+  }) : super(
+            key: key,
+            createState: createState,
+            initialChild: initialChild,
+            children: children,
+            finalStates: finalStates) {
+    assert(createProvider != null);
   }
 
   @override
@@ -149,15 +132,15 @@ class RootWithData<T extends DataTreeState<D>, D> implements NodeBuilder<RootNod
 
 /// Describes how to build an interior state in a state tree.
 ///
-/// An interior state is a parent of a collection of child states. Note that an interior state is
-/// distinct from a root state, even though a root state also has child states.
+/// An interior node is a parent of a collection of child node. Note that an interior node is
+/// distinct from the root node, even though the root node also has child nodes.
 @sealed
 @immutable
 class Interior<T extends TreeState> implements NodeBuilder<InteriorNode> {
   /// The key that uniquely identifies the node within the tree.
   ///
   /// The key is optional when constructing the [Interior]. If it is not provided, a key will be
-  /// automatically created using the type name of [T] as the key name.
+  /// automatically created using the type name of `T`as the key name.
   final StateKey key;
 
   /// Function used to create the [TreeState] of type `T` that defines the behavior of the interior
@@ -178,10 +161,10 @@ class Interior<T extends TreeState> implements NodeBuilder<InteriorNode> {
   ///
   /// [createState], [children], and [initialChild] must not be null.
   Interior({
+    StateKey key,
     @required this.createState,
     @required this.children,
     @required this.initialChild,
-    final StateKey key,
   }) : key = key ?? StateKey.forState<T>() {
     assert(createState != null);
     assert(children != null);
@@ -193,29 +176,37 @@ class Interior<T extends TreeState> implements NodeBuilder<InteriorNode> {
       context.buildInterior<T>(key, createState, children, initialChild);
 }
 
-/// Describes how to build an interior state with associated state data in a state tree.
+/// Describes how to build an interior node in a state tree, with associated state data of type
+/// `D`.
 ///
-/// An interior state is a parent of a collection of child states. Note that an interior state is
-/// distinct from a root state, even though a root state also has child states.
+/// An interior node is a parent of a collection of child node. Note that an interior node is
+/// distinct from the root node, even though the root node also has child nodes.
+///
+/// [InteriorWithData] behaves similarly to [Interior], except that a function to create the [DataProvider]
+/// that manages the data for the state must be provided.
+///
+/// See also:
+///
+///   * [DataTreeState], which is a tree state that has associated state data.
+///   * [DataProvider], which mediates access to the state data.
 @sealed
 @immutable
-class InteriorWithData<T extends DataTreeState<D>, D> implements NodeBuilder<InteriorNode> {
-  final DataStateCreator<T, D> createState;
-  final Iterable<NodeBuilder<ChildNode>> children;
-  final InitialChild initialChild;
+class InteriorWithData<T extends DataTreeState<D>, D> extends Interior<T> {
+  /// Function used to create the [DataProvider] that manages the data for the state.
   final DataProvider<D> Function() createProvider;
-  final StateKey key;
 
   InteriorWithData({
-    @required this.createState,
-    @required this.children,
-    @required this.initialChild,
-    @required this.createProvider,
     StateKey key,
-  }) : key = key ?? StateKey.forState<T>() {
-    assert(createState != null);
-    assert(children != null);
-    assert(initialChild != null);
+    @required DataStateCreator<T, D> createState,
+    @required Iterable<NodeBuilder<ChildNode>> children,
+    @required InitialChild initialChild,
+    @required this.createProvider,
+  }) : super(
+          key: key,
+          createState: createState,
+          children: children,
+          initialChild: initialChild,
+        ) {
     assert(createProvider != null);
   }
 
@@ -224,18 +215,28 @@ class InteriorWithData<T extends DataTreeState<D>, D> implements NodeBuilder<Int
       context.buildInteriorWithData<T, D>(key, createState, children, initialChild, createProvider);
 }
 
+/// Describes how to build a leaf node in a state tree.
 @sealed
 @immutable
 class Leaf<T extends TreeState> implements NodeBuilder<LeafNode> {
-  final StateCreator<T> createState;
+  /// The key that uniquely identifies the node within the tree.
+  ///
+  /// The key is optional when constructing the [Leaf]. If it is not provided, a key will be
+  /// automatically created using the type name of `T` as the key name.
   final StateKey key;
+
+  /// Function used to create the [TreeState] of type `T` that defines the behavior of the leaf
+  /// node.
+  ///
+  /// The function is provided the [key] that identifies this node.
+  final StateCreator<T> createState;
 
   /// Constructs a [Leaf].
   ///
   /// [createState] must not be null.
   Leaf({
-    @required this.createState,
     StateKey key,
+    @required this.createState,
   }) : key = key ?? StateKey.forState<T>() {
     assert(createState != null);
   }
@@ -244,22 +245,28 @@ class Leaf<T extends TreeState> implements NodeBuilder<LeafNode> {
   TreeNode build(TreeBuildContext context) => context.buildLeaf<T>(key, createState);
 }
 
+/// Describes how to build a leaf node in a state tree, with associated state data of type `D`.
+///
+/// [LeafWithData] behaves similarly to [Leaf], except that a function to create the [DataProvider]
+/// that manages the data for the state must be provided.
+///
+/// See also:
+///
+///   * [DataTreeState], which is a tree state that has associated state data.
+///   * [DataProvider], which mediates access to the state data.
 @sealed
 @immutable
-class LeafWithData<T extends DataTreeState<D>, D> implements NodeBuilder<LeafNode> {
-  final DataStateCreator<T, D> createState;
+class LeafWithData<T extends DataTreeState<D>, D> extends Leaf<T> {
   final OwnedDataProvider<D> Function() createProvider;
-  final StateKey key;
 
   /// Constructs a [LeafWithData].
   ///
   /// [createState] and [createProvider] must not be null.
   LeafWithData({
-    @required this.createState,
-    @required this.createProvider,
     StateKey key,
-  }) : key = key ?? StateKey.forState<T>() {
-    assert(createState != null);
+    @required DataStateCreator<T, D> createState,
+    @required this.createProvider,
+  }) : super(key: key, createState: createState) {
     assert(createProvider != null);
   }
 
@@ -268,6 +275,11 @@ class LeafWithData<T extends DataTreeState<D>, D> implements NodeBuilder<LeafNod
       context.buildDataLeaf<T, D>(key, createState, createProvider);
 }
 
+/// Describes how to build a leaf node in a state tree.
+///
+/// A final node is a special kind of [LeafNode]. When a final node becomes the current state in a
+/// [TreeStateMachine], the state machine is considered ended, and no further message handling or
+/// state transitions will occur.
 @sealed
 @immutable
 class Final<T extends FinalTreeState> implements NodeBuilder<FinalNode> {

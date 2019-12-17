@@ -51,15 +51,30 @@ abstract class NodeBuilder<N extends NodeKind> {
 ///
 /// This interface is infrastructure, and is not intended to be called by application code.
 class TreeBuildContext {
+  /// The current parent node for nodes that will be built.
   final TreeNode parentNode;
+
+  /// Map of nodes that have been built.
   final HashMap<StateKey, TreeNode> nodes;
+
+  /// [ObservableData<Object>] that provides access the state data of the current leaf node in
+  /// the state machine.
+  ///
+  /// Note that this is not intended to be used directly until the [TreeStateMachine] is started.
   final ObservableData<Object> currentLeafData;
 
   TreeBuildContext._(this.parentNode, this.nodes, this.currentLeafData);
 
+  /// Constructs a [TreeBuildContext].
   factory TreeBuildContext(ObservableData<Object> currentLeafData, [TreeNode parentNode]) =>
-      TreeBuildContext._(parentNode, HashMap(), currentLeafData);
+      TreeBuildContext._(
+        parentNode,
+        HashMap(),
+        currentLeafData,
+      );
 
+  /// Constructs a [TreeBuildContext] that adusts the current parent node, so child nodes can be
+  /// built.
   TreeBuildContext childContext(TreeNode newParentNode) =>
       TreeBuildContext._(newParentNode, nodes, currentLeafData);
 
