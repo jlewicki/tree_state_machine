@@ -435,21 +435,21 @@ class UnhandledResult extends MessageResult {
 
 /// Base class for types describing how a message was processed by a state machine.
 @immutable
-abstract class MessageProcessed {
+abstract class ProcessedMessage {
   /// The message that was processed.
   final Object message;
 
   /// The leaf state that first received the message.
   final StateKey receivingState;
 
-  const MessageProcessed._(this.message, this.receivingState);
+  const ProcessedMessage._(this.message, this.receivingState);
 }
 
-/// A [MessageProcessed] indicating that a state successfully handled a message.
+/// A [ProcessedMessage] indicating that a state successfully handled a message.
 ///
 /// A state transition might have taken place part of handling the message. If this is true
 @immutable
-class HandledMessage extends MessageProcessed {
+class HandledMessage extends ProcessedMessage {
   /// The state that handled the message.
   ///
   /// This state might be different from [receivingState], if receiving state returned
@@ -473,14 +473,14 @@ class HandledMessage extends MessageProcessed {
 }
 
 @immutable
-class UnhandledMessage extends MessageProcessed {
+class UnhandledMessage extends ProcessedMessage {
   final Iterable<StateKey> notifiedStates;
   const UnhandledMessage(Object message, StateKey receivingState, this.notifiedStates)
       : super._(message, receivingState);
 }
 
 @immutable
-class FailedMessage extends MessageProcessed {
+class FailedMessage extends ProcessedMessage {
   final Object error;
   final StackTrace stackTrace;
   const FailedMessage(Object message, StateKey receivingState, this.error, this.stackTrace)

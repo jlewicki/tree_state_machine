@@ -150,7 +150,7 @@ void main() {
   });
 
   group('InteriorWithData', () {
-    test('should build a data leaf node', () {
+    test('should build a data interior node', () {
       SimpleDataState theState;
       final buildCtx = TreeBuildContext(currentLeafData, parentNode);
       final builder = InteriorWithData(
