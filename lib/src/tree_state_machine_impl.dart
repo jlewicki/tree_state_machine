@@ -51,9 +51,9 @@ class Machine {
 
   /// Processes the specified message by dispatching it to the current state.
   ///
-  /// Returns a future yielding a [MessageProcessed] that describes how the message was processed,
+  /// Returns a future yielding a [ProcessedMessage] that describes how the message was processed,
   /// and any state transition that occurred.
-  Future<MessageProcessed> processMessage(Object message, [StateKey initialStateKey]) async {
+  Future<ProcessedMessage> processMessage(Object message, [StateKey initialStateKey]) async {
     // Auto initializing makes testing easier, but may want to rethink this.
     if (_currentNode == null) {
       final _initialStateKey = initialStateKey ?? rootNode.node.key;
@@ -93,7 +93,7 @@ class Machine {
     return msgResult;
   }
 
-  FutureOr<MessageProcessed> _handleMessageResult(
+  FutureOr<ProcessedMessage> _handleMessageResult(
     MessageResult result,
     MachineMessageContext msgCtx,
   ) async {

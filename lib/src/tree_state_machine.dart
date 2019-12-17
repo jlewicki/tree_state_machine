@@ -77,7 +77,7 @@ class TreeStateMachine {
   final Machine _machine;
   final Lifecycle _lifecycle = Lifecycle();
   final StreamController<Transition> _transitions = StreamController.broadcast();
-  final StreamController<MessageProcessed> _processedMessages = StreamController.broadcast();
+  final StreamController<ProcessedMessage> _processedMessages = StreamController.broadcast();
   final StreamController<_QueuedMessage> _messageQueue = StreamController.broadcast();
   CurrentState _currentState;
 
@@ -140,17 +140,17 @@ class TreeStateMachine {
   /// machine.
   Stream<Transition> get transitions => _transitions.stream;
 
-  /// A broadcast stream of [MessageProcessed] events.
+  /// A broadcast stream of [ProcessedMessage] events.
   ///
-  /// A [MessageProcessed] event is raised on this stream when a message was processed by a state
+  /// A [ProcessedMessage] event is raised on this stream when a message was processed by a state
   /// within the state machine. The result of this processing may have resulted in a state
   /// transition, in which case an event will also be raised on the [transitions] stream.  When this
   /// occurs, an event on this stream is raised first.
   ///
-  /// Note that the [MessageProcessed] event does not necessarily mean that the message was handled
+  /// Note that the [ProcessedMessage] event does not necessarily mean that the message was handled
   /// successfully; it might have been unhandled or an error might have occurred. Check the runtime
   /// type of the event to determine what occurred.
-  Stream<MessageProcessed> get processedMessages => _processedMessages.stream;
+  Stream<ProcessedMessage> get processedMessages => _processedMessages.stream;
 
   /// A broadcast stream of [HandledMessage] events.
   ///
@@ -333,11 +333,11 @@ class TreeStateMachine {
   }
 
   void _onMessage(_QueuedMessage queuedMessage) async {
-    MessageProcessed result;
+    ProcessedMessage result;
     Transition transition;
     final receivingState = _machine.currentNode.key;
 
-    void raiseEvents(MessageProcessed result, [Transition transition]) {
+    void raiseEvents(ProcessedMessage result, [Transition transition]) {
       _processedMessages.add(result);
       if (transition != null) {
         _transitions.add(transition);
@@ -356,12 +356,12 @@ class TreeStateMachine {
     queuedMessage.completer.complete(result);
   }
 
-  Future<MessageProcessed> _processMessage(Object message) async {
+  Future<ProcessedMessage> _processMessage(Object message) async {
     _lifecycle.throwIfDisposed();
     // Add the message to the stream processor, which includes a buffering mechanism. That ensures
     // messages will be processed in-order, when messages are sent to the state machine without
     // waiting for earlier messages to be procesed.
-    final completer = Completer<MessageProcessed>();
+    final completer = Completer<ProcessedMessage>();
     _messageQueue.add(_QueuedMessage(message, completer));
     return completer.future;
   }
@@ -414,9 +414,9 @@ class CurrentState {
   /// Messages are buffered and processed in-order, so it is safe to call [sendMessage] multiple
   /// times without waiting for the futures returned by earlier calls to complete.
   ///
-  /// Returns a future that yields a [MessageProcessed] describing how the message was processed,
+  /// Returns a future that yields a [ProcessedMessage] describing how the message was processed,
   /// and any state transition that occured.
-  Future<MessageProcessed> sendMessage(Object message) {
+  Future<ProcessedMessage> sendMessage(Object message) {
     ArgumentError.checkNotNull(message, 'message');
     return _treeStateMachine._processMessage(message);
   }
@@ -425,7 +425,7 @@ class CurrentState {
 // Helper class pairing a message, and the completer that will signal the message was processed.
 class _QueuedMessage {
   final Object message;
-  final Completer<MessageProcessed> completer;
+  final Completer<ProcessedMessage> completer;
   _QueuedMessage(this.message, this.completer);
 }
 

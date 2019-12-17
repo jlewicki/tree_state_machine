@@ -261,7 +261,7 @@ void main() {
         await sm.currentState.sendMessage(Object());
         await Future.any([nextProcessedMessage, nextTransition]);
 
-        expect(firstEvent, isA<MessageProcessed>());
+        expect(firstEvent, isA<ProcessedMessage>());
       });
 
       test('should emit processedMessage event', () async {
