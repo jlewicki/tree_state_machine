@@ -5,7 +5,6 @@ import 'package:meta/meta.dart';
 import '../data_provider.dart';
 import '../tree_node.dart';
 import '../tree_state.dart';
-import '../utility.dart';
 
 /// Base interface for types that identity the types of [TreeNode] in a state tree.
 class NodeKind {}
@@ -71,17 +70,7 @@ class TreeBuildContext {
     InitialChild initialChild,
     Iterable<NodeBuilder<FinalNode>> finalStates,
   ) {
-    if (parentNode != null) {
-      throw StateError('Unexpected parent node in context when building root node');
-    }
-    final root = TreeNode.root(key, createState, initialChild);
-    final childCtx = childContext(root);
-    root.children.addAll(children.map((childBuilder) => childBuilder.build(childCtx)));
-    if (finalStates != null) {
-      root.children.addAll(finalStates.map((childBuilder) => childBuilder.build(childCtx)));
-    }
-    _addNode(root);
-    return root;
+    return _buildRoot(TreeNode.root(key, createState, initialChild), children, finalStates);
   }
 
   TreeNode buildRootWithData<T extends DataTreeState<D>, D>(
@@ -92,23 +81,16 @@ class TreeBuildContext {
     InitialChild initialChild,
     Iterable<NodeBuilder<FinalNode>> finalStates,
   ) {
-    if (parentNode != null) {
-      throw StateError('Unexpected parent node in context when building root node');
-    }
     final provider = createProvider();
-    final root = TreeNode.root(
-      key,
-      stateCreatorWithDataInitialization(createState, provider, currentLeafData),
-      initialChild,
-      provider,
-    );
-    final childCtx = childContext(root);
-    root.children.addAll(children.map((childBuilder) => childBuilder.build(childCtx)));
-    if (finalStates != null) {
-      root.children.addAll(finalStates.map((childBuilder) => childBuilder.build(childCtx)));
-    }
-    _addNode(root);
-    return root;
+    return _buildRoot(
+        TreeNode.root(
+          key,
+          _stateCreatorWithDataInitialization(createState, provider, currentLeafData),
+          initialChild,
+          provider,
+        ),
+        children,
+        finalStates);
   }
 
   TreeNode buildInterior<T extends TreeState>(
@@ -117,11 +99,10 @@ class TreeBuildContext {
     Iterable<NodeBuilder<ChildNode>> children,
     InitialChild initialChild,
   ) {
-    final interior = TreeNode.interior(key, parentNode, createState, initialChild);
-    final childCtx = childContext(interior);
-    interior.children.addAll(children.map((childBuilder) => childBuilder.build(childCtx)));
-    _addNode(interior);
-    return interior;
+    return _buildInterior(
+      TreeNode.interior(key, parentNode, createState, initialChild),
+      children,
+    );
   }
 
   TreeNode buildInteriorWithData<T extends DataTreeState<D>, D>(
@@ -132,17 +113,16 @@ class TreeBuildContext {
     DataProvider<D> Function() createProvider,
   ) {
     final provider = createProvider();
-    final interior = TreeNode.interior(
-      key,
-      parentNode,
-      stateCreatorWithDataInitialization(createState, provider, currentLeafData),
-      initialChild,
-      provider,
+    return _buildInterior(
+      TreeNode.interior(
+        key,
+        parentNode,
+        _stateCreatorWithDataInitialization(createState, provider, currentLeafData),
+        initialChild,
+        provider,
+      ),
+      children,
     );
-    final childCtx = childContext(interior);
-    interior.children.addAll(children.map((childBuilder) => childBuilder.build(childCtx)));
-    _addNode(interior);
-    return interior;
   }
 
   TreeNode buildLeaf<T extends TreeState>(
@@ -150,11 +130,9 @@ class TreeBuildContext {
     StateCreator<T> createState, {
     bool isFinal = false,
   }) {
-    final leaf = isFinal
+    return _buildLeaf(isFinal
         ? TreeNode.finalNode(key, parentNode, createState)
-        : TreeNode.leaf(key, parentNode, createState);
-    _addNode(leaf);
-    return leaf;
+        : TreeNode.leaf(key, parentNode, createState));
   }
 
   TreeNode buildDataLeaf<T extends DataTreeState<D>, D>(
@@ -163,17 +141,47 @@ class TreeBuildContext {
     OwnedDataProvider<D> Function() createProvider,
   ) {
     final provider = createProvider();
-    final leaf = TreeNode.leaf(
+    return _buildLeaf(TreeNode.leaf(
       key,
       parentNode,
-      stateCreatorWithDataInitialization(createState, provider, currentLeafData),
+      _stateCreatorWithDataInitialization(createState, provider, currentLeafData),
       provider,
-    );
+    ));
+  }
+
+  TreeNode _buildRoot(
+    TreeNode root,
+    Iterable<NodeBuilder<ChildNode>> children,
+    Iterable<NodeBuilder<FinalNode>> finalStates,
+  ) {
+    if (parentNode != null) {
+      throw StateError('Unexpected parent node in context when building root node');
+    }
+    final childCtx = childContext(root);
+    root.children.addAll(children.map((childBuilder) => childBuilder.build(childCtx)));
+    if (finalStates != null) {
+      root.children.addAll(finalStates.map((childBuilder) => childBuilder.build(childCtx)));
+    }
+    _addNode(root);
+    return root;
+  }
+
+  TreeNode _buildInterior(
+    TreeNode interior,
+    Iterable<NodeBuilder<ChildNode>> children,
+  ) {
+    final childCtx = childContext(interior);
+    interior.children.addAll(children.map((childBuilder) => childBuilder.build(childCtx)));
+    _addNode(interior);
+    return interior;
+  }
+
+  TreeNode _buildLeaf(TreeNode leaf) {
     _addNode(leaf);
     return leaf;
   }
 
-  StateCreator stateCreatorWithDataInitialization<T extends DataTreeState<D>, D>(
+  StateCreator _stateCreatorWithDataInitialization<T extends DataTreeState<D>, D>(
     DataStateCreator<T, D> createState,
     DataProvider<D> provider,
     ObservableData<Object> leafData,
