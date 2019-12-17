@@ -2,12 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:rxdart/rxdart.dart';
-import 'package:tree_state_machine/src/helpers.dart';
-import 'package:tree_state_machine/tree_state_machine.dart';
+import 'package:tree_state_machine/tree_builders.dart';
 
 import 'data_provider.dart';
 import 'lifecycle.dart';
-import 'tree_builders.dart';
+import 'builders/tree_build_context.dart';
 import 'tree_state.dart';
 import 'tree_state_machine_impl.dart';
 import 'utility.dart';
@@ -30,6 +29,32 @@ import 'utility.dart';
 ///  * [handledMessages] is a convenience stream that yield an event when only when a message is
 ///    successfully handled.
 ///  * [transitions] yields an event each time a transition between states occurs.
+///
+/// The following example demonstrates constructing a new state machine, starting it, and then
+/// sending a message for processing:
+/// ```dart
+/// void main() async {
+///   var stateMachine = TreeStateMachine(Root(
+///     createState: (key) => MyRootState(),
+///     initialChild: (transitionContext) => StateKey.forState<MyLeafState1>(),
+///     children: [
+///       Interior(
+///         createState: (key) => MyInteriorState(),
+///         initialChild: (transitionContext) => StateKey.forState<MyLeafState1>(),
+///         children: [
+///           Leaf(createState: (key) => MyLeafState1()),
+///           Leaf(createState: (key) => MyLeafState2()),
+///         ]
+///       ),
+///       Leaf(createState: (key) => MyLeafState3()),
+///     ])
+///   );
+///
+///   await stateMachine.start();
+///
+///   var messageProcessed = await stateMachine.currentState.sendMessage(MyMessage());
+/// }
+/// ```
 ///
 /// ## Error Handling
 ///
@@ -60,21 +85,24 @@ class TreeStateMachine {
     _messageQueue.stream.listen(_onMessage);
   }
 
-  factory TreeStateMachine.forRoot(RootNodeBuilder buildRoot) {
-    ArgumentError.checkNotNull(buildRoot, 'buildRoot');
+  factory TreeStateMachine(NodeBuilder<RootNode> rootBuilder) {
+    ArgumentError.checkNotNull(rootBuilder, 'buildRoot');
 
     // This is twisty, since we have an indirect circular dependency between
     // CurrentLeafObservableData and TreeStateMachine
     TreeStateMachine treeMachine;
     final currentLeafData = CurrentLeafObservableData(Lazy(() => treeMachine));
     final buildCtx = TreeBuildContext(currentLeafData);
-    final rootNode = buildRoot(buildCtx);
+    final rootNode = rootBuilder.build(buildCtx);
     final machine = Machine(rootNode, buildCtx.nodes);
 
     return treeMachine = TreeStateMachine._(machine);
   }
 
-  factory TreeStateMachine.forLeaves(Iterable<LeafNodeBuilder> buildLeaves, StateKey initialState) {
+  factory TreeStateMachine.forLeaves(
+    Iterable<NodeBuilder<LeafNode>> buildLeaves,
+    StateKey initialState,
+  ) {
     ArgumentError.checkNotNull(buildLeaves, 'buildLeaves');
     ArgumentError.checkNotNull(initialState, 'initialState');
     if (buildLeaves.length < 2) {
@@ -82,7 +110,7 @@ class TreeStateMachine {
       throw ArgumentError.value(buildLeaves, 'buildLeaves', msg);
     }
 
-    return TreeStateMachine.forRoot(rootBuilder(
+    return TreeStateMachine(Root(
       createState: (key) => _RootState(),
       children: buildLeaves,
       initialChild: (_) => initialState,
@@ -371,7 +399,7 @@ class CurrentState {
   /// The current leaf state, and all of its ancestor states, are considered active states.
   bool isActiveState(StateKey key) {
     ArgumentError.checkNotNull(key, 'key');
-    return _treeStateMachine._machine.currentNode.isActive(key);
+    return _treeStateMachine._machine.currentNode.isSelfOrAncestor(key);
   }
 
   /// The  [StateKey]s identifying the states that are currently active in the state machine.
@@ -402,7 +430,10 @@ class _QueuedMessage {
 }
 
 // Root state for wrapping 'flat' list of leaf states.
-class _RootState extends EmptyTreeState {}
+class _RootState extends TreeState {
+  @override
+  FutureOr<MessageResult> onMessage(MessageContext context) => context.unhandled();
+}
 
 // Serialiable data for an active state in the tree.
 class EncodableState {

@@ -1,15 +1,17 @@
-import 'package:rxdart/rxdart.dart';
+import 'package:tree_state_machine/tree_state_helpers.dart';
 
 import 'data_provider.dart';
-import 'helpers.dart';
 import 'tree_state.dart';
 import 'utility.dart';
 
+enum NodeType { rootNode, interiorNode, leafNode, finalNode }
 typedef InitialChild = StateKey Function(TransitionContext ctx);
 typedef StateCreator<T extends TreeState> = T Function(StateKey key);
 typedef DataStateCreator<T extends DataTreeState<D>, D> = T Function(StateKey key);
 
+/// A node within a state tree.
 class TreeNode {
+  final NodeType nodeType;
   final Lazy<TreeState> _lazyState;
   final StateKey key;
   final TreeNode parent;
@@ -19,6 +21,7 @@ class TreeNode {
   final DataProvider dataProvider;
 
   TreeNode._(
+    this.nodeType,
     this.key,
     this.parent,
     this._lazyState,
@@ -26,13 +29,75 @@ class TreeNode {
     this.dataProvider,
   );
 
-  bool get isRoot => this is RootNode;
-  bool get isLeaf => this is LeafNode;
-  bool get isInterior => this is InteriorNode;
-  bool get isFinal => this is FinalNode;
+  factory TreeNode.root(
+    StateKey key,
+    StateCreator createState,
+    InitialChild initialChild, [
+    DataProvider provider,
+  ]) =>
+      TreeNode._(
+        NodeType.rootNode,
+        key,
+        null,
+        Lazy<TreeState>(() => createState(key)),
+        initialChild,
+        provider,
+      );
+
+  factory TreeNode.interior(
+    StateKey key,
+    TreeNode parent,
+    StateCreator<TreeState> createState,
+    InitialChild initialChild, [
+    DataProvider provider,
+  ]) =>
+      TreeNode._(
+        NodeType.interiorNode,
+        key,
+        parent,
+        Lazy<TreeState>(() => createState(key)),
+        initialChild,
+        provider,
+      );
+
+  factory TreeNode.leaf(
+    StateKey key,
+    TreeNode parent,
+    StateCreator createState, [
+    DataProvider provider,
+  ]) =>
+      TreeNode._(
+        NodeType.leafNode,
+        key,
+        parent,
+        Lazy<TreeState>(() => createState(key)),
+        null,
+        provider,
+      );
+
+  factory TreeNode.finalNode(
+    StateKey key,
+    TreeNode parent,
+    StateCreator createState, [
+    DataProvider provider,
+  ]) =>
+      TreeNode._(
+        NodeType.finalNode,
+        key,
+        parent,
+        Lazy<TreeState>(() => createState(key)),
+        null,
+        provider,
+      );
+
+  bool get isRoot => nodeType == NodeType.rootNode;
+  bool get isLeaf => nodeType == NodeType.leafNode || nodeType == NodeType.finalNode;
+  bool get isInterior => nodeType == NodeType.interiorNode;
+  bool get isFinal => nodeType == NodeType.finalNode;
+
   TreeState state() => _lazyState.value;
 
-  bool isActive(StateKey stateKey) => selfOrAncestorWithKey(stateKey) != null;
+  bool isSelfOrAncestor(StateKey stateKey) => selfOrAncestorWithKey(stateKey) != null;
 
   Iterable<TreeNode> selfAndAncestors() sync* {
     yield this;
@@ -105,53 +170,6 @@ class TreeNode {
     }
     return null;
   }
-}
-
-abstract class ChildNode extends TreeNode {
-  ChildNode._(
-    StateKey key,
-    TreeNode parent,
-    Lazy<TreeState> lazyState,
-    InitialChild initialChild, [
-    DataProvider provider,
-  ]) : super._(key, parent, lazyState, initialChild, provider);
-}
-
-class RootNode extends TreeNode {
-  RootNode(
-    StateKey key,
-    StateCreator createState,
-    InitialChild initialChild, [
-    DataProvider provider,
-  ]) : super._(key, null, Lazy<TreeState>(() => createState(key)), initialChild, provider);
-}
-
-class InteriorNode extends ChildNode {
-  InteriorNode(
-    StateKey key,
-    TreeNode parent,
-    StateCreator<TreeState> createState,
-    InitialChild initialChild, [
-    DataProvider provider,
-  ]) : super._(key, parent, Lazy<TreeState>(() => createState(key)), initialChild, provider);
-}
-
-class LeafNode extends ChildNode {
-  LeafNode(
-    StateKey key,
-    TreeNode parent,
-    StateCreator createState, [
-    DataProvider provider,
-  ]) : super._(key, parent, Lazy<TreeState>(() => createState(key)), null, provider);
-}
-
-class FinalNode extends LeafNode {
-  FinalNode(
-    StateKey key,
-    TreeNode parent,
-    StateCreator createState, [
-    DataProvider provider,
-  ]) : super(key, parent, createState, provider);
 }
 
 class NodePath {

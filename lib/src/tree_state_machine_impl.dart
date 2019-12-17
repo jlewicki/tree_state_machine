@@ -256,7 +256,8 @@ class Machine {
   }
 
   static void _addStoppedNode(TreeNode rootNode, Map<StateKey, TreeNode> nodesByKey) {
-    final stoppedState = FinalNode(StoppedTreeState.key, rootNode, (_) => StoppedTreeState());
+    final stoppedState =
+        TreeNode.finalNode(StoppedTreeState.key, rootNode, (_) => StoppedTreeState());
     nodesByKey[StoppedTreeState.key] = stoppedState;
     rootNode.children.add(stoppedState);
   }

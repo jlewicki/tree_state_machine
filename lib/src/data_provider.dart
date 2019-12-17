@@ -232,7 +232,7 @@ class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
 /// Adapts a BehaviorSubject to the [DataStream] interface.
 class DataSubject<T> extends StreamView<T> implements DataStream<T>, ValueStream<T> {
   final BehaviorSubject<T> _subject;
-  DataSubject(this._subject) : super(_subject.stream) {}
+  DataSubject(this._subject) : super(_subject.stream);
   BehaviorSubject<T> get wrappedSubject => _subject;
   @override
   T get value => _subject.value;

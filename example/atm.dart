@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'package:tree_state_machine/src/helpers.dart';
+import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/tree_state_helpers.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 // See https://www.uml-diagrams.org/bank-atm-uml-state-machine-diagram-example.html?context=stm-examples
@@ -73,22 +74,22 @@ class SelectingTransactionState extends EmptyTreeState {}
 
 class TransactionState extends EmptyTreeState {}
 
-final atmTree = rootBuilder(
+final atmTree = Root(
   createState: (_) => RootState(),
   initialChild: (_) => StateKey.forState<OffState>(),
   children: [
-    leafBuilder(createState: (_) => OffState()),
-    leafBuilder(createState: (_) => SelfTestState()),
-    leafBuilder(createState: (_) => IdleState()),
-    leafBuilder(createState: (_) => MaintenanceState()),
-    leafBuilder(createState: (_) => OutOfServiceState()),
-    interiorBuilder(
+    Leaf(createState: (_) => OffState()),
+    Leaf(createState: (_) => SelfTestState()),
+    Leaf(createState: (_) => IdleState()),
+    Leaf(createState: (_) => MaintenanceState()),
+    Leaf(createState: (_) => OutOfServiceState()),
+    Interior(
       createState: (_) => ServingCustomerState(),
       initialChild: (_) => StateKey.forState<CustomerAuthenticationState>(),
       children: [
-        leafBuilder(createState: (_) => CustomerAuthenticationState()),
-        leafBuilder(createState: (_) => SelectingTransactionState()),
-        leafBuilder(createState: (_) => TransactionState()),
+        Leaf(createState: (_) => CustomerAuthenticationState()),
+        Leaf(createState: (_) => SelectingTransactionState()),
+        Leaf(createState: (_) => TransactionState()),
       ],
     )
   ],
