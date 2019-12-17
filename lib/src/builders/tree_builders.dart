@@ -77,15 +77,13 @@ class Root<T extends TreeState> implements NodeBuilder<RootNode> {
   }
 
   @override
-  TreeNode build(TreeBuildContext context) {
-    return context.buildRoot<T>(
-      key,
-      (key) => TreeNode.root(key, createState, initialChild),
-      children,
-      initialChild,
-      finalStates,
-    );
-  }
+  TreeNode build(TreeBuildContext context) => context.buildRoot<T>(
+        key,
+        createState,
+        children,
+        initialChild,
+        finalStates,
+      );
 }
 
 /// Describes how to build a root node with associated state data iof type `D` in a state tree.
@@ -129,29 +127,24 @@ class RootWithData<T extends DataTreeState<D>, D> implements NodeBuilder<RootNod
     @required this.children,
     @required this.initialChild,
     @required this.createProvider,
-    this.key,
-    this.finalStates,
-  });
+    StateKey key,
+    Iterable<NodeBuilder<FinalNode>> finalStates,
+  })  : key = key ?? StateKey.forState<T>(),
+        finalStates = finalStates ?? const [] {
+    assert(createState != null);
+    assert(children != null);
+    assert(initialChild != null);
+  }
 
   @override
-  TreeNode build(TreeBuildContext context) {
-    return context.buildRoot<T>(
-      key,
-      (key) {
-        final lazyProvider = Lazy(createProvider);
-        return TreeNode.root(
-          key,
-          context.stateCreatorWithDataInitialization(
-              createState, lazyProvider.value, context.currentLeafData),
-          initialChild,
-          lazyProvider.value,
-        );
-      },
-      children,
-      initialChild,
-      finalStates,
-    );
-  }
+  TreeNode build(TreeBuildContext context) => context.buildRootWithData<T, D>(
+        key,
+        createState,
+        createProvider,
+        children,
+        initialChild,
+        finalStates,
+      );
 }
 
 /// Describes how to build an interior state in a state tree.
@@ -188,17 +181,16 @@ class Interior<T extends TreeState> implements NodeBuilder<InteriorNode> {
     @required this.createState,
     @required this.children,
     @required this.initialChild,
-    this.key,
-  });
+    final StateKey key,
+  }) : key = key ?? StateKey.forState<T>() {
+    assert(createState != null);
+    assert(children != null);
+    assert(initialChild != null);
+  }
 
   @override
-  TreeNode build(TreeBuildContext context) {
-    return context.buildInterior<T>(
-      key,
-      (key) => TreeNode.interior(key, context.parentNode, createState, initialChild),
-      children,
-    );
-  }
+  TreeNode build(TreeBuildContext context) =>
+      context.buildInterior<T>(key, createState, children, initialChild);
 }
 
 /// Describes how to build an interior state with associated state data in a state tree.
@@ -219,27 +211,17 @@ class InteriorWithData<T extends DataTreeState<D>, D> implements NodeBuilder<Int
     @required this.children,
     @required this.initialChild,
     @required this.createProvider,
-    this.key,
-  });
+    StateKey key,
+  }) : key = key ?? StateKey.forState<T>() {
+    assert(createState != null);
+    assert(children != null);
+    assert(initialChild != null);
+    assert(createProvider != null);
+  }
 
   @override
-  TreeNode build(TreeBuildContext context) {
-    return context.buildInterior<T>(
-      key,
-      (key) {
-        final lazyProvider = Lazy(createProvider);
-        return TreeNode.interior(
-          key,
-          context.parentNode,
-          context.stateCreatorWithDataInitialization(
-              createState, lazyProvider.value, context.currentLeafData),
-          initialChild,
-          lazyProvider.value,
-        );
-      },
-      children,
-    );
-  }
+  TreeNode build(TreeBuildContext context) =>
+      context.buildInteriorWithData<T, D>(key, createState, children, initialChild, createProvider);
 }
 
 @sealed
@@ -248,18 +230,18 @@ class Leaf<T extends TreeState> implements NodeBuilder<LeafNode> {
   final StateCreator<T> createState;
   final StateKey key;
 
+  /// Constructs a [Leaf].
+  ///
+  /// [createState] must not be null.
   Leaf({
     @required this.createState,
-    this.key,
-  });
+    StateKey key,
+  }) : key = key ?? StateKey.forState<T>() {
+    assert(createState != null);
+  }
 
   @override
-  TreeNode build(TreeBuildContext context) {
-    return context.buildLeaf<T>(
-      key,
-      (k) => TreeNode.leaf(k, context.parentNode, createState),
-    );
-  }
+  TreeNode build(TreeBuildContext context) => context.buildLeaf<T>(key, createState);
 }
 
 @sealed
@@ -269,46 +251,48 @@ class LeafWithData<T extends DataTreeState<D>, D> implements NodeBuilder<LeafNod
   final OwnedDataProvider<D> Function() createProvider;
   final StateKey key;
 
+  /// Constructs a [LeafWithData].
+  ///
+  /// [createState] and [createProvider] must not be null.
   LeafWithData({
     @required this.createState,
     @required this.createProvider,
-    this.key,
-  });
+    StateKey key,
+  }) : key = key ?? StateKey.forState<T>() {
+    assert(createState != null);
+    assert(createProvider != null);
+  }
 
   @override
-  TreeNode build(TreeBuildContext context) {
-    return context.buildLeaf<T>(
-      key,
-      (k) {
-        final lazyProvider = Lazy(createProvider);
-        return TreeNode.leaf(
-          k,
-          context.parentNode,
-          context.stateCreatorWithDataInitialization(
-              createState, lazyProvider.value, context.currentLeafData),
-          lazyProvider.value,
-        );
-      },
-    );
-  }
+  TreeNode build(TreeBuildContext context) =>
+      context.buildDataLeaf<T, D>(key, createState, createProvider);
 }
 
 @sealed
 @immutable
 class Final<T extends FinalTreeState> implements NodeBuilder<FinalNode> {
-  final StateCreator<T> createState;
+  /// The key that uniquely identifies the node within the tree.
+  ///
+  /// The key is optional when constructing the [Final]. If it is not provided, a key will be
+  /// automatically created using the type name of [T] as the key name.
   final StateKey key;
 
+  /// Function used to create the [TreeState] of type `T` that defines the behavior of the final
+  /// node.
+  ///
+  /// The function is provided the [key] that identifies this node.
+  final StateCreator<T> createState;
+
+  /// Constructs a [Final].
+  ///
+  /// [createState] must not be null.
   Final({
     @required this.createState,
-    this.key,
-  });
+    StateKey key,
+  }) : key = key ?? StateKey.forState<T>() {
+    assert(createState != null);
+  }
 
   @override
-  TreeNode build(TreeBuildContext context) {
-    return context.buildLeaf<T>(
-      key,
-      (k) => TreeNode.finalNode(k, context.parentNode, createState),
-    );
-  }
+  TreeNode build(TreeBuildContext context) => context.buildLeaf<T>(key, createState, isFinal: true);
 }
