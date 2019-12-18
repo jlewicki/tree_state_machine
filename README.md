@@ -31,7 +31,7 @@ For example, here is the definition of a state tree that contains each type of n
      ),
      Leaf(createState: (key) => MyLeafState3()),
    ],
-   finalStates: [
+   finals: [
      Final(createState: (key) => MyFinalState()),
    ],
  );
@@ -104,8 +104,44 @@ if (processed is HandledMessage) {
   var transition = processed.transition
 }
 ```
+### State machine streams
+
+In addition to inspecting the results of `sendMessage` to learn about a message was processed, it is also possible to subscribe to several stream properties of `TreeStateMachine`.
+
+  * `processedMessages` yields an event for every message that is processed by the tree, whether
+    or not the message was handled successfully, and whether or not a transition occurred as a
+    result of the message.
+  * `handledMessages` is a convenience stream that yield an event when only when a message is
+    successfully handled. Note that the `HandledMessage` is also emitted on the `processedMessages` stream.
+  * `transitions` yields an event each time a transition between states occurs.
 
 
 ## Ending a state machine 
 
+A state machine is considered to be ended, or finished, when a transition to a final state occurs. A final state can be included in a state tree definition by adding one or more `Final` nodes to the `finals` collection of the `Root`.
+
+When handling a message, a state may transition to a final state in the same way it would to any another state. However, once the final state is entered, any additional messages sent to the state are ignored, and a different state may never be entered. Teh state machine can be considered 'inert' at that point, although it is possible to retrieve state data from the final state, if the state supports it.
+
+```dart
+class MyState extends TreeState {
+   FutureOr<MessageResult> onMessage(MessageContext context) {
+      return context.message is MyStopMessage
+         // When the state machine enters MyFinalState, it will be ended.
+         : context.goTo(StateKey.state<MyFinalState>()
+         ? context.unhandled();
+      }
+   }
+}
+```
+
 ## Stopping a state machine
+
+`TreeStateMachine` has a `stop` method, which is alternate way of ending the state machine. This will transition the state machine to an implicit final state, identified by `StoppedTreeState.key`.  This state does not need to be added to the `finals` collection, it will be automatically available.
+
+Once the final state has been enterd, the state machine is ended in the same manner as if a state transition to a final state was triggered by message processing. You can consider triggering a transition to a final state as 'internally stopping' the state machine, and calling the `stop` method as 'externally stopping' it.
+
+```dart
+await stateMachine.stop();
+// ended will be true
+var ended = stateMachine.isEnded;
+```

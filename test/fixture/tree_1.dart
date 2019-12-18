@@ -70,7 +70,7 @@ NodeBuilder<RootNode> treeBuilder({
       _initialChildCallback(r_key)(ctx);
       return r_a_key;
     },
-    finalStates: [
+    finals: [
       Final(key: r_X_key, createState: (key) => DelegateFinalState(_exitHandlers[key])),
     ],
     children: [

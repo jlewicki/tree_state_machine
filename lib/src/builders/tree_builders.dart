@@ -57,7 +57,7 @@ class Root<T extends TreeState> implements NodeBuilder<RootNode> {
   final InitialChild initialChild;
 
   /// Builders that will create the final states (if any) of this root node.
-  final Iterable<NodeBuilder<FinalNode>> finalStates;
+  final Iterable<NodeBuilder<FinalNode>> finals;
 
   /// Constructs a [Root].
   ///
@@ -67,9 +67,9 @@ class Root<T extends TreeState> implements NodeBuilder<RootNode> {
     @required this.createState,
     @required this.children,
     @required this.initialChild,
-    Iterable<NodeBuilder<FinalNode>> finalStates,
+    Iterable<NodeBuilder<FinalNode>> finals,
   })  : key = key ?? StateKey.forState<T>(),
-        finalStates = finalStates ?? const [] {
+        finals = finals ?? const [] {
     assert(createState != null);
     assert(children != null);
     assert(initialChild != null);
@@ -81,7 +81,7 @@ class Root<T extends TreeState> implements NodeBuilder<RootNode> {
         createState,
         children,
         initialChild,
-        finalStates,
+        finals,
       );
 }
 
@@ -109,13 +109,13 @@ class RootWithData<T extends DataTreeState<D>, D> extends Root<T> {
     @required Iterable<NodeBuilder<ChildNode>> children,
     @required InitialChild initialChild,
     @required this.createProvider,
-    Iterable<NodeBuilder<FinalNode>> finalStates,
+    Iterable<NodeBuilder<FinalNode>> finals,
   }) : super(
             key: key,
             createState: createState,
             initialChild: initialChild,
             children: children,
-            finalStates: finalStates) {
+            finals: finals) {
     assert(createProvider != null);
   }
 
@@ -126,7 +126,7 @@ class RootWithData<T extends DataTreeState<D>, D> extends Root<T> {
         createProvider,
         children,
         initialChild,
-        finalStates,
+        finals,
       );
 }
 

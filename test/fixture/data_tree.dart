@@ -62,7 +62,7 @@ NodeBuilder<RootNode> treeBuilder({
       () => SpecialDataD.dataProvider(_initialDataValues[r_key]),
     ),
     initialChild: (_) => r_a_key,
-    finalStates: [
+    finals: [
       Final(key: r_X_key, createState: (key) => DelegateFinalState(_exitHandlers[key])),
     ],
     children: [

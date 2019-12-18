@@ -1,5 +1,5 @@
 name: tree_state_machine
-version: 0.5.0
+version: 0.5.0-beta
 description: Hierachical state machine library. 
 homepage: https://github.com/jlewicki/tree_state_machine
 
