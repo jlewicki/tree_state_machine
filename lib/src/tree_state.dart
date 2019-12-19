@@ -411,18 +411,19 @@ class InternalTransitionResult extends MessageResult {
 }
 
 /// A [MessageResult] indicating that a message was sucessfully handled, and an self transition
-/// should occur. That is, current state should remain the same, but the exit and entry handlers for
-/// the state should be called.
+/// should occur. That is, current state should remain the same, but the exit and entry handlers
+/// for the state should be called.
 class SelfTransitionResult extends MessageResult {
   final FutureOr<void> Function(TransitionContext) transitionAction;
   SelfTransitionResult([this.transitionAction]) : super._();
 }
 
+/// A [MessageResult] indicating that a state machine is being stopped by application code.
 class StopResult extends MessageResult {
   StopResult() : super._();
 }
 
-/// A [MessageResult] indicating that a state did not recognize or handle a message,
+/// A [MessageResult] indicating that a state did not recognize or handle a message.
 class UnhandledResult extends MessageResult {
   UnhandledResult._() : super._();
   static final UnhandledResult value = UnhandledResult._();
@@ -472,17 +473,25 @@ class HandledMessage extends ProcessedMessage {
   Iterable<StateKey> get enteredStates => transition?.entered ?? const [];
 }
 
+/// A [ProcessedMessage] indicating that none of the active states in the state machine recognized
+/// the message.
 @immutable
 class UnhandledMessage extends ProcessedMessage {
+  /// The collection of states that were notified of, but did not handle, the message.
   final Iterable<StateKey> notifiedStates;
   const UnhandledMessage(Object message, StateKey receivingState, this.notifiedStates)
       : super._(message, receivingState);
 }
 
+/// A [ProcessedMessage] indicating an error was thrown while processing a message.
 @immutable
 class FailedMessage extends ProcessedMessage {
+  /// The error object that was thrown.
   final Object error;
+
+  /// The stack trace at the point the error was thrownn
   final StackTrace stackTrace;
+
   const FailedMessage(Object message, StateKey receivingState, this.error, this.stackTrace)
       : super._(message, receivingState);
 }

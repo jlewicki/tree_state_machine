@@ -166,9 +166,9 @@ class MyState extends TreeState {
 
 ## Stopping a state machine
 
-`TreeStateMachine` has a `stop` method, which is alternate way of ending the state machine. This will transition the state machine to an implicit final state, identified by `StoppedTreeState.key`.  This state does not need to be added to the `finals` collection, it will be automatically available.
+`TreeStateMachine` has a `stop` method, which is alternate way of ending the state machine. This will transition the state machine to an implicit final state, identified by `StoppedTreeState.key`.  This state does not need to be added to the `finals` collection of the `Root`, it will be automatically available.
 
-Once the final state has been enterd, the state machine is ended in the same manner as if a state transition to a final state was triggered by message processing. You can consider triggering a transition to a final state as 'internally stopping' the state machine, and calling the `stop` method as 'externally stopping' it.
+Once the stopped state has been enterd, the state machine is ended in the same manner as if a state transition to a final state was triggered by message processing. You can consider triggering a transition to a final state as 'internally stopping' the state machine, and calling the `stop` method as 'externally stopping' it.
 
 ```dart
 await stateMachine.stop();

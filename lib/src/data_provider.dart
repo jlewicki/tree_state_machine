@@ -8,8 +8,8 @@ import 'utility.dart';
 
 /// A [Stream] that provides synchronous access to the last emitted item.
 ///
-/// Note that is identical to the `ValueStream` interface from RxDart.  It is duplicated here to
-/// avoid exposing RxDart types as part of the public API of this library.
+/// Note that this is identical to the `ValueStream` interface from RxDart. It is duplicated here
+/// to avoid exposing RxDart types as part of the public API of this library.
 abstract class DataStream<T> implements Stream<T> {
   /// Last emitted value, or `null` if there has been no emission yet.
   T get value;
@@ -29,9 +29,10 @@ abstract class ObservableData<D> {
 
 /// Provides access to the data value associated with a [DataTreeState].
 ///
-/// While a state can maintain various data values during its lifecycle in member fields private to
-/// the state, it can be convenient to package these values into their own type, and mediate access
-/// to a value of that type using a [DataProvider]. Doing so provides:
+/// While a [TreeState] can maintain various data values during its lifecycle in member fields
+/// private to the state, it can be convenient to package these values into their own type, and
+/// mediate access to a value of that type using [DataTreeState] and its associated [DataProvider].
+/// Doing so provides:
 ///
 ///   * Support for (de)serialization of this data when the state is active, and the state machine
 ///     is saved using [TreeStateMachine.saveTo].
@@ -50,11 +51,13 @@ abstract class DataProvider<D> {
   void decodeInto(Object input);
 
   /// Calls the specified function to produce a new data value, and replaces [data] with this value.
+  ///
+  /// This will result in a change notification if the implementation supports [ObservableData].
   void replace(D Function() replace);
 
   /// Calls the specified function that updates the current data value.
   ///
-  /// Note that in the future this may result in a change notification.
+  /// This will result in a change notification if the implementation supports [ObservableData].
   void update(void Function() update);
 
   /// Releases any resources associated with this provider.
@@ -135,8 +138,8 @@ class OwnedDataProvider<D> implements DataProvider<D>, ObservableData<D> {
   }
 }
 
-/// A data provider that provides a view of a data instance that is owned by the current leaf state
-/// of a state machine.
+/// A data provider that provides a view of the data value of the current leaf state of the state
+/// machine.
 class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
   StreamSubscription _subscription;
   Lazy<DataSubject<D>> _lazySubject;
