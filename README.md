@@ -40,11 +40,32 @@ A few things to note about this example:
   * `context.unhandled()` is returned when the message is not recognized. The state machine will next call [onMessage]
   of the parent state to see if it can handle the message.
 
+### Transition handlers
+In addition to `onMessage`, `TreeState` provides overridable methods `onEnter` and `onExit`. These methods are called when the state is entered or exited as a result of a state transition (or when the state machine enters its initial state when it is started).
+
+`TreeState` subclasses can override these methods to perform any initialization or cleanup that is necessary as the state is entered and exited.
+
+```dart
+class MyState extends TreeState {
+  @override
+  FutureOr<void> onEnter(TransitionContext context) {
+    /// Perform initialization here if necessary
+  }
+
+  @override
+  FutureOr<void> onExit(TransitionContext context) {
+    /// Perform cleanup here if necessary
+  }
+}
+```
+
 ## Defining state trees
 
-The `tree_builders` library defines types that let you construct the tree of states that models your application domain.  In general, there is a class for each type of node in the tree, and you build the tree starting from the root, similar to the way you build a widget tree in Flutter.
+The `tree_builders` library defines types that let you construct the tree of states that models your application domain.  In general, there is a builder class for each type of node in the tree, and you build the tree starting from the root, similar to the way you build a widget tree in Flutter.
 
-For example, here is the definition of a state tree that contains each type of node (`root`, `interior`, `leaf`, and `final`):
+> Note: States and nodes are sometimes used interchangably, but in fact they are distinct. A `TreeState` represents message handling behavior, while a node represents the position of a state within a state tree. Application code typically does not interact directly with the nodes in the tree.
+
+For example, here is the definition of a state tree that contains each type of node (`Root`, `Interior`, `Leaf`, and `Final`):
 
  ```dart
  var treeBuilder = Root(
@@ -71,9 +92,9 @@ For example, here is the definition of a state tree that contains each type of n
 
  ### <a name="state-keys"></a>Identifying states
  
- Each state in the tree is uniquely identified by a `StateKey`. This key can be optionally assigned when defining the node for the state. If left unassigned a key will automaically be created, using the type name of the `TreeState` subclass returned by the `createState` function.  
+ Each state in the tree is uniquely identified by a `StateKey`. This key can be optionally assigned when defining the node for the state. If left unassigned a key will automatically be created, using the type name of the `TreeState` subclass returned by the `createState` function. A `StateKey` can always be created using `StateKey.named` and assigned explicitly to a node if that is preferred. 
 
- An error is thrown if duplicate keys are found while building the state tree. Therefore, if keys are left unassigned while defining the tree, a different `TreeState` subclass must be used for each node in the tree with an unassigned key to ensure uniqueness.
+ An error is thrown if duplicate keys are found while building the state tree. Therefore, if keys are left unassigned while defining the tree, in order to ensure uniqueness, a different `TreeState` subclass must be used for each node in the tree with an unassigned key.
 
  ## Creating a state machine
 
