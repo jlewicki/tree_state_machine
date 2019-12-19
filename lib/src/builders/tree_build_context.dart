@@ -1,6 +1,7 @@
 import 'dart:collection';
 
 import 'package:meta/meta.dart';
+import 'package:tree_state_machine/src/utility.dart';
 
 import '../data_provider.dart';
 import '../tree_node.dart';
@@ -98,7 +99,7 @@ class TreeBuildContext {
     InitialChild initialChild,
     Iterable<NodeBuilder<FinalNode>> finalStates,
   ) {
-    final provider = createProvider();
+    final provider = Lazy(createProvider);
     return _buildRoot(
         TreeNode.root(
           key,
@@ -131,7 +132,7 @@ class TreeBuildContext {
     InitialChild initialChild,
     DataProvider<D> Function() createProvider,
   ) {
-    final provider = createProvider();
+    final provider = Lazy(createProvider);
     return _buildInterior(
       TreeNode.interior(
         key,
@@ -161,7 +162,7 @@ class TreeBuildContext {
     StateCreator<T> createState,
     OwnedDataProvider<D> Function() createProvider,
   ) {
-    final provider = createProvider();
+    final provider = Lazy(createProvider);
     return _buildLeaf(TreeNode.leaf(
       key,
       parentNode,
@@ -204,11 +205,12 @@ class TreeBuildContext {
 
   StateCreator _stateCreatorWithDataInitialization<T extends DataTreeState<D>, D>(
     DataStateCreator<T, D> createState,
-    DataProvider<D> provider,
+    Lazy<DataProvider<D>> lazyProvider,
     ObservableData<Object> leafData,
   ) =>
       (key) {
         final state = createState(key);
+        final provider = lazyProvider.value;
         if (provider is CurrentLeafDataProvider) {
           (provider as CurrentLeafDataProvider).initializeLeafData(leafData);
         }

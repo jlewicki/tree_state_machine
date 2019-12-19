@@ -89,8 +89,21 @@ void main() {
       );
       final leafNode1 = builder.build(TreeBuildContext(currentLeafData, parentNode));
       final leafNode2 = builder.build(TreeBuildContext(currentLeafData, parentNode));
+      // Force creation of states and providers
+      leafNode1.state();
+      leafNode2.state();
+      expect(identical(leafNode1.dataProvider(), leafNode2.dataProvider()), isFalse);
+    });
 
-      expect(identical(leafNode1.dataProvider, leafNode2.dataProvider), isFalse);
+    test('should not create provider if state is not created', () {
+      final builder = LeafWithData(
+        key: stateKey,
+        createState: (key) => SimpleDataState(),
+        createProvider: SimpleDataA.dataProvider,
+      );
+      final leafNode1 = builder.build(TreeBuildContext(currentLeafData, parentNode));
+
+      expect(leafNode1.lazyProvider.hasValue, isFalse);
     });
   });
 

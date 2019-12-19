@@ -95,7 +95,6 @@ class TreeStateMachine {
     final buildCtx = TreeBuildContext(currentLeafData);
     final rootNode = rootBuilder.build(buildCtx);
     final machine = Machine(rootNode, buildCtx.nodes);
-
     return treeMachine = TreeStateMachine._(machine);
   }
 
@@ -106,7 +105,7 @@ class TreeStateMachine {
     ArgumentError.checkNotNull(buildLeaves, 'buildLeaves');
     ArgumentError.checkNotNull(initialState, 'initialState');
     if (buildLeaves.length < 2) {
-      final msg = 'Only ${buildLeaves.length} leaf states were provided. At least 2 are reequired';
+      final msg = 'Only ${buildLeaves.length} leaf states were provided. At least 2 are required';
       throw ArgumentError.value(buildLeaves, 'buildLeaves', msg);
     }
 
@@ -251,7 +250,7 @@ class TreeStateMachine {
       final state = node.node.state();
       return EncodableState(
         key.toString(),
-        state is DataTreeState ? node.node.dataProvider.encode() : null,
+        state is DataTreeState ? node.node.dataProvider().encode() : null,
         null,
       );
     }).toList();
@@ -327,7 +326,7 @@ class TreeStateMachine {
       final es = encodableTree.states[i];
       final node = activeNodes[i];
       if (es.encodedData != null && node.dataProvider != null) {
-        node.dataProvider.decodeInto(es.encodedData);
+        node.dataProvider().decodeInto(es.encodedData);
       }
     }
   }
@@ -494,4 +493,21 @@ class CurrentLeafObservableData implements ObservableData<Object> {
 
   @override
   DataStream<Object> get dataStream => _lazySubject.value;
+}
+
+class TestableTreeStateMachine extends TreeStateMachine {
+  TestableTreeStateMachine._(Machine machine) : super._(machine);
+  factory TestableTreeStateMachine(NodeBuilder<RootNode> rootBuilder) {
+    ArgumentError.checkNotNull(rootBuilder, 'buildRoot');
+    // GRR is there a way to avoid duplicating this weird code?
+    TreeStateMachine treeMachine;
+    final currentLeafData = CurrentLeafObservableData(Lazy(() => treeMachine));
+    final buildCtx = TreeBuildContext(currentLeafData);
+    final rootNode = rootBuilder.build(buildCtx);
+    final machine = Machine(rootNode, buildCtx.nodes);
+    return treeMachine = TestableTreeStateMachine._(machine);
+  }
+
+  /// Gets the internal machine for testing purposes
+  Machine get machine => _machine;
 }

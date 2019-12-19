@@ -474,7 +474,7 @@ class MachineNode {
 
   void dispose() {
     cancelTimers();
-    node.dataProvider?.dispose();
+    node?.dispose();
   }
 }
 

@@ -188,7 +188,7 @@ void main() {
         final r_a_a_2_provider = LeafData2.dataProvider();
         final r_a_1_provider = ImmutableData.dataProvider();
 
-        final sm = TreeStateMachine(data_tree.treeBuilder(
+        final sm = TestableTreeStateMachine(data_tree.treeBuilder(
           dataProviders: {
             data_tree.r_key: r_provider,
             data_tree.r_a_key: r_a_provider,
@@ -209,7 +209,12 @@ void main() {
           StreamQueue(r_a_1_provider.dataStream),
         ];
 
-        // Skip the 'current' value events that are immediately sent by BehaviurSubject on
+        for (var node in sm.machine.nodes.values) {
+          // For create of state and data providers
+          node.node.state();
+        }
+
+        // Skip the 'current' value events that are immediately sent by BehaviorSubject on
         // subscription, since they are not important for this test.
         for (var q in qs) {
           await q.skip(1);

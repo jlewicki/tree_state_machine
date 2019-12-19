@@ -13,12 +13,12 @@ typedef DataStateCreator<T extends DataTreeState<D>, D> = T Function(StateKey ke
 class TreeNode {
   final NodeType nodeType;
   final Lazy<TreeState> _lazyState;
+  final Lazy<DataProvider> _lazyProvider;
   final StateKey key;
   final TreeNode parent;
   // Consider making this list of keys
   final List<TreeNode> children = [];
   final InitialChild initialChild;
-  final DataProvider dataProvider;
 
   TreeNode._(
     this.nodeType,
@@ -26,14 +26,14 @@ class TreeNode {
     this.parent,
     this._lazyState,
     this.initialChild,
-    this.dataProvider,
+    this._lazyProvider,
   );
 
   factory TreeNode.root(
     StateKey key,
     StateCreator createState,
     InitialChild initialChild, [
-    DataProvider provider,
+    Lazy<DataProvider> provider,
   ]) =>
       TreeNode._(
         NodeType.rootNode,
@@ -49,7 +49,7 @@ class TreeNode {
     TreeNode parent,
     StateCreator<TreeState> createState,
     InitialChild initialChild, [
-    DataProvider provider,
+    Lazy<DataProvider> provider,
   ]) =>
       TreeNode._(
         NodeType.interiorNode,
@@ -64,7 +64,7 @@ class TreeNode {
     StateKey key,
     TreeNode parent,
     StateCreator createState, [
-    DataProvider provider,
+    Lazy<DataProvider> provider,
   ]) =>
       TreeNode._(
         NodeType.leafNode,
@@ -79,7 +79,7 @@ class TreeNode {
     StateKey key,
     TreeNode parent,
     StateCreator createState, [
-    DataProvider provider,
+    Lazy<DataProvider> provider,
   ]) =>
       TreeNode._(
         NodeType.finalNode,
@@ -96,6 +96,14 @@ class TreeNode {
   bool get isFinal => nodeType == NodeType.finalNode;
 
   TreeState state() => _lazyState.value;
+  DataProvider dataProvider() => _lazyProvider?.value;
+  Lazy<DataProvider> get lazyProvider => _lazyProvider;
+
+  void dispose() {
+    if (_lazyProvider?.hasValue ?? false) {
+      _lazyProvider.value.dispose();
+    }
+  }
 
   bool isSelfOrAncestor(StateKey stateKey) => selfOrAncestorWithKey(stateKey) != null;
 
@@ -118,7 +126,7 @@ class TreeNode {
 
   TreeNode selfOrAncestorWithData<D>() {
     return selfAndAncestors().firstWhere(
-      (n) => n.dataProvider != null && n.dataProvider is DataProvider<D>,
+      (n) => n.dataProvider() is DataProvider<D>,
       orElse: () => null,
     );
   }
@@ -138,14 +146,16 @@ class TreeNode {
 
   DataStream<D> dataStream<D>([StateKey key]) {
     final node = key != null ? selfOrAncestorWithKey(key) : selfOrAncestorWithData<D>();
-    if (node?.dataProvider != null) {
-      if (node.dataProvider is ObservableData<D>) {
-        return (node.dataProvider as ObservableData<D>).dataStream;
+    final dataProvider = node?.dataProvider();
+    if (dataProvider != null) {
+      if (dataProvider is ObservableData<D>) {
+        return (dataProvider as ObservableData<D>).dataStream;
       } else {
-        Object data = node.dataProvider.data;
+        Object data = dataProvider.data;
         if (data is D) {
-          return DelegateObservableData<D>(
-              getData: () => data, createStream: () => Stream.value(data)).dataStream;
+          // Node does not support observable data, but it does provide a single value of
+          // the right type, so adapt that value to a data stream.
+          return DelegateObservableData.single(data).dataStream;
         }
       }
       throw StateError(
