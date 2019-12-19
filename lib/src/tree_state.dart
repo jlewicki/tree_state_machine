@@ -146,19 +146,43 @@ class StoppedTreeState extends FinalTreeState {
   static final key = StateKey.named('!StateTreeMachine.Stopped!');
 }
 
-/// A tree state that supports serialization of its state data.
+/// A tree state with an associated data value of type `D`.
 ///
+/// While a [TreeState] can maintain any state or data it needs as member fields within its class
+/// definition, this information will not be directly accessible to the application hosting the
+/// [TreeStateMachine]. While this may be reasonable for certain states, it is often the case that
+/// an application needs access to these data values, for example to present them in a user
+/// interface.
 ///
+/// [DataTreeState] makes the data values associated with a state explicit. To use a
+/// [DataTreeState], the values that should be readable by the application are composed into a
+/// single type `D`. Then when definining the state tree, 'WithData` variants of the builder
+/// classes are used ([RootWithData], [LeafWithData], etc.), and a [DataProvider] is also
+/// associated with the state definition. At runtime, this provider is responsible for managing the
+/// `D` value representing the state data, and supporting change notification when as value
+/// changes.
+///
+/// A [DataTreeState] subclass can read the current data value from the provider with the [data]
+/// property. The data value can be updated as the state responds to messages with the [updateData]
+/// and [replaceData] methods. The [DataProvider] will then raise the appropiate change
+/// notification (for example emitting a new value on [ObservableData.dataStream]), and application
+/// code can respond as necessary.
+///
+/// An application can access the data for an active [DataTreeState] using [CurrentState.data] or
+/// [CurrentState.dataStream].
 abstract class DataTreeState<D> extends TreeState {
   DataProvider<D> _provider;
 
-  /// The serializable data associated with this state.
+  /// The data value associated with this state.
   D get data {
     assert(_provider != null);
     return _provider.data;
   }
 
-  /// Calls the specified function to produce a new data value, and replaces [data] with this value.
+  /// Calls the specified function to produce a new data value, and replaces [data] with this
+  /// value.
+  ///
+  /// The associated [DataProvider] will raise an appriproate change notication.
   @protected
   void replaceData(D Function() replace) {
     _provider.replace(replace);
@@ -166,7 +190,7 @@ abstract class DataTreeState<D> extends TreeState {
 
   /// Calls the specified function that updates the current data value.
   ///
-  /// Note that in the future this may result in a change notification.
+  /// The associated [DataProvider] will raise an appriproate change notication
   @protected
   void updateData(void Function() update) {
     _provider.update(update);

@@ -5,11 +5,29 @@ import 'tree_state.dart';
 import 'utility.dart';
 
 enum NodeType { rootNode, interiorNode, leafNode, finalNode }
-typedef InitialChild = StateKey Function(TransitionContext ctx);
+
+/// Type of functions that create a new [TreeState].
+///
+/// The function is passed the [StateKey] that identifies the new state.
 typedef StateCreator<T extends TreeState> = T Function(StateKey key);
+
+/// Type of functions that create a new [DataTreeState].
+///
+/// The function is passed the [StateKey] that identifies the new state.
 typedef DataStateCreator<T extends DataTreeState<D>, D> = T Function(StateKey key);
 
+/// Type of functions that select a child node to initially enter, when a parent node is entered.
+///
+/// The function is passed a [TransitionContext] that describes the transition that is currently
+/// taking place.
+typedef InitialChild = StateKey Function(TransitionContext ctx);
+
 /// A node within a state tree.
+///
+/// While a [TreeState] defines the message processing behavior of a state, it does not model the
+/// location of the state within a state tree (that is, a [TreeState] does not directly know its
+/// parent or child states). Instead, [TreeNode] composes together a tree state along with
+/// information about the location of the node with the tree.
 class TreeNode {
   final NodeType nodeType;
   final Lazy<TreeState> _lazyState;
@@ -95,23 +113,37 @@ class TreeNode {
   bool get isInterior => nodeType == NodeType.interiorNode;
   bool get isFinal => nodeType == NodeType.finalNode;
 
+  /// The [TreeState] for this node, creating it if necessary.
   TreeState state() => _lazyState.value;
+
+  /// The [DataProvider] for this node, creating it if necessary.
+  ///
+  /// Returns `null` if the node does not have an associated provider.
   DataProvider dataProvider() => _lazyProvider?.value;
+
   Lazy<DataProvider> get lazyProvider => _lazyProvider;
 
+  /// Disposes this node and releases any associated resources.
   void dispose() {
     if (_lazyProvider?.hasValue ?? false) {
       _lazyProvider.value.dispose();
     }
   }
 
+  /// Returns `true` if `stateKey` identifies this node, or one of its ancestor nodes.
   bool isSelfOrAncestor(StateKey stateKey) => selfOrAncestorWithKey(stateKey) != null;
 
+  /// Lazily-compute the self-and-ancestor nodes of this node.
+  ///
+  /// The first node in the list is this node, and the last is the root node.
   Iterable<TreeNode> selfAndAncestors() sync* {
     yield this;
     yield* ancestors();
   }
 
+  /// Lazily-compute the ancestor nodes of this node.
+  ///
+  /// The first node in the list is the parent of this node, and the last is the root node.
   Iterable<TreeNode> ancestors() sync* {
     var nextAncestor = parent;
     while (nextAncestor != null) {
@@ -131,6 +163,7 @@ class TreeNode {
     );
   }
 
+  /// Computes the least common ancestor node between this node and `other`.
   TreeNode lcaWith(TreeNode other) {
     final i1 = selfAndAncestors().toList().reversed.iterator;
     final i2 = other.selfAndAncestors().toList().reversed.iterator;
@@ -142,6 +175,9 @@ class TreeNode {
     return lca;
   }
 
+  /// The data value of type `D` associated with this node.
+  ///
+  /// Returns `null` if this node does not have a data provider.
   D data<D>() => dataStream<D>(key)?.value;
 
   DataStream<D> dataStream<D>([StateKey key]) {

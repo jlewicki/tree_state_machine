@@ -1,4 +1,4 @@
-# Tree State Machine
+# tree_state_machine
 
 ## Tree State Machines
 A tree (hierarchical) state machine is a similar to a traditional finite state machine, in that the state of a system is modeled by a set of states, of which one is active at a given time. The system can transition from one state to another in response to messages (tyically representing some sort of external event) being processed by the current state.
@@ -7,12 +7,10 @@ In a tradtion FSM, each state exisis independently, and if a state machine is in
 
 Tree state machines are a way of addressing this issue. The states are arranged into a tree, so that a state can have zero or more child states. If a state has no child states, we call it a leaf state, otherwise it's called a composite state. The power of this hierarchical relationship is that states can delegate message handling to their parent state, allowing one parent state to provide common message handling logic for any number of child states (and their children, etc.)
 
-The `tree_state_machine` package provides a simple and declarative way to define state trees, and managing their runtime behavior. 
+`tree_state_machine` is a Dart package that provides a simple and declarative way to define state trees, and manage their runtime behavior. 
 
 ## Getting Started
-The primary API for the working with the state machine is provided by the `tree_state_machine` library. The API for defining state trees is provided by `tree_builders` library.  
-`
-Depending on how your application is structured, you will need to import one or both of these libraries:
+The primary API for the working with the state machine is provided by the `tree_state_machine` library. The API for defining state trees is provided by `tree_builders` library. Depending on how your application is structured, you will need to import one or both of these libraries:
 
 ```dart
 import 'package:tree_state_machine/tree_builders.dart';
@@ -20,7 +18,7 @@ import 'package:tree_state_machine/tree_state_machine.dart';
 ```
 
 ## Defining states
-A state tree is composed of number of states, where a state is effectively defined by how it responds to messages that are sent to the state machine.
+A state tree is composed of number of states, where a state is effectively defined by how it responds to the messages that are sent to the state machine for processing.
 
 In `tree_state_machine`, a state is a subclass of `TreeState`, and each state provides its message handling behavior by overriding the `onMessage` method:
 
@@ -39,6 +37,8 @@ A few things to note about this example:
   * A `MessageContext` is provided as an argument to `onMessage`. This context provides access to the message to be processed, as a well as a number of methods (such as `goTo`) that produce the `MessageResult`s that can be returned from the method.
   * The return type is `FutureOr<MessageResult>`, which means `onMessage` is free to return a future, if its message handling logic is asynchronous in nature. 
   * The `goTo` method, which initiates a state transition, takes a `StateKey` as a parameter to indicate which state to transition to. In this case we are using the type name of the target state to generate a key. See [below](#state-keys) for more details on state keys.
+  * `context.unhandled()` is returned when the message is not recognized. The state machine will next call [onMessage]
+  of the parent state to see if it can handle the message.
 
 ## Defining state trees
 
@@ -136,7 +136,7 @@ if (processed is HandledMessage) {
 ```
 ### State machine streams
 
-In addition to inspecting the results of `sendMessage` to learn about a message was processed, it is also possible to subscribe to several stream properties of `TreeStateMachine`.
+In addition to inspecting the results of `sendMessage` to learn about how a message was processed, it is also possible to subscribe to several stream properties of `TreeStateMachine`:
 
   * `processedMessages` yields an event for every message that is processed by the tree, whether
     or not the message was handled successfully, and whether or not a transition occurred as a
@@ -150,7 +150,7 @@ In addition to inspecting the results of `sendMessage` to learn about a message 
 
 A state machine is considered to be ended, or finished, when a transition to a final state occurs. A final state can be included in a state tree definition by adding one or more `Final` nodes to the `finals` collection of the `Root`.
 
-When handling a message, a state may transition to a final state in the same way it would to any another state. However, once the final state is entered, any additional messages sent to the state are ignored, and a different state may never be entered. Teh state machine can be considered 'inert' at that point, although it is possible to retrieve state data from the final state, if the state supports it.
+When handling a message, a state may transition to a final state in the same way it would to any another state. However, once the final state is entered, any additional messages sent to the state are ignored, and a different state may never be entered. The state machine can be considered 'inert' at that point, although it is possible to retrieve state data from the final state, if the state supports it.
 
 ```dart
 class MyState extends TreeState {

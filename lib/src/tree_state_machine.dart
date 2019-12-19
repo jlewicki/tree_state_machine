@@ -367,6 +367,12 @@ class TreeStateMachine {
 }
 
 /// Describes the current leaf state of a [TreeStateMachine].
+///
+/// [CurrentState] provides information about the current leaf state and its ancestor states, and
+/// their data values (if any of these states are [DataTreeStates]).
+///
+/// Additionally, messages can be sent to the leaf state for processing using the [sendMessage]
+/// method.
 class CurrentState {
   final TreeStateMachine _treeStateMachine;
   CurrentState._(this._treeStateMachine);
@@ -374,9 +380,9 @@ class CurrentState {
   /// The [StateKey] identifying the current leaf state.
   StateKey get key => _treeStateMachine._machine.currentNode.key;
 
-  /// The data associated with the state that is currently handling the message.
+  /// The data associated with the current leaf state.
   ///
-  /// Returns `null` if the handling state does not have an associated data provider.
+  /// Returns `null` if the leaf state does not have an associated data provider.
   D data<D>() {
     return dataStream<D>(key)?.value;
   }

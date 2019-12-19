@@ -140,6 +140,24 @@ class OwnedDataProvider<D> implements DataProvider<D>, ObservableData<D> {
 
 /// A data provider that provides a view of the data value of the current leaf state of the state
 /// machine.
+///
+/// [CurrentLeafDataProvider] is a somewhat specialized implementation of [DataProvider] geared
+/// towards a specific use-case. In general, if a leaf state and one or more of its ancestor states
+/// are [DataTreeState]s, then when that leaf is the current state, the total set of data
+/// comprising the active data values are distributed across several states and data providers.
+/// This means that in order to obtain a complete picture the the current state data, an
+/// application must make several calls to [CurrentState.dataStream], one for each active data
+/// state.
+///
+/// Depending on the domain, it may be more convenient to maintain all data values for the active
+/// states at the leaf. In other words, if the data type `D` for a current leaf state has a class
+/// hierarchy that mirrors the state hierarchy, then a leaf data value of type `D` will give a
+/// complete view of the the active state data.
+///
+/// [CurrentLeafDataProvider] facilitates this by providing a view of the current leaf data to an
+/// the ancestor [DataTreeState]. It expects the the leaf data value is always a subclass of the
+/// data type `D`, and a `StateError` is thrown from [data] and [dataStream] when that is not the
+/// case.
 class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
   StreamSubscription _subscription;
   Lazy<DataSubject<D>> _lazySubject;
@@ -158,11 +176,11 @@ class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
       // value (in a future microtask)
       var skippedFirstSame = false;
       var subject = BehaviorSubject.seeded(_leafDataAsD(observableLeafData.dataStream.value));
-      // Note that we skip adding if its the same value. Otherwise this subscription might
+      // Note that we skip adding if it's the same value. Otherwise this subscription might
       // immediately receive (in a future microtask) the current leaf value (if the source is a
       // behavior subject). Since we seeded our subject with this value, we don't want to emit an
       // indentical value unnecessarily. We only do this once though, in case the source emits when
-      // the current leaf value is mutated as opposed to producing a new intstance.
+      // the current leaf value is mutated as opposed to producing a new instance.
       _subscription = observableLeafData.dataStream.map(_leafDataAsD).skipWhile((v) {
         if (skippedFirstSame) return false;
         if (identical(v, subject.value)) {
