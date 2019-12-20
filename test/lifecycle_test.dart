@@ -1,9 +1,8 @@
 import 'package:test/test.dart';
-import 'package:tree_state_machine/src/errors.dart';
 import 'package:tree_state_machine/src/lifecycle.dart';
 
-final isDisposedError = TypeMatcher<DisposedError>();
-final Matcher throwsDisposedError = throwsA(isDisposedError);
+import 'matchers/matchers.dart';
+
 Future doStart() => Future.delayed(Duration(milliseconds: 100));
 Future doStop() => Future.delayed(Duration(milliseconds: 100));
 void doDispose() {}
