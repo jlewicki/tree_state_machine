@@ -152,10 +152,17 @@ class TreeNode {
     }
   }
 
+  /// Finds the self-or-ancestor node that is identified `stateKey`.
+  ///
+  /// Returns `null` if there is no node that matches the key.
   TreeNode selfOrAncestorWithKey(StateKey stateKey) {
+    assert(stateKey != null);
     return selfAndAncestors().firstWhere((n) => n.key == stateKey, orElse: () => null);
   }
 
+  /// Finds the self-or-ancestor node that has a data provider whose data value matches type `D`.
+  ///
+  /// Returns `null` if there is no node that matches the data type.
   TreeNode selfOrAncestorWithData<D>() {
     return selfAndAncestors().firstWhere(
       (n) => n.dataProvider() is DataProvider<D>,
@@ -165,6 +172,7 @@ class TreeNode {
 
   /// Computes the least common ancestor node between this node and `other`.
   TreeNode lcaWith(TreeNode other) {
+    assert(other != null);
     final i1 = selfAndAncestors().toList().reversed.iterator;
     final i2 = other.selfAndAncestors().toList().reversed.iterator;
     TreeNode lca;

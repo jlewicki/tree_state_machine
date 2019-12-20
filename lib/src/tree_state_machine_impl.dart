@@ -433,14 +433,9 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
   }
 
   @override
-  D data<D>() {
+  D data<D>([StateKey key]) {
     assert(notifiedNodes.isNotEmpty);
-    return notifiedNodes.last.data<D>();
-  }
-
-  @override
-  D activeData<D>([StateKey key]) {
-    return receivingNode.dataStream<D>(key)?.value;
+    return notifiedNodes.last.dataStream<D>(key)?.value;
   }
 
   void _throwIfDisposed() {

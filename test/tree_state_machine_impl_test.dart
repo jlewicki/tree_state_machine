@@ -533,6 +533,32 @@ void main() {
         expect(dataByKey[r_a_key], isNull);
         expect(dataByKey[r_key], isNull);
       });
+
+      test('should return null if descendant data is requested', () async {
+        final dataByKey = <StateKey, Object>{};
+        final rootBuilder = data_tree.treeBuilder(messageHandlers: {
+          r_a_a_key: (ctx) {
+            dataByKey[r_a_a_key] = ctx.data<LeafData2>(r_a_a_2_key);
+            return ctx.unhandled();
+          },
+          r_a_key: (ctx) {
+            dataByKey[r_a_key] = ctx.data<LeafData2>(r_a_a_key);
+            return ctx.unhandled();
+          }
+        });
+
+        Machine machine;
+        final buildCtx = TreeBuildContext(
+          DelegateObservableData(getData: () => machine.currentNode.data()),
+        );
+        final rootNode = rootBuilder.build(buildCtx);
+        machine = Machine(rootNode, buildCtx.nodes);
+        await machine.enterInitialState();
+        await machine.processMessage(Object());
+
+        expect(dataByKey[r_a_a_key], isNull);
+        expect(dataByKey[r_a_key], isNull);
+      });
     });
 
     group('schedule', () {

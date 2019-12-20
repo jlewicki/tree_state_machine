@@ -270,7 +270,7 @@ extension DataStreamExtensions<D> on DataStream<D> {
   DataStream<P> map<P>(P Function(D data) convert) {
     assert(convert != null);
     final subject = BehaviorSubject<P>.seeded(convert(this.value));
-    subject.addStream(this.map(convert)).then((_) => subject.close());
+    subject.addStream(this.map(convert)).then<void>((dynamic _) => subject.close());
     return DataSubject(subject);
   }
 }
