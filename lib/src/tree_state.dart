@@ -156,7 +156,7 @@ class StoppedTreeState extends FinalTreeState {
 ///
 /// [DataTreeState] makes the data values associated with a state explicit. To use a
 /// [DataTreeState], the values that should be readable by the application are composed into a
-/// single type `D`. Then when definining the state tree, 'WithData` variants of the builder
+/// single type `D`. Then when definining the state tree, 'WithData' variants of the builder
 /// classes are used ([RootWithData], [LeafWithData], etc.), and a [DataProvider] is also
 /// associated with the state definition. At runtime, this provider is responsible for managing the
 /// `D` value representing the state data, and supporting change notification when as value
