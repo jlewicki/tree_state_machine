@@ -4,7 +4,7 @@ description: Hierachical state machine library.
 homepage: https://github.com/jlewicki/tree_state_machine
 
 environment:
-  sdk: '>=2.5.0 <3.0.0'
+  sdk: '>=2.6.0 <3.0.0'
 
 dependencies:
   async: ^2.4.0

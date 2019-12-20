@@ -158,6 +158,7 @@ class OwnedDataProvider<D> implements DataProvider<D>, ObservableData<D> {
 /// the ancestor [DataTreeState]. It expects the the leaf data value is always a subclass of the
 /// data type `D`, and a `StateError` is thrown from [data] and [dataStream] when that is not the
 /// case.
+@experimental
 class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
   StreamSubscription _subscription;
   Lazy<DataSubject<D>> _lazySubject;
@@ -259,4 +260,17 @@ class DataSubject<T> extends StreamView<T> implements DataStream<T>, ValueStream
   T get value => _subject.value;
   @override
   bool get hasValue => _subject.hasValue;
+}
+
+extension DataStreamExtensions<D> on DataStream<D> {
+  /// Transforms each element of this data stream into a new stream event.
+  ///
+  /// In addition to the stream events, the [DataStream.value] of source data stream is also mapped
+  /// by applying the `convert` function.
+  DataStream<P> map<P>(P Function(D data) convert) {
+    assert(convert != null);
+    final subject = BehaviorSubject<P>.seeded(convert(this.value));
+    subject.addStream(this.map(convert)).then((_) => subject.close());
+    return DataSubject(subject);
+  }
 }
