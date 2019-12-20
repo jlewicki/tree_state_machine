@@ -168,6 +168,27 @@ class StoppedTreeState extends FinalTreeState {
 /// notification (for example emitting a new value on [ObservableData.dataStream]), and application
 /// code can respond as necessary.
 ///
+/// ```dart
+/// class AuthenticationState extends DataTreeState<UserInfo> {
+///   FutureOr<MessageResult> onMessage(MessageContext context) async {
+///     if (context.message is AuthenticateCredentials) {
+///       bool authenticated = await authenticate(context.message as AuthenticateCredentials);
+///       if (authenticated) {
+///         updateData(() {
+///           data.isAuthenticated = true;
+///         });
+///       }
+///       return context.stay();
+///     }
+///     return context.unhandled();
+///   }
+///
+///   Future<bool> authenticate(AuthenticateCredentials message) {
+///     // Perform authentication...
+///     return true;
+///   }
+/// ```
+///
 /// An application can access the data for an active [DataTreeState] using [CurrentState.data] or
 /// [CurrentState.dataStream].
 abstract class DataTreeState<D> extends TreeState {
@@ -293,12 +314,12 @@ abstract class MessageContext {
     bool periodic = false,
   });
 
-  /// The state data associated with the state that is currently handling the message, or one of its
-  /// ancestors.
+  /// Finds the state data associated with the state that is currently handling the message, or one
+  /// of its ancestor states.
   ///
-  /// If `key` is specified, and it matches the state that is currently handling the message, or
-  /// one of it ancestor states, then the data for the matching state is returned. Otherwise the
-  /// data for the currently handling state is returned.
+  /// If `key` is specified, and it matches the currently handling state, or one of its ancestor
+  /// states, then the data for the matching state is returned. Otherwise the data for the handling
+  /// state is returned.
   ///
   /// Returns `null` if a matching state could not be found, or if does not have state data.
   D data<D>([StateKey key]);
