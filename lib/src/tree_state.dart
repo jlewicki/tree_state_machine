@@ -293,16 +293,15 @@ abstract class MessageContext {
     bool periodic = false,
   });
 
-  /// The data associated with the state that is currently handling the message.
+  /// The state data associated with the state that is currently handling the message, or one of its
+  /// ancestors.
   ///
-  /// Returns `null` if the handling state does not have an associated data provider.
-  D data<D>();
-
-  /// The data associated with an active state
+  /// If `key` is specified, and it matches the state that is currently handling the message, or
+  /// one of it ancestor states, then the data for the matching state is returned. Otherwise the
+  /// data for the currently handling state is returned.
   ///
-  /// If [key] is provided, the data for the ancestor state with the specified key will be returned.
-  /// Otherwise, the data of the closest ancestor state that matches the specified type is returned.
-  D activeData<D>([StateKey key]);
+  /// Returns `null` if a matching state could not be found, or if does not have state data.
+  D data<D>([StateKey key]);
 }
 
 /// Describes a transition between states that is occuring in a tree state machine.
