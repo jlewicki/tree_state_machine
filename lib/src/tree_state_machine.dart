@@ -94,7 +94,11 @@ class TreeStateMachine {
     final currentLeafData = CurrentLeafObservableData(Lazy(() => treeMachine));
     final buildCtx = TreeBuildContext(currentLeafData);
     final rootNode = rootBuilder.build(buildCtx);
-    final machine = Machine(rootNode, buildCtx.nodes);
+    final machine = Machine(
+      rootNode,
+      buildCtx.nodes,
+      (message) => treeMachine._queueMessage(message),
+    );
     return treeMachine = TreeStateMachine._(machine);
   }
 
@@ -203,7 +207,7 @@ class TreeStateMachine {
   ///
   /// It is safe to call this method when [isEnded] is `true`.
   Future stop() {
-    return _lifecycle.stop(() => _processMessage(stopMessage));
+    return _lifecycle.stop(() => _queueMessage(stopMessage));
   }
 
   /// Disposes the state machine.
@@ -355,7 +359,7 @@ class TreeStateMachine {
     queuedMessage.completer.complete(result);
   }
 
-  Future<ProcessedMessage> _processMessage(Object message) async {
+  Future<ProcessedMessage> _queueMessage(Object message) async {
     _lifecycle.throwIfDisposed();
     // Add the message to the stream processor, which includes a buffering mechanism. That ensures
     // messages will be processed in-order, when messages are sent to the state machine without
@@ -396,7 +400,7 @@ class CurrentState {
   /// If stata data can be resolved, but it does not support streaming, a single value stream with
   /// the current state data is returned.
   DataStream<D> dataStream<D>([StateKey key]) {
-    return _treeStateMachine._machine.currentNode.dataStream<D>(key);
+    return _treeStateMachine._machine.currentNode.selfOrAncestorDataStream<D>(key);
   }
 
   /// Returns `true` if the specified state is an active state in the state machine.
@@ -423,7 +427,7 @@ class CurrentState {
   /// and any state transition that occured.
   Future<ProcessedMessage> sendMessage(Object message) {
     ArgumentError.checkNotNull(message, 'message');
-    return _treeStateMachine._processMessage(message);
+    return _treeStateMachine._queueMessage(message);
   }
 }
 
@@ -510,7 +514,11 @@ class TestableTreeStateMachine extends TreeStateMachine {
     final currentLeafData = CurrentLeafObservableData(Lazy(() => treeMachine));
     final buildCtx = TreeBuildContext(currentLeafData);
     final rootNode = rootBuilder.build(buildCtx);
-    final machine = Machine(rootNode, buildCtx.nodes);
+    final machine = Machine(
+      rootNode,
+      buildCtx.nodes,
+      (message) => treeMachine._queueMessage(message),
+    );
     return treeMachine = TestableTreeStateMachine._(machine);
   }
 

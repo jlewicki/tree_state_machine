@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:collection';
 
+import 'package:meta/meta.dart';
+import 'package:tree_state_machine/src/data_provider.dart';
+
 import 'errors.dart';
 import 'tree_node.dart';
 import 'tree_state.dart';
@@ -10,10 +13,15 @@ class Machine {
   final MachineNode rootNode;
   final Map<StateKey, MachineNode> nodes;
   MachineNode _currentNode;
+  void Function(Object message) _queueMessage;
 
-  Machine._(this.rootNode, this.nodes);
+  Machine._(this.rootNode, this.nodes, this._queueMessage);
 
-  factory Machine(TreeNode rootNode, Map<StateKey, TreeNode> nodesByKey) {
+  factory Machine(
+    TreeNode rootNode,
+    Map<StateKey, TreeNode> nodesByKey,
+    void Function(Object message) queueMessage,
+  ) {
     // Add an extra node to represent externally stopped state
     _addStoppedNode(rootNode, nodesByKey);
 
@@ -23,7 +31,7 @@ class Machine {
       machineNodes[entry.key] = MachineNode(entry.value);
     }
 
-    return Machine._(machineRoot, machineNodes);
+    return Machine._(machineRoot, machineNodes, queueMessage);
   }
 
   TreeNode get currentNode => _currentNode?.node;
@@ -117,8 +125,11 @@ class Machine {
     MachineMessageContext msgCtx, {
     bool isSelfTransition = false,
   }) async {
-    final toNode = _node(result.toStateKey);
-    final path = NodePath(msgCtx.receivingNode, toNode.node);
+    var toNode = _node(result.toStateKey).node;
+    if (result.reenterAncestor && toNode.parent == null) {
+      throw StateError('Re-entering the root node is invalid.');
+    }
+    final path = NodePath(msgCtx.receivingNode, toNode, reenterAncestor: result.reenterAncestor);
     final transition = await _doTransition(path, result.transitionAction, result.payload);
     return HandledMessage(
       msgCtx.message,
@@ -301,10 +312,24 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
   Object get payload => _payload;
 
   @override
-  void post(Object message) {
+  void post(FutureOr<Object> message) {
     _throwIfDisposed();
-    // Consider using microtask?
-    Timer.run(() => _machine.processMessage(message));
+    ArgumentError.checkNotNull(message, 'message');
+    if (message is Future) {
+      message.then(_machine._queueMessage);
+    } else {
+      _machine._queueMessage(message);
+    }
+  }
+
+  @experimental
+  D data<D>([StateKey key]) {
+    return _enteredNodes.last.selfOrAncestorDataStream<D>(key)?.value;
+  }
+
+  @experimental
+  void replaceData<D>(D Function() replace, [StateKey key]) {
+    return _enteredNodes.last.selfOrAncestorDataProvider<D>(key)?.replace(replace);
   }
 
   Iterable<TreeNode> get exitedNodes => _exitedNodes;
@@ -378,9 +403,10 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
     StateKey targetStateKey, {
     TransitionHandler transitionAction,
     Object payload,
+    bool reenterAncestor = false,
   }) {
     _throwIfDisposed();
-    return GoToResult(targetStateKey, transitionAction, payload);
+    return GoToResult(targetStateKey, transitionAction, payload, reenterAncestor);
   }
 
   @override
@@ -417,7 +443,7 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
         'Duration must be greater than 100 microseconds',
       );
     }
-    final postMessage = () => _machine.processMessage(message());
+    final postMessage = () => _machine._queueMessage(message());
     final timer = periodic
         ? Timer.periodic(duration, (timer) => postMessage())
         : Timer(duration, postMessage);
@@ -427,15 +453,26 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
     return timer.cancel;
   }
 
-  FutureOr<MessageResult> onMessage(TreeNode node) {
-    notifiedNodes.add(node);
-    return node.state().onMessage(this);
-  }
-
   @override
   D data<D>([StateKey key]) {
     assert(notifiedNodes.isNotEmpty);
-    return notifiedNodes.last.dataStream<D>(key)?.value;
+    return notifiedNodes.last.selfOrAncestorDataStream<D>(key)?.value;
+  }
+
+  @experimental
+  void replaceData<D>(D Function() replace, [StateKey key]) {
+    _throwIfDisposed();
+    DataProvider<D> provider = notifiedNodes.last.selfOrAncestorDataProvider<D>(key);
+    if (provider == null) {
+      throw ArgumentError.value(
+          replace, 'replace', 'Unable to find data provider that matches the the replace function');
+    }
+    provider.replace(replace);
+  }
+
+  FutureOr<MessageResult> onMessage(TreeNode node) {
+    notifiedNodes.add(node);
+    return node.state().onMessage(this);
   }
 
   void _throwIfDisposed() {
