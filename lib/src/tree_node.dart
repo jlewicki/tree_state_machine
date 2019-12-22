@@ -186,9 +186,9 @@ class TreeNode {
   /// The data value of type `D` associated with this node.
   ///
   /// Returns `null` if this node does not have a data provider.
-  D data<D>() => dataStream<D>(key)?.value;
+  D data<D>() => selfOrAncestorDataStream<D>(key)?.value;
 
-  DataStream<D> dataStream<D>([StateKey key]) {
+  DataStream<D> selfOrAncestorDataStream<D>([StateKey key]) {
     final node = key != null ? selfOrAncestorWithKey(key) : selfOrAncestorWithData<D>();
     final dataProvider = node?.dataProvider();
     if (dataProvider != null) {
@@ -224,6 +224,20 @@ class TreeNode {
     }
     return null;
   }
+
+  DataProvider<D> selfOrAncestorDataProvider<D>([StateKey key]) {
+    final node = key != null ? selfOrAncestorWithKey(key) : selfOrAncestorWithData<D>();
+    final dataProvider = node?.dataProvider();
+    if (dataProvider != null) {
+      if (dataProvider is DataProvider<D>) {
+        return dataProvider;
+      }
+      throw StateError(
+          'Data for state ${node.key} of type ${data.runtimeType} does not match requested type '
+          '${TypeLiteral<D>().type}.');
+    }
+    return null;
+  }
 }
 
 class NodePath {
@@ -236,10 +250,15 @@ class NodePath {
 
   NodePath._(this.from, this.to, this.lca, this.path, this.exiting, this.entering);
 
-  factory NodePath(TreeNode from, TreeNode to) {
+  factory NodePath(TreeNode from, TreeNode to, {bool reenterAncestor: false}) {
     final lca = from.lcaWith(to);
-    final exiting = from.selfAndAncestors().takeWhile((n) => n != lca).toList();
-    final entering = to.selfAndAncestors().takeWhile((n) => n != lca).toList().reversed.toList();
+    final reenteringAncestor = reenterAncestor && lca == to;
+    final reentryNode = reenteringAncestor ? [to] : const <TreeNode>[];
+    final exiting =
+        from.selfAndAncestors().takeWhile((n) => n != lca).followedBy(reentryNode).toList();
+    final entering = reenteringAncestor
+        ? reentryNode
+        : to.selfAndAncestors().takeWhile((n) => n != lca).toList().reversed.toList();
     final path = exiting.followedBy(entering);
     return NodePath._(from, to, lca, path, exiting, entering);
   }

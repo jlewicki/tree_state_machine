@@ -1,13 +1,17 @@
 # tree_state_machine
 
-## Tree State Machines
-A tree (hierarchical) state machine is a similar to a traditional finite state machine, in that the state of a system is
-modeled by a set of states, of which one is active at a given time. The system can transition from one state to another
-in response to messages (tyically representing some sort of external event) being processed by the current state.
+`tree_state_machine` is a Dart package that provides a simple and declarative way to define and execute a tree state 
+machine.
 
-In a tradtion FSM, each state exisis independently, and if a state machine is in a particular state, then it cannot 
-simultanously be in any of the other states. This is sufficient for many models, but can lead to duplicated message 
-handling logic. For example, imagine we are modeling an electronics device of some sort. In this model, we would likely 
+## Tree State Machines
+A tree (hierarchical) state machine is a similar to a traditional finite state machine (FSM), in that the state of a 
+system is modeled by a set of discrete states, one of which one is current (active) at any given time. The system can 
+transition from one state to another in response to messages (typically representing some sort of external event) being
+processed by the current state.
+
+In a tradtional FSM, each state exists independently, and if a state machine is in a particular state, then it cannot 
+simultaneously be in any of the other states. This is sufficient for many models, but can lead to duplicated message 
+handling logic. For example, imagine modeling an electronics device of some sort. In this model, one would likely 
 define TurnOn and TurnOff messages, and TurnOff would probably need to be processed by a number of states. If each state
 handled this message, the logic associated with turning off the device might potentially be spread across a number of
 states.
@@ -18,11 +22,8 @@ state. The power of this hierarchical relationship is that states can delegate m
 allowing one parent state to provide common message handling logic for any number of child states (and their children, 
 etc.)
 
-`tree_state_machine` is a Dart package that provides a simple and declarative way to define state trees, and manage 
-their runtime behavior. 
-
 ## Getting Started
-The primary API for the working with the state machine is provided by the `tree_state_machine` library. The API for 
+The primary API for the working with a tree state machine is provided by the `tree_state_machine` library. The API for 
 defining state trees is provided by `tree_builders` library. Depending on how your application is structured, you will 
 need to import one or both of these libraries:
 

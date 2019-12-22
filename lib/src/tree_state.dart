@@ -265,14 +265,23 @@ abstract class MessageContext {
 
   /// Returns a [MessageResult] indicating that a transition to the specified state should occur.
   ///
-  /// A [TransitionHandler] may optionally be specified, indicating a function that should be called
-  /// during the transition between states.
+  /// A `transitionAction` may optionally be specified. This function that will be called during the
+  /// transition between states, after all states are exited, but before entering any new states.
   ///
-  /// A payload may be optionally specified. This payload will be made available by
+  /// A `payload` may be optionally specified. This payload will be made available by
   /// [TransitionContext.payload] to the states that are exited and entered during the state
   /// transition, and can be used to provide additional application specific context describing
   /// the transition.
-  MessageResult goTo(StateKey targetStateKey, {TransitionHandler transitionAction, Object payload});
+  ///
+  /// A `reenterAncestor` flag may be optionally specified. If `true`, and the target state is an
+  /// ancestor state of the current state, then the ancestor state will be exited and entered,
+  /// calling [TreeState.onExit] and [TreeState.onEnter], during the transition.
+  MessageResult goTo(
+    StateKey targetStateKey, {
+    TransitionHandler transitionAction,
+    Object payload,
+    bool reenterAncestor = false,
+  });
 
   /// Returns a [MessageResult] indicating that an internal transition should occur.
   ///
@@ -370,7 +379,7 @@ abstract class TransitionContext {
 
   /// Posts a message that should be sent to the end state of this transition, after the transition
   /// has completed.
-  void post(Object message);
+  void post(FutureOr<Object> message);
 }
 
 /// Describes a transition between states in a state machine.
@@ -444,7 +453,9 @@ class GoToResult extends MessageResult {
   final StateKey toStateKey;
   final FutureOr<void> Function(TransitionContext) transitionAction;
   final Object payload;
-  GoToResult(this.toStateKey, [this.transitionAction, this.payload]) : super._();
+  final bool reenterAncestor;
+  GoToResult(this.toStateKey, [this.transitionAction, this.payload, this.reenterAncestor = false])
+      : super._();
 }
 
 /// A [MessageResult] indicating that a message was sucessfully handled, and an internal transition
