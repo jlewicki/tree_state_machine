@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:test/test.dart';
+import 'package:tree_state_machine/src/data_provider.dart';
 import 'package:tree_state_machine/src/tree_state.dart';
 import 'package:tree_state_machine/src/tree_state_machine_impl.dart';
 import 'package:tree_state_machine/tree_builders.dart';
@@ -11,12 +12,12 @@ import 'fixture/flat_tree_1.dart' as flat_tree;
 import 'fixture/tree_1.dart';
 import 'fixture/tree_data.dart';
 
-final _getCurrentLeafData = DelegateObservableData();
-
 void main() {
-  Machine createMachine(NodeBuilder<RootNode> buildTree, {TreeBuildContext buildContext}) {
+  Machine createMachine(NodeBuilder<RootNode> buildTree) {
     Machine machine;
-    final buildCtx = buildContext ?? TreeBuildContext(_getCurrentLeafData);
+    final buildCtx = TreeBuildContext(
+      DelegateObservableData(getData: () => machine.currentNode.data()),
+    );
     final rootNode = buildTree.build(buildCtx);
     machine = Machine(
       rootNode,
@@ -518,23 +519,13 @@ void main() {
     group('data', () {
       test('should return data for handling state', () async {
         final dataByKey = <StateKey, Object>{};
-        final rootBuilder = data_tree.treeBuilder(
+        final buildTree = data_tree.treeBuilder(
           createMessageHandler: (key) => (ctx) {
             dataByKey[key] = ctx.data();
             return ctx.unhandled();
           },
         );
-
-        Machine machine;
-        final buildCtx = TreeBuildContext(
-          DelegateObservableData(getData: () => machine.currentNode.data()),
-        );
-        final rootNode = rootBuilder.build(buildCtx);
-        machine = Machine(
-          rootNode,
-          buildCtx.nodes,
-          (message) => Timer.run(() => machine.processMessage(message)),
-        );
+        final machine = createMachine(buildTree);
         await machine.enterInitialState();
         await machine.processMessage(Object());
 
@@ -565,7 +556,7 @@ void main() {
 
       test('should return null if descendant data is requested', () async {
         final dataByKey = <StateKey, Object>{};
-        final rootBuilder = data_tree.treeBuilder(messageHandlers: {
+        final buildTree = data_tree.treeBuilder(messageHandlers: {
           r_a_a_key: (ctx) {
             dataByKey[r_a_a_key] = ctx.data<LeafData2>(r_a_a_2_key);
             return ctx.unhandled();
@@ -576,21 +567,142 @@ void main() {
           }
         });
 
-        Machine machine;
-        final buildCtx = TreeBuildContext(
-          DelegateObservableData(getData: () => machine.currentNode.data()),
-        );
-        final rootNode = rootBuilder.build(buildCtx);
-        machine = Machine(
-          rootNode,
-          buildCtx.nodes,
-          (message) => Timer.run(() => machine.processMessage(message)),
-        );
+        final machine = createMachine(buildTree);
         await machine.enterInitialState();
         await machine.processMessage(Object());
 
         expect(dataByKey[r_a_a_key], isNull);
         expect(dataByKey[r_a_key], isNull);
+      });
+    });
+
+    group('replaceData', () {
+      test('should replace data in ancestor state', () async {
+        final buildTree = data_tree.treeBuilder(messageHandlers: {
+          data_tree.r_a_a_1_key: (ctx) {
+            ctx.replaceData<ImmutableData>((current) => current.rebuild((b) => b
+              ..name = 'Jim'
+              ..price = 2));
+            return ctx.stay();
+          }
+        });
+        final machine = createMachine(buildTree);
+        await machine.enterInitialState(data_tree.r_a_a_1_key);
+
+        await machine.processMessage(Object());
+
+        DataProvider<ImmutableData> ancestorProvider =
+            machine.nodes[data_tree.r_a_key].node.dataProvider();
+        expect(ancestorProvider.data.name, equals('Jim'));
+        expect(ancestorProvider.data.price, equals(2));
+      });
+
+      test('should replace data in closest state', () async {
+        final r_a_data = ImmutableData((b) => b
+          ..name = 'John'
+          ..price = 10);
+        final r_a_1_data = ImmutableData((b) => b
+          ..name = 'Pete'
+          ..price = 5);
+
+        final buildTree = data_tree.treeBuilder(
+          initialDataValues: {
+            data_tree.r_a_key: r_a_data,
+            data_tree.r_a_1_key: r_a_1_data,
+          },
+          messageHandlers: {
+            data_tree.r_a_1_key: (ctx) {
+              ctx.replaceData<ImmutableData>((current) => current.rebuild((b) => b
+                ..name = 'Jim'
+                ..price = 2));
+              return ctx.stay();
+            }
+          },
+        );
+        final machine = createMachine(buildTree);
+        await machine.enterInitialState(data_tree.r_a_1_key);
+
+        await machine.processMessage(Object());
+
+        DataProvider<ImmutableData> provider =
+            machine.nodes[data_tree.r_a_1_key].node.dataProvider();
+        expect(provider.data.name, equals('Jim'));
+        expect(provider.data.price, equals(2));
+
+        DataProvider<ImmutableData> ancestorProvider =
+            machine.nodes[data_tree.r_a_key].node.dataProvider();
+        expect(ancestorProvider.data, same(r_a_data));
+      });
+
+      test('should replace data in ancestor state by key', () async {
+        final buildTree = data_tree.treeBuilder(messageHandlers: {
+          data_tree.r_a_1_key: (ctx) {
+            ctx.replaceData<ImmutableData>(
+                (current) => current.rebuild((b) => b
+                  ..name = 'Jim'
+                  ..price = 2),
+                key: data_tree.r_a_key);
+            return ctx.stay();
+          }
+        });
+        final machine = createMachine(buildTree);
+        await machine.enterInitialState(data_tree.r_a_1_key);
+
+        await machine.processMessage(Object());
+
+        DataProvider<ImmutableData> ancestorProvider =
+            machine.nodes[data_tree.r_a_key].node.dataProvider();
+        expect(ancestorProvider.data.name, equals('Jim'));
+        expect(ancestorProvider.data.price, equals(2));
+      });
+
+      test('should throw if provider for data type cannot be found', () async {
+        final buildTree = data_tree.treeBuilder(messageHandlers: {
+          r_a_a_1_key: (ctx) {
+            ctx.replaceData<String>((current) => current.toUpperCase());
+            return ctx.stay();
+          }
+        });
+        final machine = createMachine(buildTree);
+        await machine.enterInitialState(r_a_a_1_key);
+
+        expect(() => machine.processMessage(Object()), throwsStateError);
+      });
+
+      test('should throw if provider for key cannot be found', () async {
+        final buildTree = data_tree.treeBuilder(messageHandlers: {
+          r_a_a_1_key: (ctx) {
+            ctx.replaceData<ImmutableData>((current) => current, key: r_a_a_2_key);
+            return ctx.stay();
+          }
+        });
+        final machine = createMachine(buildTree);
+        await machine.enterInitialState(r_a_a_1_key);
+
+        expect(() => machine.processMessage(Object()), throwsStateError);
+      });
+    });
+
+    group('updateData', () {
+      test('should update data in ancestor state', () async {
+        final buildTree = data_tree.treeBuilder(messageHandlers: {
+          data_tree.r_a_a_1_key: (ctx) {
+            ctx.updateData<SpecialDataD>((current) {
+              current.playerName = 'Jim';
+              current.startYear = 2005;
+            });
+            return ctx.stay();
+          }
+        });
+        final machine = createMachine(buildTree);
+        await machine.enterInitialState(data_tree.r_a_a_1_key);
+
+        await machine.processMessage(Object());
+
+        DataProvider<SpecialDataD> ancestorProvider =
+            machine.nodes[data_tree.r_key].node.dataProvider();
+        expect(ancestorProvider.data.playerName, equals('Jim'));
+        expect(ancestorProvider.data.startYear, equals(2005));
       });
     });
 

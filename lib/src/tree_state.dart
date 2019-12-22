@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:meta/meta.dart';
+import 'package:tree_state_machine/tree_state_machine.dart';
 
 import 'data_provider.dart';
 import 'utility.dart';
@@ -327,11 +328,34 @@ abstract class MessageContext {
   /// of its ancestor states.
   ///
   /// If `key` is specified, and it matches the currently handling state, or one of its ancestor
-  /// states, then the data for the matching state is returned. Otherwise the data for the handling
-  /// state is returned.
+  /// states, then the data for the matching state is returned. Otherwise, if the `D` matches the
+  /// type of state data of the current state or one of its ancestors, then the data for that state
+  /// is returned.
   ///
   /// Returns `null` if a matching state could not be found, or if does not have state data.
   D data<D>([StateKey key]);
+
+  /// Replaces the state data of state that is currently handling the message, or one of its
+  /// ancestor states.
+  ///
+  /// If `key` is specified, and it matches the currently handling state, or one of its ancestor
+  /// states, then the data for the matching state is replaced. Otherwise, if the `D` matches the
+  /// type of state data of the current state or one of its ancestors, then the data for that state
+  /// is replaced.
+  ///
+  /// Throws [StateError] if a no data could be found to replace.
+  void replaceData<D>(D Function(D current) replace, {StateKey key});
+
+  /// Updates the state data of state that is currently handling the message, or one of its ancestor
+  /// states.
+  ///
+  /// If `key` is specified, and it matches the currently handling state, or one of its ancestor
+  /// states, then the data for the matching state is updated. Otherwise, if the `D` matches the
+  /// type of state data of the current state or one of its ancestors, then the data for that state
+  /// is updated.
+  ///
+  /// Throws [StateError] if a no data could be found to update.
+  void updateData<D>(void Function(D current) update, {StateKey key});
 }
 
 /// Describes a transition between states that is occuring in a tree state machine.
