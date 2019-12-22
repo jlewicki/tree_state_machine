@@ -3,6 +3,7 @@ import 'dart:collection';
 
 import 'package:meta/meta.dart';
 import 'package:tree_state_machine/src/data_provider.dart';
+import 'package:tree_state_machine/src/utility.dart';
 
 import 'errors.dart';
 import 'tree_node.dart';
@@ -459,20 +460,34 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
     return notifiedNodes.last.selfOrAncestorDataStream<D>(key)?.value;
   }
 
-  @experimental
-  void replaceData<D>(D Function() replace, [StateKey key]) {
+  @override
+  void replaceData<D>(D Function(D) replace, {StateKey key}) {
     _throwIfDisposed();
-    DataProvider<D> provider = notifiedNodes.last.selfOrAncestorDataProvider<D>(key);
-    if (provider == null) {
-      throw ArgumentError.value(
-          replace, 'replace', 'Unable to find data provider that matches the the replace function');
-    }
-    provider.replace(replace);
+    DataProvider provider = _resolveDataProvider<D>(key);
+    provider.replace(() => replace(provider.data));
+  }
+
+  @override
+  void updateData<D>(void Function(D) update, {StateKey key}) {
+    _throwIfDisposed();
+    DataProvider provider = _resolveDataProvider<D>(key);
+    provider.update(() => update(provider.data));
   }
 
   FutureOr<MessageResult> onMessage(TreeNode node) {
     notifiedNodes.add(node);
     return node.state().onMessage(this);
+  }
+
+  DataProvider _resolveDataProvider<D>(StateKey key) {
+    DataProvider<D> provider = notifiedNodes.last.selfOrAncestorDataProvider<D>(key);
+    if (provider == null) {
+      final msg = key != null
+          ? 'Unable to find data provider that matches data type ${TypeLiteral<D>().type} and key $key'
+          : 'Unable to find data provider that matches data type ${TypeLiteral<D>().type}';
+      throw StateError(msg);
+    }
+    return provider;
   }
 
   void _throwIfDisposed() {
