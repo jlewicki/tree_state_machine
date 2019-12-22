@@ -463,14 +463,14 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
   @override
   void replaceData<D>(D Function(D) replace, {StateKey key}) {
     _throwIfDisposed();
-    DataProvider provider = _resolveDataProvider<D>(key);
+    final provider = _resolveDataProvider<D>(key);
     provider.replace(() => replace(provider.data));
   }
 
   @override
   void updateData<D>(void Function(D) update, {StateKey key}) {
     _throwIfDisposed();
-    DataProvider provider = _resolveDataProvider<D>(key);
+    final provider = _resolveDataProvider<D>(key);
     provider.update(() => update(provider.data));
   }
 
@@ -479,7 +479,7 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
     return node.state().onMessage(this);
   }
 
-  DataProvider _resolveDataProvider<D>(StateKey key) {
+  DataProvider<D> _resolveDataProvider<D>(StateKey key) {
     DataProvider<D> provider = notifiedNodes.last.selfOrAncestorDataProvider<D>(key);
     if (provider == null) {
       final msg = key != null
