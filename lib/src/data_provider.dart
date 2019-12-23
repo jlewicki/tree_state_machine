@@ -267,7 +267,7 @@ extension DataStreamExtensions<D> on DataStream<D> {
   ///
   /// In addition to the stream events, the [DataStream.value] of source data stream is also mapped
   /// by applying the `convert` function.
-  DataStream<P> map<P>(P Function(D data) convert) {
+  DataStream<P> mapWithValue<P>(P Function(D data) convert) {
     assert(convert != null);
     final subject = BehaviorSubject<P>.seeded(convert(this.value));
     subject.addStream(this.map(convert)).then<void>((dynamic _) => subject.close());
