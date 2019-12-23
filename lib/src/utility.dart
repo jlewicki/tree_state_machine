@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:meta/meta.dart';
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // Lazy
@@ -29,6 +31,14 @@ class Lazy<T> {
   bool get hasValue {
     return _value is _Evaluated<T>;
   }
+
+  /// Resets this [Lazy] so that the next call to [value] will re-evaluate the value.
+  @experimental
+  void reset() {
+    if (hasValue) {
+      _value = _value = (_value as _Evaluated<T>).deferred;
+    }
+  }
 }
 
 abstract class _LazyValue<T> {}
@@ -36,12 +46,13 @@ abstract class _LazyValue<T> {}
 class _Deferred<T> implements _LazyValue<T> {
   final T Function() evaluator;
   _Deferred(this.evaluator);
-  _Evaluated<T> eval() => _Evaluated(evaluator());
+  _Evaluated<T> eval() => _Evaluated(evaluator(), this);
 }
 
 class _Evaluated<T> implements _LazyValue<T> {
   final T value;
-  _Evaluated(this.value);
+  final _Deferred<T> deferred;
+  _Evaluated(this.value, this.deferred);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

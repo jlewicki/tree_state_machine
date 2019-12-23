@@ -355,41 +355,61 @@ void main() {
           expect(entryCounters[r_a_a_key], equals(1));
           expect(entryCounters[r_a_a_2_key], equals(2));
         });
-      });
 
-      test('should re-enter ancestor state and intial children if re-entering ancestor state',
-          () async {
-        var counter = 1;
-        var entryCounters = <StateKey, int>{};
-        var buildTree = treeBuilder(
-          createEntryHandler: (key) => (ctx) {
-            entryCounters[key] = counter++;
-          },
-          messageHandlers: {
-            r_b_2_key: (msgCtx) => msgCtx.goTo(r_b_key, reenterAncestor: true),
-          },
-        );
-        final machine = createMachine(buildTree);
-        await machine.enterInitialState(r_b_2_key);
+        test('should re-enter ancestor state and intial children if re-entering ancestor state',
+            () async {
+          var counter = 1;
+          var entryCounters = <StateKey, int>{};
+          var buildTree = treeBuilder(
+            createEntryHandler: (key) => (ctx) {
+              entryCounters[key] = counter++;
+            },
+            messageHandlers: {
+              r_b_2_key: (msgCtx) => msgCtx.goTo(r_b_key, reenterAncestor: true),
+            },
+          );
+          final machine = createMachine(buildTree);
+          await machine.enterInitialState(r_b_2_key);
 
-        counter = 1;
-        entryCounters = <StateKey, int>{};
-        await machine.processMessage(Object());
+          counter = 1;
+          entryCounters = <StateKey, int>{};
+          await machine.processMessage(Object());
 
-        expect(entryCounters[r_b_key], equals(1));
-        expect(entryCounters[r_b_1_key], equals(2));
-      });
+          expect(entryCounters[r_b_key], equals(1));
+          expect(entryCounters[r_b_1_key], equals(2));
+        });
 
-      test('should throw if re-entering root node', () async {
-        var buildTree = treeBuilder(
-          messageHandlers: {
-            r_a_a_1_key: (msgCtx) => msgCtx.goTo(data_tree.r_key, reenterAncestor: true),
-          },
-        );
-        final machine = createMachine(buildTree);
-        await machine.enterInitialState(r_a_a_1_key);
+        test('should throw if re-entering root node', () async {
+          var buildTree = treeBuilder(
+            messageHandlers: {
+              r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_key, reenterAncestor: true),
+            },
+          );
+          final machine = createMachine(buildTree);
+          await machine.enterInitialState(r_a_a_1_key);
 
-        expect(() => machine.processMessage(Object()), throwsStateError);
+          expect(() => machine.processMessage(Object()), throwsStateError);
+        });
+
+        test('should reset provider when exiting state', () async {
+          var buildTree = data_tree.treeBuilder(
+            messageHandlers: {
+              data_tree.r_a_a_1_key: (msgCtx) {
+                msgCtx.replaceData<LeafData1>((d) => d..name = 'Jim');
+                msgCtx.replaceData<ImmutableData>((d) => d.rebuild((b) => b.name = 'Bob'),
+                    key: data_tree.r_a_key);
+                return msgCtx.goTo(data_tree.r_b_1_key, reenterAncestor: true);
+              },
+            },
+          );
+          final machine = createMachine(buildTree);
+          await machine.enterInitialState(r_a_a_1_key);
+
+          await machine.processMessage(Object());
+
+          expect(machine.nodes[data_tree.r_a_a_1_key].node.data<LeafData1>().name == 'Jim', false);
+          expect(machine.nodes[data_tree.r_a_key].node.data<ImmutableData>().name == 'Bob', false);
+        });
       });
 
       group('UnhandledResult', () {

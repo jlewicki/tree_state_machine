@@ -361,6 +361,9 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
 
   FutureOr<void> onExit(TreeNode node) {
     _exitedNodes.add(node);
+    // Resetting the provider each time the state is exited ensures that the state will state with
+    // a fresh data value each time the state is entered.
+    node.lazyProvider?.reset();
     _machine._node(node.key).cancelTimers();
     return node.state().onExit(this);
   }
