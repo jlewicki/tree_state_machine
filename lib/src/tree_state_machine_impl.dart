@@ -1,10 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
 
-import 'package:meta/meta.dart';
-import 'package:tree_state_machine/src/data_provider.dart';
-import 'package:tree_state_machine/src/utility.dart';
-
 import 'errors.dart';
 import 'tree_node.dart';
 import 'tree_state.dart';
@@ -79,8 +75,9 @@ class Machine {
     }
 
     final msgCtx = MachineMessageContext(message, _currentNode.node, this);
-    final msgResult =
-        identical(message, stopMessage) ? StopResult() : await _handleMessage(currentNode, msgCtx);
+    final msgResult = identical(message, stopMessage)
+        ? StopResult.value
+        : await _handleMessage(currentNode, msgCtx);
     final msgProcessed = await _handleMessageResult(msgResult, msgCtx);
     msgCtx.dispose();
     return msgProcessed;
@@ -257,6 +254,31 @@ class Machine {
     return transCtx;
   }
 
+  Dispose _schedule(
+    StateKey timerOwner,
+    Object Function() message,
+    Duration duration,
+    bool periodic,
+  ) {
+    ArgumentError.checkNotNull(message, 'message');
+    if (periodic && duration.inMicroseconds < 100) {
+      // 100 is somewhat arbitrary, but we dont want to flood the event queue.
+      throw ArgumentError.value(
+        duration.inMicroseconds,
+        'duration',
+        'Duration must be greater than 100 microseconds',
+      );
+    }
+    final postMessage = () => _queueMessage(message());
+    final timer = periodic
+        ? Timer.periodic(duration, (timer) => postMessage())
+        : Timer(duration, postMessage);
+    // Associate the timer with the tree node that is currently processing the message when this
+    // method is called.
+    _node(timerOwner).addTimer(timer);
+    return timer.cancel;
+  }
+
   MachineNode _node(StateKey key, [bool throwIfNotFound = true]) {
     final machineNode = nodes[key];
     if (key == null && throwIfNotFound) {
@@ -323,14 +345,31 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
     }
   }
 
-  @experimental
+  @override
+  schedule(
+    Object Function() message, {
+    Duration duration = const Duration(),
+    bool periodic = false,
+  }) {
+    return _machine._schedule(entered.last, message, duration, periodic);
+  }
+
   D data<D>([StateKey key]) {
     return _enteredNodes.last.selfOrAncestorDataStream<D>(key)?.value;
   }
 
-  @experimental
-  void replaceData<D>(D Function() replace, [StateKey key]) {
-    return _enteredNodes.last.selfOrAncestorDataProvider<D>(key)?.replace(replace);
+  @override
+  void replaceData<D>(D Function(D) replace, {StateKey key}) {
+    _throwIfDisposed();
+    final provider = _enteredNodes.last.selfOrAncestorDataProvider<D>(key: key, throwIfNull: true);
+    provider.replace(() => replace(provider.data));
+  }
+
+  @override
+  void updateData<D>(void Function(D) update, {StateKey key}) {
+    _throwIfDisposed();
+    final provider = _enteredNodes.last.selfOrAncestorDataProvider<D>(key: key, throwIfNull: true);
+    provider.update(() => update(provider.data));
   }
 
   Iterable<TreeNode> get exitedNodes => _exitedNodes;
@@ -432,29 +471,24 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
   }
 
   @override
+  void post(FutureOr<Object> message) {
+    _throwIfDisposed();
+    ArgumentError.checkNotNull(message, 'message');
+    if (message is Future) {
+      message.then(_machine._queueMessage);
+    } else {
+      _machine._queueMessage(message);
+    }
+  }
+
+  @override
   Dispose schedule(
     Object Function() message, {
     Duration duration = const Duration(),
     bool periodic = false,
   }) {
     _throwIfDisposed();
-    ArgumentError.checkNotNull(message, 'message');
-    if (periodic && duration.inMicroseconds < 100) {
-      // 100 is somewhat arbitrary, but we dont want to flood the event queue.
-      throw ArgumentError.value(
-        duration.inMicroseconds,
-        'duration',
-        'Duration must be greater than 100 microseconds',
-      );
-    }
-    final postMessage = () => _machine._queueMessage(message());
-    final timer = periodic
-        ? Timer.periodic(duration, (timer) => postMessage())
-        : Timer(duration, postMessage);
-    // Associate the timer with the tree node that is currently processing the message when this
-    // method is called.
-    _machine._node(notifiedNodes.last.key).addTimer(timer);
-    return timer.cancel;
+    return _machine._schedule(notifiedNodes.last.key, message, duration, periodic);
   }
 
   @override
@@ -464,33 +498,24 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
   }
 
   @override
-  void replaceData<D>(D Function(D) replace, {StateKey key}) {
+  MessageResult replaceData<D>(D Function(D) replace, {StateKey key}) {
     _throwIfDisposed();
-    final provider = _resolveDataProvider<D>(key);
+    final provider = notifiedNodes.last.selfOrAncestorDataProvider<D>(key: key, throwIfNull: true);
     provider.replace(() => replace(provider.data));
+    return stay();
   }
 
   @override
-  void updateData<D>(void Function(D) update, {StateKey key}) {
+  MessageResult updateData<D>(void Function(D) update, {StateKey key}) {
     _throwIfDisposed();
-    final provider = _resolveDataProvider<D>(key);
+    final provider = notifiedNodes.last.selfOrAncestorDataProvider<D>(key: key, throwIfNull: true);
     provider.update(() => update(provider.data));
+    return stay();
   }
 
   FutureOr<MessageResult> onMessage(TreeNode node) {
     notifiedNodes.add(node);
     return node.state().onMessage(this);
-  }
-
-  DataProvider<D> _resolveDataProvider<D>(StateKey key) {
-    DataProvider<D> provider = notifiedNodes.last.selfOrAncestorDataProvider<D>(key);
-    if (provider == null) {
-      final msg = key != null
-          ? 'Unable to find data provider that matches data type ${TypeLiteral<D>().type} and key $key'
-          : 'Unable to find data provider that matches data type ${TypeLiteral<D>().type}';
-      throw StateError(msg);
-    }
-    return provider;
   }
 
   void _throwIfDisposed() {

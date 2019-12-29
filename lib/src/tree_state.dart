@@ -304,6 +304,9 @@ abstract class MessageContext {
   /// ancestor states should be given an opportunity to handle the message.
   MessageResult unhandled();
 
+  /// Posts a message that should be dispatched to the state machine asynchronously.
+  void post(FutureOr<Object> message);
+
   /// Schedules a message to be dispatched to the state machine asynchronously.
   ///
   /// The time at which the message is sent is indicated by the [duration] argument. If not
@@ -313,8 +316,8 @@ abstract class MessageContext {
   /// [duration]. Note that a [Timer] is used in the underlying implemention. Refer to
   /// [Timer.periodic(duration, callback)] for further details regarding scheduling.
   ///
-  /// This scheduling is only valid for the state that calls this method. If a state transition
-  /// occurs and this state is exited, the scheduling is automatically cancelled.
+  /// This scheduling is only valid while the state that calls this method is active. If a state
+  /// transition occurs and the state is exited, the scheduling is automatically cancelled.
   ///
   /// The returned [Dispose] can be used to cancel the scheduled messaging (periodic or
   /// otherwise).
@@ -343,8 +346,11 @@ abstract class MessageContext {
   /// type of state data of the current state or one of its ancestors, then the data for that state
   /// is replaced.
   ///
+  /// Returns the same result as [stay]. This is intended as a convenience, and the return value
+  /// may be disregarded if a message handler intends to initiate a transition.
+  ///
   /// Throws [StateError] if a no data could be found to replace.
-  void replaceData<D>(D Function(D current) replace, {StateKey key});
+  MessageResult replaceData<D>(D Function(D current) replace, {StateKey key});
 
   /// Updates the state data of state that is currently handling the message, or one of its ancestor
   /// states.
@@ -354,8 +360,11 @@ abstract class MessageContext {
   /// type of state data of the current state or one of its ancestors, then the data for that state
   /// is updated.
   ///
+  /// Returns the same result as [stay]. This is intended as a convenience, and the return value
+  /// may be disregarded if a message handler intends to initiate a transition.
+  ///
   /// Throws [StateError] if a no data could be found to update.
-  void updateData<D>(void Function(D current) update, {StateKey key});
+  MessageResult updateData<D>(void Function(D current) update, {StateKey key});
 }
 
 /// Describes a transition between states that is occuring in a tree state machine.
@@ -401,9 +410,66 @@ abstract class TransitionContext {
   /// The ordering in this collection reflects the order the states were entered.
   Iterable<StateKey> get entered;
 
+  /// Finds the state data associated with the state that is currently handling this transition, or
+  /// one of its ancestor states.
+  ///
+  /// If `key` is specified, and it matches the state that is undergoing a transition, or one of its
+  /// ancestor states, then the data for the matching state is returned. Otherwise, if the `D`
+  /// matches the type of state data of the current state or one of its ancestors, then the data for
+  /// that state is returned.
+  ///
+  /// Returns `null` if a matching state could not be found, or if does not have state data.
+  D data<D>([StateKey key]);
+
+  /// Replaces the state data of state that is currently handling this transition, or one of its
+  /// ancestor states.
+  ///
+  /// If `key` is specified, and it matches the currently handling state, or one of its ancestor
+  /// states, then the data for the matching state is replaced. Otherwise, if the `D` matches the
+  /// type of state data of the current state or one of its ancestors, then the data for that state
+  /// is replaced.
+  ///
+  /// Throws [StateError] if a no data could be found to replace.
+  void replaceData<D>(D Function(D current) replace, {StateKey key});
+
+  /// Updates the state data of state that is currently handling this transition, or one of its
+  /// ancestor states.
+  ///
+  /// If `key` is specified, and it matches the currently handling state, or one of its ancestor
+  /// states, then the data for the matching state is updated. Otherwise, if the `D` matches the
+  /// type of state data of the current state or one of its ancestors, then the data for that state
+  /// is updated.
+  ///
+  /// Throws [StateError] if a no data could be found to update.
+  void updateData<D>(void Function(D current) update, {StateKey key});
+
   /// Posts a message that should be sent to the end state of this transition, after the transition
   /// has completed.
   void post(FutureOr<Object> message);
+
+  /// Schedules a message to be dispatched to the state machine asynchronously.
+  ///
+  /// The time at which the message is sent is indicated by the [duration] argument. If not
+  /// specified, it will be sent as soon as possible (but still asynchronously).  If [schedule] is
+  /// called when entering a state, the state (and any of its descendants) will be fully entered
+  /// before the message is processed.
+  ///
+  /// If [periodic] is true, then messages will be dispatched repeatedly, at intervals specified by
+  /// [duration]. Note that a [Timer] is used in the underlying implemention. Refer to
+  /// [Timer.periodic(duration, callback)] for further details regarding scheduling.
+  ///
+  /// This scheduling is only valid while the state that calls this method is active. If a state
+  /// transition occurs and the state is exited, the scheduling is automatically cancelled.
+  /// Therefore it is typically only meaningful to schedule a message when entering a state, not
+  /// when exiting.
+  ///
+  /// The returned [Dispose] can be used to cancel the scheduled messaging (periodic or
+  /// otherwise).
+  Dispose schedule(
+    Object Function() message, {
+    Duration duration = const Duration(),
+    bool periodic = false,
+  });
 }
 
 /// Describes a transition between states in a state machine.
@@ -499,7 +565,8 @@ class SelfTransitionResult extends MessageResult {
 
 /// A [MessageResult] indicating that a state machine is being stopped by application code.
 class StopResult extends MessageResult {
-  StopResult() : super._();
+  StopResult._() : super._();
+  static final StopResult value = StopResult._();
 }
 
 /// A [MessageResult] indicating that a state did not recognize or handle a message.

@@ -726,6 +726,34 @@ void main() {
       });
     });
 
+    group('post', () {
+      test('Should send message', () async {
+        final completer = Completer();
+        var receivedMessage = false;
+        final msg = Object();
+        final msgToPost = Object();
+        final buildTree = treeBuilder(
+          messageHandlers: {
+            r_a_a_2_key: (ctx) {
+              if (identical(ctx.message, msg)) {
+                ctx.post(msgToPost);
+              } else if (identical(ctx.message, msgToPost)) {
+                receivedMessage = true;
+                completer.complete();
+              }
+              return ctx.stay();
+            }
+          },
+        );
+        final machine = createMachine(buildTree);
+        await machine.enterInitialState();
+        await machine.processMessage(msg);
+        await completer.future;
+
+        expect(receivedMessage, isTrue);
+      });
+    });
+
     group('schedule', () {
       test('should post message immediately when duration is 0', () async {
         final completer = Completer();
@@ -889,6 +917,24 @@ void main() {
   });
 
   group('MachineTransitionContext', () {
+    group('data', () {
+      test('should return data for handling state', () async {
+        final dataByKey = <StateKey, Object>{};
+        final buildTree = data_tree.treeBuilder(
+          createEntryHandler: (key) => (ctx) {
+            dataByKey[key] = ctx.data();
+          },
+        );
+        final machine = createMachine(buildTree);
+        await machine.enterInitialState();
+
+        expect(dataByKey[r_a_a_2_key], isA<LeafData2>());
+        expect(dataByKey[r_a_a_key], isA<LeafDataBase>());
+        expect(dataByKey[r_a_key], isA<ImmutableData>());
+        expect(dataByKey[r_key], isA<SpecialDataD>());
+      });
+    });
+
     group('post', () {
       test('Should send message to end state when transition completes', () async {
         final completer = Completer();
@@ -960,6 +1006,135 @@ void main() {
 
         expect(receivedMessage1, isTrue);
         expect(receivedMessage2, isTrue);
+        expect(machine.currentNode.key, equals(r_b_1_key));
+      });
+    });
+
+    group('schedule', () {
+      test('should post messages when periodic is true', () async {
+        final completer = Completer();
+        var receiveCount = 0;
+        Dispose dispose = null;
+        final scheduledMsg = Object();
+        final buildTree = treeBuilder(
+          entryHandlers: {
+            r_a_a_key: (ctx) {
+              dispose = ctx.schedule(
+                () => scheduledMsg,
+                periodic: true,
+                duration: Duration(milliseconds: 10),
+              );
+            }
+          },
+          messageHandlers: {
+            r_a_a_2_key: (ctx) {
+              if (identical(ctx.message, scheduledMsg)) {
+                receiveCount++;
+                if (receiveCount == 3) {
+                  dispose();
+                  completer.complete();
+                }
+              }
+              return ctx.stay();
+            }
+          },
+        );
+        final machine = createMachine(buildTree);
+        await machine.enterInitialState();
+        await completer.future;
+
+        expect(receiveCount, equals(3));
+      });
+
+      test('should be canceled when dispose function is called', () async {
+        final completer = Completer();
+        var receiveCount = 0;
+        Dispose dispose = null;
+        final scheduledMsg = Object();
+        final completionMsg = Object();
+        final buildTree = treeBuilder(
+          entryHandlers: {
+            r_a_a_key: (ctx) {
+              dispose = ctx.schedule(
+                () => scheduledMsg,
+                periodic: true,
+                duration: Duration(milliseconds: 10),
+              );
+            }
+          },
+          messageHandlers: {
+            r_a_a_2_key: (ctx) {
+              if (identical(ctx.message, scheduledMsg)) {
+                receiveCount++;
+                if (receiveCount == 3) {
+                  dispose();
+                  ctx.schedule(() => completionMsg, duration: Duration(milliseconds: 30));
+                }
+              } else if (identical(ctx.message, completionMsg)) {
+                completer.complete();
+              }
+
+              return ctx.stay();
+            }
+          },
+        );
+        final machine = createMachine(buildTree);
+        await machine.enterInitialState();
+        await completer.future;
+
+        expect(receiveCount, equals(3));
+      });
+
+      test('should be canceled when scheduling state is exited', () async {
+        final completer = Completer();
+        var receiveCount = 0;
+        final scheduledMsg = Object();
+        final completionMsg = Object();
+        final buildTree = treeBuilder(
+          entryHandlers: {
+            r_a_a_key: (ctx) {
+              ctx.schedule(
+                () => scheduledMsg,
+                periodic: true,
+                duration: Duration(milliseconds: 10),
+              );
+            },
+            r_b_1_key: (ctx) {
+              // Schedule message that will finish the test in 50 milliseconds. That will give
+              // enough time for the periodic messages scheduled in r_a_a state to arrive
+              // (but they won't because timer should be canceled when exiting r_a_a)
+              ctx.schedule(
+                () => completionMsg,
+                duration: Duration(milliseconds: 50),
+              );
+            }
+          },
+          messageHandlers: {
+            r_a_a_key: (ctx) {
+              if (identical(ctx.message, scheduledMsg)) {
+                receiveCount++;
+                if (receiveCount == 3) {
+                  return ctx.goTo(r_b_1_key);
+                }
+              }
+              return ctx.unhandled();
+            },
+            r_b_1_key: (ctx) {
+              if (identical(ctx.message, scheduledMsg)) {
+                // We should not get here, timer should have been canceled.
+                receiveCount++;
+              } else if (identical(ctx.message, completionMsg)) {
+                completer.complete();
+              }
+              return ctx.unhandled();
+            }
+          },
+        );
+        final machine = createMachine(buildTree);
+        await machine.enterInitialState();
+        await completer.future;
+
+        expect(receiveCount, equals(3));
         expect(machine.currentNode.key, equals(r_b_1_key));
       });
     });

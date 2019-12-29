@@ -225,7 +225,7 @@ class TreeNode {
     return null;
   }
 
-  DataProvider<D> selfOrAncestorDataProvider<D>([StateKey key]) {
+  DataProvider<D> selfOrAncestorDataProvider<D>({StateKey key, bool throwIfNull = false}) {
     final node = key != null ? selfOrAncestorWithKey(key) : selfOrAncestorWithData<D>();
     final dataProvider = node?.dataProvider();
     if (dataProvider != null) {
@@ -236,6 +236,14 @@ class TreeNode {
           'Data for state ${node.key} of type ${data.runtimeType} does not match requested type '
           '${TypeLiteral<D>().type}.');
     }
+
+    if (throwIfNull) {
+      final msg = key != null
+          ? 'Unable to find data provider that matches data type ${TypeLiteral<D>().type} and key $key'
+          : 'Unable to find data provider that matches data type ${TypeLiteral<D>().type}';
+      throw StateError(msg);
+    }
+
     return null;
   }
 }
