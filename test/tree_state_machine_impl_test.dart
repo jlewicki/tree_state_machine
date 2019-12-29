@@ -733,9 +733,6 @@ void main() {
         final msg = Object();
         final msgToPost = Object();
         final buildTree = treeBuilder(
-          entryHandlers: {
-            r_a_a_key: (ctx) => ctx.post(msg),
-          },
           messageHandlers: {
             r_a_a_2_key: (ctx) {
               if (identical(ctx.message, msg)) {
@@ -750,7 +747,7 @@ void main() {
         );
         final machine = createMachine(buildTree);
         await machine.enterInitialState();
-        machine.processMessage(msg);
+        await machine.processMessage(msg);
         await completer.future;
 
         expect(receivedMessage, isTrue);
