@@ -521,9 +521,8 @@ void main() {
 
       test('should read active data states from stream ', () async {
         var sm = TreeStateMachine(data_tree.treeBuilder(initialDataValues: {
-          tree.r_a_a_1_key: LeafData1()
-            ..name = 'Yo'
-            ..counter = 10,
+          tree.r_a_a_1_key: LeafData1()..counter = 10,
+          tree.r_a_a_key: LeafDataBase()..name = 'Yo',
           tree.r_a_key: ImmutableData((b) => b
             ..name = 'Dude'
             ..price = 8),
@@ -552,7 +551,6 @@ void main() {
         expect(sm.currentState.data(), isNotNull);
         expect(sm.currentState.data(), isA<LeafData1>());
         final r_a_a_1_data = sm.currentState.data<LeafData1>();
-        expect(r_a_a_1_data.name, equals('Yo'));
         expect(r_a_a_1_data.counter, equals(10));
 
         expect(sm.currentState.dataStream(tree.r_a_a_key).value, isNotNull);
@@ -766,15 +764,12 @@ void main() {
 
     group('data', () {
       test('should return data from provider when available', () async {
-        final sm = TreeStateMachine(data_tree.treeBuilder(initialDataValues: {
-          data_tree.r_a_a_2_key: LeafData2()
-            ..name = 'foo'
-            ..label = 'cool'
-        }));
+        final sm = TreeStateMachine(data_tree.treeBuilder(
+          initialDataValues: {data_tree.r_a_a_2_key: LeafData2()..label = 'cool'},
+        ));
         await sm.start();
 
         final leafData = sm.currentState.data<LeafData2>();
-        expect(leafData.name, equals('foo'));
         expect(leafData.label, equals('cool'));
       });
 
@@ -803,18 +798,6 @@ void main() {
     });
 
     group('activeData', () {
-      test('should return data from leaf provider when available', () async {
-        final sm = TreeStateMachine(data_tree.treeBuilder(initialDataValues: {
-          data_tree.r_a_a_2_key: LeafData2()
-            ..name = 'foo'
-            ..label = 'cool'
-        }));
-        await sm.start();
-
-        final leafData = sm.currentState.dataStream<LeafDataBase>(data_tree.r_a_a_key).value;
-        expect(leafData.name, equals('foo'));
-      });
-
       test('should return data from owned provider when available', () async {
         final sm = TreeStateMachine(data_tree.treeBuilder(
           initialDataValues: {
@@ -832,11 +815,7 @@ void main() {
 
       test('should return data from leaf provider after transition.', () async {
         final sm = TreeStateMachine(data_tree.treeBuilder(
-          initialDataValues: {
-            data_tree.r_a_a_2_key: LeafData2()
-              ..name = 'foo'
-              ..label = 'cool'
-          },
+          initialDataValues: {data_tree.r_a_a_2_key: LeafData2()..label = 'cool'},
           messageHandlers: {
             data_tree.r_a_a_key: (ctx) => ctx.goTo(data_tree.r_a_a_1_key),
           },
@@ -846,7 +825,6 @@ void main() {
         await sm.currentState.sendMessage(Object());
 
         final r_a_a_2_data = sm.currentState.data<LeafData1>();
-        expect(r_a_a_2_data.name, isNull);
         expect(r_a_a_2_data.counter, isNull);
       });
     });

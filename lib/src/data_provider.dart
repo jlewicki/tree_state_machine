@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:meta/meta.dart';
 import 'package:rxdart/rxdart.dart';
 
 import 'errors.dart';
@@ -73,8 +72,36 @@ class OwnedDataProvider<D> implements DataProvider<D>, ObservableData<D> {
   Lazy<DataSubject<D>> _lazySubject;
   bool _disposed = false;
 
-  OwnedDataProvider(D Function() eval, this.encoder, this.decoder) {
+  OwnedDataProvider._(D Function() eval, this.encoder, this.decoder) {
     _lazySubject = Lazy(() => DataSubject(BehaviorSubject<D>.seeded(eval())));
+  }
+
+  /// Constructs an [OwnedDataProvider].
+  ///
+  /// The provider will obtain its initial value by calling the `eval` function when the [data]
+  /// property is first accessed.
+  ///
+  /// The returned provider does not support serialization.
+  factory OwnedDataProvider(
+    D Function() eval,
+  ) {
+    ArgumentError.checkNotNull(eval, 'eval');
+    return OwnedDataProvider<D>._(eval, _unsupportedEncoder, _unsupportedDecoder);
+  }
+
+  /// Constructs an [OwnedDataProvider].
+  ///
+  /// The provider will obtain its initial value by calling the `eval` function when the [data]
+  /// property is first accessed.
+  ///
+  /// The returned provider support serialization by calling the `encoder` and `decoder` at the
+  /// appropriate times.
+  factory OwnedDataProvider.encodable(
+    D Function() eval,
+    Object Function(D data) encoder,
+    D Function(Object encoded) decoder,
+  ) {
+    return OwnedDataProvider<D>._(eval, encoder, decoder);
   }
 
   factory OwnedDataProvider.json(
@@ -82,7 +109,7 @@ class OwnedDataProvider<D> implements DataProvider<D>, ObservableData<D> {
     Map<String, dynamic> Function(D data) encoder,
     D Function(Map<String, Object> json) decoder,
   ) {
-    return OwnedDataProvider(eval, encoder, (obj) {
+    return OwnedDataProvider<D>._(eval, encoder, (obj) {
       return obj is Map<String, dynamic>
           ? decoder(obj)
           : throw ArgumentError('Value to decode must me Map<String, dynamic>');
@@ -136,118 +163,13 @@ class OwnedDataProvider<D> implements DataProvider<D>, ObservableData<D> {
       throw DisposedError();
     }
   }
-}
 
-/// A data provider that provides a view of the data value of the current leaf state of the state
-/// machine.
-///
-/// [CurrentLeafDataProvider] is a somewhat specialized implementation of [DataProvider] geared
-/// towards a specific use-case. In general, if a leaf state and one or more of its ancestor states
-/// are [DataTreeState]s, then when that leaf is the current state, the total set of data
-/// comprising the active data values are distributed across several states and data providers.
-/// This means that in order to obtain a complete picture the the current state data, an
-/// application must make several calls to [CurrentState.dataStream], one for each active data
-/// state.
-///
-/// Depending on the domain, it may be more convenient to maintain all data values for the active
-/// states at the leaf. In other words, if the data type `D` for a current leaf state has a class
-/// hierarchy that mirrors the state hierarchy, then a leaf data value of type `D` will give a
-/// complete view of the the active state data.
-///
-/// [CurrentLeafDataProvider] facilitates this by providing a view of the current leaf data to an
-/// the ancestor [DataTreeState]. It expects the the leaf data value is always a subclass of the
-/// data type `D`, and a `StateError` is thrown from [data] and [dataStream] when that is not the
-/// case.
-@experimental
-class CurrentLeafDataProvider<D> implements DataProvider<D>, ObservableData<D> {
-  StreamSubscription _subscription;
-  Lazy<DataSubject<D>> _lazySubject;
-  bool _disposed = false;
-
-  /// Called to initialize this provider with an [ObservableData] that provides access to the data
-  /// of the current leaf state.
-  ///
-  /// This is called by during initialization of the state tree, and is not intended to be used by
-  /// application code.
-  @mustCallSuper
-  void initializeLeafData(ObservableData<Object> observableLeafData) {
-    ArgumentError.checkNotNull(observableLeafData, 'observableLeafData');
-    _lazySubject = Lazy(() {
-      // Seed with current value, which ensures that subscribers to the stream are sent the current
-      // value (in a future microtask)
-      var skippedFirstSame = false;
-      var subject = BehaviorSubject.seeded(_leafDataAsD(observableLeafData.dataStream.value));
-      // Note that we skip adding if it's the same value. Otherwise this subscription might
-      // immediately receive (in a future microtask) the current leaf value (if the source is a
-      // behavior subject). Since we seeded our subject with this value, we don't want to emit an
-      // indentical value unnecessarily. We only do this once though, in case the source emits when
-      // the current leaf value is mutated as opposed to producing a new instance.
-      _subscription = observableLeafData.dataStream.map(_leafDataAsD).skipWhile((v) {
-        if (skippedFirstSame) return false;
-        if (identical(v, subject.value)) {
-          skippedFirstSame = true;
-          return true;
-        }
-        return false;
-      }).listen(subject.add);
-      return DataSubject(subject);
-    });
+  static Object _unsupportedEncoder<D>(D data) {
+    throw UnsupportedError('This provider does not support encoding');
   }
 
-  @override
-  DataStream<D> get dataStream {
-    _throwIfDisposed();
-    assert(_lazySubject != null, 'initializeLeafData has not been called.');
-    return _lazySubject.value;
-  }
-
-  @override
-  D get data => dataStream.value;
-
-  @override
-  Object encode() => null;
-
-  @override
-  void decodeInto(Object input) {}
-
-  @override
-  void update(void Function() update) {
-    _throwIfDisposed();
-    update();
-    _lazySubject.value.wrappedSubject.add(data);
-  }
-
-  /// Throws [UnsupportedError] if called.
-  ///
-  /// Because this provider does not own the leaf data (which is likely a subtype of `D`), replacing
-  /// with a new value is not allowed.
-  @override
-  @alwaysThrows
-  void replace(D Function() replace) {
-    throw UnsupportedError('Leaf data provider cannot replace a value');
-  }
-
-  @override
-  void dispose() {
-    _disposed = true;
-    if (_lazySubject.hasValue) {
-      _subscription?.cancel();
-      _lazySubject.value.wrappedSubject.close();
-    }
-  }
-
-  D _leafDataAsD(Object leafData) {
-    if (leafData is! D) {
-      throw StateError(
-          'Expected leaf data of type ${TypeLiteral<D>().type}, but received ${leafData?.runtimeType}');
-    }
-    return leafData as D;
-  }
-
-  void _throwIfDisposed() {
-    if (_disposed) {
-      throw DisposedError();
-    }
+  static D _unsupportedDecoder<D>(Object encoded) {
+    throw UnsupportedError('This provider does not support decoding');
   }
 }
 

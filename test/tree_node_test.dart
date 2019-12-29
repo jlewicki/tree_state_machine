@@ -106,10 +106,9 @@ void main() {
       });
     });
 
-    group('dataStream', () {
-      var r_a_a_1_data = LeafData1()
-        ..name = 'Yo'
-        ..counter = 10;
+    group('selfOrAncestorDataStream', () {
+      var r_a_a_1_data = LeafData1()..counter = 10;
+      var r_a_a_data = LeafDataBase()..name = 'jim';
       var r_a_data = ImmutableData((b) => b
         ..name = 'Dude'
         ..price = 8);
@@ -121,6 +120,7 @@ void main() {
           ..score = 10);
       var rootBuilder = treeBuilder(initialDataValues: {
         r_a_a_1_key: r_a_a_1_data,
+        r_a_a_key: r_a_a_data,
         r_a_key: r_a_data,
         r_key: r_data,
       });
@@ -133,7 +133,7 @@ void main() {
             sm.machine.currentNode.selfOrAncestorDataStream<LeafData1>(r_a_a_1_key);
         expect(r_a_a_1_stream.value, equals(r_a_a_1_data));
         var r_a_a_stream = sm.machine.currentNode.selfOrAncestorDataStream<LeafDataBase>(r_a_a_key);
-        expect(r_a_a_stream.value, equals(r_a_a_1_data));
+        expect(r_a_a_stream.value, equals(r_a_a_data));
         var r_a_stream = sm.machine.currentNode.selfOrAncestorDataStream<ImmutableData>(r_a_key);
         expect(r_a_stream.value, equals(r_a_data));
         var r_stream = sm.machine.currentNode.selfOrAncestorDataStream<SpecialDataD>(r_key);
@@ -163,7 +163,7 @@ void main() {
         var r_a_a_1_stream = sm.machine.currentNode.selfOrAncestorDataStream<LeafData1>();
         expect(r_a_a_1_stream.value, equals(r_a_a_1_data));
         var r_a_a_stream = sm.machine.currentNode.selfOrAncestorDataStream<LeafDataBase>();
-        expect(r_a_a_stream.value, equals(r_a_a_1_data));
+        expect(r_a_a_stream.value, equals(r_a_a_data));
         var r_a_stream = sm.machine.currentNode.selfOrAncestorDataStream<ImmutableData>();
         expect(r_a_stream.value, equals(r_a_data));
         var r_stream = sm.machine.currentNode.selfOrAncestorDataStream<SpecialDataD>();

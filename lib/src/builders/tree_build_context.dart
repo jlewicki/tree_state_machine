@@ -211,9 +211,6 @@ class TreeBuildContext {
       (key) {
         final state = createState(key);
         final provider = lazyProvider.value;
-        if (provider is CurrentLeafDataProvider) {
-          (provider as CurrentLeafDataProvider).initializeLeafData(leafData);
-        }
         state.initializeDataValue(provider);
         return state;
       };

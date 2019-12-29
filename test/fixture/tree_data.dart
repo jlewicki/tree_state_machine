@@ -81,13 +81,20 @@ class HiScore {
       );
 }
 
-abstract class LeafDataBase {
+@JsonSerializable()
+class LeafDataBase {
   String name;
-  static CurrentLeafDataProvider<LeafDataBase> dataProvider() => CurrentLeafDataProvider();
+  Map<String, dynamic> toJson() => _$LeafDataBaseToJson(this);
+  static OwnedDataProvider<LeafDataBase> dataProvider([LeafDataBase initialValue]) =>
+      OwnedDataProvider.json(
+        () => initialValue ?? LeafDataBase(),
+        _$LeafDataBaseToJson,
+        _$LeafDataBaseFromJson,
+      );
 }
 
 @JsonSerializable()
-class LeafData1 extends LeafDataBase {
+class LeafData1 {
   int counter;
   Map<String, dynamic> toJson() => _$LeafData1ToJson(this);
   static OwnedDataProvider<LeafData1> dataProvider([LeafData1 initialValue]) =>
@@ -99,7 +106,7 @@ class LeafData1 extends LeafDataBase {
 }
 
 @JsonSerializable()
-class LeafData2 extends LeafDataBase {
+class LeafData2 {
   String label;
   Map<String, dynamic> toJson() => _$LeafData2ToJson(this);
   static OwnedDataProvider<LeafData2> dataProvider([LeafData2 initialValue]) =>
@@ -134,7 +141,7 @@ abstract class ImmutableData implements Built<ImmutableData, ImmutableDataBuilde
   int get price;
   factory ImmutableData([updates(ImmutableDataBuilder b)]) = _$ImmutableData;
   static OwnedDataProvider<ImmutableData> dataProvider([ImmutableData initialValue]) =>
-      OwnedDataProvider(
+      OwnedDataProvider.encodable(
         () =>
             initialValue ??
             ImmutableData((b) => b
