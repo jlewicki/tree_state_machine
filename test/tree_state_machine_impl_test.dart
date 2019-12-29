@@ -395,7 +395,7 @@ void main() {
           var buildTree = data_tree.treeBuilder(
             messageHandlers: {
               data_tree.r_a_a_1_key: (msgCtx) {
-                msgCtx.replaceData<LeafData1>((d) => d..name = 'Jim');
+                msgCtx.replaceData<LeafData1>((d) => d..counter = 10);
                 msgCtx.replaceData<ImmutableData>((d) => d.rebuild((b) => b.name = 'Bob'),
                     key: data_tree.r_a_key);
                 return msgCtx.goTo(data_tree.r_b_1_key, reenterAncestor: true);
@@ -407,7 +407,7 @@ void main() {
 
           await machine.processMessage(Object());
 
-          expect(machine.nodes[data_tree.r_a_a_1_key].node.data<LeafData1>().name == 'Jim', false);
+          expect(machine.nodes[data_tree.r_a_a_1_key].node.data<LeafData1>().counter == 10, false);
           expect(machine.nodes[data_tree.r_a_key].node.data<ImmutableData>().name == 'Bob', false);
         });
       });

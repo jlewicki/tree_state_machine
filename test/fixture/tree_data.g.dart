@@ -225,25 +225,28 @@ Map<String, dynamic> _$HiScoreToJson(HiScore instance) => <String, dynamic>{
       'score': instance.score,
     };
 
+LeafDataBase _$LeafDataBaseFromJson(Map<String, dynamic> json) {
+  return LeafDataBase()..name = json['name'] as String;
+}
+
+Map<String, dynamic> _$LeafDataBaseToJson(LeafDataBase instance) =>
+    <String, dynamic>{
+      'name': instance.name,
+    };
+
 LeafData1 _$LeafData1FromJson(Map<String, dynamic> json) {
-  return LeafData1()
-    ..name = json['name'] as String
-    ..counter = json['counter'] as int;
+  return LeafData1()..counter = json['counter'] as int;
 }
 
 Map<String, dynamic> _$LeafData1ToJson(LeafData1 instance) => <String, dynamic>{
-      'name': instance.name,
       'counter': instance.counter,
     };
 
 LeafData2 _$LeafData2FromJson(Map<String, dynamic> json) {
-  return LeafData2()
-    ..name = json['name'] as String
-    ..label = json['label'] as String;
+  return LeafData2()..label = json['label'] as String;
 }
 
 Map<String, dynamic> _$LeafData2ToJson(LeafData2 instance) => <String, dynamic>{
-      'name': instance.name,
       'label': instance.label,
     };
 

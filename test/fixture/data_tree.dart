@@ -50,10 +50,6 @@ NodeBuilder<RootNode> treeBuilder({
           StateKey key, OwnedDataProvider<D> Function() defaultProvider) =>
       () => _dataProviders[key] ?? defaultProvider();
 
-  CurrentLeafDataProvider<D> Function() createLeafDataProvider<D>(
-          StateKey key, CurrentLeafDataProvider<D> Function() defaultProvider) =>
-      () => _dataProviders[key] ?? defaultProvider();
-
   return RootWithData(
     key: r_key,
     createState: (k) => createDataState<SpecialDataD>(k),
@@ -78,9 +74,9 @@ NodeBuilder<RootNode> treeBuilder({
           InteriorWithData(
             key: r_a_a_key,
             createState: (k) => createDataState<LeafDataBase>(k),
-            createProvider: createLeafDataProvider<LeafDataBase>(
+            createProvider: createOwnedDataProvider<LeafDataBase>(
               r_a_a_key,
-              () => LeafDataBase.dataProvider(),
+              () => LeafDataBase.dataProvider(_initialDataValues[r_a_a_key]),
             ),
             initialChild: (_) => r_a_a_2_key,
             children: [
