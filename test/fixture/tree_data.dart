@@ -94,7 +94,6 @@ class LeafDataBase {
 }
 
 @JsonSerializable()
-// class LeafData1 extends LeafDataBase {
 class LeafData1 {
   int counter;
   Map<String, dynamic> toJson() => _$LeafData1ToJson(this);
@@ -107,7 +106,6 @@ class LeafData1 {
 }
 
 @JsonSerializable()
-// class LeafData2 extends LeafDataBase {
 class LeafData2 {
   String label;
   Map<String, dynamic> toJson() => _$LeafData2ToJson(this);
