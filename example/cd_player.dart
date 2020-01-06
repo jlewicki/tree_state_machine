@@ -175,6 +175,9 @@ class OpenState extends TreeState {
   }
 }
 
+//
+// State Tree
+//
 final stateMachine = TreeStateMachine(RootWithData(
   createState: (_) => RootState(),
   createProvider: () => OwnedDataProvider(() => Data()),
