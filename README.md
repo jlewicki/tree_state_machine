@@ -84,6 +84,47 @@ class MyState extends TreeState {
 }
 ```
 
+### State data and DataTreeState
+
+Sometimes a state cannot be easily modeled by just extending `TreeState` and overriding its methods. For example, 
+consider a state or set of states that needs to maintain a counter of some sort, perhaps the number of times a user has
+clicked a button. In theory, this could be modeled by a large number of states such as `Clicked1Times`, `Clicked2Times`, 
+`Clicked2Times`, etc. However this is clearly not practical as the number of states grows. Alternatively, this could be
+modeled by a single `Clicking` state that has a `count` field. In `tree_state_machine`, fields such as `count` that 
+capture the 'state' of a `TreeState` are referred to as 'state data' (note that these aresometimes called 'extended 
+state' or 'extended state variables' in other state machine frameworks).
+
+While a `TreeState` subclass can simply define member fields to represent state data (and this is sometimes the most
+pratical approach), `tree_state_machine` offers additional support for state data with `DataTreeState<D>` and
+`DataProvider<D>`. To take advantage of this support:
+
+  * Define a class that represents the additional state data.
+  * Define a state by extending `DataTreeState<D>` instead of `TreeState`, where `D` is the data class creatred in the
+  previous step. The subclass can access the data class via the `data` property of `DataTreeState<D>`. 
+  * When the state needs to modify the value(s) in the data class, it should do so in a callback provided to the 
+  `updateData` or `replaceData` methods of `DataTreeState<D>`.
+
+For example:
+```dart
+class CountingData {
+   int count;
+}
+
+class CountingState extends DataTreeState<CountingData> {
+
+   @override
+   FutureOr<MessageResult> onMessage(MessageContext context) {
+     if (context.message is IncrementMessage) {
+        updateData((data) {
+          data.count += 1; 
+        });
+        return context.stay();
+     } 
+     return context.unhandled();
+  }
+}
+```  
+
 ## Defining state trees
 
 The `tree_builders` library defines types that let you construct the tree of states that models your application domain.
