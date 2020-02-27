@@ -174,10 +174,10 @@ the message handling behavior of the node. Additionally, for nodes that can have
 `initialChild` function that will select the child state to enter when the state is entered.
 
 ### Data states
-If you want to add `DataTreeState<D>` to the state tree, you will need to use the `WithData` 
+If you want to add `DataTreeState<D>` to the state tree, you will need to use one of the `WithData` 
 variants of the builder clases (`LeafWithData`, `InteriorWithData`, and `RootWithData`). 
 Additionally, you must provide a function that will create the `DataProvider<D>` associated with
-the state:
+the state.  For example:
 
 ```dart
 
@@ -221,19 +221,6 @@ var treeBuilder = Root(
     // ...other states
   ],
 );
-
-
-
-// 
-InteriorWithData(
-    createState: (_) => RegistrationState(),
-    createProvider: RegisterData.dataProvider,
-    initialChild: (_) => StateKey.forState<RegisterCredentialsState>(),
-    children: [
-      Leaf(createState: (_) => RegisterCredentialsState()),
-      Leaf(createState: (_) => RegisterDemographicsState()),
-    ],
-  ),
 ```
 
 
