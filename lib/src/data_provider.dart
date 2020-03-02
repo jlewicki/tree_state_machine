@@ -184,6 +184,7 @@ class DataSubject<T> extends StreamView<T> implements DataStream<T>, ValueStream
   bool get hasValue => _subject.hasValue;
 }
 
+/// Extension methods for [DataStream].
 extension DataStreamExtensions<D> on DataStream<D> {
   /// Transforms each element of this data stream into a new stream event.
   ///

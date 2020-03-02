@@ -14,7 +14,7 @@ import 'utility.dart';
 /// A state machine that manages transitions among [TreeState]s that are arranged hierarchically
 /// into a tree.
 ///
-/// A [TreeStateMachine] is constructed with a [RootNodeBuilder] that will create the particular
+/// A [TreeStateMachine] is constructed with a [Root] node builder that will create the particular
 /// tree of states that the state machine manages. After the state machine is constructed, calling
 /// [start] (asynchronously) enters the initial state for the tree. Once the machine is started,
 /// [currentState] returns information about the current state of the tree. Additionally,
@@ -373,7 +373,7 @@ class TreeStateMachine {
 /// Describes the current leaf state of a [TreeStateMachine].
 ///
 /// [CurrentState] provides information about the current leaf state and its ancestor states, and
-/// their data values (if any of these states are [DataTreeStates]).
+/// their data values (if any of these states are [DataTreeState]s).
 ///
 /// Additionally, messages can be sent to the leaf state for processing using the [sendMessage]
 /// method.
@@ -384,14 +384,28 @@ class CurrentState {
   /// The [StateKey] identifying the current leaf state.
   StateKey get key => _treeStateMachine._machine.currentNode.key;
 
-  /// The data associated with the current leaf state.
+  /// The state data associated with the current leaf state.
   ///
-  /// Returns `null` if the leaf state does not have an associated data provider.
+  /// In general this will provide access to the current [DataProvider.value] of the [DataProvider]
+  /// for the current state, if the state is a [DataTreeState]. If the state is not a
+  /// [DataTreeState], then if the tree state is compatible with the requested type `D`, the state
+  /// will be returned. Note that if `D` is dynamic or object, this method returns `null`.
+  ///
+  /// Returns `null` if a data valeu could not be resolved.
   D data<D>() {
     return dataStream<D>(key)?.value;
   }
 
   /// The data stream of the specified type for an active state.
+  ///
+  /// This stream provides synchronous access to the data value for an active state, as well as
+  /// asynchronous notifications when the data value changes.
+  ///
+  /// Note that the strean will not be completed until [TreeStateMachine.dispose] is called. This
+  /// means that the references to stream listeners to the stream will be maintained by the stream
+  /// even if the state is exited and not longer active (unless of course the subscritpion is
+  /// canceled). This also means that if the stream is entered again at some point in the future,
+  /// earlier subscribers will continue to receive change notifications.
   ///
   /// If [key] is provided, the data stream for the ancestor state with the specified key will be
   /// returned. Otherwise, the data stream of the closest ancestor state that matches the specified

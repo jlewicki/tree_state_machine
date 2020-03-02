@@ -6,8 +6,8 @@ execute a tree state machine.
 ## Tree State Machines
 A tree (hierarchical) state machine is a similar to a traditional finite state machine (FSM), in 
 that the state of a system is modeled by a set of discrete states, one of which one is current 
-(active) at any given time. The system can transition from one state to another in response to 
-messages (typically representing some sort of external event) being processed by the current state.
+at any given time. The system can transition from one state to another in response to messages
+(typically representing some sort of external event) being processed by the current state.
 
 In a tradtional FSM, each state exists independently, and if a state machine is in a particular 
 state, then it cannot simultaneously be in any of the other states. This is sufficient for many 
@@ -53,14 +53,14 @@ class MyState extends TreeState {
 A few things to note about this example:
   
   * A `MessageContext` is provided as an argument to `onMessage`. This context provides access to 
-  the message to be processed, as a well as a number of methods (such as `goTo`) that produce the `MessageResult`s that can be returned from the method.
+  the message to be processed, as a well as a number of methods (such as `goTo`) that produce the `MessageResult`s that can be returned from `onMessage`.
   * The return type is `FutureOr<MessageResult>`, which means `onMessage` is free to return a future,
   if its message handling logic is asynchronous in nature. 
   * The `goTo` method, which initiates a state transition, takes a `StateKey` as a parameter to
   indicate which state to  transition to. In this case we are using the type name of the target 
   state to generate a key. See [below](#state-keys) for more details on state keys.
   * `context.unhandled()` is returned when the message is not recognized. The state machine will 
-  next call `onMessage` of the parent state to see if it can handle the message.
+  next call `onMessage` of the state's parent to see if it can handle the message.
 
 ### Transition handlers
 In addition to `onMessage`, `TreeState` provides overridable methods `onEnter` and `onExit`. These 
@@ -119,7 +119,6 @@ class CountingData {
 }
 
 class CountingState extends DataTreeState<CountingData> {
-
    @override
    FutureOr<MessageResult> onMessage(MessageContext context) {
      if (context.message is IncrementMessage) {
@@ -139,10 +138,10 @@ The `tree_builders` library defines types that let you construct the tree of sta
 application domain. In general, there is a builder class for each type of node in the tree, and you
 build the tree starting from the root, similar to the way you build a widget tree in Flutter.
 
-> Note: States and nodes are sometimes used interchangably, but in fact they are distinct. A
-`TreeState` represents message handling behavior, while a node represents the position of a state
-within a state tree. Application code typically does not interact directly with the nodes in the 
-tree.
+> Note: The termrs 'state' and 'node' are sometimes used interchangably, but in fact they are
+ distinct. A `TreeState` represents message handling behavior, while a node represents the position
+ of a state within a state tree. Application code typically does not interact directly with the 
+ nodes in the tree.
 
 For example, here is the definition of a state tree that contains each type of node (`Root`, 
 `Interior`, `Leaf`, and `Final`):

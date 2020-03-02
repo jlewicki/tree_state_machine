@@ -621,27 +621,27 @@ void main() {
 
         expect(() async => await sm.loadFrom(Stream.fromIterable(encoded)), throwsStateError);
       });
-    });
 
-    test('should throw if stream has nodes thay are not in machine', () async {
-      var sm = TreeStateMachine(tree.treeBuilder());
-      await sm.start(tree.r_b_1_key);
-      final ioController = StreamController<List<int>>();
-      List<List<int>> encoded = (await Future.wait<Object>([
-        sm.saveTo(ioController),
-        ioController.stream.toList(),
-      ]))[1];
+      test('should throw if stream has nodes thay are not in machine', () async {
+        var sm = TreeStateMachine(tree.treeBuilder());
+        await sm.start(tree.r_b_1_key);
+        final ioController = StreamController<List<int>>();
+        List<List<int>> encoded = (await Future.wait<Object>([
+          sm.saveTo(ioController),
+          ioController.stream.toList(),
+        ]))[1];
 
-      // Define another tree that shares keys but has a different shape
-      final buildOtherTree = Root(
-          key: tree.r_b_key,
-          createState: (k) => EmptyTreeState(),
-          initialChild: (_) => tree.r_b_1_key,
-          children: [
-            Leaf(key: tree.r_b_1_key, createState: (k) => EmptyTreeState()),
-          ]);
-      sm = TreeStateMachine(buildOtherTree);
-      expect(() async => await sm.loadFrom(Stream.fromIterable(encoded)), throwsStateError);
+        // Define another tree that shares keys but has a different shape
+        final buildOtherTree = Root(
+            key: tree.r_b_key,
+            createState: (k) => EmptyTreeState(),
+            initialChild: (_) => tree.r_b_1_key,
+            children: [
+              Leaf(key: tree.r_b_1_key, createState: (k) => EmptyTreeState()),
+            ]);
+        sm = TreeStateMachine(buildOtherTree);
+        expect(() async => await sm.loadFrom(Stream.fromIterable(encoded)), throwsStateError);
+      });
     });
   });
 
@@ -794,6 +794,37 @@ void main() {
         await sm.start();
 
         expect(sm.currentState.data<tree.ReadOnlyData>(), isNull);
+      });
+    });
+
+    group('dataStream', () {
+      test('should return null if state data can not be resolved', () async {
+        final sm = TreeStateMachine(tree.treeBuilder());
+        await sm.start();
+        final data = sm.currentState.dataStream(tree.r_a_a_2_key);
+        expect(data, isNull);
+      });
+
+      test('should not be completed when data state is exited', () async {
+        final sm = TreeStateMachine(data_tree.treeBuilder(initialDataValues: {
+          data_tree.r_a_a_2_key: LeafData2()..label = 'Foo',
+        }, messageHandlers: {
+          data_tree.r_a_a_2_key: (msgCtx) {
+            return msgCtx.goTo(data_tree.r_a_a_1_key);
+          },
+        }));
+        await sm.start();
+
+        final r_a_a_2_stream = sm.currentState.dataStream<LeafData2>(data_tree.r_a_a_2_key);
+        var isDone = false;
+        r_a_a_2_stream.listen(
+          (_) {},
+          onDone: () => isDone = true,
+        );
+
+        await sm.currentState.sendMessage(Object());
+
+        expect(isDone, isFalse);
       });
     });
 
