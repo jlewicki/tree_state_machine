@@ -69,7 +69,9 @@ void main() {
 
       test('should emit on stream', () async {
         final provider = SimpleDataA.dataProvider();
-        final q = StreamQueue(provider.dataStream);
+        // The provider data stream will emit the current value when subscribing, so skip that
+        // one because we don't care about it for this test.
+        final q = StreamQueue(provider.dataStream.skip(1));
         provider.data.name = 'Bill';
         provider.data.age = 25;
 

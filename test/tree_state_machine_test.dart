@@ -160,11 +160,12 @@ void main() {
 
       test('should close streams', () async {
         final sm = TreeStateMachine(tree.treeBuilder());
+        await sm.start();
+
         final transitionsQ = StreamQueue(sm.transitions);
         final processedMessagesQ = StreamQueue(sm.processedMessages);
         final handledMessagesQ = StreamQueue(sm.handledMessages);
         final failedMessagesQ = StreamQueue(sm.failedMessages);
-        await sm.start();
 
         sm.dispose();
 
