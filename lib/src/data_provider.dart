@@ -7,7 +7,7 @@ import 'utility.dart';
 
 /// A [Stream] that provides synchronous access to the last emitted item.
 ///
-/// Note that this is identical to the `ValueStream` interface from RxDart. It is duplicated here
+/// Note that this is similar to the `ValueStream` interface from RxDart. It is duplicated here
 /// to avoid exposing RxDart types as part of the public API of this library.
 abstract class DataStream<T> implements Stream<T> {
   /// Last emitted value, or `null` if there has been no emission yet.
@@ -174,7 +174,7 @@ class OwnedDataProvider<D> implements DataProvider<D>, ObservableData<D> {
 }
 
 /// Adapts a BehaviorSubject to the [DataStream] interface.
-class DataSubject<T> extends StreamView<T> implements DataStream<T>, ValueStream<T> {
+class DataSubject<T> extends StreamView<T> implements DataStream<T> {
   final BehaviorSubject<T> _subject;
   DataSubject(this._subject) : super(_subject.stream);
   BehaviorSubject<T> get wrappedSubject => _subject;
