@@ -138,7 +138,7 @@ The `tree_builders` library defines types that let you construct the tree of sta
 application domain. In general, there is a builder class for each type of node in the tree, and you
 build the tree starting from the root, similar to the way you build a widget tree in Flutter.
 
-> Note: The termrs 'state' and 'node' are sometimes used interchangably, but in fact they are
+> Note: The terms 'state' and 'node' are sometimes used interchangably, but in fact they are
  distinct. A `TreeState` represents message handling behavior, while a node represents the position
  of a state within a state tree. Application code typically does not interact directly with the 
  nodes in the tree.
@@ -262,8 +262,8 @@ until a leaf node is reached. This path of nodes is called the initial path, and
 call `onEnter` for each state along this path.
 
 When all the states along the path have been entered, the state of the leaf node at the end of the
-path becomes the current state of the state machine, and messages may be sent to this state for
-processing.
+path becomes the current state of the state machine, and messages may be sent to this state to be 
+processed.
 
 For example:
 ```dart
@@ -275,8 +275,8 @@ var currentStateKey = stateMachine.currentState.key;
 ```
 
 Note that `start` accepts an optional `StateKey` that indicates an initial current state. The state
-machine will use the path from the root to the node with this key, instead of callling
-`initialChild`, when determining which states to enter when starting.
+machine will use the path from the root to the node with this key, instead of calling
+`initialChild`, when determining the initial path.
 
 ## Message processing
 
@@ -287,7 +287,7 @@ This method returns a future that yields a `MessageProcessed` when processing is
 several subclasses of `MessageProcessed` indicating what sort of processing took place:
 
   * `HandledMessage`: indicates that the current leaf state, or one of its ancestor states,
-  recogized and handled the message. A transition to a new state may or may not have occurred.
+  recognized and handled the message. A transition to a new state may or may not have occurred.
   * `UnhandledMessage`: indicates that the current leaf state, or any of its ancestor states, 
   recognized the message. The message therefore had no effect.
   * `FailedMessage`: indicates that an error occurred while processing the message or during a state
@@ -353,7 +353,7 @@ will transition the state machine to an implicit final state, identified by `Sto
 This state does not need to be added to the `finals` collection of the `Root`, it will be 
 automatically available.
 
-Once the stopped state has been enterd, the state machine is ended in the same manner as if a state
+Once the stopped state has been entered, the state machine is ended in the same manner as if a state
 transition to a final state was triggered by message processing. You can consider triggering a 
 transition to a final state as 'internally stopping' the state machine, and calling the `stop`
 method as 'externally stopping' it.
