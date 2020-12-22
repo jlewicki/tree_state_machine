@@ -295,9 +295,9 @@ abstract class MessageContext {
   /// A self-transition means that the state that calls this method is exited and re-entered,
   /// calling the handler functions for the state.
   ///
-  /// If the calling state is a leaf state, only that state is re-entered. If the calling state is a
-  /// interior states, all the states from the current (i.e. leaf) state and the calling interior
-  /// state a re-enterd.
+  /// If the calling state is a leaf state, only that state is re-entered. If the calling state is
+  /// an interior state, all the states from the current leaf state to the calling interior state
+  /// are re-entered.
   MessageResult goToSelf({TransitionHandler transitionAction});
 
   /// Returns a [MessageResult] indicating the message could not be handled by a state, and that

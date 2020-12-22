@@ -423,7 +423,7 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
 class MachineMessageContext with DisposableMixin implements MessageContext {
   final Machine _machine;
 
-  /// The leaf node that received the message
+  /// The leaf node that received the message.
   final TreeNode receivingNode;
 
   /// The nodes, starting at the receiving leaf node, that were notified of the message.
