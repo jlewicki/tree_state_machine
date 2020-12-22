@@ -274,14 +274,14 @@ abstract class MessageContext {
   /// transition, and can be used to provide additional application specific context describing
   /// the transition.
   ///
-  /// A `reenterAncestor` flag may be optionally specified. If `true`, and the target state is an
-  /// ancestor state of the current state, then the ancestor state will be exited and entered,
-  /// calling [TreeState.onExit] and [TreeState.onEnter], during the transition.
+  /// A `reenterTarget` flag may be optionally specified. If `true`, and the target state an active
+  /// state, then the target state will be exited and entered, calling [TreeState.onExit] and
+  /// [TreeState.onEnter], during the transition.
   MessageResult goTo(
     StateKey targetStateKey, {
     TransitionHandler transitionAction,
     Object payload,
-    bool reenterAncestor = false,
+    bool reenterTarget = false,
   });
 
   /// Returns a [MessageResult] indicating that an internal transition should occur.
@@ -540,11 +540,11 @@ abstract class MessageResult {
 /// state should occur.
 class GoToResult extends MessageResult {
   /// Indicates the state to which the state machine should transition.
-  final StateKey toStateKey;
+  final StateKey targetStateKey;
   final FutureOr<void> Function(TransitionContext) transitionAction;
   final Object payload;
-  final bool reenterAncestor;
-  GoToResult(this.toStateKey, [this.transitionAction, this.payload, this.reenterAncestor = false])
+  final bool reenterTarget;
+  GoToResult(this.targetStateKey, [this.transitionAction, this.payload, this.reenterTarget = false])
       : super._();
 }
 

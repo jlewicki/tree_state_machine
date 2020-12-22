@@ -120,18 +120,17 @@ class Machine {
 
   Future<HandledMessage> _handleGoTo(
     GoToResult result,
-    MachineMessageContext msgCtx, {
-    bool isSelfTransition = false,
-  }) async {
-    var toNode = _node(result.toStateKey).node;
-    if (result.reenterAncestor && toNode.parent == null) {
+    MachineMessageContext msgCtx,
+  ) async {
+    var toNode = _node(result.targetStateKey).node;
+    if (result.reenterTarget && toNode.parent == null) {
       throw StateError('Re-entering the root node is invalid.');
     }
-    final path = NodePath(msgCtx.receivingNode, toNode, reenterAncestor: result.reenterAncestor);
+    final path = NodePath(msgCtx.receivingLeafNode, toNode, reenterTarget: result.reenterTarget);
     final transition = await _doTransition(path, result.transitionAction, result.payload);
     return HandledMessage(
       msgCtx.message,
-      msgCtx.receivingNode.key,
+      msgCtx.receivingLeafNode.key,
       msgCtx.handlingNode.key,
       transition,
     );
@@ -142,7 +141,7 @@ class Machine {
         'At least 2 nodes (a leaf and the root) should have been notified');
     return UnhandledMessage(
       msgCtx.message,
-      msgCtx.receivingNode.key,
+      msgCtx.receivingLeafNode.key,
       msgCtx.notifiedNodes.map((mn) => mn.key),
     );
   }
@@ -153,7 +152,7 @@ class Machine {
   ) =>
       // Note that an internal transition means that the current leaf state is maintained, even if
       // the internal transition is returned by an ancestor node.
-      HandledMessage(msgCtx.message, msgCtx.receivingNode.key, msgCtx.handlingNode.key);
+      HandledMessage(msgCtx.message, msgCtx.receivingLeafNode.key, msgCtx.handlingNode.key);
 
   Future<HandledMessage> _handleSelfTransition(
     SelfTransitionResult result,
@@ -174,11 +173,11 @@ class Machine {
     //
     // Note that all of the states from the current leaf state to the handling ancestor node will be
     // re-entered.
-    final path = NodePath.reenter(msgCtx.receivingNode, msgCtx.handlingNode.parent);
+    final path = NodePath.reenter(msgCtx.receivingLeafNode, msgCtx.handlingNode.parent);
     final transition = await _doTransition(path, result.transitionAction);
     return HandledMessage(
       msgCtx.message,
-      msgCtx.receivingNode.key,
+      msgCtx.receivingLeafNode.key,
       msgCtx.handlingNode.key,
       transition,
     );
@@ -186,7 +185,7 @@ class Machine {
 
   Future<HandledMessage> _handleStop(MachineMessageContext msgCtx) async {
     final toNode = _node(StoppedTreeState.key);
-    final path = NodePath(msgCtx.receivingNode, toNode.node);
+    final path = NodePath(msgCtx.receivingLeafNode, toNode.node);
     final transition = await _doTransition(path);
     return HandledMessage(
       msgCtx.message,
@@ -424,7 +423,7 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
   final Machine _machine;
 
   /// The leaf node that received the message.
-  final TreeNode receivingNode;
+  final TreeNode receivingLeafNode;
 
   /// The nodes, starting at the receiving leaf node, that were notified of the message.
   final List<TreeNode> notifiedNodes = [];
@@ -433,10 +432,10 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
   /// than [UnhandledResult].
   TreeNode get handlingNode => notifiedNodes.last;
 
-  MachineMessageContext(this.message, this.receivingNode, this._machine)
+  MachineMessageContext(this.message, this.receivingLeafNode, this._machine)
       : assert(message != null),
-        assert(receivingNode != null),
-        assert(receivingNode.isLeaf);
+        assert(receivingLeafNode != null),
+        assert(receivingLeafNode.isLeaf);
 
   @override
   final Object message;
@@ -446,10 +445,10 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
     StateKey targetStateKey, {
     TransitionHandler transitionAction,
     Object payload,
-    bool reenterAncestor = false,
+    bool reenterTarget = false,
   }) {
     _throwIfDisposed();
-    return GoToResult(targetStateKey, transitionAction, payload, reenterAncestor);
+    return GoToResult(targetStateKey, transitionAction, payload, reenterTarget);
   }
 
   @override

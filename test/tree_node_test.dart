@@ -6,6 +6,26 @@ import 'matchers/matchers.dart';
 
 void main() {
   group('TreeNode', () {
+    group('lcaWith', () {
+      test('should return least common ancestor', () async {
+        var sm = TestableTreeStateMachine(treeBuilder());
+        var node1 = sm.machine.nodes[r_a_a_1_key].node;
+        var node2 = sm.machine.nodes[r_a_1_key].node;
+
+        var lca = node1.lcaWith(node2);
+        expect(lca, isNotNull);
+        expect(lca.key, r_a_key);
+      });
+
+      test('should return the node when nodes are the same', () async {
+        var sm = TestableTreeStateMachine(treeBuilder());
+        var node1 = sm.machine.nodes[r_a_a_1_key].node;
+        var lca = node1.lcaWith(node1);
+        expect(lca, isNotNull);
+        expect(lca.key, r_a_a_1_key);
+      });
+    });
+
     group('selfAndAncestors', () {
       test('should return self and ancestors', () async {
         var sm = TestableTreeStateMachine(treeBuilder());

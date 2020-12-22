@@ -171,8 +171,16 @@ class TreeNode {
   }
 
   /// Computes the least common ancestor node between this node and `other`.
+  ///
+  /// Returns this node if `other` is the same as this node.
   TreeNode lcaWith(TreeNode other) {
     assert(other != null);
+
+    // Short circuit in case nodes are the same.
+    if (other.key == this.key) {
+      return this;
+    }
+
     final i1 = selfAndAncestors().toList().reversed.iterator;
     final i2 = other.selfAndAncestors().toList().reversed.iterator;
     TreeNode lca;
@@ -258,10 +266,11 @@ class NodePath {
 
   NodePath._(this.from, this.to, this.lca, this.path, this.exiting, this.entering);
 
-  factory NodePath(TreeNode from, TreeNode to, {bool reenterAncestor: false}) {
+  factory NodePath(TreeNode from, TreeNode to, {bool reenterTarget: false}) {
     final lca = from.lcaWith(to);
-    final reenteringAncestor = reenterAncestor && lca == to;
-    final reentryNode = reenteringAncestor ? [to] : const <TreeNode>[];
+    final reenteringAncestor = reenterTarget && lca == to;
+    final reenteringCurrent = reenterTarget && from == to;
+    final reentryNode = reenteringAncestor || reenteringCurrent ? [to] : const <TreeNode>[];
     final exiting =
         from.selfAndAncestors().takeWhile((n) => n != lca).followedBy(reentryNode).toList();
     final entering = reenteringAncestor

@@ -365,7 +365,7 @@ void main() {
               entryCounters[key] = counter++;
             },
             messageHandlers: {
-              r_b_2_key: (msgCtx) => msgCtx.goTo(r_b_key, reenterAncestor: true),
+              r_b_2_key: (msgCtx) => msgCtx.goTo(r_b_key, reenterTarget: true),
             },
           );
           final machine = createMachine(buildTree);
@@ -379,10 +379,36 @@ void main() {
           expect(entryCounters[r_b_1_key], equals(2));
         });
 
+        test('should re-enter target leaf state if re-entering', () async {
+          var counter = 1;
+          var entryCounters = <StateKey, int>{};
+          var exitCounters = <StateKey, int>{};
+          var buildTree = treeBuilder(
+            createEntryHandler: (key) => (ctx) {
+              entryCounters[key] = counter++;
+            },
+            createExitHandler: (key) => (ctx) {
+              exitCounters[key] = counter++;
+            },
+            messageHandlers: {
+              r_b_key: (msgCtx) => msgCtx.goTo(r_b_2_key, reenterTarget: true),
+            },
+          );
+          final machine = createMachine(buildTree);
+          await machine.enterInitialState(r_b_2_key);
+
+          counter = 1;
+          entryCounters = <StateKey, int>{};
+          await machine.processMessage(Object());
+
+          expect(exitCounters[r_b_2_key], equals(1));
+          expect(entryCounters[r_b_2_key], equals(2));
+        });
+
         test('should throw if re-entering root node', () async {
           var buildTree = treeBuilder(
             messageHandlers: {
-              r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_key, reenterAncestor: true),
+              r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_key, reenterTarget: true),
             },
           );
           final machine = createMachine(buildTree);
@@ -398,7 +424,7 @@ void main() {
                 msgCtx.replaceData<LeafData1>((d) => d..counter = 10);
                 msgCtx.replaceData<ImmutableData>((d) => d.rebuild((b) => b.name = 'Bob'),
                     key: data_tree.r_a_key);
-                return msgCtx.goTo(data_tree.r_b_1_key, reenterAncestor: true);
+                return msgCtx.goTo(data_tree.r_b_1_key, reenterTarget: true);
               },
             },
           );
