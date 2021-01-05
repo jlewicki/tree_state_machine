@@ -61,7 +61,7 @@ class OperationalState extends TreeState {
 class CarsEnabledState extends TreeState {
   @override
   FutureOr<void> onEnter(TransitionContext context) {
-    context.data<Hardware>().signalPedestrians(CrossingSymbol.dontWalk);
+    context.findData<Hardware>().signalPedestrians(CrossingSymbol.dontWalk);
   }
 
   @override
@@ -73,7 +73,7 @@ class CarsEnabledState extends TreeState {
 class CarsGreenState extends TreeState {
   @override
   FutureOr<void> onEnter(TransitionContext context) {
-    context.data<Hardware>().signalCars(TrafficLightColor.green);
+    context.findData<Hardware>().signalCars(TrafficLightColor.green);
     context.schedule(() => Timeout(), duration: Duration(seconds: 8));
   }
 
@@ -118,7 +118,7 @@ class CarsGreenPedsWaitingState extends TreeState {
 class CarsYellowState extends TreeState {
   @override
   FutureOr<void> onEnter(TransitionContext context) {
-    context.data<Hardware>().signalCars(TrafficLightColor.yellow);
+    context.findData<Hardware>().signalCars(TrafficLightColor.yellow);
     context.schedule(() => Timeout(), duration: Duration(seconds: 3));
   }
 
@@ -134,7 +134,7 @@ class CarsYellowState extends TreeState {
 class PedsEnabledState extends TreeState {
   @override
   FutureOr<void> onEnter(TransitionContext context) {
-    context.data<Hardware>().signalCars(TrafficLightColor.red);
+    context.findData<Hardware>().signalCars(TrafficLightColor.red);
   }
 
   @override
@@ -176,7 +176,7 @@ class PedsFlashingState extends TreeState {
         return context.goTo(StateKey.forState<CarsEnabledState>());
       } else {
         context
-            .data<Hardware>()
+            .findData<Hardware>()
             .signalPedestrians(flashCount % 2 == 1 ? CrossingSymbol.none : CrossingSymbol.walk);
       }
     }

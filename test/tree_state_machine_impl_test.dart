@@ -581,11 +581,31 @@ void main() {
         expect(dataByKey[r_key], isA<SpecialDataD>());
       });
 
+      test('should return data for state referenced by key', () async {
+        final dataByKey = <StateKey, Object>{};
+        final buildTree = data_tree.treeBuilder(
+          createMessageHandler: (key) => (ctx) {
+            // Look up data for ancestor state
+            if (key == r_a_a_2_key || key == r_a_a_key) {
+              dataByKey[key] = ctx.data(r_a_key);
+            }
+
+            return ctx.unhandled();
+          },
+        );
+        final machine = createMachine(buildTree);
+        await machine.enterInitialState();
+        await machine.processMessage(Object());
+
+        expect(dataByKey[r_a_a_2_key], isA<ImmutableData>());
+        expect(dataByKey[r_a_a_key], isA<ImmutableData>());
+      });
+
       test('should return null if handling state has no data', () async {
         final dataByKey = <StateKey, Object>{};
         final buildTree = treeBuilder(
           createMessageHandler: (key) => (ctx) {
-            dataByKey[key] = ctx.data<Object>();
+            dataByKey[key] = ctx.data();
             return ctx.unhandled();
           },
         );
@@ -604,11 +624,11 @@ void main() {
         final dataByKey = <StateKey, Object>{};
         final buildTree = data_tree.treeBuilder(messageHandlers: {
           r_a_a_key: (ctx) {
-            dataByKey[r_a_a_key] = ctx.data<LeafData2>(r_a_a_2_key);
+            dataByKey[r_a_a_key] = ctx.data(r_a_a_2_key);
             return ctx.unhandled();
           },
           r_a_key: (ctx) {
-            dataByKey[r_a_key] = ctx.data<LeafData2>(r_a_a_key);
+            dataByKey[r_a_key] = ctx.data(r_a_a_key);
             return ctx.unhandled();
           }
         });
@@ -619,6 +639,91 @@ void main() {
 
         expect(dataByKey[r_a_a_key], isNull);
         expect(dataByKey[r_a_key], isNull);
+      });
+    });
+
+    group('findData', () {
+      test('should return data for handling state', () async {
+        final dataByKey = <StateKey, Object>{};
+        final buildTree = data_tree.treeBuilder(
+          createMessageHandler: (key) => (ctx) {
+            if (key == r_a_a_2_key) {
+              dataByKey[key] = ctx.findData<LeafData2>();
+            } else if (key == r_a_a_key) {
+              dataByKey[key] = ctx.findData<LeafDataBase>();
+            } else if (key == r_a_key) {
+              dataByKey[key] = ctx.findData<ImmutableData>();
+            } else if (key == r_key) {
+              dataByKey[key] = ctx.findData<SpecialDataD>();
+            }
+            return ctx.unhandled();
+          },
+        );
+        final machine = createMachine(buildTree);
+        await machine.enterInitialState();
+        await machine.processMessage(Object());
+
+        expect(dataByKey[r_a_a_2_key], isA<LeafData2>());
+        expect(dataByKey[r_a_a_key], isA<LeafDataBase>());
+        expect(dataByKey[r_a_key], isA<ImmutableData>());
+        expect(dataByKey[r_key], isA<SpecialDataD>());
+      });
+
+      test('should return data for ancestor state', () async {
+        final dataByKey = <StateKey, Object>{};
+        final buildTree = data_tree.treeBuilder(
+          createMessageHandler: (key) => (ctx) {
+            // Look up data for ancestor state
+            if (key == r_a_a_2_key || key == r_a_a_key) {
+              dataByKey[key] = ctx.findData<ImmutableData>();
+            }
+
+            return ctx.unhandled();
+          },
+        );
+        final machine = createMachine(buildTree);
+        await machine.enterInitialState();
+        await machine.processMessage(Object());
+
+        expect(dataByKey[r_a_a_2_key], isA<ImmutableData>());
+        expect(dataByKey[r_a_a_key], isA<ImmutableData>());
+      });
+
+      test('should return null if requested data type is not found', () async {
+        final dataByKey = <StateKey, Object>{};
+        final buildTree = treeBuilder(
+          createMessageHandler: (key) => (ctx) {
+            dataByKey[key] = ctx.findData<ImmutableData>();
+            return ctx.unhandled();
+          },
+        );
+        final machine = createMachine(buildTree);
+        await machine.enterInitialState();
+
+        await machine.processMessage(Object());
+
+        expect(dataByKey[r_a_a_2_key], isNull);
+        expect(dataByKey[r_a_a_key], isNull);
+        expect(dataByKey[r_a_key], isNull);
+        expect(dataByKey[r_key], isNull);
+      });
+
+      test('should return null if requested data type is Object', () async {
+        final dataByKey = <StateKey, Object>{};
+        final buildTree = data_tree.treeBuilder(
+          createMessageHandler: (key) => (ctx) {
+            dataByKey[key] = ctx.findData<Object>();
+            return ctx.unhandled();
+          },
+        );
+        final machine = createMachine(buildTree);
+        await machine.enterInitialState();
+        await machine.processMessage(Object());
+
+        expect(dataByKey[r_a_a_2_key], isNull);
+        expect(dataByKey[r_a_a_key], isNull);
+        expect(dataByKey[r_a_key], isNull);
+        expect(dataByKey[r_key], isNull);
       });
     });
 
@@ -943,7 +1048,7 @@ void main() {
   });
 
   group('MachineTransitionContext', () {
-    group('data', () {
+    group('getData', () {
       test('should return data for handling state', () async {
         final dataByKey = <StateKey, Object>{};
         final buildTree = data_tree.treeBuilder(

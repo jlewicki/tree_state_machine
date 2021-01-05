@@ -15,7 +15,7 @@ import 'utility.dart';
 ///
 /// Keys must be unique within a tree of states.
 abstract class StateKey {
-  StateKey._();
+  const StateKey._();
 
   /// Construct a [StateKey] with the specifed name.
   static StateKey named(String name) => _ValueKey<String>(name);
@@ -30,9 +30,7 @@ abstract class StateKey {
 @immutable
 class _ValueKey<T> extends StateKey {
   final T value;
-  _ValueKey(this.value) : super._() {
-    ArgumentError.notNull('value');
-  }
+  const _ValueKey(this.value) : super._();
 
   @override
   bool operator ==(Object other) {
@@ -190,7 +188,7 @@ class StoppedTreeState extends FinalTreeState {
 ///   }
 /// ```
 ///
-/// An application can access the data for an active [DataTreeState] using [CurrentState.data] or
+/// An application can access the data for an active [DataTreeState] using [CurrentState.findData] or
 /// [CurrentState.dataStream].
 abstract class DataTreeState<D> extends TreeState {
   DataProvider<D> _provider;
@@ -260,6 +258,12 @@ final MessageHandler emptyMessageHandler = (ctx) => ctx.unhandled();
 //
 
 /// Provides information to a state about the message that is being processed.
+///
+/// This context is provided as an argument to [TreeState.onMessage]. In addition to providing
+/// access to the [message] that is being processed, it has several methods that allow a message
+/// handler to indicate the result its processsing. For example, the handler can indicate that a
+/// state transition should occur by calling [goTo], or that message processing should be delegated
+/// to its parent state by calling [unhandled].
 abstract class MessageContext {
   /// The message that is being processed by the state machine.
   Object get message;
@@ -301,7 +305,7 @@ abstract class MessageContext {
   MessageResult goToSelf({TransitionHandler transitionAction});
 
   /// Returns a [MessageResult] indicating the message could not be handled by a state, and that
-  /// ancestor states should be given an opportunity to handle the message.
+  /// its parent state should be given an opportunity to handle the message.
   MessageResult unhandled();
 
   /// Posts a message that should be dispatched to the state machine asynchronously.
@@ -327,16 +331,23 @@ abstract class MessageContext {
     bool periodic = false,
   });
 
-  /// Finds the state data associated with the state that is currently handling the message, or one
-  /// of its ancestor states.
+  /// Finds the active state data of a given type.
   ///
-  /// If `key` is specified, and it matches the currently handling state, or one of its ancestor
-  /// states, then the data for the matching state is returned. Otherwise, if the `D` matches the
-  /// type of state data of the current state or one of its ancestors, then the data for that state
-  /// is returned.
+  /// The current handling state, and each of its ancestor states are visited. If a state is a
+  /// [DataTreeState] with a data type that matches `D`, then the value of [DataTreeState.data]
+  /// for that state is returned.
   ///
-  /// Returns `null` if a matching state could not be found, or if does not have state data.
-  D data<D>([StateKey key]);
+  /// Returns `null` if a data value could not be resolved, or if `Object` is specified for `D`.
+  D findData<D>();
+
+  /// The state data for an active state.
+  ///
+  /// If `key` is provided and references the state that is handling the message, or one of its
+  /// ancestor states, then the data for that state is returned. Otherwise the data for the current
+  /// handling state is returned.
+  ///
+  /// Returns `null` if the state referenced by `key` is not a [DataTreeState].
+  Object data([StateKey key]);
 
   /// Replaces the state data of state that is currently handling the message, or one of its
   /// ancestor states.
@@ -410,16 +421,25 @@ abstract class TransitionContext {
   /// The ordering in this collection reflects the order the states were entered.
   Iterable<StateKey> get entered;
 
-  /// Finds the state data associated with the state that is currently handling this transition, or
+  /// Finds the state data associated with the most recently entered state for this transition, or
   /// one of its ancestor states.
   ///
-  /// If `key` is specified, and it matches the state that is undergoing a transition, or one of its
-  /// ancestor states, then the data for the matching state is returned. Otherwise, if the `D`
-  /// matches the type of state data of the current state or one of its ancestors, then the data for
-  /// that state is returned.
+  /// The most recently entered state, and each of its ancestor states are visited. If a state is a
+  /// [DataTreeState] with a data type that matches `D`, then the value of [DataTreeState.data]
+  /// for that state is returned.
   ///
-  /// Returns `null` if a matching state could not be found, or if does not have state data.
-  D data<D>([StateKey key]);
+  /// Returns `null` if a data value could not be resolved, or if `Object` is specified for `D`.
+  D findData<D>();
+
+  /// The state data for the most recently entered state for this transition, or one of its
+  /// ancestor states.
+  ///
+  /// If `key` is provided and references the most recently entered state, or one of its ancestor
+  /// states, then the data for that state is returned. Otherwise the data for the most recently
+  /// entered state is returned.
+  ///
+  /// Returns `null` if the state referenced by `key` is not a [DataTreeState].
+  Object data([StateKey key]);
 
   /// Replaces the state data of state that is currently handling this transition, or one of its
   /// ancestor states.

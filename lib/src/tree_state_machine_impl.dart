@@ -353,8 +353,14 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
     return _machine._schedule(entered.last, message, duration, periodic);
   }
 
-  D data<D>([StateKey key]) {
-    return _enteredNodes.last.selfOrAncestorDataStream<D>(key)?.value;
+  @override
+  D findData<D>() {
+    return _enteredNodes.last.selfOrAncestorDataStream<D>()?.value;
+  }
+
+  @override
+  Object data([StateKey key]) {
+    return _enteredNodes.last.selfOrAncestorDataStream(key ?? this.entered.last)?.value;
   }
 
   @override
@@ -491,9 +497,15 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
   }
 
   @override
-  D data<D>([StateKey key]) {
+  D findData<D>() {
     assert(notifiedNodes.isNotEmpty);
-    return notifiedNodes.last.selfOrAncestorDataStream<D>(key)?.value;
+    return notifiedNodes.last.selfOrAncestorDataStream<D>()?.value;
+  }
+
+  @override
+  Object data([StateKey key]) {
+    assert(notifiedNodes.isNotEmpty);
+    return notifiedNodes.last.selfOrAncestorDataStream(key ?? this.handlingNode.key)?.value;
   }
 
   @override

@@ -103,7 +103,7 @@ class PlayingState extends TreeState {
     if (msg is Pause) {
       return context.goTo(StateKey.forState<PausedState>());
     } else if (msg is Play) {
-      var data = context.data<BusyData>();
+      var data = context.findData<BusyData>();
       var elapsed = data.elapsedTime + refreshDuration;
       var trackLength = data.cd.tracks[data.track].duration;
       if (elapsed >= trackLength) {
@@ -121,7 +121,7 @@ class PlayingState extends TreeState {
   }
 
   MessageResult _moveTrack(MessageContext context, int trackCount) {
-    var data = context.data<BusyData>();
+    var data = context.findData<BusyData>();
     var track = data.track + trackCount;
     if (track >= data.cd.tracks.length) {
       context.post(Stop());
@@ -148,7 +148,7 @@ class PausedState extends TreeState {
 class ClosedState extends TreeState {
   @override
   FutureOr<void> onEnter(TransitionContext context) {
-    if (context.data<Data>().cd != null) {
+    if (context.findData<Data>().cd != null) {
       context.post(Play());
     }
   }

@@ -68,6 +68,9 @@ class TypeLiteral<T> {
 
 bool isTypeOf<ThisType, OfType>() => _Instance<ThisType>() is _Instance<OfType>;
 
+bool isTypeOfExact<ThisType, OfType>() =>
+    isTypeOf<ThisType, OfType>() && isTypeOf<OfType, ThisType>();
+
 class _Instance<T> {}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

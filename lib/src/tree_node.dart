@@ -197,39 +197,24 @@ class TreeNode {
   D data<D>() => selfOrAncestorDataStream<D>(key)?.value;
 
   DataStream<D> selfOrAncestorDataStream<D>([StateKey key]) {
-    final node = key != null ? selfOrAncestorWithKey(key) : selfOrAncestorWithData<D>();
-    final dataProvider = node?.dataProvider();
+    if (isTypeOf<D, TreeState>()) {
+      throw StateError('Requested data type ${TypeLiteral<D>().type} cannot be a '
+          '${TypeLiteral<TreeState>().type}.');
+    }
+
+    if (key == null && isTypeOf<Object, D>()) {
+      return null;
+    }
+
+    var dataProvider = selfOrAncestorDataProvider<D>(key: key);
     if (dataProvider != null) {
-      if (dataProvider is ObservableData<D>) {
-        return (dataProvider as ObservableData<D>).dataStream;
-      } else {
-        Object data = dataProvider.data;
-        if (data is D) {
+      return dataProvider is ObservableData<D>
+          ? (dataProvider as ObservableData<D>).dataStream
           // Node does not support observable data, but it does provide a single value of
           // the right type, so adapt that value to a data stream.
-          return DelegateObservableData.single(data).dataStream;
-        }
-      }
-      throw StateError(
-          'Data for state ${node.key} of type ${data.runtimeType} does not match requested type '
-          '${TypeLiteral<D>().type}.');
-    } else if (isTypeOf<Object, D>()) {
-      // Handle case where state has no data, and requested type is a generic object. We don't want
-      // to return the raw state this case, so just return null
-      return null;
-    } else if (node?.state() is D) {
-      return !isTypeOf<D, TreeState>() && !isTypeOf<TreeState, D>()
-          // In cases where state variables are just instance fields in the TreeState, and the
-          // state implements the requested type, just return the state directly. This allows apps
-          // to read the state data without having to use DataTreeState.
-          // Note that we check if D is a tree state, and throw if it is. The idea here is that it
-          // is risky to directy return a state to outside of the statemachine, since then external
-          // code could call onenter/onexit and potentially violate invariants. (although external
-          // code can simply do the cast themselves and work around this)
-          ? DelegateObservableData.single(node.state() as D).dataStream
-          : throw StateError('Requested data type ${TypeLiteral<D>().type} cannot be a '
-              '${TypeLiteral<TreeState>().type} or Object or dynamic.');
+          : DelegateObservableData.single(dataProvider.data).dataStream;
     }
+
     return null;
   }
 

@@ -132,6 +132,11 @@ class CountingState extends DataTreeState<CountingData> {
 }
 ```  
 
+It sometimes is useful to access the state data assocated with an ancestor state when processing a message. `MessageContext` provides two methodsfor this purpose:
+
+  * The `data` method allows state data for a specific state to be retreived by key.
+  * The `findData` method allows state data of a specific type to be retrieved.
+
 ## Defining state trees
 
 The `tree_builders` library defines types that let you construct the tree of states that models your

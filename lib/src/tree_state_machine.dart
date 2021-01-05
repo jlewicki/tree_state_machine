@@ -384,37 +384,79 @@ class CurrentState {
   /// The [StateKey] identifying the current leaf state.
   StateKey get key => _treeStateMachine._machine.currentNode.key;
 
-  /// The state data associated with the current leaf state.
+  /// Finds the state data of a given type associated with an active state.
   ///
-  /// In general this will provide access to the current [DataProvider.value] of the [DataProvider]
-  /// for the current state, if the state is a [DataTreeState]. If the state is not a
-  /// [DataTreeState], then if the tree state is compatible with the requested type `D`, the state
-  /// will be returned. Note that if `D` is dynamic or object, this method returns `null`.
+  /// Starting with the current leaf state, each active state is visited. If a state is a
+  /// [DataTreeState] with a data type that matches `D`, then the value of [DataTreeState.data] is
+  /// returned.
   ///
-  /// Returns `null` if a data valeu could not be resolved.
-  D data<D>() {
-    return dataStream<D>(key)?.value;
+  /// Returns `null` if a data value could not be resolved, or if `Object` is specified for `D`.
+  ///
+  /// ```dart
+  ///   // Assume the active state hierarchy is as follows, with S5 as the current leaf state
+  ///   // S5:DataTreeState<C> -> S4:DataTreeState<Object> -> S3 -> S2:DataTreeState<B> -> S1:DataTreeState<A>
+  ///   var cur = stateMachine.currentState;
+  ///
+  ///   cur.findData<A>();      // Returns data from S1
+  ///   cur.findData<B>();      // Returns data from S2
+  ///   cur.findData<C>();      // Returns data from S5
+  ///   cur.findData<D>();      // Returns null
+  ///   cur.findData<Object>(); // Returns null
+  /// ```
+  D findData<D>() {
+    return isTypeOf<Object, D>() ? null : findDataStream<D>()?.value;
   }
 
-  /// The data stream of the specified type for an active state.
+  /// Returns the state data for an active state.
   ///
-  /// This stream provides synchronous access to the data value for an active state, as well as
+  /// If `key` is provided and references a [DataTreeState] that is active, then the data
+  /// for that state is returned. Otherwise the data for the current leaf state is returned.
+  ///
+  /// Returns `null` if the state referenced by `key` is not a [DataTreeState].
+  Object data([StateKey key]) {
+    return getDataStream(key ?? this.key)?.value;
+  }
+
+  /// Finds the data stream with the specified type for an active state.
+  ///
+  /// Starting with the current leaf state, each active state is visited. If a state is a
+  /// [DataTreeState] with a data provider that supports streaming (that is, is compatible with
+  ///  `ObservableData<D>`), then the data stream for that provider is returned. If the state is
+  /// a [DataTreeState] with data type `D`, but does not support streaming, then a single value
+  /// stream with the current state data is returned. Otherwise, `null` is returned.
+  ///
+  /// This returned stream provides synchronous access to the data value for an active state, as well as
   /// asynchronous notifications when the data value changes.
   ///
-  /// Note that the strean will not be completed until [TreeStateMachine.dispose] is called. This
+  /// Note that the stream will not be completed until [TreeStateMachine.dispose] is called. This
+  /// means that the references to stream listeners to the stream will be maintained by the stream
+  /// even if the state is exited and not longer active (unless of course the subscritpion is
+  /// canceled). This also means that if the stream is entered again at some point in the future,
+  /// earlier subscribers will continue to receive change notifications.
+  DataStream<D> findDataStream<D>() {
+    return isTypeOf<Object, D>()
+        ? null
+        : _treeStateMachine._machine.currentNode.selfOrAncestorDataStream<D>();
+  }
+
+  /// Returns the data stream for an active state.
+  ///
+  /// If `key` is provided and references a [DataTreeState] then the data stream for that state is
+  /// returned. Otherwise the data stream for the current leaf state is returned.
+  ///
+  /// This returned stream provides synchronous access to the data value for an active state, as well as
+  /// asynchronous notifications when the data value changes.
+  ///
+  /// Note that the stream will not be completed until [TreeStateMachine.dispose] is called. This
   /// means that the references to stream listeners to the stream will be maintained by the stream
   /// even if the state is exited and not longer active (unless of course the subscritpion is
   /// canceled). This also means that if the stream is entered again at some point in the future,
   /// earlier subscribers will continue to receive change notifications.
   ///
-  /// If [key] is provided, the data stream for the ancestor state with the specified key will be
-  /// returned. Otherwise, the data stream of the closest ancestor state that matches the specified
-  /// type is returned.
-  ///
-  /// If stata data can be resolved, but it does not support streaming, a single value stream with
-  /// the current state data is returned.
-  DataStream<D> dataStream<D>([StateKey key]) {
-    return _treeStateMachine._machine.currentNode.selfOrAncestorDataStream<D>(key);
+  /// Returns `null` if the state referenced by `key` is not an active [DataTreeState].
+  DataStream<Object> getDataStream([StateKey key]) {
+    var node = _treeStateMachine._machine.currentNode;
+    return node.selfOrAncestorDataStream<Object>(key ?? node.key);
   }
 
   /// Returns `true` if the specified state is an active state in the state machine.
@@ -425,7 +467,7 @@ class CurrentState {
     return _treeStateMachine._machine.currentNode.isSelfOrAncestor(key);
   }
 
-  /// The  [StateKey]s identifying the states that are currently active in the state machine.
+  /// The [StateKey]s identifying the states that are currently active in the state machine.
   ///
   /// The current leaf state is first in the list, followed by its ancestor states, and ending at
   /// the root state.

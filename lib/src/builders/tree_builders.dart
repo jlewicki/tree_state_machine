@@ -5,14 +5,16 @@ import '../tree_node.dart';
 import '../tree_state.dart';
 import 'tree_build_context.dart';
 
-/// A definition of the root node in a state tree.
+/// A description of the root node in a state tree.
 ///
-/// In addition to defining the [TreeState] that provides the message handling behavior of the root
-/// node, the properties of [Root] decribe how the root node relates to other nodes in the tree. For
-/// example, [children] describe the child nodes of the root, and [initialChild] describes which
-/// child node should be entered when the child node is entered.
+/// In addition to describing the [TreeState] that provides the message handling behavior of the
+/// root node, the properties of [Root] decribe how the root node relates to other nodes in the
+/// tree. For example, [children] describe the child nodes of the root, and [initialChild]
+/// describes which child node should be entered when the root node is entered.
 ///
-/// The following example shows the defintition of a state tree that includes each kind of node:
+/// The following example describes a state tree that includes each kind of node ([Root],
+/// [Interior], and [Leaf]):
+///
 /// ```dart
 /// var treeBuilder = Root(
 ///   createState: (key) => MyRootState(),
