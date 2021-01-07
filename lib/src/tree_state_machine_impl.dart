@@ -303,6 +303,7 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
   final List<TreeNode> _enteredNodes = [];
   final List<TreeNode> _exitedNodes = [];
   final Machine _machine;
+  TreeNode _currentNode;
 
   MachineTransitionContext(
     this.nodePath,
@@ -350,30 +351,35 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
     Duration duration = const Duration(),
     bool periodic = false,
   }) {
-    return _machine._schedule(entered.last, message, duration, periodic);
+    assert(_currentNode != null);
+    return _machine._schedule(_currentNode.key, message, duration, periodic);
   }
 
   @override
   D findData<D>() {
-    return _enteredNodes.last.selfOrAncestorDataStream<D>()?.value;
+    assert(_currentNode != null);
+    return _currentNode.selfOrAncestorDataStream<D>()?.value;
   }
 
   @override
   Object data([StateKey key]) {
-    return _enteredNodes.last.selfOrAncestorDataStream(key ?? this.entered.last)?.value;
+    assert(_currentNode != null);
+    return _currentNode.selfOrAncestorDataStream(key ?? _currentNode.key)?.value;
   }
 
   @override
   void replaceData<D>(D Function(D) replace, {StateKey key}) {
     _throwIfDisposed();
-    final provider = _enteredNodes.last.selfOrAncestorDataProvider<D>(key: key, throwIfNull: true);
+    assert(_currentNode != null);
+    final provider = _currentNode.selfOrAncestorDataProvider<D>(key: key, throwIfNull: true);
     provider.replace(() => replace(provider.data));
   }
 
   @override
   void updateData<D>(void Function(D) update, {StateKey key}) {
     _throwIfDisposed();
-    final provider = _enteredNodes.last.selfOrAncestorDataProvider<D>(key: key, throwIfNull: true);
+    assert(_currentNode != null);
+    final provider = _currentNode.selfOrAncestorDataProvider<D>(key: key, throwIfNull: true);
     provider.update(() => update(provider.data));
   }
 
@@ -399,11 +405,13 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
   }
 
   FutureOr<void> onEnter(TreeNode node) {
+    _currentNode = node;
     _enteredNodes.add(node);
     return node.state().onEnter(this);
   }
 
   FutureOr<void> onExit(TreeNode node) {
+    _currentNode = node;
     _exitedNodes.add(node);
     // Resetting the provider each time the state is exited ensures that the state will state with
     // a fresh data value each time the state is entered.

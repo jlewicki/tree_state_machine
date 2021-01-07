@@ -1048,21 +1048,28 @@ void main() {
   });
 
   group('MachineTransitionContext', () {
-    group('getData', () {
+    group('data', () {
       test('should return data for handling state', () async {
         final dataByKey = <StateKey, Object>{};
         final buildTree = data_tree.treeBuilder(
-          createEntryHandler: (key) => (ctx) {
-            dataByKey[key] = ctx.data();
-          },
-        );
+            createEntryHandler: (key) => (ctx) {
+                  dataByKey[key] = ctx.data();
+                },
+            createExitHandler: (key) => (ctx) {
+                  dataByKey[key] = ctx.data();
+                },
+            messageHandlers: {
+              r_b_1_key: (ctx) => ctx.goTo(r_a_a_2_key),
+            });
         final machine = createMachine(buildTree);
-        await machine.enterInitialState();
+        await machine.enterInitialState(r_b_1_key);
+        await machine.processMessage(Object());
 
         expect(dataByKey[r_a_a_2_key], isA<LeafData2>());
         expect(dataByKey[r_a_a_key], isA<LeafDataBase>());
         expect(dataByKey[r_a_key], isA<ImmutableData>());
-        expect(dataByKey[r_key], isA<SpecialDataD>());
+        expect(dataByKey[r_b_key], isNull);
+        expect(dataByKey[r_b_1_key], isNull);
       });
     });
 
