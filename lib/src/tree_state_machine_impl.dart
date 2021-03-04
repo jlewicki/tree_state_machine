@@ -268,14 +268,21 @@ class Machine {
         'Duration must be greater than 100 microseconds',
       );
     }
-    final postMessage = () => _queueMessage(message());
+
+    var canceled = false;
+    final postMessage = () {
+      if (!canceled) _queueMessage(message());
+    };
     final timer = periodic
         ? Timer.periodic(duration, (timer) => postMessage())
         : Timer(duration, postMessage);
     // Associate the timer with the tree node that is currently processing the message when this
     // method is called.
     _node(timerOwner).addTimer(timer);
-    return timer.cancel;
+    return () {
+      canceled = true;
+      timer.cancel();
+    };
   }
 
   MachineNode _node(StateKey key, [bool throwIfNotFound = true]) {
@@ -321,6 +328,8 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
   StateKey get from => nodePath.from.key;
   @override
   StateKey get to => nodePath.to.key;
+  @override
+  StateKey get lca => nodePath.lca?.key;
   @override
   Iterable<StateKey> get path => nodePath.path.map((n) => n.key);
   @override
@@ -453,6 +462,9 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
 
   @override
   final Object message;
+
+  @override
+  final Map<String, Object> appData = {};
 
   @override
   MessageResult goTo(

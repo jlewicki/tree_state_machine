@@ -15,7 +15,7 @@ pubspec.lock
 /coverage/
 
 # Or the files created by dartdoc.
-/doc
+/doc/api
 
 # Or the files created by build
 .dart_tool/

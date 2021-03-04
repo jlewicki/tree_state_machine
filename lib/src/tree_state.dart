@@ -18,7 +18,9 @@ abstract class StateKey {
   const StateKey._();
 
   /// Construct a [StateKey] with the specifed name.
-  static StateKey named(String name) => _ValueKey<String>(name);
+  ///
+  /// The name must be unique within a state tree.
+  const factory StateKey.named(String name) = _ValueKey<String>;
 
   /// Construct a [StateKey] with a name based on the specified state type.
   ///
@@ -50,7 +52,7 @@ class _ValueKey<T> extends StateKey {
   }
 
   @override
-  String toString() => 'StateKey($value)';
+  String toString() => '$value';
 }
 
 //==================================================================================================
@@ -190,7 +192,13 @@ class StoppedTreeState extends FinalTreeState {
 ///
 /// An application can access the data for an active [DataTreeState] using [CurrentState.findData] or
 /// [CurrentState.dataStream].
-abstract class DataTreeState<D> extends TreeState {
+abstract class DataTreeState<D> extends TreeState with StateDataMixin<D> {}
+
+/// A [FinalTreeState] an associated data value of type `D`.
+abstract class FinalDataTreeState<D> extends FinalTreeState with StateDataMixin<D> {}
+
+/// Provides methods for reading and writing state data from a [TreeState].
+mixin StateDataMixin<D> on TreeState {
   DataProvider<D> _provider;
 
   /// The data value associated with this state.
@@ -267,6 +275,13 @@ final MessageHandler emptyMessageHandler = (ctx) => ctx.unhandled();
 abstract class MessageContext {
   /// The message that is being processed by the state machine.
   Object get message;
+
+  /// A map for storing application data.
+  ///
+  /// This map may be useful for storing application-specific values that might need to shared across
+  /// various message handlers as a message is processed. This map will never be read or modified by
+  /// the state machine.
+  Map<String, Object> get appData;
 
   /// Returns a [MessageResult] indicating that a transition to the specified state should occur.
   ///
@@ -391,10 +406,16 @@ abstract class TransitionContext {
   /// path rooted at this state is followed, to arrive at the final leaf state for this transition.
   StateKey get to;
 
+  /// The least common ancestor (LCA) state of the [from] and [to] states.
+  ///
+  /// Note that this may be `null` if this transition context represents the initial transition when
+  /// a state machine is started.
+  StateKey get lca;
+
   /// The end state of the transition.
   ///
   /// This will refer to the final leaf state of the transition, including the result of following
-  /// the initial child path rooted at [to], if [to] referes to a non-leaf state.
+  /// the initial child path rooted at [to], if [to] refers to a non-leaf state.
   StateKey get end;
 
   /// The optional payload for this transition.

@@ -203,7 +203,7 @@ class TreeBuildContext {
     return leaf;
   }
 
-  StateCreator _stateCreatorWithDataInitialization<T extends DataTreeState<D>, D>(
+  StateCreator _stateCreatorWithDataInitialization<T extends StateDataMixin<D>, D>(
     DataStateCreator<T, D> createState,
     Lazy<DataProvider<D>> lazyProvider,
     ObservableData<Object> leafData,

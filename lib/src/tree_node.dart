@@ -14,7 +14,7 @@ typedef StateCreator<T extends TreeState> = T Function(StateKey key);
 /// Type of functions that create a new [DataTreeState].
 ///
 /// The function is passed the [StateKey] that identifies the new state.
-typedef DataStateCreator<T extends DataTreeState<D>, D> = T Function(StateKey key);
+typedef DataStateCreator<T extends StateDataMixin<D>, D> = T Function(StateKey key);
 
 /// Type of functions that select a child node to initially enter, when a parent node is entered.
 ///

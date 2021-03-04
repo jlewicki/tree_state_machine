@@ -1,6 +1,5 @@
 import 'dart:async';
-import 'package:tree_state_machine/src/builders/tree_builders.dart';
-import 'package:tree_state_machine/src/tree_state.dart';
+import 'package:tree_state_machine/tree_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 // https://www.state-machine.com/doc/AN_PELICAN.pdf

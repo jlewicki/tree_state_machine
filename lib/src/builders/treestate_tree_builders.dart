@@ -277,7 +277,7 @@ class LeafWithData<T extends DataTreeState<D>, D> extends Leaf<T> {
       context.buildLeafWithData<T, D>(key, createState, createProvider);
 }
 
-/// Describes how to build a leaf node in a state tree.
+/// Describes how to build a final node in a state tree.
 ///
 /// A final node is a special kind of [LeafNode]. When a final node becomes the current state in a
 /// [TreeStateMachine], the state machine is considered ended, and no further message handling or
