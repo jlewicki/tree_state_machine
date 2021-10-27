@@ -1,6 +1,16 @@
-export 'src/errors.dart';
-export 'src/data_provider.dart' hide DataSubject;
-export 'src/tree_state.dart'
-    hide GoToResult, InternalTransitionResult, SelfTransitionResult, StopResult, UnhandledResult;
-export 'src/tree_state_machine.dart'
-    hide EncodableState, EncodableTree, CurrentLeafObservableData, TestableTreeStateMachine;
+/// Provides support for executing hierarchical state machines.
+library tree_state_machine;
+
+export 'src/machine/extensions.dart';
+export 'src/machine/tree_state.dart'
+    hide
+        TreeState,
+        DataTreeState,
+        GoToResult,
+        InternalTransitionResult,
+        SelfTransitionResult,
+        StopResult,
+        UnhandledResult;
+export 'src/machine/data_value.dart' hide ClosableDataValue;
+export 'src/machine/tree_state_machine.dart'
+    hide TestableTreeStateMachine, EncodableState, EncodableTree;

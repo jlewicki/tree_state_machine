@@ -1,24 +1,13 @@
-# Don’t commit the following directories created by pub.
-build/
-.packages
-pubspec.lock
-
-# Or the files created by dart2js.
-*.dart.js
-*.dart.precompiled.js
-*.js_
-*.js.deps
-*.js.map
-*.iml
-
-# Or the files created by coverage.
-/coverage/
-
-# Or the files created by dartdoc.
-/doc/api
-
-# Or the files created by build
+# Files and directories created by pub.
 .dart_tool/
+.packages
 
-# Or files used by VS Code
-.vscode/
+# Files and directories created by dartdoc
+doc/api/
+
+# Conventional directory for build outputs.
+build/
+
+# Omit committing pubspec.lock for library packages; see
+# https://dart.dev/guides/libraries/private-files#pubspeclock.
+pubspec.lock
