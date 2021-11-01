@@ -63,10 +63,7 @@ class SubmitDemographics {
   SubmitDemographics(this.firstName, this.lastName);
 }
 
-class AuthInProgress {
-  final Future<Result<AuthorizedUser>> authFuture;
-  AuthInProgress(this.authFuture);
-}
+typedef AuthFuture = Future<Result<AuthorizedUser>>;
 
 enum Messages { goToLogin, goToRegister, back, logout, submitRegistration }
 
@@ -178,10 +175,10 @@ StateTreeBuilder loginStateTree(AuthService authService) {
 
   b.state(States.authenticating, (b) {
     b.onEnterFromChannel<SubmitCredentials>(authenticatingChannel, (b) {
-      b.post<AuthInProgress>(getValue: (_, creds) => _login(creds, authService));
+      b.post<AuthFuture>(getValue: (_, creds) => _login(creds, authService));
     });
-    b.onMessage<AuthInProgress>((b) {
-      b.whenResult<AuthorizedUser>((_, msg) => msg.authFuture, (b) {
+    b.onMessage<AuthFuture>((b) {
+      b.whenResult<AuthorizedUser>((_, msg) => msg, (b) {
         b.enterChannel<AuthorizedUser>(authenticatedChannel, (_, __, user) => user);
       }).otherwise((b) {
         b.goTo(
@@ -218,8 +215,8 @@ StateTreeBuilder loginStateTree(AuthService authService) {
   return b;
 }
 
-AuthInProgress _login(SubmitCredentials creds, AuthService authService) {
-  return AuthInProgress(authService.authenticate(creds));
+AuthFuture _login(SubmitCredentials creds, AuthService authService) {
+  return authService.authenticate(creds);
 }
 
 Future<Result<AuthorizedUser>> _register(

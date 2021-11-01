@@ -394,7 +394,7 @@ class TreeStateMachine {
 /// Describes the current leaf state of a [TreeStateMachine].
 ///
 /// [CurrentState] provides information about the current leaf state and its ancestor
-/// states, and and the data values and any ancestor data states.
+/// states, as well as the data value of any active data states.
 
 /// Messages can be sent to the leaf state for processing using the [sendMessage] method.
 class CurrentState {
@@ -517,7 +517,7 @@ class _StateDataValue {
   _StateDataValue(this.state, this.dataValue);
 }
 
-// TODO make this a composite key based on StateKet and data type
+// TODO make this a composite key based on StateKey and data type
 class _DataStreamKey {
   Object _key;
   _DataStreamKey._(this._key);

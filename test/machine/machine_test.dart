@@ -57,8 +57,9 @@ void main() {
         expect(handled.message, same(msg));
         expect(handled.receivingState, equals(r_a_a_1_key));
         expect(handled.handlingState, equals(r_a_a_1_key));
-        expect(handled.exitedStates, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
-        expect(handled.enteredStates, orderedEquals([r_b_key, r_b_1_key]));
+        expect(handled.transition, isNotNull);
+        expect(handled.transition!.exitPath, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
+        expect(handled.transition!.entryPath, orderedEquals([r_b_key, r_b_1_key]));
       });
 
       group('GoToResult', () {
@@ -74,8 +75,9 @@ void main() {
           final handled = msgProcessed as HandledMessage;
           expect(handled.receivingState, equals(flat_tree.r_1_key));
           expect(handled.handlingState, equals(flat_tree.r_1_key));
-          expect(handled.exitedStates, orderedEquals([flat_tree.r_1_key]));
-          expect(handled.enteredStates, orderedEquals([flat_tree.r_2_key]));
+          expect(handled.transition, isNotNull);
+          expect(handled.transition!.exitPath, orderedEquals([flat_tree.r_1_key]));
+          expect(handled.transition!.entryPath, orderedEquals([flat_tree.r_2_key]));
         });
 
         test('should handle message with ancestor states if unhandled by current state', () async {
@@ -90,8 +92,9 @@ void main() {
           final handled = msgProcessed as HandledMessage;
           expect(handled.receivingState, equals(r_a_a_1_key));
           expect(handled.handlingState, equals(r_a_key));
-          expect(handled.exitedStates, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
-          expect(handled.enteredStates, orderedEquals([r_b_key, r_b_1_key]));
+          expect(handled.transition, isNotNull);
+          expect(handled.transition!.exitPath, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
+          expect(handled.transition!.entryPath, orderedEquals([r_b_key, r_b_1_key]));
         });
 
         test('should follow initial children at destination state', () async {
@@ -108,8 +111,9 @@ void main() {
           expect(handled.message, same(msg));
           expect(handled.receivingState, equals(r_a_a_1_key));
           expect(handled.handlingState, equals(r_a_a_1_key));
-          expect(handled.exitedStates, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
-          expect(handled.enteredStates, orderedEquals([r_b_key, r_b_1_key]));
+          expect(handled.transition, isNotNull);
+          expect(handled.transition!.exitPath, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
+          expect(handled.transition!.entryPath, orderedEquals([r_b_key, r_b_1_key]));
         });
 
         test('should include transition in result', () async {
@@ -216,8 +220,9 @@ void main() {
           expect(handled.message, same(msg));
           expect(handled.receivingState, equals(r_a_a_1_key));
           expect(handled.handlingState, equals(r_a_a_1_key));
-          expect(handled.exitedStates, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
-          expect(handled.enteredStates, orderedEquals([r_b_key, r_b_1_key]));
+          expect(handled.transition, isNotNull);
+          expect(handled.transition!.exitPath, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
+          expect(handled.transition!.entryPath, orderedEquals([r_b_key, r_b_1_key]));
           expect(actionCalled, isTrue);
         });
 
@@ -235,8 +240,8 @@ void main() {
           expect(handled.message, same(msg));
           expect(handled.receivingState, equals(r_a_a_1_key));
           expect(handled.handlingState, equals(r_a_a_1_key));
-          expect(handled.exitedStates, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
-          expect(handled.enteredStates, orderedEquals([r_X_key]));
+          expect(handled.transition!.exitPath, orderedEquals([r_a_a_1_key, r_a_a_key, r_a_key]));
+          expect(handled.transition!.entryPath, orderedEquals([r_X_key]));
         });
 
         test('should pass payload to transition context', () async {
@@ -375,8 +380,7 @@ void main() {
           final handled = msgProcessed as HandledMessage;
           expect(handled.receivingState, equals(r_a_a_1_key));
           expect(handled.handlingState, equals(r_a_a_1_key));
-          expect(handled.exitedStates, isEmpty);
-          expect(handled.enteredStates, isEmpty);
+          expect(handled.transition, isNull);
         });
 
         test('should stay in current state when ancestor state is handling state', () async {
@@ -391,8 +395,7 @@ void main() {
           final handled = msgProcessed as HandledMessage;
           expect(handled.receivingState, equals(r_a_a_1_key));
           expect(handled.handlingState, equals(r_a_key));
-          expect(handled.exitedStates, isEmpty);
-          expect(handled.enteredStates, isEmpty);
+          expect(handled.transition, isNull);
         });
       });
       group('SelfTransitionResult', () {
@@ -408,8 +411,9 @@ void main() {
           final handled = msgProcessed as HandledMessage;
           expect(handled.receivingState, equals(r_a_a_1_key));
           expect(handled.handlingState, equals(r_a_a_1_key));
-          expect(handled.exitedStates, [r_a_a_1_key]);
-          expect(handled.enteredStates, [r_a_a_1_key]);
+          expect(handled.transition, isNotNull);
+          expect(handled.transition!.exitPath, [r_a_a_1_key]);
+          expect(handled.transition!.entryPath, [r_a_a_1_key]);
         });
 
         test('should re-enter leaf and interior states when interior state is handling state',
@@ -425,8 +429,8 @@ void main() {
           final handled = msgProcessed as HandledMessage;
           expect(handled.receivingState, equals(r_a_a_1_key));
           expect(handled.handlingState, equals(r_a_key));
-          expect(handled.exitedStates, [r_a_a_1_key, r_a_a_key, r_a_key]);
-          expect(handled.enteredStates, [r_a_key, r_a_a_key, r_a_a_1_key]);
+          expect(handled.transition!.exitPath, [r_a_a_1_key, r_a_a_key, r_a_key]);
+          expect(handled.transition!.entryPath, [r_a_key, r_a_a_key, r_a_a_1_key]);
         });
 
         test('should call transition action if provided', () async {
@@ -460,8 +464,8 @@ void main() {
           final handled = msgProcessed as HandledMessage;
           expect(handled.receivingState, equals(r_a_a_1_key));
           expect(handled.handlingState, equals(r_a_key));
-          expect(handled.exitedStates, [r_a_a_1_key, r_a_a_key, r_a_key]);
-          expect(handled.enteredStates, [r_a_key, r_a_a_key, r_a_a_1_key]);
+          expect(handled.transition!.exitPath, [r_a_a_1_key, r_a_a_key, r_a_key]);
+          expect(handled.transition!.entryPath, [r_a_key, r_a_a_key, r_a_a_1_key]);
           expect(actionCalled, isTrue);
         });
       });

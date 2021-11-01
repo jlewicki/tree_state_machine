@@ -329,7 +329,7 @@ class InitialData<D> {
   }
 
   static InitialData<D> fromChannel<D, P>(Channel<P> channel, D Function(P payload) map) {
-    return InitialData._((ctx) => map(ctx.payloadOrThrow<P>()));
+    return InitialData._((transCtx) => map(transCtx.payloadOrThrow<P>()));
   }
 
   /// Creates an [InitialData] that produces its initial value by calling [initialValue] with

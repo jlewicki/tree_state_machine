@@ -118,7 +118,7 @@ data state. This data can be requested in several ways, but often `updateData` i
 when handling a message.
 
 ```dart
-b.state(States.credentialsRegistration, (b) {
+treeBuilder.state(States.credentialsRegistration, (b) {
    b.onMessage<SubmitCredentials>((b) {
       b.goTo(States.demographicsRegistration,
          // Update the RegisterData state data owned by the parent 
@@ -134,3 +134,73 @@ b.state(States.credentialsRegistration, (b) {
 ```
 
 ## Transition Handlers
+A state can receive notifications when it is entered or exited. These notifications are calls to `TransitionHandler`
+functions, and the handlers are passed a `TransitionContext` describing the transition that is occurring.
+```dart
+typedef TransitionHandler = FutureOr<void> Function(TransitionContext ctx);
+```
+
+Similar to message handlers, transition handlers are typically not defined directly. `StateBuilder` has methods such as 
+`onEnter` and `onExit` for declaring how these handlers should behave. 
+```dart
+treeBuilder.state(States.authenticating, (b) {
+   b.onEnter((b) {
+      // When this state is entered, perform a login operation, and post 
+      // the result of the login as a message for future processing. 
+      b.post<AuthFuture>(
+          getValue: (transCtx) => _doLogin(transCtx.payload as SubmitCredentials));
+   });
+}
+```
+
+### Entry channels
+
+
+## Creating a state machine
+
+Once a state tree has been defined, a state machine can be created.
+```dart
+var treeBuilder = defineStateTree();
+var stateMachine = TreeStateMachine(treeBuilder);
+```
+
+## Starting a state machine
+Before messages can be sent to the state machine for processing, it has be started. The `start` method returns a future 
+that yields a `CurrentState` that serves as a proxy to the current state after the machine has fully started.
+```dart
+var currentState = await stateMachine.start();
+```
+
+When the machine is started, the machine determines determine a path of states, starting at the root and ending at a 
+leaf state, by recursively determining the `initialChild` at each level of the tree until a state with no children is
+reached. This path of states is called the initial path, and the machine will call `onEnter` for each state along this 
+path.
+
+When all the states along the path have been entered, the state at the end of the path becomes the current state of the 
+state machine, and messages may be sent to this state for processing.
+```dart
+var message = SubmitCredentials(username: 'foo', password: 'bar');
+var messageResult = await currentState.post(message);
+```
+
+## State machine streams
+In addition to inspecting the results of sendMessage to learn about how a message was processed, it is also possible to subscribe to several stream properties of TreeStateMachine:
+
+* `processedMessages` yields an event for every message that is processed by the tree, whether or not the message was handled successfully, and whether or not a transition occurred as a result of the message.
+* `handledMessages` is a convenience stream that yield an event when only when a message is successfully handled. Note 
+that the HandledMessage event is also emitted on the processedMessages stream.
+* `transitions` yields an event each time a transition between states occurs.
+
+## Stopping a state machine
+`TreeStateMachine` has a `stop` method, which is alternate way of ending the state machine. This will transition the 
+state machine to an implicit final state, identified by `stoppedStateKey`. This state will always be available, and does
+not need to be added when defining a state tree. 
+
+Once the stopped state has been entered, the state machine is ended in the same manner as if a state transition to a 
+final state was triggered by message processing. You can consider triggering a transition to a final state as 
+'internally stopping' the state machine, and calling the stop method as 'externally stopping' it.
+```dart
+await stateMachine.stop();
+// done will be true after stopping.
+var done = stateMachine.isDone;
+```

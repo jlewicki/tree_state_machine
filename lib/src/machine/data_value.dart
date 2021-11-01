@@ -3,11 +3,14 @@ import 'dart:async';
 import 'package:tree_state_machine/async.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
-/// Provides access to a data value of type [T] associated with a data state..
+/// Provides access to a data value of type [T] associated with a data state.
 ///
 /// The [value] property can be used to read the current value, and [update] can be used to update
 /// the value. Additionally, the [listen] method can be used to receive notifications as the value
 /// changes over time.
+///
+/// The [DataValue] for a data state is created each time the state is entered. If the data state is
+/// reentered in the future, the state does not 'remember' its earlier data value.
 ///
 /// A [DataValue] is typically used when processing a message or during a state transition.
 /// [MessageContext] or [TransitionContext] can be used to obtain the data value for an active
@@ -36,6 +39,7 @@ import 'package:tree_state_machine/tree_state_machine.dart';
 ///   });
 /// });
 /// ```
+///
 /// [DataValue] is typically created implicitly when constructing a state tree. Application code
 /// will usually not need to create a [DataValue] directly.
 class DataValue<T> extends StreamView<T> implements ValueStream<T> {

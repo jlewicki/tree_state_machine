@@ -497,8 +497,6 @@ abstract class ProcessedMessage {
 }
 
 /// A [ProcessedMessage] indicating that a state successfully handled a message.
-///
-/// A state transition might have taken place part of handling the message. If this is true
 class HandledMessage extends ProcessedMessage {
   /// The state that handled the message.
   ///
@@ -517,9 +515,9 @@ class HandledMessage extends ProcessedMessage {
     this.transition,
   ]) : super._(message, receivingState);
 
-  // Get rid of these?
-  Iterable<StateKey> get exitedStates => transition?.exitPath ?? const [];
-  Iterable<StateKey> get enteredStates => transition?.entryPath ?? const [];
+  /// The
+  // Iterable<StateKey> get exitedStates => transition?.exitPath ?? const [];
+  // Iterable<StateKey> get enteredStates => transition?.entryPath ?? const [];
 }
 
 /// A [ProcessedMessage] indicating that none of the active states in the state machine recognized
