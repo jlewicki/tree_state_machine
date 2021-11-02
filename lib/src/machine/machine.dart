@@ -8,7 +8,8 @@ import 'package:tree_state_machine/src/machine/utility.dart';
 
 /// Provides methods for processing messages and performing state transitions.
 ///
-/// [Machine] defines the core state machine engine, and is not intended for
+/// [Machine] defines the core state machine engine, and is not intended for direct use by an
+/// application. [TreeStateMachine] should be used instead.
 class Machine {
   final MachineNode rootNode;
   final Map<StateKey, MachineNode> nodes;
