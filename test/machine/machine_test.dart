@@ -128,6 +128,7 @@ void main() {
           expect(msgProcessed, isA<HandledMessage>());
           final handled = msgProcessed as HandledMessage;
           expect(handled.transition, isNotNull);
+          expect(handled.transition!.lca, equals(r_key));
 
           expectPath(handled.transition!, [r_a_a_1_key, r_a_a_key, r_a_key], [r_b_key, r_b_1_key]);
         });

@@ -365,14 +365,28 @@ class UnhandledResult extends MessageResult {
 abstract class TransitionContext {
   /// The path of states describing the transition path that was requested.
   ///
-  /// If the [Transition.to] state of this path is a non-leaf state, then the final state after
-  /// the transition has completed will be a descendant state of the the [Transition.to] state.
+  /// If the [Transition.to] state of this path is a non-leaf state, then whne the transition
+  /// completes, the final state after the transition has completed will be a descendant state of
+  /// the [Transition.to] state.
   Transition get requestedTransition;
 
+  /// The states that have been entered during this transition.
+  ///
+  /// Because this transition may not yet be complete, there may be additional states that will be
+  /// entered.
   Iterable<StateKey> get entered;
 
+  /// The states that have been exited during this transition.
+  ///
+  /// Because this transition may not yet be complete, there may be additional states that will be
+  /// entered.
   Iterable<StateKey> get exited;
 
+  /// The least common ancestor (LCA) state of the transition.
+  ///
+  /// The LCA state is the parent state of the last state exited and the first state entered during
+  /// a transition, and consequently does not undergo a transition (that is, it is neither exited or
+  /// entered).
   StateKey get lca;
 
   /// The optional payload for this transition.
@@ -413,45 +427,19 @@ abstract class TransitionContext {
   });
 }
 
-// /// Describes a path between two states in a state tree.
-// ///
-// /// Note that a given [TransitionPath] does not necessarily imply that the transition has occured. It
-// /// typically describe a transition that will occur. Instead, [TransitionContext] describes the
-// /// progress of a transition along this path, and [Transition] describes a completed transition.
-// class TransitionPath {
-//   /// The starting leaf state of the path.
-//   final StateKey from;
-
-//   /// The final state of the path.
-//   ///
-//   /// This may be either a leaf or non-leaf state.
-//   final StateKey to;
-
-//   /// The states that will be entered as the path is traversed.
-//   final List<StateKey> entering;
-
-//   /// The states that will be exited as the path is traversed.
-//   final List<StateKey> exiting;
-
-//   /// The path of nodes to traverse, starting at [from] and ending at [to].
-//   late final List<StateKey> path = List.unmodifiable(exiting.followedBy(entering));
-
-//   /// Constructs a [TransitionPath] instance.
-//   TransitionPath(
-//     this.from,
-//     this.to,
-//     Iterable<StateKey> exiting,
-//     Iterable<StateKey> entering,
-//   )   : exiting = List.unmodifiable(exiting),
-//         entering = List.unmodifiable(entering);
-// }
-
 class Transition {
   /// The starting leaf state of the transition.
   final StateKey from;
 
   /// The final leaf state of the transition.
   final StateKey to;
+
+  /// The least common ancestor (LCA) state of the transition.
+  ///
+  /// The LCA state is the parent state of the last state exited and the first state entered during
+  /// a transition, and consequently does not undergo a transition (that is, it is neither exited or
+  /// entered).
+  final StateKey lca;
 
   /// Complete list of states that were traversed (exited states followed by entered states) during
   /// the transition.
@@ -472,12 +460,11 @@ class Transition {
   Transition(
     this.from,
     this.to,
+    this.lca,
     Iterable<StateKey> exitPath,
     Iterable<StateKey> entryPath,
   )   : exitPath = List.unmodifiable(exitPath),
         entryPath = List.unmodifiable(entryPath);
-
-  StateKey get lca => throw UnimplementedError();
 }
 
 //==================================================================================================

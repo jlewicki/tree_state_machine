@@ -451,7 +451,7 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
   TreeNode get currentNode => _currentNode;
 
   Transition toTransition() {
-    return Transition(_requestedTransition.from, _currentNode.key, exited, entered);
+    return Transition(_requestedTransition.from, _currentNode.key, lca, exited, entered);
   }
 
   @override

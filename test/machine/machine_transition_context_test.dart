@@ -10,6 +10,31 @@ import 'fixture/state_data.dart';
 
 void main() {
   group('MachineTransitionContext', () {
+    group('lca', () {
+      test('should return least common ancestor for transition', () async {
+        final lcaByKey = <StateKey, StateKey?>{};
+        final buildTree = treeBuilder(
+            createEntryHandler: (key) => (ctx) {
+                  lcaByKey[key] = ctx.lca;
+                },
+            createExitHandler: (key) => (ctx) {
+                  lcaByKey[key] = ctx.lca;
+                },
+            messageHandlers: {
+              r_b_1_key: (ctx) => ctx.goTo(r_a_a_2_key),
+            });
+        final machine = createMachine(buildTree);
+        await machine.enterInitialState(r_b_1_key);
+        await machine.processMessage(Object());
+
+        expect(lcaByKey[r_a_a_2_key], equals(r_key));
+        expect(lcaByKey[r_a_a_key], equals(r_key));
+        expect(lcaByKey[r_a_key], equals(r_key));
+        expect(lcaByKey[r_b_key], equals(r_key));
+        expect(lcaByKey[r_b_1_key], equals(r_key));
+      });
+    });
+
     group('data', () {
       test('should return data for handling state', () async {
         final dataByKey = <StateKey, Object?>{};
