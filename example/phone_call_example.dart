@@ -101,9 +101,9 @@ Future<void> main() async {
   await stateMachine.transitions.first;
   assert(currentState.isInState(States.connected));
 
-  var sink = StringBuffer();
-  treeBuilder.format(sink, DotFormatter());
-  var dot = sink.toString();
+  // var sink = StringBuffer();
+  // treeBuilder.format(sink, DotFormatter());
+  // var dot = sink.toString();
   // var context = TreeBuildContext();
   // var node = treeBuilder.build(context);
 }
