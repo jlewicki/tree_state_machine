@@ -393,9 +393,10 @@ class TreeStateMachine {
 
 /// Describes the current leaf state of a [TreeStateMachine].
 ///
-/// [CurrentState] provides information about the current leaf state and its ancestor
-/// states, as well as the data value of any active data states.
-
+/// [CurrentState] provides information about the current leaf state and its ancestor states, as
+/// well as the data value of any active data states. These values change over time as messages
+/// are processed and state transitions occur.
+///
 /// Messages can be sent to the leaf state for processing using the [sendMessage] method.
 class CurrentState {
   /// The state machine for this current state.

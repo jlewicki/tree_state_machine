@@ -365,9 +365,10 @@ class UnhandledResult extends MessageResult {
 abstract class TransitionContext {
   /// The path of states describing the transition path that was requested.
   ///
-  /// If the [Transition.to] state of this path is a non-leaf state, then whne the transition
-  /// completes, the final state after the transition has completed will be a descendant state of
-  /// the [Transition.to] state.
+  /// Note that if a transition to a non-leaf state was requested, (that is, [Transition.to] of the
+  /// requested transition refers to a non-leaf state), then when the transition completes, the
+  /// current state will not be [Transition.to], but instead be a descendant state. This descendant
+  /// is determined by following the initial child path starting at [Transition.to].
   Transition get requestedTransition;
 
   /// The states that have been entered during this transition.
@@ -427,11 +428,16 @@ abstract class TransitionContext {
   });
 }
 
+/// Describes a transition between states.
+///
+/// Depending on usage, this may describe a transition that will take place (as with
+/// [TransitionContext.requestedTransition]), or a transition that has compeleted (as with
+/// [HandledMessage.transition]).
 class Transition {
   /// The starting leaf state of the transition.
   final StateKey from;
 
-  /// The final leaf state of the transition.
+  /// The destination state of the transition.
   final StateKey to;
 
   /// The least common ancestor (LCA) state of the transition.
@@ -441,20 +447,20 @@ class Transition {
   /// entered).
   final StateKey lca;
 
-  /// Complete list of states that were traversed (exited states followed by entered states) during
-  /// the transition.
+  /// Complete list of states participating in the transition, comprised of the exiting states
+  /// followed by the entering states.
   ///
   /// The first state in the list is [from], and the last state in the list is [to].
   late final List<StateKey> path = List.unmodifiable(exitPath.followedBy(entryPath));
 
-  /// The states that were exited during the transition.
+  /// The exiting states for this transition.
   ///
-  /// The order of the states in the list reflects the order the states were exited.
+  /// The order of the states in the list reflects the order of exit for the states.
   final List<StateKey> exitPath;
 
-  /// The states that were entered during the transition.
+  /// The entering states for this transition.
   ///
-  /// The order of the states in the list reflects the order the states were entered.
+  /// The order of the states in the list reflects the order of entry for the states.
   final List<StateKey> entryPath;
 
   Transition(
@@ -501,10 +507,6 @@ class HandledMessage extends ProcessedMessage {
     this.handlingState, [
     this.transition,
   ]) : super._(message, receivingState);
-
-  /// The
-  // Iterable<StateKey> get exitedStates => transition?.exitPath ?? const [];
-  // Iterable<StateKey> get enteredStates => transition?.entryPath ?? const [];
 }
 
 /// A [ProcessedMessage] indicating that none of the active states in the state machine recognized
