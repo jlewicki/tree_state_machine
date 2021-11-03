@@ -25,7 +25,7 @@ void main() {
         }));
         var currentState = await sm.start();
 
-        await currentState.sendMessage(Object());
+        await currentState.post(Object());
 
         expect(currentState.key, equals(tree.r_b_1_key));
       });
@@ -39,7 +39,7 @@ void main() {
         var currentState = await sm.start();
 
         var msg = Object();
-        var result = await currentState.sendMessage(msg);
+        var result = await currentState.post(msg);
 
         expect(result, isA<HandledMessage>());
         final handled = result as HandledMessage;
@@ -63,9 +63,9 @@ void main() {
         ));
         var currentState = await sm.start();
 
-        final msg1Future = currentState.sendMessage(msg1);
-        final msg2Future = currentState.sendMessage(msg2);
-        final msg3Future = currentState.sendMessage(msg3);
+        final msg1Future = currentState.post(msg1);
+        final msg2Future = currentState.post(msg2);
+        final msg3Future = currentState.post(msg3);
 
         await Future.wait([msg1Future, msg2Future, msg3Future]);
         expect(currentState.key, equals(tree.r_b_2_key));
@@ -188,7 +188,7 @@ void main() {
 
         LeafData2? nextValue;
         currentState.data<LeafData2>()!.listen((value) => nextValue = value);
-        await currentState.sendMessage(Object());
+        await currentState.post(Object());
 
         expect(nextValue, isNotNull);
         expect(nextValue!.label, 'not cool man');
@@ -209,7 +209,7 @@ void main() {
         });
         expect(subscription, isNotNull);
 
-        await currentState.sendMessage(Object());
+        await currentState.post(Object());
 
         expect(isDone, isTrue);
       });

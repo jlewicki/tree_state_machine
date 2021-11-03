@@ -96,7 +96,7 @@ Future<void> main() async {
   var stateMachine = TreeStateMachine(treeBuilder);
   var currentState = await stateMachine.start();
 
-  await currentState.sendMessage(Dial('Carolyn'));
+  await currentState.post(Dial('Carolyn'));
   assert(currentState.key == States.ringing);
   await stateMachine.transitions.first;
   assert(currentState.isInState(States.connected));

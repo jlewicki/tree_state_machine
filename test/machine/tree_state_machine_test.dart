@@ -22,7 +22,7 @@ void main() {
         }));
         var currentState = await sm.start();
 
-        await currentState.sendMessage(Object());
+        await currentState.post(Object());
 
         //expect(sm.currentState, isNotNull);
         expect(currentState.key, equals(tree.r_a_a_1_key));
@@ -39,7 +39,7 @@ void main() {
             StreamQueue(sm.processedMessages).next.then((pm) => firstEvent ??= pm);
         final nextTransition = StreamQueue(sm.transitions).next.then((t) => firstEvent ??= t);
 
-        await currentState.sendMessage(Object());
+        await currentState.post(Object());
         await Future.any([nextProcessedMessage, nextTransition]);
 
         expect(firstEvent, isA<ProcessedMessage>());
@@ -55,7 +55,7 @@ void main() {
 
         final msg = Object();
         final qItems = await Future.wait(
-          [processedMessagesQ.next, currentState.sendMessage(msg)],
+          [processedMessagesQ.next, currentState.post(msg)],
         );
 
         final msgProcessed = qItems[0];
@@ -71,7 +71,7 @@ void main() {
         var currentState = await sm.start();
 
         final message = Object();
-        final result = await currentState.sendMessage(message);
+        final result = await currentState.post(message);
 
         expect(result, isA<FailedMessage>());
         final error = result as FailedMessage;
@@ -91,7 +91,7 @@ void main() {
 
         final msg = Object();
         final qItems = await Future.wait(
-          [errorsQ.next, currentState.sendMessage(msg)],
+          [errorsQ.next, currentState.post(msg)],
         );
 
         final msgProcessed = qItems[0];
@@ -119,7 +119,7 @@ void main() {
 
         final msg = Object();
         final qItems = await Future.wait(
-          [errorsQ.next, currentState.sendMessage(msg)],
+          [errorsQ.next, currentState.post(msg)],
         );
 
         final msgProcessed = qItems[0];
@@ -147,7 +147,7 @@ void main() {
 
         final msg = Object();
         final qItems = await Future.wait(
-          [errorsQ.next, currentState.sendMessage(msg)],
+          [errorsQ.next, currentState.post(msg)],
         );
 
         final msgProcessed = qItems[0];
@@ -167,7 +167,7 @@ void main() {
         var currentState = await sm.start();
 
         final message = Object();
-        final result = await currentState.sendMessage(message);
+        final result = await currentState.post(message);
 
         expect(result, isA<FailedMessage>());
         final error = result as FailedMessage;
@@ -189,7 +189,7 @@ void main() {
         var currentState = await sm.start();
 
         final message = Object();
-        final result = await currentState.sendMessage(message);
+        final result = await currentState.post(message);
 
         expect(result, isA<FailedMessage>());
         final error = result as FailedMessage;
@@ -226,7 +226,7 @@ void main() {
         }));
         var currentState = await sm.start();
 
-        await currentState.sendMessage(Object());
+        await currentState.post(Object());
         expect(sm.isDone, isTrue);
       });
     });
@@ -521,13 +521,13 @@ void main() {
         expect(await r_a_a_queue.next, equals('me'));
 
         // Go to r_a_a_1
-        await currentState.sendMessage(Object());
+        await currentState.post(Object());
         expect(currentState.key, equals(data_tree.r_a_a_1_key));
         expect(await r_a_a_2_queue.next, equals('not cool man'));
         expect(await r_a_a_queue.next, equals('you'));
 
         // Go to r_a_a_2
-        await currentState.sendMessage(Object());
+        await currentState.post(Object());
         expect(currentState.key, equals(data_tree.r_a_a_2_key));
         // We entered r_a_a_2 (again), so a new data value was created, so it pushed its value
         // of 'cool' immediately to the r_a_a_2_stream subscription (because value subjects
@@ -536,7 +536,7 @@ void main() {
         expect(await r_a_a_queue.next, equals('you!'));
 
         // Go to r_a_a_1
-        await currentState.sendMessage(Object());
+        await currentState.post(Object());
         expect(currentState.key, equals(data_tree.r_a_a_1_key));
         expect(await r_a_a_2_queue.next, equals('not cool man'));
         expect(await r_a_a_queue.next, equals('you'));
@@ -575,13 +575,13 @@ void main() {
         expect(await r_a_a_queue.next, equals('me'));
 
         // Go to r_a_a_1
-        await currentState.sendMessage(Object());
+        await currentState.post(Object());
         expect(currentState.key, equals(data_tree.r_a_a_1_key));
         expect(await r_a_a_2_queue.next, equals('not cool man'));
         expect(await r_a_a_queue.next, equals('you'));
 
         // Go to r_a_a_2
-        await currentState.sendMessage(Object());
+        await currentState.post(Object());
         expect(currentState.key, equals(data_tree.r_a_a_2_key));
         // We entered r_a_a_2 (again), so a new data value was created, so it pushed its value
         // of 'cool' immediately to the r_a_a_2_stream subscription (because value subjects
@@ -590,7 +590,7 @@ void main() {
         expect(await r_a_a_queue.next, equals('you!'));
 
         // Go to r_a_a_1
-        await currentState.sendMessage(Object());
+        await currentState.post(Object());
         expect(currentState.key, equals(data_tree.r_a_a_1_key));
         expect(await r_a_a_2_queue.next, equals('not cool man'));
         expect(await r_a_a_queue.next, equals('you'));
@@ -622,7 +622,7 @@ void main() {
         ));
 
         var currentState = await sm.start(data_tree.r_a_a_2_key);
-        await currentState.sendMessage(_GoToMessage(data_tree.r_b_1_key));
+        await currentState.post(_GoToMessage(data_tree.r_b_1_key));
 
         // State machine is started, but in state r_b_1, so the states we subscribe to here are
         // no longer active
@@ -631,7 +631,7 @@ void main() {
         var r_a_a_stream = sm.dataStream<LeafDataBase>(data_tree.r_a_a_key).map((d) => d.name!);
         var r_a_a_queue = StreamQueue<String>(r_a_a_stream);
 
-        await currentState.sendMessage(Object());
+        await currentState.post(Object());
 
         // Subscribers will be notified immediately of current values
         expect(currentState.key, equals(data_tree.r_a_a_2_key));
@@ -639,13 +639,13 @@ void main() {
         expect(await r_a_a_queue.next, equals('me'));
 
         // Go to r_a_a_1
-        await currentState.sendMessage(_GoToMessage(data_tree.r_a_a_1_key));
+        await currentState.post(_GoToMessage(data_tree.r_a_a_1_key));
         expect(currentState.key, equals(data_tree.r_a_a_1_key));
         expect(await r_a_a_2_queue.next, equals('not cool man'));
         expect(await r_a_a_queue.next, equals('you'));
 
         // Go to r_a_a_2
-        await currentState.sendMessage(Object());
+        await currentState.post(Object());
         expect(currentState.key, equals(data_tree.r_a_a_2_key));
         // We entered r_a_a_2 (again), so a new data value was created, so it pushed its initial value
         // of 'cool' immediately to the r_a_a_2_stream subscription (because value subjects
@@ -654,7 +654,7 @@ void main() {
         expect(await r_a_a_queue.next, equals('you!'));
 
         // Go to r_a_a_1
-        await currentState.sendMessage(_GoToMessage(data_tree.r_a_a_1_key));
+        await currentState.post(_GoToMessage(data_tree.r_a_a_1_key));
         expect(currentState.key, equals(data_tree.r_a_a_1_key));
         expect(await r_a_a_2_queue.next, equals('not cool man'));
         expect(await r_a_a_queue.next, equals('you'));

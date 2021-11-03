@@ -16,7 +16,7 @@ import 'utility.dart';
 /// A [TreeStateMachine] is constructed with a [StateTreeBuilder] that will create the specific
 /// tree of states that the state machine manages. After the state machine is constructed, calling
 /// [start] will enter the initial state for the tree, and return a [CurrentState] that serves as
-/// a proxy for the current state of the state tree. [CurrentState.sendMessage] can be used to send
+/// a proxy for the current state of the state tree. [CurrentState.post] can be used to send
 /// a message to the state for processing, which may result in a transition to a new state.
 /// ```dart
 ///   var stateTreeBuilder = createTreeBuilder();
@@ -48,7 +48,7 @@ import 'utility.dart';
 /// [TreeState.onEnter] handler of one of the states that is being entered.
 ///
 /// In either case the state machine catches the error internally, converts it to a [FailedMessage],
-/// and yields it from he future returned from [CurrentState.sendMessage]. The [FailedMessage] is
+/// and yields it from he future returned from [CurrentState.post]. The [FailedMessage] is
 /// also emitted on he [failedMessages] stream.
 ///
 /// See also:
@@ -397,7 +397,7 @@ class TreeStateMachine {
 /// well as the data value of any active data states. These values change over time as messages
 /// are processed and state transitions occur.
 ///
-/// Messages can be sent to the leaf state for processing using the [sendMessage] method.
+/// Messages can be sent to the leaf state for processing using the [post] method.
 class CurrentState {
   /// The state machine for this current state.
   final TreeStateMachine stateMachine;
@@ -456,12 +456,12 @@ class CurrentState {
 
   /// Sends the specified message to the current leaf state for processing.
   ///
-  /// Messages are buffered and processed in-order, so it is safe to call [sendMessage] multiple
+  /// Messages are buffered and processed in-order, so it is safe to call [post] multiple
   /// times without waiting for the futures returned by earlier calls to complete.
   ///
   /// Returns a future that yields a [ProcessedMessage] describing how the message was processed,
   /// and any state transition that occured.
-  Future<ProcessedMessage> sendMessage(Object message) {
+  Future<ProcessedMessage> post(Object message) {
     return stateMachine._queueMessage(message);
   }
 }

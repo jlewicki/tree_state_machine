@@ -29,9 +29,9 @@ Future<void> main() async {
   var currentState = await stateMachine.start();
   assert(currentState.key == States.locked);
 
-  await currentState.sendMessage(Messages.insertCoin);
+  await currentState.post(Messages.insertCoin);
   assert(currentState.key == States.unlocked);
 
-  await currentState.sendMessage(Messages.push);
+  await currentState.post(Messages.push);
   assert(currentState.key != States.locked);
 }
