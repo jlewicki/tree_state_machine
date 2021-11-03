@@ -177,16 +177,23 @@ reached. This path of states is called the initial path, and the machine will ca
 path.
 
 When all the states along the path have been entered, the state at the end of the path becomes the current state of the 
-state machine, and messages may be sent to this state for processing.
+state machine.
+
+## Sending messages
+Once a state machine has started, a message may be dispatched to the current leaf state using the `post` method of 
+`CurrentState`. This returns a future that completes when the message has been processed and any resulting transition 
+has completed.
 ```dart
 var message = SubmitCredentials(username: 'foo', password: 'bar');
 var messageResult = await currentState.post(message);
 ```
 
 ## State machine streams
-In addition to inspecting the results of sendMessage to learn about how a message was processed, it is also possible to subscribe to several stream properties of TreeStateMachine:
+In addition to inspecting the results of sendMessage to learn about how a message was processed, it is also possible to 
+subscribe to several stream properties of TreeStateMachine:
 
-* `processedMessages` yields an event for every message that is processed by the tree, whether or not the message was handled successfully, and whether or not a transition occurred as a result of the message.
+* `processedMessages` yields an event for every message that is processed by the tree, whether or not the message was 
+handled successfully, and whether or not a transition occurred as a result of the message.
 * `handledMessages` is a convenience stream that yield an event when only when a message is successfully handled. Note 
 that the HandledMessage event is also emitted on the processedMessages stream.
 * `transitions` yields an event each time a transition between states occurs.
