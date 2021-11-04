@@ -61,7 +61,8 @@ States often require additional data to model their behavior. For example, a 'co
 value to store the number of times an event occured. The data value(s) needed by a state are collectively referred to as
 state data (or more formally, extended state variables).  
   
-A data state can be defined using the `dataState` method, providing the type of state data as a type parameter. An `InitialData` must be provided, indicating how to create the initial value of the state data when the state is entered. 
+A data state can be defined using the `dataState` method, providing the type of state data as a type parameter. An 
+`InitialData` must be provided, indicating how to create the initial value of the state data when the state is entered. 
 ```dart
 class LoginData {
    String username = '';
@@ -79,6 +80,16 @@ treeBuilder.dataState<LoginData>(
    initialChild: InitialChild(States.loginEntry),
 );
 ```
+
+### Final States
+States may be delared as final states. Once a final state has been entered, no further message processing or state 
+transitions will occur, and the state tree is considered ended, or complete. Note that a final state is always 
+considered a child of the root state, and may not have any child states.
+```dart
+treeBuilder.finalState(States.lockedOut, (stateBuilder) {
+   // Use state builder to define entry behavior for the state
+});
+``` 
 
 ## Message Handlers
 The way a state responds to a message is defined by the `MessageHandler` function for the state. A message handler is 
@@ -171,14 +182,6 @@ that yields a `CurrentState` that serves as a proxy to the current state after t
 var currentState = await stateMachine.start();
 ```
 
-When the machine is started, the machine determines determine a path of states, starting at the root and ending at a 
-leaf state, by recursively determining the `initialChild` at each level of the tree until a state with no children is
-reached. This path of states is called the initial path, and the machine will call `onEnter` for each state along this 
-path.
-
-When all the states along the path have been entered, the state at the end of the path becomes the current state of the 
-state machine.
-
 ## Sending messages
 Once a state machine has started, a message may be dispatched to the current leaf state using the `post` method of 
 `CurrentState`. This returns a future that completes when the message has been processed and any resulting transition 
@@ -189,7 +192,7 @@ var messageResult = await currentState.post(message);
 ```
 
 ## State machine streams
-In addition to inspecting the results of sendMessage to learn about how a message was processed, it is also possible to 
+In addition to inspecting the results of `post` to learn about how a message was processed, it is also possible to 
 subscribe to several stream properties of TreeStateMachine:
 
 * `processedMessages` yields an event for every message that is processed by the tree, whether or not the message was 
@@ -198,16 +201,15 @@ handled successfully, and whether or not a transition occurred as a result of th
 that the HandledMessage event is also emitted on the processedMessages stream.
 * `transitions` yields an event each time a transition between states occurs.
 
-## Stopping a state machine
-`TreeStateMachine` has a `stop` method, which is alternate way of ending the state machine. This will transition the 
-state machine to an implicit final state, identified by `stoppedStateKey`. This state will always be available, and does
-not need to be added when defining a state tree. 
-
-Once the stopped state has been entered, the state machine is ended in the same manner as if a state transition to a 
-final state was triggered by message processing. You can consider triggering a transition to a final state as 
-'internally stopping' the state machine, and calling the stop method as 'externally stopping' it.
-```dart
-await stateMachine.stop();
-// done will be true after stopping.
-var done = stateMachine.isDone;
-```
+## Ending a state machine
+A state machine can end in two ways.
+* When processing a message, if the state machine transitions to a final state, then no other message processing or 
+state transitions will occur, and the state machine has ended. This is called an 'internal stop'.
+* Calling `stop` on the state machine will transition the machine to an implicit final state, identified by 
+`stoppedStateKey`. This state will always be available, and does not need to be added when defining a state tree. This
+is called an 'external stop'.
+   ```dart
+   await stateMachine.stop();
+   // done will be true after stopping.
+   var done = stateMachine.isDone;
+   ```

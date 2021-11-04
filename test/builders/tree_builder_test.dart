@@ -225,6 +225,13 @@ void main() {
         sb.state(state3, emptyState, parent: state1);
         expect(() => sb.build(TreeBuildContext()), throwsStateError);
       });
+
+      test('should throw if a parent state is a final state', () {
+        var sb = StateTreeBuilder(initialState: state1);
+        sb.finalState(state1, emptyFinalState);
+        sb.state(state2, emptyState, parent: state1);
+        expect(() => sb.build(TreeBuildContext()), throwsStateError);
+      });
     });
   });
 }

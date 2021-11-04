@@ -280,6 +280,8 @@ class StateTreeBuilder {
       var parentState = _stateBuilders[parentKey];
       if (parentState == null) {
         throw StateError('Unable to find parent state $parentKey for state ${entry.key}');
+      } else if (parentState.isFinal) {
+        throw StateError('State ${entry.key} has final state ${parentState.key} as a parent');
       }
       if (!parentState._children.any((c) => c == entry.value.key)) {
         parentState._children.add(entry.value.key);

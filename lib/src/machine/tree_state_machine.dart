@@ -25,9 +25,16 @@ import 'utility.dart';
 ///   var currentState = await stateMachine.start();
 ///   print('The current state is ${currentState.key}');
 ///
-///   var messageProcessed = await currentState.sendMessage(MyMessage());
+///   var messageProcessed = await currentState.post(MyMessage());
 ///   print('The current state after processing a message is ${currentState.key}');
 /// ```
+///
+/// When the machine is started, the machine determines determine a path of states, starting at the
+/// root and ending at a leaf state, by recursively determining the `initialChild` at each level of
+/// the tree until a state with no children is reached. This path of states is called the initial
+/// path, and the machine will call `onEnter` for each state along this path. When all the states
+/// along the path have been entered, the state at the end of the path becomes the current state of
+/// the state machine.
 ///
 /// ## Event Streams
 ///
