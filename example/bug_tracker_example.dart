@@ -90,11 +90,25 @@ void sendEmailToAssignee(BugData bug, String message) {
   print('${bug.assignee}, RE ${bug.title}: $message');
 }
 
-void main() {
-  // var treeBuilder = bugTrackerStateTree();
-  // var sink = StringBuffer();
-  // treeBuilder.format(sink, DotFormatter());
-  // var dot = sink.toString();
-  // var context = TreeBuildContext();
-  // var node = treeBuilder.build(context);
+void main() async {
+  var treeBuilder = bugTrackerStateTree();
+  var stateMachine = TreeStateMachine(treeBuilder);
+
+  var currentState = await stateMachine.start();
+  assert(currentState.key == States.unassigned);
+
+  await currentState.post(Assign('Joey'));
+  assert(currentState.key == States.assigned);
+  assert(currentState.dataValue<BugData>()!.assignee == 'Joey');
+
+  await currentState.post(Messages.defer);
+  assert(currentState.key == States.deferred);
+  assert(currentState.dataValue<BugData>()!.assignee == null);
+
+  await currentState.post(Assign('Rachel'));
+  assert(currentState.key == States.assigned);
+  assert(currentState.dataValue<BugData>()!.assignee == 'Rachel');
+
+  await currentState.post(Messages.close);
+  assert(currentState.key == States.closed);
 }

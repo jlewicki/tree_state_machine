@@ -242,8 +242,8 @@ abstract class MessageContext {
   /// transition, and can be used to provide additional application specific context describing
   /// the transition.
   ///
-  /// A `reenterTarget` flag may be optionally specified. If `true`, and the target state an active
-  /// state, then the target state will be exited and entered, calling [TreeState.onExit] and
+  /// A `reenterTarget` flag may be optionally specified. If `true`, and the target state is an
+  /// active state, then the target state will be exited and entered, calling [TreeState.onExit] and
   /// [TreeState.onEnter], during the transition.
   MessageResult goTo(
     StateKey targetStateKey, {

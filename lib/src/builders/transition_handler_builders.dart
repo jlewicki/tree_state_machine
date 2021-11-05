@@ -130,7 +130,7 @@ class TransitionHandlerBuilderWithPayload<P> {
   void updateData<D>(D Function(TransitionContext transCtx, D current, P payload) update,
       {String? label}) {
     _handler = _TransitionHandlerDescriptor.updateData<D>(
-      (transCtx, current) => update(transCtx, current, transCtx.payloadOrThrow()<P>()),
+      (transCtx, current) => update(transCtx, current, transCtx.payloadOrThrow<P>()),
       label,
     );
   }
@@ -227,18 +227,6 @@ class TransitionHandlerBuilderWithDataAndPayload<D, P> {
       label,
     );
   }
-
-  // TransitionHandlerWhenWithDataBuilder<D> when(
-  //   FutureOr<bool> Function(TransitionContext msgCtx, D data) condition,
-  //   void Function(TransitionHandlerBuilderWithData<D>) buildTrueHandler, {
-  //   String? label,
-  // }) {
-  //   var trueBuilder = TransitionHandlerBuilderWithData<D>._(_forState);
-  //   buildTrueHandler(trueBuilder);
-  //   var conditions = [_TransitionConditionWithContext<D>(condition, trueBuilder._handler!, label)];
-  //   _handler = _TransitionWhenDescriptor.createForData(conditions, label);
-  //   return TransitionHandlerWhenWithDataBuilder<D>(_forState, conditions);
-  // }
 }
 
 class TransitionHandlerWhenBuilder {
