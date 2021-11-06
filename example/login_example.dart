@@ -130,6 +130,9 @@ StateTreeBuilder loginStateTree(AuthService authService) {
     InitialData(() => RegisterData()),
     (b) {
       b.onMessageValue(Messages.submitRegistration, (b) {
+        // Model the registration action as an asynchrous Result. The 'registering' status while the
+        // operation is in progress is modeled as flag in RegisterData, and a state transition (to
+        // Authenticated) does not occur until the operation is complete.
         b.whenResult<AuthorizedUser>(
           (msgCtx, msg, data) => _register(msgCtx, data, authService),
           (b) {
@@ -174,6 +177,9 @@ StateTreeBuilder loginStateTree(AuthService authService) {
 
   b.state(States.loginEntry, (b) {
     b.onMessage<SubmitCredentials>((b) {
+      // Model the 'logging in' status as a distinct state in the state machibne. This is an
+      // alternative design to modeling with a flag in state data, as was done with 'registering'
+      // status.
       b.enterChannel(authenticatingChannel, (_, msg) => msg);
     });
   }, parent: States.login);
@@ -292,4 +298,22 @@ void main() async {
   await currentState.post(Messages.logout);
   assert(currentState.key == States.splash);
   assert(currentState.isInState(States.unauthenticated));
+
+  await currentState.post(Messages.goToRegister);
+  assert(currentState.key == States.credentialsRegistration);
+  assert(currentState.isInState(States.registration));
+
+  await currentState.post(SubmitCredentials('phoebes@smellycat.com', 'imnotursala'));
+  assert(currentState.key == States.demographicsRegistration);
+
+  await currentState.post(SubmitDemographics('Phoebe', 'Buffay'));
+
+  authService.doRegister = (req) async {
+    return Result.value(AuthorizedUser('Phoebe', 'Buffay', 'phoebes@smellycat.com'));
+  };
+  await currentState.post(Messages.submitRegistration);
+
+  assert(currentState.key == States.userHome);
+  assert(currentState.isInState(States.authenticated));
+  assert(currentState.dataValue<AuthenticatedData>()!.user.email == 'phoebes@smellycat.com');
 }
