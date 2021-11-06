@@ -22,6 +22,11 @@ class Dial {
   Dial(this.callee);
 }
 
+class SetVolume {
+  final int level;
+  SetVolume(this.level);
+}
+
 enum Messages {
   placedOnHold,
   takenOffHold,
@@ -30,6 +35,7 @@ enum Messages {
   muteMicrophone,
   unmuteMicrophone,
   phoneHurledAgainstWall,
+  hangUp,
 }
 
 //
@@ -56,10 +62,12 @@ StateTreeBuilder phoneCallStateTree() {
     ..state(States.connected, (b) {
       b.onEnter((b) => b.run(onCallStarted));
       b.onExit((b) => b.run(onCallEnded));
-      b.onMessageValue(Messages.muteMicrophone, (b) => b.stay(action: b.act.run(onMute)));
-      b.onMessageValue(Messages.unmuteMicrophone, (b) => b.stay(action: b.act.run(onUnmute)));
+      b.onMessageValue(Messages.muteMicrophone, (b) => b.action(b.act.run(onMute)));
+      b.onMessageValue(Messages.unmuteMicrophone, (b) => b.action(b.act.run(onUnmute)));
+      b.onMessage<SetVolume>((b) => b.action(b.act.run(onSetVolume)));
       b.onMessageValue(Messages.leftMessage, (b) => b.goTo(States.offHook));
       b.onMessageValue(Messages.placedOnHold, (b) => b.goTo(States.onHold));
+      b.onMessageValue(Messages.hangUp, (b) => b.goTo(States.offHook));
     }, initialChild: InitialChild(States.talking))
     ..state(States.talking, emptyState, parent: States.connected)
     ..state(States.onHold, (b) {
@@ -91,6 +99,10 @@ void onUnmute(MessageContext ctx, Object? msg) {
   print('Microphone unmuted.');
 }
 
+void onSetVolume(MessageContext ctx, SetVolume msg) {
+  print('Volume set to ${msg.level}');
+}
+
 Future<void> main() async {
   var treeBuilder = phoneCallStateTree();
   var stateMachine = TreeStateMachine(treeBuilder);
@@ -98,12 +110,19 @@ Future<void> main() async {
 
   await currentState.post(Dial('Carolyn'));
   assert(currentState.key == States.ringing);
+
   await stateMachine.transitions.first;
   assert(currentState.isInState(States.connected));
+  assert(currentState.key == States.talking);
 
-  // var sink = StringBuffer();
-  // treeBuilder.format(sink, DotFormatter());
-  // var dot = sink.toString();
-  // var context = TreeBuildContext();
-  // var node = treeBuilder.build(context);
+  await currentState.post(SetVolume(4));
+
+  await currentState.post(Messages.placedOnHold);
+  assert(currentState.isInState(States.onHold));
+
+  await currentState.post(Messages.takenOffHold);
+  assert(currentState.key == States.talking);
+
+  await currentState.post(Messages.hangUp);
+  assert(currentState.key == States.offHook);
 }
