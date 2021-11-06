@@ -16,7 +16,6 @@ include: package:lints/recommended.yaml
 analyzer:
   strong-mode:
     implicit-casts: false
-    # implicit-dynamic: false
 
 # Uncomment the following section to specify additional rules.
 
