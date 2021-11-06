@@ -63,13 +63,11 @@ class _GoToDescriptor extends _MessageHandlerDescriptor implements _GoToInfo {
       (msgCtx) {
         var msg = msgCtx.messageAsOrThrow<M>();
         var data = msgCtx.dataValueOrThrow<D>();
-        var _action = action?._action ?? _MessageAction._empty;
+        var _action = action?._action ?? _MessageActionWithData._empty;
         var _payload = payload ?? _emptyDataPayload;
-        return _action(msgCtx, msg).bind((_) => _payload(msgCtx, msg, data).bind((p) => msgCtx.goTo(
-            targetState,
-            payload: p,
-            transitionAction: transitionAction,
-            reenterTarget: reenterTarget)));
+        return _action(msgCtx, msg, data).bind((_) => _payload(msgCtx, msg, data).bind((p) =>
+            msgCtx.goTo(targetState,
+                payload: p, transitionAction: transitionAction, reenterTarget: reenterTarget)));
       },
       action != null ? [action] : [],
       label,

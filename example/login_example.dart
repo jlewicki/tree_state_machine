@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:async/async.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'package:tree_state_machine/tree_builders.dart';
@@ -63,7 +65,10 @@ class SubmitDemographics {
   SubmitDemographics(this.firstName, this.lastName);
 }
 
-typedef AuthFuture = Future<Result<AuthorizedUser>>;
+class AuthFuture {
+  final FutureOr<Result<AuthorizedUser>> futureOr;
+  AuthFuture(this.futureOr);
+}
 
 enum Messages { goToLogin, goToRegister, back, logout, submitRegistration }
 
@@ -178,7 +183,7 @@ StateTreeBuilder loginStateTree(AuthService authService) {
       b.post<AuthFuture>(getValue: (_, creds) => _login(creds, authService));
     });
     b.onMessage<AuthFuture>((b) {
-      b.whenResult<AuthorizedUser>((_, msg) => msg, (b) {
+      b.whenResult<AuthorizedUser>((_, msg) => msg.futureOr, (b) {
         b.enterChannel<AuthorizedUser>(authenticatedChannel, (_, __, user) => user);
       }).otherwise((b) {
         b.goTo(
@@ -206,8 +211,8 @@ StateTreeBuilder loginStateTree(AuthService authService) {
 
   b.dataState<HomeData>(
     States.userHome,
-    InitialData.fromAncestor(
-        (AuthorizedUser user) => HomeData()..userSplashText = 'Welcome ' + user.firstName),
+    InitialData.fromAncestor((AuthenticatedData authData) =>
+        HomeData()..userSplashText = 'Welcome ' + authData.user.firstName),
     (b) {},
     parent: States.authenticated,
   );
@@ -216,7 +221,7 @@ StateTreeBuilder loginStateTree(AuthService authService) {
 }
 
 AuthFuture _login(SubmitCredentials creds, AuthService authService) {
-  return authService.authenticate(creds);
+  return AuthFuture(authService.authenticate(creds));
 }
 
 Future<Result<AuthorizedUser>> _register(
@@ -245,22 +250,46 @@ Future<Result<AuthorizedUser>> _register(
 }
 
 class MockAuthService implements AuthService {
-  @override
-  Future<Result<AuthorizedUser>> authenticate(AuthenticationRequest request) async {
-    return Result.error('nope');
-  }
+  Future<Result<AuthorizedUser>> Function(AuthenticationRequest) doAuthenticate;
+  Future<Result<AuthorizedUser>> Function(RegistrationRequest) doRegister;
+  MockAuthService(this.doAuthenticate, this.doRegister);
 
   @override
-  Future<Result<AuthorizedUser>> register(RegistrationRequest request) async {
-    return Result.error('nope');
-  }
+  Future<Result<AuthorizedUser>> authenticate(AuthenticationRequest request) =>
+      doAuthenticate(request);
+
+  @override
+  Future<Result<AuthorizedUser>> register(RegistrationRequest request) => doRegister(request);
 }
 
-void main() {
-  // var treeBuilder = loginStateTree(MockAuthService());
-  // var sink = StringBuffer();
-  // treeBuilder.format(sink, DotFormatter());
-  // var dot = sink.toString();
-  // var context = TreeBuildContext();
-  // var node = treeBuilder.build(context);
+void main() async {
+  var authService = MockAuthService(
+    (req) async => Result.error('nope'),
+    (req) async => Result.error('nope'),
+  );
+
+  var treeBuilder = loginStateTree(authService);
+  var stateMachine = TreeStateMachine(treeBuilder);
+  var currentState = await stateMachine.start();
+  assert(currentState.key == States.splash);
+  assert(currentState.isInState(States.unauthenticated));
+
+  await currentState.post(Messages.goToLogin);
+  assert(currentState.key == States.loginEntry);
+  assert(currentState.isInState(States.login));
+
+  authService.doAuthenticate = (req) async {
+    return Result.value(AuthorizedUser('Chandler', 'Bing', 'chandler.bing@hotmail.com'));
+  };
+  await currentState.post(SubmitCredentials('chandler.bing@hotmail.com', 'friends123'));
+
+  // Wait for login to complete
+  await stateMachine.transitions.first;
+  assert(currentState.key == States.userHome);
+  assert(currentState.isInState(States.authenticated));
+  assert(currentState.dataValue<AuthenticatedData>()!.user.email == 'chandler.bing@hotmail.com');
+
+  await currentState.post(Messages.logout);
+  assert(currentState.key == States.splash);
+  assert(currentState.isInState(States.unauthenticated));
 }

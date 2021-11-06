@@ -59,7 +59,7 @@ class _TransitionHandlerDescriptor {
       _TransitionHandlerType.post,
       TypeLiteral<M>().type,
       (transCtx) {
-        transCtx.post(() => getValue(transCtx) as Object);
+        transCtx.post(getValue(transCtx) as Object);
       },
       label,
     );

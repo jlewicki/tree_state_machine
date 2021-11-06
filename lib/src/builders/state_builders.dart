@@ -225,6 +225,9 @@ abstract class _StateBuilderBase {
         return messageHandler(msgCtx);
       }
       var msg = msgCtx.message;
+      // Note thay if message handlers were registered by message type, that means runtime type of
+      // a message must exactly match the registered type. That is, a message cannot be a subclass
+      // of the registered type.
       var descriptor = handlerMap[msg] ?? handlerMap[msg.runtimeType];
       return descriptor?.handler(msgCtx) ?? msgCtx.unhandled();
     };

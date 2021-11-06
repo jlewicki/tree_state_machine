@@ -111,6 +111,7 @@ Future<void> main() async {
   await currentState.post(Dial('Carolyn'));
   assert(currentState.key == States.ringing);
 
+  // Wait for call to be connected
   await stateMachine.transitions.first;
   assert(currentState.isInState(States.connected));
   assert(currentState.key == States.talking);

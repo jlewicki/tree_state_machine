@@ -3,8 +3,11 @@
 `tree_state_machine` is a Dart package for defining and executing hierarchical state machines.
 
 ## Features
+* Hierarchical state trees
+* Asynchronous message processing
+* Stream based event notifications
+* Declarative state definitions with automated generation of state diagrams in DOT format 
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
 
 ## Getting Started
 The primary API for the working with a tree state machine is provided by the `tree_state_machine` library. The API for 
@@ -46,7 +49,10 @@ treeBuilder.state(States.unauthenticated, (stateBuilder) {
 See [Message Handlers](#Message-Handlers) to see how to use the state builder.
 
 ### Child States
-A state can be defined as a child of another state by specifying `parent` when the state is declared. Once a state has 
+A state can be defined as a child of another state by specifying `parent` when the state is declared. If a state does 
+not handle a message, the parent state will have an opportunity to handle it.  
+
+Once a state has 
 been assigned a parent, the parent state must define which of its child states must be entered when the parent is 
 entered using `initialChild`.
 ```dart
