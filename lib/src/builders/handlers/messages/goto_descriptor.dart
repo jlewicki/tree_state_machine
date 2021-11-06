@@ -139,7 +139,7 @@ class _ContinuationGoToDescriptor<T>
       targetState,
       (ctx) => (msgCtx) {
         var msg = msgCtx.messageAsOrThrow<M>();
-        var data = throwIfNull ? msgCtx.dataValueOrThrow<D>() : msgCtx.dataValueOrThrow()<D>();
+        var data = throwIfNull ? msgCtx.dataValueOrThrow<D>() : msgCtx.dataValueOrThrow<D>();
         var _action = action?._action ?? _ContinuationMessageActionWithData._empty;
         var _payload = payload ?? _emptyContinuationWithDataPayload;
         return _action(msgCtx, msg, data, ctx)

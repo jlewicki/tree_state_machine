@@ -13,7 +13,7 @@ void main() {
   group('MachineMessageContext', () {
     group('data', () {
       test('should return data for handling state', () async {
-        final dataByKey = <StateKey, Object>{};
+        final dataByKey = <StateKey, dynamic>{};
         final buildTree = treeBuilder(
           createMessageHandler: (key) => (ctx) {
             dataByKey[key] = ctx.data(key)!.value;
@@ -31,7 +31,7 @@ void main() {
       });
 
       test('should return data for state referenced by key', () async {
-        final dataByKey = <StateKey, Object>{};
+        final dataByKey = <StateKey, dynamic>{};
         final buildTree = treeBuilder(
           createMessageHandler: (key) => (ctx) {
             // Look up data for ancestor state

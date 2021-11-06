@@ -347,7 +347,7 @@ class TreeStateMachine {
               'specified for state ${node.key}');
         }
 
-        var stateData = (node.dataCodec!).deserialize(es.encodedStateData);
+        var stateData = (node.dataCodec!).deserialize(es.encodedStateData) as Object;
         (node.state as DataTreeState).setValue(stateData);
       }
     }

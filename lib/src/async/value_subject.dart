@@ -39,7 +39,7 @@ abstract class ValueStream<T> implements Stream<T> {
 /// libraries.
 class ValueSubject<T> extends StreamView<T> implements Subject<T>, ValueStream<T> {
   StreamController<T> _controller;
-  _CurrentValue _currentValue;
+  _CurrentValue<T> _currentValue;
   bool _sync;
 
   ValueSubject._(this._controller, this._currentValue, this._sync) : super(_controller.stream);
@@ -49,7 +49,7 @@ class ValueSubject<T> extends StreamView<T> implements Subject<T>, ValueStream<T
   /// The subject has no value until [add] is called for the first time.
   factory ValueSubject({bool sync = false}) {
     var controller = StreamController<T>.broadcast(sync: sync);
-    var currentValue = _CurrentValue();
+    var currentValue = _CurrentValue<T>();
     return ValueSubject._(controller, currentValue, sync);
   }
 

@@ -196,10 +196,11 @@ class TransitionHandlerBuilderWithDataAndPayload<D, P> {
     } else if (getValue != null && value != null) {
       throw ArgumentError('One of getValue or value must be provided');
     }
-    var _getValue = getValue ?? (_) => value!;
     _handler = _TransitionHandlerDescriptor.post<M>(
       (transCtx) {
-        return _getValue(transCtx, transCtx.dataValueOrThrow<D>(), transCtx.payloadOrThrow<P>());
+        return getValue != null
+            ? getValue(transCtx, transCtx.dataValueOrThrow<D>(), transCtx.payloadOrThrow<P>())
+            : value!;
       },
       label,
     );
@@ -217,10 +218,11 @@ class TransitionHandlerBuilderWithDataAndPayload<D, P> {
     } else if (getValue != null && value != null) {
       throw ArgumentError('One of getValue or value must be provided');
     }
-    var _getValue = getValue ?? (_) => value!;
     _handler = _TransitionHandlerDescriptor.schedule<M>(
       (transCtx) {
-        return _getValue(transCtx, transCtx.dataValueOrThrow<D>(), transCtx.payloadOrThrow<P>());
+        return getValue != null
+            ? getValue(transCtx, transCtx.dataValueOrThrow<D>(), transCtx.payloadOrThrow<P>())
+            : value!;
       },
       duration,
       periodic,
@@ -326,9 +328,8 @@ _TransitionHandlerDescriptor _postWithContext<M, T>(
   } else if (getValue != null && value != null) {
     throw ArgumentError('One of getValue or value must be provided');
   }
-  var _getValue = getValue ?? (_) => value!;
   return _TransitionHandlerDescriptor.post<M>(
-    (transCtx) => _getValue(transCtx, getContext(transCtx)),
+    (transCtx) => getValue != null ? getValue(transCtx, getContext(transCtx)) : value!,
     label,
   );
 }

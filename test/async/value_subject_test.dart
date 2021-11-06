@@ -145,7 +145,7 @@ void main() {
         StackTrace? stackTrace;
         subject.listen(null, onError: (e, st) {
           error = e;
-          stackTrace = st;
+          stackTrace = st as StackTrace;
         });
 
         var argError = ArgumentError('Oops');
