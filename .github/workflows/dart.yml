@@ -17,4 +17,4 @@ jobs:
     - name: Run tests
       run: pub run test
     - name: Analyze
-      run: dartanalyzer --options ./analyzer_options.yaml --fatal-infos --fatal-warnings ./lib
+      run: dart analyze
