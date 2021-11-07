@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 import 'package:collection/collection.dart';
+import 'package:logging/logging.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'package:tree_state_machine/src/machine/tree_node.dart';
@@ -14,15 +15,17 @@ class Machine {
   final MachineNode rootNode;
   final Map<StateKey, MachineNode> nodes;
   final void Function(Object message) _queueMessage;
+  final Logger _log;
   MachineNode? _currentLeafNode;
 
-  Machine._(this.rootNode, this.nodes, this._queueMessage);
+  Machine._(this.rootNode, this.nodes, this._queueMessage, this._log);
 
   factory Machine(
     TreeNode rootNode,
     Map<StateKey, TreeNode> nodesByKey,
-    void Function(Object message) queueMessage,
-  ) {
+    void Function(Object message) queueMessage, {
+    String? logName,
+  }) {
     // Add an extra node to represent externally stopped state
     _addStoppedNode(rootNode, nodesByKey);
 
@@ -32,7 +35,8 @@ class Machine {
       machineNodes[entry.key] = MachineNode(entry.value);
     }
 
-    return Machine._(machineRoot, machineNodes, queueMessage);
+    var log = Logger(logName ?? 'tree_state_machine:Machine');
+    return Machine._(machineRoot, machineNodes, queueMessage, log);
   }
 
   /// The current leaf node for the state machine. Messages will be dispatched to the
@@ -61,6 +65,8 @@ class Machine {
   }
 
   Future<ProcessedMessage> processMessage(Object message, [StateKey? initialStateKey]) async {
+    _log.fine('Processing message $message');
+
     if (_currentLeafNode == null) {
       final _initialStateKey = initialStateKey ?? rootNode.treeNode.key;
       await enterInitialState(_initialStateKey);
@@ -69,16 +75,20 @@ class Machine {
     // If the state machine is in a final state, do not dispatch the message for processing,
     // since there is no point.
     assert(_currentLeafNode != null);
-    if (_currentLeafNode!.treeNode.isFinalLeaf) {
+    if (currentLeaf!.isFinalLeaf) {
+      _log.fine('Current state is final, result is UnhandledMessage');
       final msgProcessed = UnhandledMessage(message, _currentLeafNode!.treeNode.key, const []);
       return Future.value(msgProcessed);
     }
 
     final msgCtx = MachineMessageContext(message, _currentLeafNode!.treeNode, this);
+
     final msgResult = identical(message, stopMessage)
         ? StopResult.value
         : await _handleMessage(_currentLeafNode!.treeNode, msgCtx);
+
     final msgProcessed = await _handleMessageResult(msgResult, msgCtx);
+
     msgCtx.dispose();
     return msgProcessed;
   }
@@ -89,8 +99,11 @@ class Machine {
     MessageResult msgResult;
     TreeNode? currentNode = node;
     do {
-      final futureOr = msgCtx.onMessage(currentNode!);
+      var currentKey = currentNode!.key;
+      _log.fine("Dispatching message to state '$currentKey'");
+      final futureOr = msgCtx.onMessage(currentNode);
       msgResult = (futureOr is Future<MessageResult>) ? await futureOr : futureOr;
+      _log.fine("State '$currentKey' processed and returned $msgResult");
       currentNode = currentNode.parent;
     } while (msgResult is UnhandledResult && currentNode != null);
     return msgResult;
@@ -208,27 +221,32 @@ class Machine {
     TransitionHandler? transitionAction,
     Object? payload,
   ]) async {
-    final transCtx = MachineTransitionContext(this, path, payload);
+    var transCtx = MachineTransitionContext(this, path, payload);
 
-    final exitHandlers = path.exitingNodes.map((n) => () {
-          return transCtx.onExit(n);
-        });
-    final entryHandlers = path.enteringNodes.map((n) => () {
-          return transCtx.onEnter(n);
-        });
-    final initialChildPath = _initialChildPath(path.toNode, transCtx);
-    // Note that initialChildPath iterates on demand, so next child won't be computed until
+    var exitHandlers = path.exitingNodes.map((n) {
+      return () => transCtx.onExit(n);
+    });
+    final entryHandlers = path.enteringNodes.map((n) {
+      return () => transCtx.onEnter(n);
+    });
+
+    // Note that _initialChildPath iterates on demand, so next child won't be computed until
     // current child is entered.
-    final initialChildHandlers = initialChildPath.map((n) => () {
-          transCtx.onEnter(n);
-        });
+    var initialChildPath = _initialChildPath(path.toNode, transCtx);
+    var initialChildHandlers = initialChildPath.map((n) {
+      return () => transCtx.onEnter(n);
+    });
 
     FutureOr<void> actionHandler() {
-      if (transitionAction != null) return transitionAction(transCtx);
+      if (transitionAction != null) {
+        _log.fine('Executing transition action');
+        return transitionAction(transCtx);
+      }
     }
 
     void bookkeepingHandler() {
       assert(transCtx.currentNode.isLeaf, 'Transition did not end at a leaf node');
+      _log.fine("Transitioned to state '${transCtx.currentNode.key}'");
       _currentLeafNode = nodes[transCtx.currentNode.key]!;
     }
 
@@ -267,7 +285,9 @@ class Machine {
   ) sync* {
     var currentNode = parentNode;
     while (!currentNode.isLeaf) {
+      var parentOfCurrent = currentNode;
       currentNode = transCtx.onInitialChild(currentNode);
+      _log.finer("State '${parentOfCurrent.key}' retured initial child state '${currentNode.key}'");
       yield currentNode;
     }
   }
@@ -290,7 +310,11 @@ class Machine {
 
     var canceled = false;
     void postMessage() {
-      if (!canceled) _queueMessage(message());
+      if (!canceled) {
+        var msg = message();
+        _log.fine("State '$timerOwner' is posting sheduled message $msg");
+        _queueMessage(msg);
+      }
     }
 
     final timer = periodic
@@ -489,6 +513,7 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
   FutureOr<void> onEnter(TreeNode node) {
     _currentNode = node;
     _enteredNodes.add(node);
+    _machine._log.fine("Entering state '${node.key}'");
     return node.state.onEnter(this);
   }
 
@@ -496,6 +521,7 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
     _currentNode = node;
     _exitedNodes.add(node);
     _machine._node(node.key).cancelTimers();
+    _machine._log.fine("Exiting state '${node.key}'");
     return node.state.onExit(this);
   }
 }

@@ -327,6 +327,11 @@ class GoToResult extends MessageResult {
   GoToResult(this.targetStateKey,
       [this.transitionAction = emptyTransitionAction, this.payload, this.reenterTarget = false])
       : super._();
+
+  @override
+  String toString() {
+    return "GoToResult(targetState: '$targetStateKey'${payload != null ? ', payload: ' + payload!.toString() : ''}${reenterTarget ? ', reenterTarget: true' : ''})";
+  }
 }
 
 /// A [MessageResult] indicating that a message was successfully handled, and an internal transition
@@ -334,6 +339,11 @@ class GoToResult extends MessageResult {
 class InternalTransitionResult extends MessageResult {
   InternalTransitionResult._() : super._();
   static final InternalTransitionResult value = InternalTransitionResult._();
+
+  @override
+  String toString() {
+    return "InternalTransitionResult";
+  }
 }
 
 /// A [MessageResult] indicating that a message was sucessfully handled, and an self transition
@@ -342,6 +352,11 @@ class InternalTransitionResult extends MessageResult {
 class SelfTransitionResult extends MessageResult {
   final TransitionAction? transitionAction;
   SelfTransitionResult([this.transitionAction = emptyTransitionAction]) : super._();
+
+  @override
+  String toString() {
+    return "SelfTransitionResult";
+  }
 }
 
 /// A [MessageResult] indicating that a state machine is being stopped by application code.
@@ -354,6 +369,11 @@ class StopResult extends MessageResult {
 class UnhandledResult extends MessageResult {
   UnhandledResult._() : super._();
   static final UnhandledResult value = UnhandledResult._();
+
+  @override
+  String toString() {
+    return "UnhandledResult";
+  }
 }
 
 //==================================================================================================
