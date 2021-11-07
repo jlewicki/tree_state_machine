@@ -35,7 +35,7 @@ class Machine {
       machineNodes[entry.key] = MachineNode(entry.value);
     }
 
-    var log = Logger(logName ?? 'tree_state_machine:Machine');
+    var log = Logger('tree_state_machine.Machine${logName != null ? '.' + logName : ''}');
     return Machine._(machineRoot, machineNodes, queueMessage, log);
   }
 
@@ -100,10 +100,11 @@ class Machine {
     TreeNode? currentNode = node;
     do {
       var currentKey = currentNode!.key;
-      _log.fine("Dispatching message to state '$currentKey'");
+      _log.fine(() => "Dispatching message to state '$currentKey'");
       final futureOr = msgCtx.onMessage(currentNode);
       msgResult = (futureOr is Future<MessageResult>) ? await futureOr : futureOr;
-      _log.fine("State '$currentKey' processed and returned $msgResult");
+      _log.fine(
+          () => "State '$currentKey' processed message ${msgCtx.message} and returned $msgResult");
       currentNode = currentNode.parent;
     } while (msgResult is UnhandledResult && currentNode != null);
     return msgResult;
@@ -287,7 +288,8 @@ class Machine {
     while (!currentNode.isLeaf) {
       var parentOfCurrent = currentNode;
       currentNode = transCtx.onInitialChild(currentNode);
-      _log.finer("State '${parentOfCurrent.key}' retured initial child state '${currentNode.key}'");
+      _log.finer(
+          "State '${parentOfCurrent.key}' returned initial child state '${currentNode.key}'");
       yield currentNode;
     }
   }

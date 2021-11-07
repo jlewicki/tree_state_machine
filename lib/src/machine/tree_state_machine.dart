@@ -152,9 +152,9 @@ class TreeStateMachine {
   ///
   /// [initialStateKey] may be used to indicate the initial state. If provided, the state machine
   /// will transition from the root state to this state. If the initial state is a leaf state, that
-  /// will be the current state when the retured future completes. Otherwise, the state machine will
+  /// will be the current state when the returned future completes. Otherwise, the state machine will
   /// follow the initial child path for the initial state, until a leaf node is reached. This leaf
-  /// becomes the current state when the retured future completes.
+  /// becomes the current state when the returned future completes.
   ///
   /// If no initial state is specifed, the state machine will follow the initial child path starting
   /// from the root until a leaf node is reached.

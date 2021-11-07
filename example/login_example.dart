@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:async/async.dart';
+import 'package:logging/logging.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'package:tree_state_machine/tree_builders.dart';
 
@@ -269,6 +270,8 @@ class MockAuthService implements AuthService {
 }
 
 void main() async {
+  initLogging();
+
   var authService = MockAuthService(
     (req) async => Result.error('nope'),
     (req) async => Result.error('nope'),
@@ -316,4 +319,13 @@ void main() async {
   assert(currentState.key == States.userHome);
   assert(currentState.isInState(States.authenticated));
   assert(currentState.dataValue<AuthenticatedData>()!.user.email == 'phoebes@smellycat.com');
+}
+
+// Example of enabling logging output from tree_state_machine library.
+void initLogging() {
+  hierarchicalLoggingEnabled = true;
+  Logger('tree_state_machine').level = Level.ALL;
+  Logger.root.onRecord.listen((record) {
+    print('${record.level.name}: ${record.time}: ${record.message}');
+  });
 }

@@ -44,13 +44,13 @@ class MessageHandlerBuilder<M> {
   ///     action: b.act.run((msgCtx, msg) =>
   ///       print('Going to $state2 in response to message $msg')));
   /// });
-  final MessageActionBuilder<M> act = MessageActionBuilder<M>();
+  late final MessageActionBuilder<M> act = MessageActionBuilder<M>(_forState);
 
   MessageHandlerBuilder._(this._forState, this._messageName);
 
   /// Indicates that a transition to [targetState] should occur.
   ///
-  /// If [action] is provided, this function will be called before the transition occurs. The [act]
+  /// If [action] is provided, this action will be invoked before the transition occurs. The [act]
   /// builder can be used to specify this action.
   ///
   /// If [payload] is provided, this function will be called to generate a value for
@@ -72,28 +72,66 @@ class MessageHandlerBuilder<M> {
     String? label,
   }) {
     _handler = _GoToDescriptor.createForMessage<M>(
-        targetState, transitionAction, reenterTarget, payload, action, label, _messageName);
+      _forState,
+      targetState,
+      transitionAction,
+      reenterTarget,
+      payload,
+      action,
+      label,
+      _messageName,
+    );
   }
 
+  /// Indicates that the message has been handled, and that a self transition should occur.
+  ///
+  /// During a self-transition this state will be exited and re-entered.
+  ///
+  /// If [action] is provided, this action will be invoked before the transition occurs. The [act]
+  /// builder can be used to specify this action.
+  ///
+  /// If [transitionAction] is specified, this function will be called during the transition
+  /// between states, after all states are exited, but before entering any new states.
   void goToSelf({
     TransitionHandler? transitionAction,
     _MessageAction<M>? action,
     String? label,
   }) {
-    _handler =
-        _GoToSelfDescriptor.createForMessage<M>(transitionAction, action, label, _messageName);
+    _handler = _GoToSelfDescriptor.createForMessage<M>(
+      transitionAction,
+      action,
+      label,
+      _messageName,
+    );
   }
 
+  /// Indicates that the message has been handled, and no state transition should occur.
+  ///
+  /// If [action] is provided, this action will be invoked as the message is being handled. The
+  /// [act] builder can be used to specify this action.
   void stay({_MessageAction<M>? action}) {
     _handler = _StayOrUnhandledDescriptor.createForMessage<M>(
-        _forState, action, action?.label, _messageName,
-        handled: true);
+      _forState,
+      action,
+      action?.label,
+      _messageName,
+      handled: true,
+    );
   }
 
+  /// Indicates that the message has not been handled, and the message should be dispatched to
+  /// ancestor states for processing.
+  ///
+  /// If [action] is provided, this action will be invoked before any ancestor states handle the
+  /// message. The [act] builder can be used to specify this action.
   void unhandled({_MessageAction<M>? action}) {
     _handler = _StayOrUnhandledDescriptor.createForMessage<M>(
-        _forState, action, action?.label, _messageName,
-        handled: false);
+      _forState,
+      action,
+      action?.label,
+      _messageName,
+      handled: false,
+    );
   }
 
   void action(
@@ -101,8 +139,12 @@ class MessageHandlerBuilder<M> {
     ActionResult actionResult = ActionResult.handled,
   ]) {
     _handler = _StayOrUnhandledDescriptor.createForMessage<M>(
-        _forState, action, action.label, _messageName,
-        handled: actionResult == ActionResult.handled);
+      _forState,
+      action,
+      action.label,
+      _messageName,
+      handled: actionResult == ActionResult.handled,
+    );
   }
 
   void enterChannel<P>(
@@ -155,6 +197,7 @@ class MessageHandlerBuilder<M> {
 
     var refFailure = Ref<_ContinuationMessageHandlerDescriptor<AsyncError>?>(null);
     _handler = _WhenResultDescriptor.createForMessage<M, T>(
+      _forState,
       result,
       continuationBuilder._continuationHandler!,
       refFailure,
@@ -182,6 +225,7 @@ class DataMessageHandlerBuilder<M, D> {
     String? label,
   }) {
     _handler = _GoToDescriptor.createForMessageAndData<M, D>(
+      _forState,
       targetState,
       transitionAction,
       reenterTarget,
@@ -293,6 +337,7 @@ class DataMessageHandlerBuilder<M, D> {
 
     var refFailure = Ref<_ContinuationMessageHandlerDescriptor<AsyncError>?>(null);
     _handler = _WhenResultDescriptor.createForMessageAndData<M, D, T>(
+      _forState,
       result,
       continuationBuilder._continuationHandler!,
       refFailure,
@@ -317,6 +362,7 @@ class ContinuationMessageHandlerBuilder<M, T> {
       _ContinuationMessageAction<M, T>? action,
       String? label}) {
     _continuationHandler = _ContinuationGoToDescriptor.createForMessage<M, T>(
+      _forState,
       targetState,
       transitionAction,
       reenterTarget,
@@ -407,6 +453,7 @@ class ContinuationWithDataMessageHandlerBuilder<M, D, T> {
     String? label,
   }) {
     _continuationHandler = _ContinuationGoToDescriptor.createForMessageAndData<M, D, T>(
+      _forState,
       targetState,
       transitionAction,
       reenterTarget,

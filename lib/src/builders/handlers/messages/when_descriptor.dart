@@ -193,6 +193,7 @@ class _WhenResultDescriptor extends _MessageHandlerDescriptor {
       ];
 
   static _WhenResultDescriptor createForMessage<M, T>(
+    StateKey forState,
     FutureOr<Result<T>> Function(MessageContext ctx, M message) _result,
     _ContinuationMessageHandlerDescriptor<T> successContinuation,
     Ref<_ContinuationMessageHandlerDescriptor<AsyncError>?> errorContinuationRef,
@@ -207,32 +208,26 @@ class _WhenResultDescriptor extends _MessageHandlerDescriptor {
       errorContinuationRef,
       (msgCtx) {
         var msg = msgCtx.messageAsOrThrow<M>();
-        return _result(msgCtx, msg).bind((result) {
-          if (result.isError) {
-            var err = result.asError!;
-            var asyncErr = AsyncError(err.error, err.stackTrace);
-            if (errorContinuationRef.value != null) {
-              var errorHandler = errorContinuationRef.value!.continuation(asyncErr);
-              return errorHandler(msgCtx);
-            } else {
-              throw asyncErr;
-            }
-          }
-          var successHandler = successContinuation.continuation(result.asValue!.value);
-          return successHandler(msgCtx);
-        });
+        return _result(msgCtx, msg).bind((result) =>
+            _handleResult(forState, msgCtx, result, successContinuation, errorContinuationRef));
       },
       label,
     );
   }
 
   static _WhenResultDescriptor createForMessageAndData<M, D, T>(
-    FutureOr<Result<T>> Function(MessageContext msgCtx, M msg, D data) _result,
+    StateKey forState,
+    FutureOr<Result<T>> Function(MessageContext msgCtx, M msg, D data) getResult,
     _ContinuationMessageHandlerDescriptor<T> successContinuation,
     Ref<_ContinuationMessageHandlerDescriptor<AsyncError>?> errorContinuationRef,
     String? label,
     String? messageName,
   ) {
+    FutureOr<Result<T>> _getResult(MessageContext msgCtx, M msg, D data) {
+      _log.finer("State '$forState' invoking getResult function");
+      return getResult(msgCtx, msg, data);
+    }
+
     var conditionLabel = label != null ? '$label success' : 'success';
     return _WhenResultDescriptor._(
       TypeLiteral<M>().type,
@@ -242,23 +237,36 @@ class _WhenResultDescriptor extends _MessageHandlerDescriptor {
       (msgCtx) {
         var msg = msgCtx.messageAsOrThrow<M>();
         var data = msgCtx.dataValueOrThrow<D>();
-        return _result(msgCtx, msg, data).bind((result) {
-          if (result.isError) {
-            var err = result.asError!;
-            var asyncErr = AsyncError(err.error, err.stackTrace);
-            if (errorContinuationRef.value != null) {
-              var errorHandler = errorContinuationRef.value!.continuation(asyncErr);
-              return errorHandler(msgCtx);
-            } else {
-              throw asyncErr;
-            }
-          }
-          var successHandler = successContinuation.continuation(result.asValue!.value);
-          return successHandler(msgCtx);
-        });
+        return _getResult(msgCtx, msg, data).bind((result) =>
+            _handleResult(forState, msgCtx, result, successContinuation, errorContinuationRef));
       },
       label,
     );
+  }
+
+  static FutureOr<MessageResult> _handleResult<T>(
+    StateKey forState,
+    MessageContext msgCtx,
+    Result<T> result,
+    _ContinuationMessageHandlerDescriptor<T> successContinuation,
+    Ref<_ContinuationMessageHandlerDescriptor<AsyncError>?> errorContinuationRef,
+  ) {
+    if (result.isError) {
+      var err = result.asError!;
+      var asyncErr = AsyncError(err.error, err.stackTrace);
+      _log.fine("State '$forState' received error result '${asyncErr.error}'");
+      if (errorContinuationRef.value != null) {
+        _log.finer("Invoking error continuation");
+        var errorHandler = errorContinuationRef.value!.continuation(asyncErr);
+        return errorHandler(msgCtx);
+      } else {
+        _log.finer("Throwing error because no error continuation has been registered");
+        throw asyncErr;
+      }
+    }
+    _log.finer("State '$forState' received a success result");
+    var successHandler = successContinuation.continuation(result.asValue!.value);
+    return successHandler(msgCtx);
   }
 }
 

@@ -17,9 +17,16 @@ class _GoToDescriptor extends _MessageHandlerDescriptor implements _GoToInfo {
   final StateKey targetState;
 
   _GoToDescriptor._(
-      this.messageType, this.messageName, this.targetState, this.handler, this.actions, this.label);
+    this.messageType,
+    this.messageName,
+    this.targetState,
+    this.handler,
+    this.actions,
+    this.label,
+  );
 
   static _GoToDescriptor createForMessage<M>(
+    StateKey forState,
     StateKey targetState,
     TransitionHandler? transitionAction,
     bool reenterTarget,
@@ -36,11 +43,15 @@ class _GoToDescriptor extends _MessageHandlerDescriptor implements _GoToInfo {
         var msg = msgCtx.messageAsOrThrow<M>();
         var _action = action?._action ?? _MessageAction._empty;
         var _payload = payload ?? _emptyPayload;
-        return _action(msgCtx, msg).bind((_) => _payload(msgCtx, msg).bind((p) => msgCtx.goTo(
-            targetState,
-            payload: p,
-            transitionAction: transitionAction,
-            reenterTarget: reenterTarget)));
+        return _action(msgCtx, msg).bind((_) => _payload(msgCtx, msg).bind((p) {
+              _log.finer(() => "State '$forState' going to state '$targetState'");
+              return msgCtx.goTo(
+                targetState,
+                payload: p,
+                transitionAction: transitionAction,
+                reenterTarget: reenterTarget,
+              );
+            }));
       },
       action != null ? [action] : [],
       label,
@@ -48,6 +59,7 @@ class _GoToDescriptor extends _MessageHandlerDescriptor implements _GoToInfo {
   }
 
   static _GoToDescriptor createForMessageAndData<M, D>(
+    StateKey forState,
     StateKey targetState,
     TransitionHandler? transitionAction,
     bool reenterTarget,
@@ -65,9 +77,15 @@ class _GoToDescriptor extends _MessageHandlerDescriptor implements _GoToInfo {
         var data = msgCtx.dataValueOrThrow<D>();
         var _action = action?._action ?? _MessageActionWithData._empty;
         var _payload = payload ?? _emptyDataPayload;
-        return _action(msgCtx, msg, data).bind((_) => _payload(msgCtx, msg, data).bind((p) =>
-            msgCtx.goTo(targetState,
-                payload: p, transitionAction: transitionAction, reenterTarget: reenterTarget)));
+        return _action(msgCtx, msg, data).bind((_) => _payload(msgCtx, msg, data).bind((p) {
+              _log.finer(() => "State '$forState' going to state '$targetState'");
+              return msgCtx.goTo(
+                targetState,
+                payload: p,
+                transitionAction: transitionAction,
+                reenterTarget: reenterTarget,
+              );
+            }));
       },
       action != null ? [action] : [],
       label,
@@ -95,6 +113,7 @@ class _ContinuationGoToDescriptor<T>
       this.messageType, this.messageName, this.targetState, this.continuation, this.label);
 
   static _ContinuationGoToDescriptor<T> createForMessage<M, T>(
+    StateKey forState,
     StateKey targetState,
     TransitionHandler? transitionAction,
     bool reenterTarget,
@@ -111,19 +130,23 @@ class _ContinuationGoToDescriptor<T>
         var msg = msgCtx.messageAsOrThrow<M>();
         var _action = action?._action ?? _ContinuationMessageAction._empty;
         var _payload = payload ?? _emptyContinuationPayload;
-        return _action(msgCtx, msg, ctx)
-            .bind((_) => _payload(msgCtx, msg, ctx).bind((p) => msgCtx.goTo(
-                  targetState,
-                  payload: p,
-                  transitionAction: transitionAction,
-                  reenterTarget: reenterTarget,
-                )));
+        return _action(msgCtx, msg, ctx).bind((_) => _payload(msgCtx, msg, ctx).bind((p) {
+              _log.finer(() =>
+                  "State '$forState' going to state '$targetState' with continuation context $ctx");
+              return msgCtx.goTo(
+                targetState,
+                payload: p,
+                transitionAction: transitionAction,
+                reenterTarget: reenterTarget,
+              );
+            }));
       },
       label,
     );
   }
 
   static _ContinuationGoToDescriptor<T> createForMessageAndData<M, D, T>(
+    StateKey forState,
     StateKey targetState,
     TransitionHandler? transitionAction,
     bool reenterTarget,
@@ -143,12 +166,16 @@ class _ContinuationGoToDescriptor<T>
         var _action = action?._action ?? _ContinuationMessageActionWithData._empty;
         var _payload = payload ?? _emptyContinuationWithDataPayload;
         return _action(msgCtx, msg, data, ctx)
-            .bind((_) => _payload(msgCtx, msg, data, ctx).bind((p) => msgCtx.goTo(
-                  targetState,
-                  payload: p,
-                  transitionAction: transitionAction,
-                  reenterTarget: reenterTarget,
-                )));
+            .bind((_) => _payload(msgCtx, msg, data, ctx).bind((p) {
+                  _log.finer(() =>
+                      "State '$forState' going to state '$targetState' with continuation context $ctx");
+                  return msgCtx.goTo(
+                    targetState,
+                    payload: p,
+                    transitionAction: transitionAction,
+                    reenterTarget: reenterTarget,
+                  );
+                }));
       },
       label,
     );

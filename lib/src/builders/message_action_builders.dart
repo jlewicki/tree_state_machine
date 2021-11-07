@@ -28,11 +28,18 @@ class _MessageAction<M> implements _MessageActionInfo {
 }
 
 class MessageActionBuilder<M> {
+  final StateKey _forState;
+  final _logger = Logger('tree_state_machine.MessageActionBuilder<$M>');
+  MessageActionBuilder(this._forState);
+
   _MessageAction<M> run(
     FutureOr<void> Function(MessageContext msgCtx, M msg) action, {
     String? label,
   }) {
-    return _MessageAction<M>._(_ActionType.run, action, null, label);
+    return _MessageAction<M>._(_ActionType.run, (msgCtx, msg) {
+      _logger.fine(() => "State '$_forState' is running a message action.");
+      action(msgCtx, msg);
+    }, null, label);
   }
 
   _MessageAction<M> updateData<D>(
@@ -43,6 +50,7 @@ class MessageActionBuilder<M> {
     return _MessageAction<M>._(
       _ActionType.updateData,
       (msgCtx, msg) {
+        _logger.fine(() => "State '$_forState' is updating data of type $D");
         msgCtx.dataOrThrow<D>(forState).update((d) => update(msgCtx, msg, d));
       },
       null,
@@ -59,11 +67,15 @@ class MessageActionBuilder<M> {
     return _MessageAction<M>._(
       _ActionType.schedule,
       (msgCtx, msg) => getMessage(msgCtx, msg).bind(
-        (scheduleMsg) => msgCtx.schedule(
-          () => scheduleMsg as Object,
-          duration: duration,
-          periodic: periodic,
-        ),
+        (scheduleMsg) {
+          _logger.fine(() =>
+              "State '$_forState' is scheduling message of type $M2 ${periodic ? 'periodic: true' : ''}");
+          msgCtx.schedule(
+            () => scheduleMsg as Object,
+            duration: duration,
+            periodic: periodic,
+          );
+        },
       ),
       TypeLiteral<M2>().type,
       label,
@@ -77,7 +89,10 @@ class MessageActionBuilder<M> {
     return _MessageAction<M>._(
       _ActionType.post,
       (msgCtx, msg) => getMessage(msgCtx, msg).bind(
-        (scheduleMsg) => msgCtx.post(() => scheduleMsg),
+        (scheduleMsg) {
+          _logger.fine(() => "State '$_forState' is posting message of type $M2");
+          msgCtx.post(() => scheduleMsg);
+        },
       ),
       TypeLiteral<M2>().type,
       label,

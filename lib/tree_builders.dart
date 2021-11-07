@@ -8,6 +8,7 @@ import 'dart:collection';
 import 'package:collection/collection.dart';
 
 import 'package:async/async.dart';
+import 'package:logging/logging.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'package:tree_state_machine/src/machine/tree_node.dart';
@@ -28,3 +29,5 @@ part 'src/builders/handlers/messages/goto_descriptor.dart';
 part 'src/builders/handlers/messages/goto_self_descriptor.dart';
 part 'src/builders/handlers/messages/stay_or_unhandled_descriptor.dart';
 part 'src/builders/handlers/messages/when_descriptor.dart';
+
+final _log = Logger('tree_state_machine.Builders');
