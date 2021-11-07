@@ -130,7 +130,7 @@ StateTreeBuilder cdPlayerStateTree() {
 
   b.state(States.playing, (b) {
     b.onEnter((b) => b.schedule<Play>(
-          value: Play(),
+          message: Play(),
           duration: refreshDuration,
           periodic: true,
         ));
