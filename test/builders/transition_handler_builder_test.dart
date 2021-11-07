@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:test/test.dart';
 import 'package:tree_state_machine/tree_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';

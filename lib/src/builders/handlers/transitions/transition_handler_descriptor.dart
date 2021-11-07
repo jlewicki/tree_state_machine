@@ -22,12 +22,13 @@ class _TransitionHandlerDescriptor {
 
   static _TransitionHandlerDescriptor updateData<D>(
     D Function(TransitionContext transCtx, D current) update,
+    StateKey? key,
     String? label,
   ) {
     return _UpdateDataTransitionHandlerDescriptor(
       TypeLiteral<D>().type,
       (transCtx) {
-        var data = transCtx.dataOrThrow<D>();
+        var data = transCtx.dataOrThrow<D>(key);
         data.update((d) => update(transCtx, d));
       },
       label,
