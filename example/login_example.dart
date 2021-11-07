@@ -178,7 +178,7 @@ StateTreeBuilder loginStateTree(AuthService authService) {
 
   b.state(States.loginEntry, (b) {
     b.onMessage<SubmitCredentials>((b) {
-      // Model the 'logging in' status as a distinct state in the state machibne. This is an
+      // Model the 'logging in' status as a distinct state in the state machine. This is an
       // alternative design to modeling with a flag in state data, as was done with 'registering'
       // status.
       b.enterChannel(authenticatingChannel, (_, msg) => msg);

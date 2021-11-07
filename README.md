@@ -171,7 +171,33 @@ treeBuilder.state(States.authenticating, (b) {
 ```
 
 ### Entry channels
+Sometimes when a data state is entered, it requires some contexual information in order to initialize its state date. 
+This information typically needs to be provided by the state that initiates the state transition, as the `payload` 
+argument of `goTo`. The `Channel<P>` type provides a contract indicating that in order to enter a state, a value of 
+type `P` must be provided.
+```dart
+// In order to enter the authenticating state, a SubmitCredentials value is 
+// required.  
+final authenticatingChannel = Channel<SubmitCredentials>(States.authenticating);
 
+treeBuilder.state(States.loginEntry, (b) {
+    b.onMessage<SubmitCredentials>((b) {
+      // enterChannel is similar to goTo, but enforces that a SubmitCredentials
+      // value is provided.
+      b.enterChannel(authenticatingChannel, (_, msg) => msg);
+    });
+  }, parent: States.login);
+
+treeBuilder.state(States.authenticating, (b) {
+    // onEnterFromChannel is similar to onEnter, but but enforces that a 
+    // SubmitCredentials was provided.
+    b.onEnterFromChannel<SubmitCredentials>(authenticatingChannel, (b) {
+      // The builder argument provides access to the SubmitCredentials, in this
+      // case as as argument to the getMessage function 
+      b.post<AuthFuture>(getMessage: (_, creds) => _login(creds, authService));
+    });
+ }, parent: States.login)
+```
 
 ## Creating a state machine
 
