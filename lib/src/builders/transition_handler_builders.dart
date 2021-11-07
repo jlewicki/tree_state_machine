@@ -45,7 +45,7 @@ class TransitionHandlerBuilder {
   }
 
   TransitionHandlerWhenBuilder when(
-    FutureOr<bool> Function(TransitionContext msgCtx) condition,
+    FutureOr<bool> Function(TransitionContext transCtx) condition,
     void Function(TransitionHandlerBuilder) buildTrueHandler, {
     String? label,
   }) {
@@ -62,7 +62,7 @@ class TransitionHandlerBuilderWithData<D> {
   _TransitionHandlerDescriptor? _handler;
   TransitionHandlerBuilderWithData._(this._forState);
 
-  void run(FutureOr<void> Function(TransitionContext ctx, D data) handler, {String? label}) {
+  void run(FutureOr<void> Function(TransitionContext transCtx, D data) handler, {String? label}) {
     _handler = _TransitionHandlerDescriptor.run(
       (transCtx) => handler(transCtx, transCtx.dataValueOrThrow<D>()),
       label,
