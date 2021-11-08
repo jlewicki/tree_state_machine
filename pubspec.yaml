@@ -1,6 +1,6 @@
 name: tree_state_machine
 description: Hierarchical state machines for Dart.
-version: 0.8.0
+version: 1.0.1
 homepage: https://github.com/jlewicki/tree_state_machine
 
 environment:
@@ -8,6 +8,7 @@ environment:
 
 dependencies:
   async: ^2.8.2
+  collection: ^1.15.0 
   logging: ^1.0.2
 
 dev_dependencies:

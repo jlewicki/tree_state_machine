@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:meta/meta.dart';
 import 'package:tree_state_machine/src/machine/data_value.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
 import 'package:tree_state_machine/tree_builders.dart';
@@ -34,7 +33,6 @@ abstract class StateKey {
   static StateKey forState<T extends TreeState>() => _ValueKey<Type>(TypeLiteral<T>().type);
 }
 
-@immutable
 class _ValueKey<T> extends StateKey {
   final T value;
   const _ValueKey(this.value) : super._();

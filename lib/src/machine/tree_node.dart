@@ -1,7 +1,8 @@
+import 'package:collection/collection.dart';
+
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/data_value.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
-import 'package:collection/collection.dart';
 
 enum NodeType { rootNode, interiorNode, leafNode, finalLeafNode }
 
