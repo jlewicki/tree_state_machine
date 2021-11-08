@@ -44,7 +44,7 @@ class MessageHandlerBuilder<M> {
   ///     action: b.act.run((msgCtx, msg) =>
   ///       print('Going to $state2 in response to message $msg')));
   /// });
-  late final MessageActionBuilder<M> act = MessageActionBuilder<M>(_forState);
+  late final MessageActionBuilder<M> act = MessageActionBuilder<M>._(_forState);
 
   MessageHandlerBuilder._(this._forState, this._messageName);
 

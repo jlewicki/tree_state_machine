@@ -141,14 +141,11 @@ StateTreeBuilder cdPlayerStateTree() {
         (msgCtx, msg) => msgCtx.dataValueOrThrow<BusyData>().canMoveTrack(msg.trackCount),
         (b) {
           b.stay(action: b.act.run(_updateTrackCount, label: 'update next track'));
-          // b.stay(action: b.act.updateData<BusyData>((msgCtx, msg, d) {
-          //   return d..track += msg.trackCount;
-          // }));
         },
         label: 'next track valid',
       ).otherwise(
         (b) {
-          b.stay(action: b.act.post<Stop>((_, __) => Stop()));
+          b.stay(action: b.act.post<Stop>(message: Stop()));
         },
         label: 'next track invalid',
       );

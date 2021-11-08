@@ -87,7 +87,6 @@ class TransitionHandlerBuilder {
   ///
   /// If [getMessage] is provided, the function will be evaluated when the transition occurs, and
   /// the returned message will be posted. Otherwise a [message] must be provided.
-  ///
   /// ```dart
   /// var state1 = StateKey('s1');
   /// var builder = StateTreeBuilder(initialState: state1);
@@ -109,8 +108,8 @@ class TransitionHandlerBuilder {
     } else if (getMessage != null && message != null) {
       throw ArgumentError('One of getMessage or message must be provided');
     }
-    var _getValue = getMessage ?? (_) => message!;
-    _handler = _TransitionHandlerDescriptor.post<M>(_getValue, label);
+    var _getMessage = getMessage ?? (_) => message!;
+    _handler = _TransitionHandlerDescriptor.post<M>(_getMessage, label);
   }
 
   /// Schedules a message to be processed by the state machine when a transition occurs.
@@ -134,9 +133,8 @@ class TransitionHandlerBuilder {
     } else if (getMessage != null && message != null) {
       throw ArgumentError('One of getValue or value must be provided');
     }
-    // TODO: what if we schedule on exit? How to cancel a periodic timer?
-    var _getValue = getMessage ?? (_) => message!;
-    _handler = _TransitionHandlerDescriptor.schedule<M>(_getValue, duration, periodic, label);
+    var _getMessage = getMessage ?? (_) => message!;
+    _handler = _TransitionHandlerDescriptor.schedule<M>(_getMessage, duration, periodic, label);
   }
 
   /// Indicates that a transition action should conditionally occur.
