@@ -283,7 +283,8 @@ abstract class MessageContext {
   ///
   /// If [periodic] is true, then messages will be dispatched repeatedly, at intervals specified by
   /// [duration]. Note that a [Timer] is used in the underlying implemention. Refer to
-  /// [Timer.periodic(duration, callback)] for further details regarding scheduling.
+  /// [Timer.periodic] for further details regarding scheduling. Note that the [message] function
+  /// will be evaluated a each interval.
   ///
   /// This scheduling is only valid while the state that calls this method is active. If a state
   /// transition occurs and the state is exited, the scheduling is automatically cancelled.

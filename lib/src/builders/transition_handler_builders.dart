@@ -267,14 +267,14 @@ class TransitionHandlerBuilderWithPayload<P> {
   }
 
   void post<M>({
-    M Function(TransitionContext ctx, P payload)? getValue,
-    M? value,
+    M Function(TransitionContext ctx, P payload)? getMessage,
+    M? message,
     String? label,
   }) {
     _handler = _postWithContext<M, P>(
       (transCtx) => transCtx.payloadOrThrow<P>(),
-      getValue,
-      value,
+      getMessage,
+      message,
       label,
     );
   }

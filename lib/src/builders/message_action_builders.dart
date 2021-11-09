@@ -110,17 +110,44 @@ class MessageActionBuilder<M> {
     );
   }
 
-  /// Schedules a message to be processed by the state machine when a transition occurs.
+  /// Schedules a message to be processed by the state machine while a message is being handled.
   ///
-  /// If [getMessage] is provided, the function will be evaluated when the scheduling occurs, and
-  /// the returned message will be posted. Otherwise a [message] must be provided.
+  /// If [getMessage] is provided, the function will be evaluated to produce a message function
+  /// which will be called on each scheduling interval to produce the message to post. When
+  /// [getMessage] is called, it is provided a [MessageContext] and the message that is being
+  /// handled. If [getMessage] is not provided, then [message] must be.
   ///
   /// The scheduling will be performed using [TransitionContext.schedule]. Refer to that method
   /// for further details of scheduling semantics.
   ///
+  /// ```dart
+  /// class DoItLater {}
+  /// class DoIt {}
+  ///
+  /// DoIt Function() onSchedule(MessageContext, DoItLater) {
+  ///   // This function will be called when the schedule elapses to produce a
+  ///   // message to post
+  ///   return () => DoIt();
+  /// }
+  /// void onDoIt(MessageContext, DoIt) => print('It was done');
+  ///
+  /// var state1 = StateKey('s1');
+  /// var builder = StateTreeBuilder(initialState: state1);
+  ///
+  /// builder.state(state1, (b) {
+  ///   // Handle DoItLater message by scheduling a DoIt message to be posted in
+  ///   // the future
+  ///   b.onMessage<DoItLater>((b) => b.stay(action: b.act.schedule<DoIt>(
+  ///     onSchedule,
+  ///     duration: Duration(milliseconds: 10))));
+  ///   // Handle the DoIt message that was scheduled
+  ///   b.onMessage<DoIt>((b) => b.stay(action: b.act.run(onDoIt)));
+  /// });
+  /// ```
+  ///
   /// This action can be labeled when formatting a state tree by providing a [label].
   _MessageAction<M> schedule<M2>({
-    FutureOr<M2> Function(MessageContext msgCtx, M msg)? getMessage,
+    FutureOr<M2 Function()> Function(MessageContext msgCtx, M msg)? getMessage,
     M2? message,
     Duration duration = Duration.zero,
     bool periodic = false,
@@ -131,15 +158,17 @@ class MessageActionBuilder<M> {
     } else if (getMessage != null && message != null) {
       throw ArgumentError('One of getValue or value must be provided');
     }
-    var _getMessage = getMessage ?? (_) => message!;
+    var _getMessage = getMessage;
+    _getMessage ??= (_, __) => () => message!;
+
     return _MessageAction<M>._(
       _ActionType.schedule,
-      (msgCtx, msg) => _getMessage(msgCtx, msg).bind(
+      (msgCtx, msg) => _getMessage!(msgCtx, msg).bind(
         (scheduleMsg) {
           _logger.fine(() =>
               "State '$_forState' is scheduling message of type $M2 ${periodic ? 'periodic: true' : ''}");
           msgCtx.schedule(
-            () => scheduleMsg as Object,
+            scheduleMsg as Object Function(),
             duration: duration,
             periodic: periodic,
           );
@@ -154,10 +183,30 @@ class MessageActionBuilder<M> {
   ///
   /// If [getMessage] is provided, the function will be evaluated when the transition occurs, and
   /// the returned message will be posted. Otherwise a [message] must be provided.
+  /// ```dart
+  /// class DoIt {}
+  /// class ItWasDone {}
+  ///
+  /// ItWasDone onDoIt(MessageContext ctx, DoIt msg) {
+  ///   print('I did it');
+  ///   return ItWasDone();
+  /// }
+  /// void onItWasDone(MessageContext ctx, ItWasDone msg) => print('It was done');
+  ///
+  /// var state1 = StateKey('s1');
+  /// var builder = StateTreeBuilder(initialState: state1);
+  ///
+  /// builder.state(state1, (b) {
+  ///   // Handle DoIt message by posting a ItWasDone message for future processing
+  ///   b.onMessage<DoIt>((b) => b.stay(action: b.act.post(onDoIt)));
+  ///   // Handle ItWasDone message
+  ///   b.onMessage<ItWasDone>((b) => b.stay(action: b.act.run(onItWasDone)));
+  /// });
+  /// ```
   ///
   /// This action can be labeled when formatting a state tree by providing a [label].
   _MessageAction<M> post<M2>({
-    FutureOr<Object> Function(MessageContext msgCtx, M msg)? getMessage,
+    FutureOr<M2> Function(MessageContext msgCtx, M msg)? getMessage,
     M2? message,
     String? label,
   }) {
@@ -166,13 +215,13 @@ class MessageActionBuilder<M> {
     } else if (getMessage != null && message != null) {
       throw ArgumentError('One of getMessage or message must be provided');
     }
-    var _getMessage = getMessage ?? (_) => message!;
+    var _getMessage = getMessage ?? (_, __) => message!;
     return _MessageAction<M>._(
       _ActionType.post,
       (msgCtx, msg) => _getMessage(msgCtx, msg).bind(
         (scheduleMsg) {
           _logger.fine(() => "State '$_forState' is posting message of type $M2");
-          msgCtx.post(() => scheduleMsg);
+          msgCtx.post(scheduleMsg as Object);
         },
       ),
       TypeLiteral<M2>().type,
@@ -257,6 +306,10 @@ class _MessageActionWithData<M, D> implements _MessageActionInfo {
 }
 
 class MessageActionWithDataBuilder<M, D> {
+  final StateKey _forState;
+  final _logger = Logger('tree_state_machine.MessageActionWithDataBuilder<$M, $D>');
+  MessageActionWithDataBuilder._(this._forState);
+
   _MessageActionWithData<M, D> run(
     FutureOr<void> Function(MessageContext msgCtx, M msg, D data) action, {
     String? label,
@@ -292,19 +345,75 @@ class MessageActionWithDataBuilder<M, D> {
     );
   }
 
-  _MessageActionWithData<M, D> schedule<M2>(
-    FutureOr<Object> Function(MessageContext msgCtx, M msg, D data) getMessage, {
+  /// Schedules a message to be processed by the state machine while a message is being handled.
+  ///
+  /// If [getMessage] is provided, the function will be evaluated to produce a message function
+  /// which will be called on each scheduling interval to produce the message to post. When
+  /// [getMessage] is called, it is provided a [MessageContext], the message that is being
+  /// handled, and the current data for the state. If [getMessage] is not provided, then [message]
+  /// must be.
+  ///
+  /// The scheduling will be performed using [TransitionContext.schedule]. Refer to that method
+  /// for further details of scheduling semantics.
+  ///
+  /// This action can be labeled when formatting a state tree by providing a [label].
+  _MessageActionWithData<M, D> schedule<M2>({
+    FutureOr<M2 Function()> Function(MessageContext msgCtx, M msg, D data)? getMessage,
+    M2? message,
     Duration duration = Duration.zero,
     bool periodic = false,
     String? label,
   }) {
+    if (getMessage == null && message == null) {
+      throw ArgumentError('getMessage or message must be provided');
+    } else if (getMessage != null && message != null) {
+      throw ArgumentError('One of getMessage or message must be provided');
+    }
+    var _getMessage = getMessage;
+    _getMessage ??= (_, __, ___) => () => message!;
+
     return _MessageActionWithData<M, D>._(
       _ActionType.schedule,
-      (msgCtx, msg, data) => getMessage(msgCtx, msg, data).bind((scheduleMsg) => msgCtx.schedule(
-            () => scheduleMsg,
-            duration: duration,
-            periodic: periodic,
-          )),
+      (msgCtx, msg, data) => _getMessage!(msgCtx, msg, data).bind((scheduleMsg) {
+        _logger.fine(() =>
+            "State '$_forState' is scheduling message of type $M2: Duration $duration, Periodic: $periodic");
+        msgCtx.schedule(
+          scheduleMsg as Object Function(),
+          duration: duration,
+          periodic: periodic,
+        );
+      }),
+      TypeLiteral<M2>().type,
+      label,
+    );
+  }
+
+  /// Posts a new message to be processed by the state machine while a message is being handled.
+  ///
+  /// If [getMessage] is provided, the function will be evaluated when the transition occurs, and
+  /// the returned message will be posted. Otherwise a [message] must be provided.
+  ///
+  /// This action can be labeled when formatting a state tree by providing a [label].
+  _MessageActionWithData<M, D> post<M2>({
+    FutureOr<M2> Function(MessageContext msgCtx, M msg, D data)? getMessage,
+    M2? message,
+    String? label,
+  }) {
+    // TODO: try and combine implementation with post
+    if (getMessage == null && message == null) {
+      throw ArgumentError('getMessage or message must be provided');
+    } else if (getMessage != null && message != null) {
+      throw ArgumentError('One of getMessage or message must be provided');
+    }
+    var _getMessage = getMessage ?? (_, __, ___) => message!;
+    return _MessageActionWithData<M, D>._(
+      _ActionType.post,
+      (msgCtx, msg, data) => _getMessage(msgCtx, msg, data).bind(
+        (scheduleMsg) {
+          _logger.fine(() => "State '$_forState' is posting message of type $M2");
+          msgCtx.post(scheduleMsg as Object);
+        },
+      ),
       TypeLiteral<M2>().type,
       label,
     );

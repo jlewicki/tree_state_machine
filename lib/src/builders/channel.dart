@@ -1,33 +1,59 @@
 part of tree_builders;
 
+/// Indicates that a value of type [P] must be provided when entering a state.
+///
+/// Channels are intended as a contract indicating that in order to transition to a particular
+/// state, additional contextual information of type [P] must be provided by the transition source.
+/// ```dart
+/// // In order to enter the authenticating state, a SubmitCredentials value is
+/// // required.
+/// var authenticatingChannel = Channel<SubmitCredentials>(States.authenticating);
+///
+/// treeBuilder.state(States.loginEntry, (b) {
+///     b.onMessage<SubmitCredentials>((b) {
+///       // Provide a SubmitCredentials value when entering authenticating state
+///       b.enterChannel(authenticatingChannel, (_, msg) => msg);
+///     });
+///   }, parent: States.login);
+///
+/// treeBuilder.state(States.authenticating, (b) {
+///     b.onEnterFromChannel<SubmitCredentials>(authenticatingChannel, (b) {
+///       // The builder argument provides access to the SubmitCredentials, in this
+///       // case as as argument to the getMessage function
+///       b.post<AuthFuture>(getMessage: (_, creds) => _login(creds, authService));
+///     });
+///  }, parent: States.login)
+/// ```
 class Channel<P> {
+  /// The state to enter for this channel.
   final StateKey to;
+
+  /// A descriptive label for this channel.
   final String? label;
+
+  /// Constructs a channel for the [to] state.
   Channel(this.to, {this.label});
-  _ChannelEntry<P, M> entry<M>(FutureOr<P> Function(MessageContext ctx, M message)? payload) {
+
+  _ChannelEntry<P, M> _entry<M>(FutureOr<P> Function(MessageContext ctx, M message)? payload) {
     return _ChannelEntry(this, payload);
   }
 
-  _ChannelEntryWithData<P, M, D> entryWithData<M, D>(
+  _ChannelEntryWithData<P, M, D> _entryWithData<M, D>(
     FutureOr<P> Function(MessageContext msgCtx, M msg, D data)? payload,
   ) {
     return _ChannelEntryWithData<P, M, D>(this, payload);
   }
 
-  _ChannelEntryWithResult<P, M, T> entryWithResult<M, T>(
+  _ChannelEntryWithResult<P, M, T> _entryWithResult<M, T>(
     FutureOr<P> Function(MessageContext msgCtx, M msg, T ctx)? payload,
   ) {
     return _ChannelEntryWithResult<P, M, T>(this, payload);
   }
 
-  _ChannelEntryWithDataAndResult<P, M, D, T> entryWithDataAndResult<M, D, T>(
+  _ChannelEntryWithDataAndResult<P, M, D, T> _entryWithDataAndResult<M, D, T>(
     FutureOr<P> Function(MessageContext msgCtx, M msg, D data, T ctx)? payload,
   ) {
     return _ChannelEntryWithDataAndResult<P, M, D, T>(this, payload);
-  }
-
-  _ChannelExit<P> exit() {
-    return _ChannelExit(this);
   }
 }
 
@@ -69,9 +95,4 @@ class _ChannelEntryWithDataAndResult<P, M, D, T> {
   void enter(ContinuationWithDataMessageHandlerBuilder<M, D, T> builder, bool reenterTarget) {
     builder.goTo(channel.to, payload: payload, reenterTarget: reenterTarget);
   }
-}
-
-class _ChannelExit<P> {
-  final Channel<P> channel;
-  _ChannelExit(this.channel);
 }

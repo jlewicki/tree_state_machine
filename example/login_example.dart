@@ -187,7 +187,7 @@ StateTreeBuilder loginStateTree(AuthService authService) {
 
   b.state(States.authenticating, (b) {
     b.onEnterFromChannel<SubmitCredentials>(authenticatingChannel, (b) {
-      b.post<AuthFuture>(getValue: (_, creds) => _login(creds, authService));
+      b.post<AuthFuture>(getMessage: (_, creds) => _login(creds, authService));
     });
     b.onMessage<AuthFuture>((b) {
       b.whenResult<AuthorizedUser>((_, msg) => msg.futureOr, (b) {

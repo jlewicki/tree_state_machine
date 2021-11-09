@@ -152,7 +152,7 @@ class MessageHandlerBuilder<M> {
     FutureOr<P> Function(MessageContext msgCtx, M msg) payload, {
     bool reenterTarget = false,
   }) {
-    var channelEntry = channel.entry(payload);
+    var channelEntry = channel._entry(payload);
     channelEntry.enter(this, reenterTarget);
   }
 
@@ -211,8 +211,8 @@ class MessageHandlerBuilder<M> {
 class DataMessageHandlerBuilder<M, D> {
   final StateKey _forState;
   final String? _messageName;
+  late final act = MessageActionWithDataBuilder<M, D>._(_forState);
   _MessageHandlerDescriptor? _handler;
-  final act = MessageActionWithDataBuilder<M, D>();
 
   DataMessageHandlerBuilder(this._forState, this._messageName);
 
@@ -291,7 +291,7 @@ class DataMessageHandlerBuilder<M, D> {
     FutureOr<P> Function(MessageContext msgCtx, M msg, D data) payload, {
     bool reenterTarget = false,
   }) {
-    var channelEntry = channel.entryWithData(payload);
+    var channelEntry = channel._entryWithData(payload);
     channelEntry.enter(this, reenterTarget);
   }
 
@@ -431,7 +431,7 @@ class ContinuationMessageHandlerBuilder<M, T> {
     FutureOr<P> Function(MessageContext msgCtx, M msg, T ctx) payload, {
     bool reenterTarget = false,
   }) {
-    var channelEntry = channel.entryWithResult(payload);
+    var channelEntry = channel._entryWithResult(payload);
     channelEntry.enter(this, reenterTarget);
   }
 }
@@ -521,7 +521,7 @@ class ContinuationWithDataMessageHandlerBuilder<M, D, T> {
     FutureOr<P> Function(MessageContext msgCtx, M msg, D data, T ctx) payload, {
     bool reenterTarget = false,
   }) {
-    var channelEntry = channel.entryWithDataAndResult<M, D, T>(payload);
+    var channelEntry = channel._entryWithDataAndResult<M, D, T>(payload);
     channelEntry.enter(this, reenterTarget);
   }
 }

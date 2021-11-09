@@ -1,4 +1,14 @@
+import 'dart:async';
+
+import 'package:logging/logging.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
+
+StreamSubscription enableLogging() {
+  Logger.root.level = Level.ALL;
+  return Logger.root.onRecord.listen((record) {
+    print('${record.level.name}: ${record.time}: ${record.message}');
+  });
+}
 
 final rootState = StateKey('root');
 final state1 = StateKey('s1');
@@ -15,4 +25,8 @@ class StateData2 {
 
 class Message {
   String val = 'msg';
+}
+
+class Message2 {
+  int val = 1;
 }

@@ -245,3 +245,15 @@ is called an 'external stop'.
    // done will be true after stopping.
    var done = stateMachine.isDone;
    ```
+
+## State machine logging
+The `tree_state_machine` packages logs diagnostic messages using the Dart SDK `logging` package. An application can 
+enable `logging` output to view the messages. If hierarchical logging is enabled, all logging is peformed under a parent
+logger named `tree_state_machine`.
+```dart
+hierarchicalLoggingEnabled = true;
+Logger('tree_state_machine').level = Level.ALL;
+Logger.root.onRecord.listen((record) {
+   print('${record.level.name}: ${record.time}: ${record.message}');
+});
+```
