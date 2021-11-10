@@ -1,11 +1,12 @@
 import 'package:logging/logging.dart';
-import 'package:tree_state_machine/src/machine/tree_state.dart';
-import 'package:tree_state_machine/src/machine/tree_state_machine.dart';
+import 'package:tree_state_machine/tree_state_machine.dart';
 import 'package:tree_state_machine/tree_builders.dart';
 
-// A simple stoplight that transitions between green/yellow/red when it is in the running state.
+// A simple stoplight that transitions between green/yellow/red when it is
+//in the running state.
 //
-// See other examples at https://github.com/jlewicki/tree_state_machine/tree/master/example
+// See other examples at
+// https://github.com/jlewicki/tree_state_machine/tree/master/example
 
 class States {
   static final root = StateKey('root');
