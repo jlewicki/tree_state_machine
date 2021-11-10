@@ -29,13 +29,13 @@ class Machine {
     // Add an extra node to represent externally stopped state
     _addStoppedNode(rootNode, nodesByKey);
 
-    final machineRoot = MachineNode(rootNode);
-    final machineNodes = HashMap<StateKey, MachineNode>();
-    for (final entry in nodesByKey.entries) {
-      machineNodes[entry.key] = MachineNode(entry.value);
+    var log = Logger('tree_state_machine.Machine${logName != null ? '.' + logName : ''}');
+    var machineRoot = MachineNode(rootNode, log);
+    var machineNodes = HashMap<StateKey, MachineNode>();
+    for (var entry in nodesByKey.entries) {
+      machineNodes[entry.key] = MachineNode(entry.value, log);
     }
 
-    var log = Logger('tree_state_machine.Machine${logName != null ? '.' + logName : ''}');
     return Machine._(machineRoot, machineNodes, queueMessage, log);
   }
 
@@ -328,6 +328,7 @@ class Machine {
     return () {
       canceled = true;
       timer.cancel();
+      _log.fine("Canceled timer for state '$timerOwner'");
     };
   }
 
@@ -622,15 +623,19 @@ mixin DisposableMixin {
 class MachineNode {
   final TreeNode treeNode;
   final List<Timer> _timers = [];
-  MachineNode(this.treeNode);
+  final Logger _log;
+  MachineNode(this.treeNode, this._log);
 
   void addTimer(Timer timer) {
     _timers.add(timer);
   }
 
   void cancelTimers() {
-    for (final timer in _timers) {
-      timer.cancel();
+    if (_timers.isNotEmpty) {
+      _log.fine("Canceling timers for state '${treeNode.key}'");
+      for (final timer in _timers) {
+        timer.cancel();
+      }
     }
   }
 
