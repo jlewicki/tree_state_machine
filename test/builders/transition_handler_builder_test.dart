@@ -61,6 +61,51 @@ void main() {
       });
     });
 
+    group('post', () {
+      test('should post message', () async {
+        var b = StateTreeBuilder(initialState: state1);
+        var msgToPost = Message2();
+        dynamic postedMsg;
+        b.state(state1, (b) {
+          b.onMessage<Message>((b) => b.goTo(state2));
+        });
+        b.state(state2, (b) {
+          b.onEnter((b) => b.post(message: msgToPost));
+          b.onMessage<Message2>(
+              (b) => b.goTo(state3, action: b.act.run((msgCtx, msg) => postedMsg = msg)));
+        });
+        b.state(state3, emptyState);
+
+        var stateMachine = TreeStateMachine(b);
+        var currentState = await stateMachine.start();
+        await currentState.post(Message());
+        expect(currentState.key, equals(state3));
+        expect(postedMsg, equals(msgToPost));
+      });
+
+      test('should post message to destination state when posted in onExit', () async {
+        var b = StateTreeBuilder(initialState: state1);
+        var msgToPost = Message();
+        dynamic postedMsg;
+
+        b.state(state1, (b) {
+          b.onMessage<Message>((b) => b.goTo(state2));
+          b.onExit((b) => b.post(message: msgToPost));
+        });
+        b.state(state2, (b) {
+          b.onMessageValue(msgToPost, (b) {
+            b.action(b.act.run((msgCtx, msg) => postedMsg = msg));
+          });
+        });
+
+        var stateMachine = TreeStateMachine(b);
+        var currentState = await stateMachine.start();
+        await currentState.post(Message());
+        expect(currentState.key, equals(state2));
+        expect(postedMsg, equals(msgToPost));
+      });
+    });
+
     group('when', () {
       test('should run true handler when condition is true', () async {
         var b = StateTreeBuilder(initialState: state1);
@@ -135,6 +180,72 @@ void main() {
         var currentState = await stateMachine.start();
         await currentState.post(Message());
         expect(trueHandlerCalled, isFalse);
+        expect(otherwiseHandlerCalled, isTrue);
+      });
+    });
+  });
+
+  group('TransitionHandlerBuilderWithData', () {
+    group('when', () {
+      test('should run true handler when condition is true', () async {
+        var b = StateTreeBuilder(initialState: state1);
+        var initDataVal = StateData()..val = '2';
+        var trueHandlerCalled = false;
+        var otherwiseHandlerCalled = false;
+        StateData? handlerDataVal;
+
+        b.state(state1, (b) {
+          b.onMessage<Message>((b) => b.goTo(state2, payload: (_, __) => 1));
+        });
+        b.dataState<StateData>(state2, InitialData(() => initDataVal), (b) {
+          b.onEnter((b) {
+            b.when((transCtx, data) => '2' == data.val, (b) {
+              b.run((ctx, data) {
+                handlerDataVal = data;
+                trueHandlerCalled = true;
+              });
+            }).otherwise((b) {
+              b.run((ctx, data) => otherwiseHandlerCalled = true);
+            });
+          });
+        });
+
+        var stateMachine = TreeStateMachine(b);
+        var currentState = await stateMachine.start();
+        await currentState.post(Message());
+        expect(trueHandlerCalled, isTrue);
+        expect(handlerDataVal, same(initDataVal));
+        expect(otherwiseHandlerCalled, isFalse);
+      });
+
+      test('should run otherwise handler when condition is not true', () async {
+        var b = StateTreeBuilder(initialState: state1);
+        var initDataVal = StateData()..val = '2';
+        var trueHandlerCalled = false;
+        var otherwiseHandlerCalled = false;
+        StateData? handlerDataVal;
+
+        b.state(state1, (b) {
+          b.onMessage<Message>((b) => b.goTo(state2, payload: (_, __) => 2));
+        });
+        b.dataState<StateData>(state2, InitialData(() => initDataVal), (b) {
+          b.onEnter((b) {
+            b.when((transCtx, data) => '1' == data.val, (b) {
+              b.run((ctx, data) => trueHandlerCalled = true);
+            }).otherwise((b) {
+              b.run((ctx, data) {
+                handlerDataVal = data;
+                otherwiseHandlerCalled = true;
+              });
+            });
+          });
+        });
+
+        var stateMachine = TreeStateMachine(b);
+        var currentState = await stateMachine.start();
+        await currentState.post(Message());
+        expect(trueHandlerCalled, isFalse);
+        expect(handlerDataVal, same(initDataVal));
         expect(otherwiseHandlerCalled, isTrue);
       });
     });
