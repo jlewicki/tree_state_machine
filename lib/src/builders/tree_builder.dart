@@ -141,8 +141,8 @@ class StateTreeBuilder {
   /// The behavior of the data state is configured by calling methods on the [_DataStateBuilder]
   /// that is provided to the [build] callback.
   ///
-  /// The initial value of the state data is provided by [initialData], and will be evaluated when
-  /// the state is first entered.
+  /// The initial value of the state data is provided by [initialData], and will be evaluated each
+  /// time the state is entered.
   ///
   /// ```dart
   /// enum Messages { increment, decrement }
@@ -330,8 +330,34 @@ class InitialData<D> {
     return InitialData._((_) => create());
   }
 
-  static InitialData<D> fromChannel<D, P>(Channel<P> channel, D Function(P payload) map) {
-    return InitialData._((transCtx) => map(transCtx.payloadOrThrow<P>()));
+  /// Creates an [InitialData] that produces its value by calling [initialValue] with the payload
+  /// provided when entering the state through [channel].
+  ///
+  /// ```dart
+  /// var s1 = StateKey('state1');
+  /// var s2 = StateKey('state2');
+  /// var s2Channel = Channel<String>(s2);
+  /// class S2Data {
+  ///   String value = '';
+  /// }
+  /// var builder = StateTreeBuilder(initialState: parentState);
+  ///
+  /// builder.state(s1, (b) {
+  ///   b.onMessageValue('go', (b) => b.enterChannel(s2Channel, (msgCtx, msg) => 'Hi!'));
+  /// });
+  ///
+  /// builder.dataState<S2Data>(
+  ///   s2,
+  ///   InitialData.fromChannel(channel, (payload) => S2Data()..value = payload),
+  ///   (b) {
+  ///     b.onEnter((b) {
+  ///       // Will print 'Hi!'
+  ///       b.run((transCtx, data) => print(data.value));
+  ///     });
+  ///   });
+  /// ```
+  static InitialData<D> fromChannel<D, P>(Channel<P> channel, D Function(P payload) initialValue) {
+    return InitialData._((transCtx) => initialValue(transCtx.payloadOrThrow<P>()));
   }
 
   /// Creates an [InitialData] that produces its initial value by calling [initialValue] with
@@ -361,7 +387,7 @@ class InitialData<D> {
   ///   parent: parentState
   /// );
   /// ```
-  static InitialData<D> fromAncestor<D, DAncestor>(D Function(DAncestor parentData) initialValue) {
+  static InitialData<D> fromAncestor<D, DAncestor>(D Function(DAncestor ancData) initialValue) {
     return InitialData._((ctx) => initialValue(ctx.dataValueOrThrow<DAncestor>()));
   }
 

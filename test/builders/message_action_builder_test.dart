@@ -35,7 +35,6 @@ void main() {
         var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         await currentState.post(Message());
-        currentState.dataValue<int>();
         expect(currentState.dataValue<int>(), equals(2));
       });
     });
