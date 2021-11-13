@@ -391,6 +391,9 @@ class InitialData<D> {
     return InitialData._((ctx) => initialValue(ctx.dataValueOrThrow<DAncestor>()));
   }
 
+  /// Creates an [InitialData] that produces its initial value by calling [initialValue] with
+  /// a value of type [DAncestor], obtained by from an ancestor state in the state tree, and the
+  /// payload value of [channel].
   static InitialData<D> fromChannelAndAncestor<D, DParent, P>(
       Channel<P> channel, D Function(DParent parentData, P payload) map) {
     return InitialData._((ctx) => map(ctx.dataValueOrThrow<DParent>(), ctx.payloadOrThrow<P>()));
