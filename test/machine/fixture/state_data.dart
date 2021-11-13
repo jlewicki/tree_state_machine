@@ -60,6 +60,10 @@ class LeafData2 {
   );
 }
 
+class FinalData {
+  int? counter;
+}
+
 @JsonSerializable()
 class ReadOnlyData {
   final String _name;

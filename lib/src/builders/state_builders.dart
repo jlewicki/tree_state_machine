@@ -34,11 +34,33 @@ abstract class _OnEntryBuilder implements _OpaqueOnEntryBuilder {
   ///
   /// The [build] function is called with a [TransitionHandlerBuilderWithData] that can be used to
   /// describe the behavior of the entry transition.
-  void onEnterWithData<D>(void Function(TransitionHandlerBuilderWithData<D>) handler);
+  void onEnterWithData<D>(void Function(TransitionHandlerBuilderWithData<D>) build);
 
+  /// Describes how transition to this state through [channel] should be handled.
+  ///
+  /// The [build] function is called with a [TransitionHandlerBuilderWithPayload] that can be used
+  /// to describe the behavior of the entry transition.
   void onEnterFromChannel<P>(
     Channel<P> channel,
-    void Function(TransitionHandlerBuilderWithPayload<P>) handler,
+    void Function(TransitionHandlerBuilderWithPayload<P>) build,
+  );
+}
+
+abstract class _OnEntryWithDataBuilder<D> implements _OpaqueOnEntryBuilder {
+  /// Describes how transitions to this data state should be handled.
+  ///
+  /// The [build] function is called with a [TransitionHandlerBuilderWithData] that can be used to
+  /// describe
+  /// the behavior of the entry transition.
+  void onEnter(void Function(TransitionHandlerBuilderWithData<D> b) build);
+
+  /// Describes how transition to this state through [channel] should be handled.
+  ///
+  /// The [build] function is called with a [TransitionHandlerBuilderWithDataAndPayload] that can be used
+  /// to describe the behavior of the entry transition.
+  void onEnterFromChannel<P>(
+    Channel<P> channel,
+    void Function(TransitionHandlerBuilderWithDataAndPayload<D, P>) build,
   );
 }
 
@@ -113,14 +135,11 @@ abstract class FinalStateBuilder implements _OnEntryBuilder {}
 
 /// Provides methods for describing the behavior of a data state carrying a value of type [D].
 abstract class DataStateBuilder<D>
-    implements _OpaqueOnEntryBuilder, _OpaqueOnExitBuilder, _OpaqueOnMessageBuilder {
-  void onEnter(void Function(TransitionHandlerBuilderWithData<D>) handler);
-
-  void onEnterFromChannel<P>(
-    Channel<P> channel,
-    void Function(TransitionHandlerBuilderWithDataAndPayload<D, P>) handler,
-  );
-
+    implements
+        _OpaqueOnEntryBuilder,
+        _OpaqueOnExitBuilder,
+        _OpaqueOnMessageBuilder,
+        _OnEntryWithDataBuilder<D> {
   void onMessage<M>(void Function(DataMessageHandlerBuilder<M, D> b) handler);
 
   void onMessageValue<M>(
@@ -131,6 +150,13 @@ abstract class DataStateBuilder<D>
 
   void onExit(void Function(TransitionHandlerBuilderWithData<D>) handler);
 }
+
+/// Provides methods for describing the behavior of a final data state carrying a value of type [D].
+///
+/// A final state is a terminal state for a state tree. Once a final state has beem entered, no
+/// further messsage processing or state transitions will occur. As a result, only state entry
+/// behavior may be defined for a final state with this builder.
+abstract class FinalDataStateBuilder<D> implements _OnEntryWithDataBuilder<D> {}
 
 /// Base class for state builders that allow the behavior of a state to be specified.
 abstract class _StateBuilderBase {
@@ -341,15 +367,15 @@ class _StateBuilder extends _StateBuilderBase
 
 class _DataStateBuilder<D> extends _StateBuilderBase
     with _OpaqueHandlersMixin
-    implements DataStateBuilder<D> {
+    implements DataStateBuilder<D>, FinalDataStateBuilder<D> {
   final Type dataType = D;
   final InitialData<D> _initialValue;
   @override
   final StateDataCodec? serializer;
 
   _DataStateBuilder._(StateKey key, this._initialValue, this.serializer, StateKey? parent,
-      InitialChild? initialChild)
-      : super._(key, false, parent, initialChild);
+      InitialChild? initialChild, bool isFinal)
+      : super._(key, isFinal, parent, initialChild);
 
   @override
   void onEnter(void Function(TransitionHandlerBuilderWithData<D>) handler) {

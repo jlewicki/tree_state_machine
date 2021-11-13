@@ -173,6 +173,28 @@ void main() {
       });
     });
 
+    group('finalDataState', () {
+      test('should create a final data leaf state', () {
+        var sb = StateTreeBuilder(initialState: state1);
+        sb.finalDataState<int>(state1, InitialData(() => 1), emptyFinalDataState);
+        var rootNode = sb.build(TreeBuildContext());
+        var state1Node = rootNode.children.first;
+        expect(state1, state1Node.key);
+        expect(state1Node.isLeaf, isTrue);
+        expect(state1Node.isFinalLeaf, isTrue);
+        expect(state1Node.children.isEmpty, isTrue);
+      });
+
+      test('should throw if state is defined more than once', () {
+        var sb = StateTreeBuilder(initialState: state1);
+        sb.finalDataState<int>(state1, InitialData(() => 1), emptyFinalDataState);
+        expect(
+          () => sb.finalDataState<int>(state1, InitialData(() => 1), emptyFinalDataState),
+          throwsStateError,
+        );
+      });
+    });
+
     group('build', () {
       test('should throw if a parent state is missing initial child', () {
         var sb = StateTreeBuilder(initialState: state1);

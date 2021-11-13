@@ -138,7 +138,7 @@ class StateTreeBuilder {
   /// Adds to the state tree a description of a data state, identified by [stateKey] and carrying a
   /// value of type [D].
   ///
-  /// The behavior of the data state is configured by calling methods on the [_DataStateBuilder]
+  /// The behavior of the data state is configured by calling methods on the [DataStateBuilder]
   /// that is provided to the [build] callback.
   ///
   /// The initial value of the state data is provided by [initialData], and will be evaluated each
@@ -179,7 +179,7 @@ class StateTreeBuilder {
     if (_stateBuilders.containsKey(stateKey)) {
       throw StateError('State $stateKey has already been configured.');
     }
-    var builder = _DataStateBuilder<D>._(stateKey, initialData, codec, parent, initialChild);
+    var builder = _DataStateBuilder<D>._(stateKey, initialData, codec, parent, initialChild, false);
     build(builder);
     _addState(builder);
   }
@@ -193,6 +193,24 @@ class StateTreeBuilder {
   /// A final state never has any child states, and is always a child of the root state.
   void finalState(StateKey stateKey, void Function(FinalStateBuilder builder) build) {
     var builder = _StateBuilder._(stateKey, null, null, true);
+    build(builder);
+    _addState(builder);
+  }
+
+  /// Adds to the state tree a description of a final data state, identified by [stateKey] and
+  /// carrying a value of type [D}]. The behavior of the state is configured by the [build] callback.
+  ///
+  /// A final state is a terminal state for a state tree. Once a final state has been entered, no
+  /// further messsage processing or state transitions will occur.
+  ///
+  /// A final state never has any child states, and is always a child of the root state.
+  void finalDataState<D>(
+    StateKey stateKey,
+    InitialData<D> initialData,
+    void Function(FinalDataStateBuilder<D> builder) build, {
+    StateDataCodec? codec,
+  }) {
+    var builder = _DataStateBuilder<D>._(stateKey, initialData, codec, null, null, true);
     build(builder);
     _addState(builder);
   }
@@ -314,6 +332,9 @@ void emptyDataState<D>(DataStateBuilder<D> builder) {}
 /// A function that adds no behavior to a final state.
 void emptyFinalState(FinalStateBuilder builder) {}
 
+/// A function that adds no behavior to a final data state.
+void emptyFinalDataState<D>(FinalDataStateBuilder<D> builder) {}
+
 //==================================================================================================
 //
 // InitialData
@@ -325,7 +346,7 @@ class InitialData<D> {
   InitialData._(this._initialValue);
 
   /// Creates an [InitialData] that will call the [create] function to obtain the initial data
-  /// value.
+  /// value. The function is called each time the data state is entered.
   factory InitialData(D Function() create) {
     return InitialData._((_) => create());
   }
@@ -394,9 +415,9 @@ class InitialData<D> {
   /// Creates an [InitialData] that produces its initial value by calling [initialValue] with
   /// a value of type [DAncestor], obtained by from an ancestor state in the state tree, and the
   /// payload value of [channel].
-  static InitialData<D> fromChannelAndAncestor<D, DParent, P>(
-      Channel<P> channel, D Function(DParent parentData, P payload) map) {
-    return InitialData._((ctx) => map(ctx.dataValueOrThrow<DParent>(), ctx.payloadOrThrow<P>()));
+  static InitialData<D> fromChannelAndAncestor<D, DAncestor, P>(
+      Channel<P> channel, D Function(DAncestor parentData, P payload) map) {
+    return InitialData._((ctx) => map(ctx.dataValueOrThrow<DAncestor>(), ctx.payloadOrThrow<P>()));
   }
 
   D eval(TransitionContext transCtx) => _initialValue(transCtx);

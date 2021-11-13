@@ -221,12 +221,27 @@ void main() {
 
       test('should return true if current state is final', () async {
         final sm = TreeStateMachine(tree.treeBuilder(messageHandlers: {
-          // This processes message, but does not result in a transition
           tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_X_key),
         }));
         var currentState = await sm.start();
 
         await currentState.post(Object());
+        expect(currentState.key, equals(tree.r_X_key));
+        expect(sm.isDone, isTrue);
+      });
+
+      test('should return true if current data state is final', () async {
+        final sm = TreeStateMachine(data_tree.treeBuilder(
+          initialDataValues: {data_tree.r_XD_key: () => FinalData()..counter = 1},
+          messageHandlers: {
+            data_tree.r_a_a_2_key: (ctx) => ctx.goTo(data_tree.r_XD_key),
+          },
+        ));
+        var currentState = await sm.start();
+
+        await currentState.post(Object());
+        expect(currentState.key, equals(data_tree.r_XD_key));
+        expect(currentState.dataValue<FinalData>()!.counter, equals(1));
         expect(sm.isDone, isTrue);
       });
     });

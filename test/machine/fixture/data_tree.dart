@@ -17,6 +17,7 @@ final r_c_key = StateKey('r_c');
 final r_c_a_key = StateKey('r_c_a');
 final r_c_a_1_key = StateKey('r_c_a_1');
 final r_X_key = StateKey('r_X');
+final r_XD_key = StateKey('r_XD');
 
 StateTreeBuilder treeBuilder({
   TransitionHandler Function(StateKey key)? createEntryHandler,
@@ -58,15 +59,18 @@ StateTreeBuilder treeBuilder({
     };
   }
 
+  void Function(FinalDataStateBuilder<D>) buildFinalDataState<D>(StateKey key) {
+    return (b) {
+      b.runOnEnter(_entryHandlers[key] ?? _createEntryHandler(key));
+    };
+  }
+
   D Function() buildInitialDataValue<D>(StateKey key, D defaultValue) {
     return () {
       if (createInitialDataValues != null) return createInitialDataValues(key)() as D;
       if (_initialDataValueCreators[key] != null) {
         return _initialDataValueCreators[key]!() as D;
       }
-      // if (_initialDataValues[key] != null) {
-      //   return _initialDataValues[key] as D;
-      // }
       return defaultValue;
     };
   }
@@ -84,6 +88,12 @@ StateTreeBuilder treeBuilder({
   );
 
   b.finalState(r_X_key, buildFinalState(r_X_key));
+
+  b.finalDataState<FinalData>(
+    r_XD_key,
+    InitialData(buildInitialDataValue(r_XD_key, FinalData()..counter = 1)),
+    buildFinalDataState(r_XD_key),
+  );
 
   b.dataState<ImmutableData>(
     r_a_key,
