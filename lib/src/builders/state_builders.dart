@@ -440,6 +440,54 @@ class _DataStateBuilder<D> extends _StateBuilderBase
   }
 }
 
+class _MachineStateBuilder extends _StateBuilderBase {
+  final InitialMachine _initialMachine;
+  final FutureOr<StateKey> Function(CurrentState finalState) _onDone;
+
+  _MachineStateBuilder(StateKey key, this._initialMachine, this._onDone, StateKey? parent)
+      : super._(key, false, parent, null);
+
+  @override
+  TreeState _createState() {
+    return (() {
+      var whenDoneMessage = Object();
+      CurrentState? currentState;
+      return TreeState(
+        (ctx) async {
+          // Nested state machine completed out of band (that is, without a message being dispatched
+          // through the parent state machine).
+          if (ctx.message == whenDoneMessage) {
+            var nextState = await _onDone(currentState!);
+            return ctx.goTo(nextState);
+          }
+
+          // Dispatch messages sent to parent state machine to the child state machine.
+          // TODO: do we need a flag to control this?
+          await currentState!.post(ctx.message);
+
+          // The nested state machine finished as a result of the message, so leave this state.
+          if (currentState!.stateMachine.isDone) {
+            var nextState = await _onDone(currentState!);
+            return ctx.goTo(nextState);
+          }
+
+          // The nested machine is still running, so stay in this state
+          return ctx.stay();
+        },
+        (ctx) async {
+          var machine = _initialMachine._create(ctx);
+          var done = machine.transitions.firstWhere((t) => t.isToFinalState);
+          currentState = await machine.start();
+          ctx.postWhen(done, (_) => whenDoneMessage);
+        },
+        (ctx) {
+          currentState?.stateMachine.dispose();
+        },
+      );
+    })();
+  }
+}
+
 /// Adds methods to builders that allows 'open-coded' handlers to be added to builders.
 ///
 /// Note that these methods are added via mixin instead of addinging then to StateBuilderBase,

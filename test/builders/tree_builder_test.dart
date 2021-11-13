@@ -2,6 +2,8 @@ import 'package:test/test.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'package:tree_state_machine/tree_builders.dart';
 
+import 'fixture/fixture_data.dart';
+
 void main() {
   group('StateTreeBuilder', () {
     final rootState = StateKey('r');
@@ -192,6 +194,103 @@ void main() {
           () => sb.finalDataState<int>(state1, InitialData(() => 1), emptyFinalDataState),
           throwsStateError,
         );
+      });
+    });
+
+    group('machineState', () {
+      final nestedState1 = StateKey('state1');
+      final nestedState2 = StateKey('state2');
+
+      StateTreeBuilder createNestedBuilder() {
+        var nestedSb = StateTreeBuilder(initialState: nestedState1);
+        nestedSb.state(nestedState1, (b) {
+          b.onMessageValue('done', (b) => b.goTo(nestedState2));
+        });
+        nestedSb.finalDataState<StateData>(
+          nestedState2,
+          InitialData(() => StateData()..val = '1'),
+          emptyFinalDataState,
+        );
+        return nestedSb;
+      }
+
+      test('should create a machine state from tree builder', () async {
+        var nestedSb = createNestedBuilder();
+
+        StateData? finalNestedData;
+        var sb = StateTreeBuilder(initialState: state1);
+        sb.machineState(
+          state1,
+          InitialMachine.fromTree((_) => nestedSb),
+          (finalState) {
+            finalNestedData = finalState.dataValue<StateData>();
+            return state2;
+          },
+        );
+        sb.state(state2, emptyState);
+
+        var stateMachine = TreeStateMachine(sb);
+        var currentState = await stateMachine.start();
+        await currentState.post('done');
+
+        expect(currentState.key, equals(state2));
+        expect(finalNestedData, isNotNull);
+        expect(finalNestedData!.val, equals('1'));
+      });
+
+      test('should create a machine state from machine', () async {
+        var nestedSb = createNestedBuilder();
+        var nestedSm = TreeStateMachine(nestedSb);
+        await nestedSm.start();
+
+        StateData? finalNestedData;
+        var sb = StateTreeBuilder(initialState: state1);
+        sb.machineState(
+          state1,
+          InitialMachine((_) => nestedSm),
+          (finalState) {
+            finalNestedData = finalState.dataValue<StateData>();
+            return state2;
+          },
+        );
+        sb.state(state2, emptyState);
+
+        var stateMachine = TreeStateMachine(sb);
+        var currentState = await stateMachine.start();
+        await currentState.post('done');
+
+        expect(currentState.key, equals(state2));
+        expect(finalNestedData, isNotNull);
+        expect(finalNestedData!.val, equals('1'));
+      });
+
+      test('should create a machine state that can complete ot of band', () async {
+        var nestedSb = createNestedBuilder();
+        var nestedSm = TreeStateMachine(nestedSb);
+        var nestedCurrentState = await nestedSm.start();
+
+        StateData? finalNestedData;
+        var sb = StateTreeBuilder(initialState: state1);
+        sb.machineState(
+          state1,
+          InitialMachine((_) => nestedSm),
+          (finalState) {
+            finalNestedData = finalState.dataValue<StateData>();
+            return state2;
+          },
+        );
+        sb.state(state2, emptyState);
+
+        var stateMachine = TreeStateMachine(sb);
+        var currentState = await stateMachine.start();
+
+        var toState2Future = stateMachine.transitions.firstWhere((t) => t.to == state2);
+        await nestedCurrentState.post('done');
+        await toState2Future;
+
+        expect(currentState.key, equals(state2));
+        expect(finalNestedData, isNotNull);
+        expect(finalNestedData!.val, equals('1'));
       });
     });
 

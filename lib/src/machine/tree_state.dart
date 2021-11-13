@@ -142,8 +142,8 @@ class TreeState {
   final Dispose? onDispose;
 
   /// Constructs a [TreeState] instance.
-  TreeState(
-      this.onMessage, TransitionHandler? onEnter, TransitionHandler? onExit, Dispose? onDispose)
+  TreeState(this.onMessage, TransitionHandler? onEnter, TransitionHandler? onExit,
+      [Dispose? onDispose])
       : onEnter = onEnter ?? emptyTransitionAction,
         onExit = onExit ?? emptyTransitionAction,
         onDispose = onDispose ?? emptyDispose;
@@ -423,6 +423,8 @@ abstract class TransitionContext {
   /// has completed.
   void post(FutureOr<Object> message);
 
+  void postWhen<T>(Future<T> when, FutureOr<Object> Function(T whenResult) message);
+
   /// Schedules a message to be dispatched to the state machine asynchronously.
   ///
   /// The time at which the message is sent is indicated by the [duration] argument. If not
@@ -483,14 +485,15 @@ class Transition {
   /// The order of the states in the list reflects the order of entry for the states.
   final List<StateKey> entryPath;
 
+  ///
+  final bool isToFinalState;
+
   Transition(
-    this.from,
-    this.to,
-    this.lca,
-    Iterable<StateKey> exitPath,
-    Iterable<StateKey> entryPath,
-  )   : exitPath = List.unmodifiable(exitPath),
-        entryPath = List.unmodifiable(entryPath);
+      this.from, this.to, this.lca, Iterable<StateKey> exitPath, Iterable<StateKey> entryPath,
+      [bool? isToFinalState = false])
+      : exitPath = List.unmodifiable(exitPath),
+        entryPath = List.unmodifiable(entryPath),
+        isToFinalState = isToFinalState ?? false;
 }
 
 //==================================================================================================

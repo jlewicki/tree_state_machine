@@ -198,7 +198,7 @@ class StateTreeBuilder {
   }
 
   /// Adds to the state tree a description of a final data state, identified by [stateKey] and
-  /// carrying a value of type [D}]. The behavior of the state is configured by the [build] callback.
+  /// carrying a value of type [D]. The behavior of the state is configured by the [build] callback.
   ///
   /// A final state is a terminal state for a state tree. Once a final state has been entered, no
   /// further messsage processing or state transitions will occur.
@@ -213,6 +213,29 @@ class StateTreeBuilder {
     var builder = _DataStateBuilder<D>._(stateKey, initialData, codec, null, null, true);
     build(builder);
     _addState(builder);
+  }
+
+  /// Adds to the state tree a description of a machine state, identifed by [stateKey], and which
+  /// will run a nested state machine.
+  ///
+  /// When this state is entered, a nested state machine that is produced by [initialMachine], will
+  /// be started, and any messages dispatched to this stated will forwarded to the nested state
+  /// machine.
+  ///
+  /// No transitions from this state will occur until the nested state machine end by reaching a
+  /// final state. When this occurs, [onDone] will be called with the final [CurrentState] of the
+  /// nested state machine, which returns the key of the next state to transition to.
+  ///
+  /// The state can be declared as a child state, by providing a [parent] value referencing the
+  /// parent state.
+  void machineState(
+    StateKey stateKey,
+    InitialMachine initialMachine,
+    FutureOr<StateKey> Function(CurrentState finalState) onDone, {
+    StateKey? parent,
+    String? label,
+  }) {
+    _addState(_MachineStateBuilder(stateKey, initialMachine, onDone, parent));
   }
 
   /// Writes a textual description of the state stree to the [sink]. The specific output format is
@@ -464,4 +487,17 @@ class InitialChild {
   }
 
   StateKey eval(TransitionContext transCtx) => _getInitialChild(transCtx);
+}
+
+class InitialMachine {
+  final TreeStateMachine Function(TransitionContext) _create;
+
+  InitialMachine(this._create);
+
+  factory InitialMachine.fromTree(StateTreeBuilder Function(TransitionContext transCtx) create) {
+    return InitialMachine((ctx) {
+      var tree = create(ctx);
+      return TreeStateMachine(tree);
+    });
+  }
 }

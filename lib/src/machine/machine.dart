@@ -479,7 +479,8 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
   TreeNode get currentNode => _currentNode;
 
   Transition toTransition() {
-    return Transition(_requestedTransition.from, _currentNode.key, lca, exited, entered);
+    return Transition(_requestedTransition.from, _currentNode.key, lca, exited, entered,
+        _enteredNodes.last.isFinalLeaf);
   }
 
   @override
@@ -490,6 +491,16 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
     } else {
       _machine._queueMessage(message);
     }
+  }
+
+  @override
+  void postWhen<T>(Future<T> when, FutureOr<Object> Function(T whenResult) getMessage) {
+    (() async {
+      var result = await when;
+      // Test this when getMesssage is not a future
+      var message = await getMessage(result);
+      _machine._queueMessage(message);
+    })();
   }
 
   @override
@@ -567,6 +578,9 @@ class MachineTransition implements Transition {
 
   @override
   late final List<StateKey> path = nodePath.map((n) => n.key).toList();
+
+  @override
+  bool get isToFinalState => toNode.isFinalLeaf;
 
   /// Constructs a [TransitionPath] instance.
   MachineTransition._(

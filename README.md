@@ -7,7 +7,7 @@
 * Asynchronous message processing
 * Stream based event notifications
 * Declarative state definitions with automated generation of state diagrams in DOT format 
-
+* Nested state machines
 
 ## Getting Started
 The primary API for the working with a tree state machine is provided by the `tree_state_machine` library. The API for 
@@ -86,7 +86,6 @@ treeBuilder.dataState<LoginData>(
    initialChild: InitialChild(States.loginEntry),
 );
 ```
-
 ### Final States
 States may be delared as final states. Once a final state has been entered, no further message processing or state 
 transitions will occur, and the state tree is considered ended, or complete. Note that a final state is always 
@@ -96,6 +95,31 @@ treeBuilder.finalState(States.lockedOut, (stateBuilder) {
    // Use state builder to define entry behavior for the state
 });
 ``` 
+
+### Machine States
+Existing state tree builders or machines can be composed with a state tree builder as a machine state. A machine state
+is a leaf state, and when it is entered a nested state machine will be started. The machine state will forward any 
+messages to the nested state machine, and will remain the current state until the nested state machine reaches a final 
+state. When it does so, the machine state will invoke a callback to determine the next state to transition to.
+```dart
+
+StateTreeBuilder nestedTreeBuilder() {
+   var treeBuilder = new StateTreeBuilder();
+   // ...define a state tree
+   return treeBuilder;
+}
+
+final nestedMachineState = StateKey('nestedMachine');
+final otherState = StateKey('otherState');
+
+treeBuilder.machineState(
+   nestedMachineState, 
+   // A nested state machine will be created from this state tree
+   InitialMachine.fromTree((transCtx) => nestedTreeBuilder(),
+   // When the nested machine completes, go to otherState
+   (CurrentState finalState) => otherState),
+);
+```
 
 ## Message Handlers
 The way a state responds to a message is defined by the `MessageHandler` function for the state. A message handler is 
