@@ -1,3 +1,6 @@
+## 1.0.4
+- Add support for final data states
+
 ## 1.0.3
 - Package updates to improve pub.dev score.
 - Add logging when timers are canceled.
