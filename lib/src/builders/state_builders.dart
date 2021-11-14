@@ -442,46 +442,58 @@ class _DataStateBuilder<D> extends _StateBuilderBase
 
 class _MachineStateBuilder extends _StateBuilderBase {
   final InitialMachine _initialMachine;
+  bool Function(Transition transition)? _isDone;
+  final bool _forwardMessages;
   final FutureOr<StateKey> Function(CurrentState finalState) _onDone;
 
-  _MachineStateBuilder(StateKey key, this._initialMachine, this._onDone, StateKey? parent)
-      : super._(key, false, parent, null);
+  _MachineStateBuilder(
+    StateKey key,
+    this._initialMachine,
+    this._forwardMessages,
+    this._onDone,
+    this._isDone,
+    StateKey? parent,
+  ) : super._(key, false, parent, null);
 
   @override
   TreeState _createState() {
     return (() {
       var whenDoneMessage = Object();
-      CurrentState? currentState;
+      CurrentState? currentNestedState;
       return TreeState(
         (ctx) async {
-          // Nested state machine completed out of band (that is, without a message being dispatched
-          // through the parent state machine).
+          // The nested state machine is done, so transition to the next state
           if (ctx.message == whenDoneMessage) {
-            var nextState = await _onDone(currentState!);
+            var nextState = await _onDone(currentNestedState!);
             return ctx.goTo(nextState);
           }
 
           // Dispatch messages sent to parent state machine to the child state machine.
-          // TODO: do we need a flag to control this?
-          await currentState!.post(ctx.message);
-
-          // The nested state machine finished as a result of the message, so leave this state.
-          if (currentState!.stateMachine.isDone) {
-            var nextState = await _onDone(currentState!);
-            return ctx.goTo(nextState);
+          if (_forwardMessages) {
+            await currentNestedState!.post(ctx.message);
           }
 
           // The nested machine is still running, so stay in this state
           return ctx.stay();
         },
         (ctx) async {
-          var machine = _initialMachine._create(ctx);
-          var done = machine.transitions.firstWhere((t) => t.isToFinalState);
-          currentState = await machine.start();
-          ctx.postWhen(done, (_) => whenDoneMessage);
+          var machine = await _initialMachine._create(ctx);
+
+          // Future that tells us when the nested machine is done.
+          var done = machine.transitions.firstWhere((t) {
+            if (t.isToFinalState) return true;
+            return _isDone != null ? _isDone!(t) : false;
+          });
+          // TODO: need to subscribe to disposal for state machine as well as finishing?
+          currentNestedState = await machine.start();
+          ctx.postWhen(done, (_) {
+            return whenDoneMessage;
+          });
         },
         (ctx) {
-          currentState?.stateMachine.dispose();
+          if (_initialMachine._disposeMachineOnExit) {
+            currentNestedState?.stateMachine.dispose();
+          }
         },
       );
     })();

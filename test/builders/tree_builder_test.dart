@@ -198,20 +198,25 @@ void main() {
     });
 
     group('machineState', () {
-      final nestedState1 = StateKey('state1');
-      final nestedState2 = StateKey('state2');
+      final nestedState1 = StateKey('nestedState1');
+      final nestedState2 = StateKey('nestedState2');
+      final nestedState3 = StateKey('nestedState3');
 
       StateTreeBuilder createNestedBuilder() {
-        var nestedSb = StateTreeBuilder(initialState: nestedState1);
-        nestedSb.state(nestedState1, (b) {
-          b.onMessageValue('done', (b) => b.goTo(nestedState2));
+        var treeBuilder = StateTreeBuilder(initialState: nestedState1);
+
+        treeBuilder.state(nestedState1, (b) {
+          b.onMessageValue('state2', (b) => b.goTo(nestedState2));
+          b.onMessageValue('state3', (b) => b.goTo(nestedState3));
         });
-        nestedSb.finalDataState<StateData>(
+        treeBuilder.finalDataState<StateData>(
           nestedState2,
           InitialData(() => StateData()..val = '1'),
           emptyFinalDataState,
         );
-        return nestedSb;
+        treeBuilder.state(nestedState3, emptyState);
+
+        return treeBuilder;
       }
 
       test('should create a machine state from tree builder', () async {
@@ -231,7 +236,9 @@ void main() {
 
         var stateMachine = TreeStateMachine(sb);
         var currentState = await stateMachine.start();
-        await currentState.post('done');
+        var toState2Future = stateMachine.transitions.firstWhere((t) => t.to == state2);
+        currentState.post('state2');
+        await toState2Future;
 
         expect(currentState.key, equals(state2));
         expect(finalNestedData, isNotNull);
@@ -257,7 +264,9 @@ void main() {
 
         var stateMachine = TreeStateMachine(sb);
         var currentState = await stateMachine.start();
-        await currentState.post('done');
+        var toState2Future = stateMachine.transitions.firstWhere((t) => t.to == state2);
+        currentState.post('state2');
+        await toState2Future;
 
         expect(currentState.key, equals(state2));
         expect(finalNestedData, isNotNull);
@@ -285,12 +294,37 @@ void main() {
         var currentState = await stateMachine.start();
 
         var toState2Future = stateMachine.transitions.firstWhere((t) => t.to == state2);
-        await nestedCurrentState.post('done');
+        await nestedCurrentState.post('state2');
         await toState2Future;
 
         expect(currentState.key, equals(state2));
         expect(finalNestedData, isNotNull);
         expect(finalNestedData!.val, equals('1'));
+      });
+
+      test('should use isDone to determine completion', () async {
+        var nestedSb = createNestedBuilder();
+        var nestedSm = TreeStateMachine(nestedSb);
+        await nestedSm.start();
+
+        var sb = StateTreeBuilder(initialState: state1);
+        sb.machineState(
+          state1,
+          InitialMachine((_) => nestedSm),
+          (finalState) {
+            return state2;
+          },
+          isDone: (transition) => transition.to == nestedState3,
+        );
+        sb.state(state2, emptyState);
+
+        var stateMachine = TreeStateMachine(sb);
+        var currentState = await stateMachine.start();
+        var toState2Future = stateMachine.transitions.firstWhere((t) => t.to == state2);
+        currentState.post('state3');
+        await toState2Future;
+
+        expect(currentState.key, equals(state2));
       });
     });
 

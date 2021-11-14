@@ -218,24 +218,42 @@ class StateTreeBuilder {
   /// Adds to the state tree a description of a machine state, identifed by [stateKey], and which
   /// will run a nested state machine.
   ///
-  /// When this state is entered, a nested state machine that is produced by [initialMachine], will
-  /// be started, and any messages dispatched to this stated will forwarded to the nested state
-  /// machine.
+  /// When this state is entered, a nested state machine that is produced by [initialMachine] will
+  /// be started, and if [forwardMessages] is true, any messages dispatched to this state will
+  /// forwarded to the nested state machine.
   ///
-  /// No transitions from this state will occur until the nested state machine end by reaching a
-  /// final state. When this occurs, [onDone] will be called with the final [CurrentState] of the
-  /// nested state machine, which returns the key of the next state to transition to.
+  /// If [forwardMessages] is false, message forwarding will not occur, and it is assumed that
+  /// messages will be sent to the nested state machine 'out of band'.
   ///
-  /// The state can be declared as a child state, by providing a [parent] value referencing the
+  /// No transitions from this state will occur until the nested state machine reaches a completion
+  /// state. By default, any final state is considered a completion state, but non-final states can
+  /// also be completion states by providing [isDone]. This function will be called for each
+  /// transition to a non-final state in the nested machine, and if `true` is returned, the nested
+  /// state machine will be considered to have completed.
+  ///
+  /// When completion occurs, [onDone] will be called with the final [CurrentState] of the
+  /// nested state machine, and it will return the key of the next state to transition to.
+  ///
+  /// This state can be declared as a child state, by providing a [parent] value referencing the
   /// parent state.
   void machineState(
     StateKey stateKey,
     InitialMachine initialMachine,
     FutureOr<StateKey> Function(CurrentState finalState) onDone, {
+    bool Function(Transition transition)? isDone,
+    // TODO: move this parameter to InitialMachine?
+    bool forwardMessages = true,
     StateKey? parent,
     String? label,
   }) {
-    _addState(_MachineStateBuilder(stateKey, initialMachine, onDone, parent));
+    _addState(_MachineStateBuilder(
+      stateKey,
+      initialMachine,
+      forwardMessages,
+      onDone,
+      isDone,
+      parent,
+    ));
   }
 
   /// Writes a textual description of the state stree to the [sink]. The specific output format is
@@ -489,15 +507,31 @@ class InitialChild {
   StateKey eval(TransitionContext transCtx) => _getInitialChild(transCtx);
 }
 
+/// Describes the initial state machine of a [StateTreeBuilder.machineState].
 class InitialMachine {
-  final TreeStateMachine Function(TransitionContext) _create;
+  final bool _disposeMachineOnExit;
+  final FutureOr<TreeStateMachine> Function(TransitionContext) _create;
 
-  InitialMachine(this._create);
+  InitialMachine._(this._create, this._disposeMachineOnExit);
 
-  factory InitialMachine.fromTree(StateTreeBuilder Function(TransitionContext transCtx) create) {
-    return InitialMachine((ctx) {
-      var tree = create(ctx);
-      return TreeStateMachine(tree);
-    });
+  /// Constructs an [InitialMachine] that will use the state machine produced by the [create]
+  /// function as the nested state machine.
+  ///
+  /// If [disposeOnExit] is true (the default), the the nested state machine will be disposed when the
+  /// [StateTreeBuilder.machineState] is exited.
+  factory InitialMachine(
+    FutureOr<TreeStateMachine> Function(TransitionContext) create, {
+    bool disposeOnExit = true,
+  }) {
+    return InitialMachine._(create, disposeOnExit);
+  }
+
+  /// Constructs an [InitialMachine] that will create and start a nested state machine using
+  /// the [StateTreeBuilder] produced by the [create] function.
+  factory InitialMachine.fromTree(
+      FutureOr<StateTreeBuilder> Function(TransitionContext transCtx) create) {
+    return InitialMachine._((ctx) {
+      return create(ctx).bind((treeBuilder) => TreeStateMachine(treeBuilder));
+    }, true);
   }
 }

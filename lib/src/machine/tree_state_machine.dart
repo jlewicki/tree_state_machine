@@ -175,9 +175,9 @@ class TreeStateMachine {
 
   /// Stops the state machine.
   ///
-  /// Stopping the state machine will cause a transition to a state identified by [stoppedStateKey].
-  /// This transition is irrevocable, and the message handler of the current leaf state will not be
-  /// called.
+  /// Stopping the state machine will cause a transition to a final state identified by
+  /// [stoppedStateKey]. This transition is irrevocable, and the message handler of the current leaf
+  /// state will not be called before the transition occurs.
   ///
   /// When the returned future completes, the the [CurrentState.key] will be [stoppedStateKey], and
   /// [isDone] will return true.
