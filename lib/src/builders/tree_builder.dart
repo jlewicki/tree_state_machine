@@ -219,11 +219,9 @@ class StateTreeBuilder {
   /// will run a nested state machine.
   ///
   /// When this state is entered, a nested state machine that is produced by [initialMachine] will
-  /// be started, and if [forwardMessages] is true, any messages dispatched to this state will
-  /// forwarded to the nested state machine.
-  ///
-  /// If [forwardMessages] is false, message forwarding will not occur, and it is assumed that
-  /// messages will be sent to the nested state machine 'out of band'.
+  /// be started. By default any messages dispatched to this state will forwarded to the nested
+  /// state machine for processing, unless [initialMachine] was created by
+  /// [InitialMachine.fromMachine] and the `forwardMessages` parameter weas false.
   ///
   /// No transitions from this state will occur until the nested state machine reaches a completion
   /// state. By default, any final state is considered a completion state, but non-final states can
@@ -234,6 +232,11 @@ class StateTreeBuilder {
   /// When completion occurs, [onDone] will be called with the final [CurrentState] of the
   /// nested state machine, and it will return the key of the next state to transition to.
   ///
+  /// If the nested state machine is disposed, [onDisposed] will be called to determine the key
+  /// of the next state to transition to. This is typically only needed if
+  /// [InitialMachine.fromMachine] is used to return a machine that is disposed by code running
+  /// outside of the parent state machine.
+  ///
   /// This state can be declared as a child state, by providing a [parent] value referencing the
   /// parent state.
   void machineState(
@@ -242,8 +245,6 @@ class StateTreeBuilder {
     FutureOr<StateKey> Function(CurrentState finalState) onDone, {
     bool Function(Transition transition)? isDone,
     FutureOr<StateKey> Function()? onDisposed,
-    // TODO: move this parameter to InitialMachine?
-    bool forwardMessages = true,
     StateKey? parent,
     String? label,
   }) {
@@ -253,7 +254,6 @@ class StateTreeBuilder {
     _addState(_MachineStateBuilder(
       stateKey,
       initialMachine,
-      forwardMessages,
       onDone,
       isDone,
       _onDisposed,
@@ -514,21 +514,26 @@ class InitialChild {
 
 /// Describes the initial state machine of a [StateTreeBuilder.machineState].
 class InitialMachine {
+  final bool _forwardMessages;
   final bool _disposeMachineOnExit;
   final FutureOr<TreeStateMachine> Function(TransitionContext) _create;
 
-  InitialMachine._(this._create, this._disposeMachineOnExit);
+  InitialMachine._(this._create, this._disposeMachineOnExit, this._forwardMessages);
 
   /// Constructs an [InitialMachine] that will use the state machine produced by the [create]
   /// function as the nested state machine.
   ///
-  /// If [disposeOnExit] is true (the default), the the nested state machine will be disposed when the
+  /// If [disposeOnExit] is true (the default), then the nested state machine will be disposed when the
   /// [StateTreeBuilder.machineState] is exited.
-  factory InitialMachine(
+  ///
+  /// If [forwardMessages] is true (the default), then the [StateTreeBuilder.machineState] will
+  /// forward any messages that are dispatched to it to the nested state machine.
+  factory InitialMachine.fromMachine(
     FutureOr<TreeStateMachine> Function(TransitionContext) create, {
     bool disposeOnExit = true,
+    bool forwardMessages = true,
   }) {
-    return InitialMachine._(create, disposeOnExit);
+    return InitialMachine._(create, disposeOnExit, forwardMessages);
   }
 
   /// Constructs an [InitialMachine] that will create and start a nested state machine using
@@ -537,6 +542,6 @@ class InitialMachine {
       FutureOr<StateTreeBuilder> Function(TransitionContext transCtx) create) {
     return InitialMachine._((ctx) {
       return create(ctx).bind((treeBuilder) => TreeStateMachine(treeBuilder));
-    }, true);
+    }, true, true);
   }
 }

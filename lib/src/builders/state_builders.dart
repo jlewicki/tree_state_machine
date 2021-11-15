@@ -443,14 +443,12 @@ class _DataStateBuilder<D> extends _StateBuilderBase
 class _MachineStateBuilder extends _StateBuilderBase {
   final InitialMachine _initialMachine;
   final bool Function(Transition transition)? _isDone;
-  final bool _forwardMessages;
   final FutureOr<StateKey> Function(CurrentState finalState) _onDone;
   final FutureOr<StateKey> Function() _onDisposed;
 
   _MachineStateBuilder(
     StateKey key,
     this._initialMachine,
-    this._forwardMessages,
     this._onDone,
     this._isDone,
     this._onDisposed,
@@ -471,18 +469,19 @@ class _MachineStateBuilder extends _StateBuilderBase {
             return ctx.goTo(nextState);
           }
 
+          // The nested state machine was disposed, so transition to the next state
           if (ctx.message == whenDisposedMessage) {
             var nextState = await _onDisposed();
             return ctx.goTo(nextState);
           }
 
           // Dispatch messages sent to parent state machine to the child state machine.
-          if (_forwardMessages) {
+          if (_initialMachine._forwardMessages) {
             await currentNestedState!.post(ctx.message);
           }
 
           // The nested machine is still running, so stay in this state
-          return ctx.stay();
+          return ctx.unhandled();
         },
         (ctx) async {
           var machine = await _initialMachine._create(ctx);

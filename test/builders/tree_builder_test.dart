@@ -1,4 +1,5 @@
 import 'package:test/test.dart';
+import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'package:tree_state_machine/tree_builders.dart';
 
@@ -254,7 +255,7 @@ void main() {
         var sb = StateTreeBuilder(initialState: state1);
         sb.machineState(
           state1,
-          InitialMachine((_) => nestedSm),
+          InitialMachine.fromMachine((_) => nestedSm),
           (finalState) {
             finalNestedData = finalState.dataValue<StateData>();
             return state2;
@@ -282,7 +283,7 @@ void main() {
         var sb = StateTreeBuilder(initialState: state1);
         sb.machineState(
           state1,
-          InitialMachine((_) => nestedSm),
+          InitialMachine.fromMachine((_) => nestedSm),
           (finalState) {
             finalNestedData = finalState.dataValue<StateData>();
             return state2;
@@ -311,7 +312,7 @@ void main() {
         var sb = StateTreeBuilder(initialState: state1);
         sb.machineState(
           state1,
-          InitialMachine((_) => nestedSm),
+          InitialMachine.fromMachine((_) => nestedSm),
           (finalState) {
             finalNestedData = finalState.dataValue<StateData>();
             return state2;
@@ -332,6 +333,26 @@ void main() {
         expect(finalNestedData, isNull);
       });
 
+      test('should ignore messages if forwardMessages is false', () async {
+        var nestedSb = createNestedBuilder();
+        var nestedSm = TreeStateMachine(nestedSb);
+        await nestedSm.start();
+
+        var sb = StateTreeBuilder(initialState: state1);
+        sb.machineState(
+          state1,
+          InitialMachine.fromMachine((_) => nestedSm, forwardMessages: false),
+          (finalState) => state2,
+          onDisposed: () => state2,
+        );
+        sb.state(state2, emptyState);
+
+        var stateMachine = TreeStateMachine(sb);
+        var currentState = await stateMachine.start();
+        var msgResult = await currentState.post('state3');
+        expect(msgResult, isA<UnhandledMessage>());
+      });
+
       test('should use isDone to determine completion', () async {
         var nestedSb = createNestedBuilder();
         var nestedSm = TreeStateMachine(nestedSb);
@@ -340,7 +361,7 @@ void main() {
         var sb = StateTreeBuilder(initialState: state1);
         sb.machineState(
           state1,
-          InitialMachine((_) => nestedSm),
+          InitialMachine.fromMachine((_) => nestedSm),
           (finalState) {
             return state2;
           },
