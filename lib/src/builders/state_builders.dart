@@ -486,9 +486,7 @@ class _MachineStateBuilder extends _StateBuilderBase {
           });
           // TODO: need to subscribe to disposal for state machine as well as finishing?
           currentNestedState = await machine.start();
-          ctx.postWhen(done, (_) {
-            return whenDoneMessage;
-          });
+          ctx.post(done.then((_) => whenDoneMessage));
         },
         (ctx) {
           if (_initialMachine._disposeMachineOnExit) {

@@ -423,8 +423,6 @@ abstract class TransitionContext {
   /// has completed.
   void post(FutureOr<Object> message);
 
-  void postWhen<T>(Future<T> when, FutureOr<Object> Function(T whenResult) message);
-
   /// Schedules a message to be dispatched to the state machine asynchronously.
   ///
   /// The time at which the message is sent is indicated by the [duration] argument. If not

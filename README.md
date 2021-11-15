@@ -115,7 +115,7 @@ final otherState = StateKey('otherState');
 treeBuilder.machineState(
    nestedMachineState, 
    // A nested state machine will be created from this state tree
-   InitialMachine.fromTree((transCtx) => nestedTreeBuilder(),
+   InitialMachine.fromTree((transCtx) => nestedTreeBuilder()),
    // When the nested machine completes, go to otherState
    (CurrentState finalState) => otherState),
 );

@@ -494,16 +494,6 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
   }
 
   @override
-  void postWhen<T>(Future<T> when, FutureOr<Object> Function(T whenResult) getMessage) {
-    (() async {
-      var result = await when;
-      // Test this when getMesssage is not a future
-      var message = await getMessage(result);
-      _machine._queueMessage(message);
-    })();
-  }
-
-  @override
   Dispose schedule(
     Object Function() message, {
     Duration duration = const Duration(),
