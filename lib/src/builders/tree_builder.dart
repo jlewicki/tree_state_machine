@@ -241,8 +241,8 @@ class StateTreeBuilder {
   /// parent state.
   void machineState(
     StateKey stateKey,
-    InitialMachine initialMachine,
-    FutureOr<StateKey> Function(CurrentState finalState) onDone, {
+    InitialMachine initialMachine, {
+    required FutureOr<StateKey> Function(CurrentState finalState) onDone,
     bool Function(Transition transition)? isDone,
     FutureOr<StateKey> Function()? onDisposed,
     StateKey? parent,

@@ -117,14 +117,14 @@ treeBuilder.machineState(
    // A nested state machine will be created from this state tree
    InitialMachine.fromTree((transCtx) => nestedTreeBuilder()),
    // When the nested machine completes, go to otherState
-   (CurrentState finalState) => otherState),
+   onDone: (CurrentState finalState) => otherState),
 );
 ```
 
 ## Message Handlers
 The way a state responds to a message is defined by the `MessageHandler` function for the state. A message handler is 
-provided a `MessageContext` describing the message, and must return a `MessageResult` describing how the state responds to 
-the message.
+provided a `MessageContext` describing the message, and must return a `MessageResult` describing how the state responds
+to the message.
 ```dart
 typedef MessageHandler = FutureOr<MessageResult> Function(MessageContext ctx);
 ```

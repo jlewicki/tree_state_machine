@@ -228,7 +228,7 @@ void main() {
         sb.machineState(
           state1,
           InitialMachine.fromTree((_) => nestedSb),
-          (finalState) {
+          onDone: (finalState) {
             finalNestedData = finalState.dataValue<StateData>();
             return state2;
           },
@@ -256,7 +256,7 @@ void main() {
         sb.machineState(
           state1,
           InitialMachine.fromMachine((_) => nestedSm),
-          (finalState) {
+          onDone: (finalState) {
             finalNestedData = finalState.dataValue<StateData>();
             return state2;
           },
@@ -284,7 +284,7 @@ void main() {
         sb.machineState(
           state1,
           InitialMachine.fromMachine((_) => nestedSm),
-          (finalState) {
+          onDone: (finalState) {
             finalNestedData = finalState.dataValue<StateData>();
             return state2;
           },
@@ -313,7 +313,7 @@ void main() {
         sb.machineState(
           state1,
           InitialMachine.fromMachine((_) => nestedSm),
-          (finalState) {
+          onDone: (finalState) {
             finalNestedData = finalState.dataValue<StateData>();
             return state2;
           },
@@ -342,7 +342,7 @@ void main() {
         sb.machineState(
           state1,
           InitialMachine.fromMachine((_) => nestedSm, forwardMessages: false),
-          (finalState) => state2,
+          onDone: (finalState) => state2,
           onDisposed: () => state2,
         );
         sb.state(state2, emptyState);
@@ -362,7 +362,7 @@ void main() {
         sb.machineState(
           state1,
           InitialMachine.fromMachine((_) => nestedSm),
-          (finalState) {
+          onDone: (finalState) {
             return state2;
           },
           isDone: (transition) => transition.to == nestedState3,
