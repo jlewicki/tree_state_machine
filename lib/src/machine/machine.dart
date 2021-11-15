@@ -486,11 +486,7 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
   @override
   void post(FutureOr<Object> message) {
     _throwIfDisposed();
-    if (message is Future<Object>) {
-      message.then(_machine._queueMessage);
-    } else {
-      _machine._queueMessage(message);
-    }
+    message.bind(_machine._queueMessage);
   }
 
   @override

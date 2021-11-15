@@ -442,9 +442,10 @@ class _DataStateBuilder<D> extends _StateBuilderBase
 
 class _MachineStateBuilder extends _StateBuilderBase {
   final InitialMachine _initialMachine;
-  bool Function(Transition transition)? _isDone;
+  final bool Function(Transition transition)? _isDone;
   final bool _forwardMessages;
   final FutureOr<StateKey> Function(CurrentState finalState) _onDone;
+  final FutureOr<StateKey> Function() _onDisposed;
 
   _MachineStateBuilder(
     StateKey key,
@@ -452,6 +453,7 @@ class _MachineStateBuilder extends _StateBuilderBase {
     this._forwardMessages,
     this._onDone,
     this._isDone,
+    this._onDisposed,
     StateKey? parent,
   ) : super._(key, false, parent, null);
 
@@ -459,12 +461,18 @@ class _MachineStateBuilder extends _StateBuilderBase {
   TreeState _createState() {
     return (() {
       var whenDoneMessage = Object();
+      var whenDisposedMessage = Object();
       CurrentState? currentNestedState;
       return TreeState(
         (ctx) async {
           // The nested state machine is done, so transition to the next state
           if (ctx.message == whenDoneMessage) {
             var nextState = await _onDone(currentNestedState!);
+            return ctx.goTo(nextState);
+          }
+
+          if (ctx.message == whenDisposedMessage) {
+            var nextState = await _onDisposed();
             return ctx.goTo(nextState);
           }
 
@@ -479,14 +487,35 @@ class _MachineStateBuilder extends _StateBuilderBase {
         (ctx) async {
           var machine = await _initialMachine._create(ctx);
 
+          // Future<Object?> done = machine.transitions
+          //     .map((t) {
+          //       if (t.isToFinalState) return true;
+          //       return _isDone != null ? _isDone!(t) : false;
+          //     })
+          //     .firstWhere((isDone) => isDone, orElse: () => false)
+          //     .then((isDone) {
+          //       return isDone ? whenDoneMessage : null;
+          //     });
+          // // Future that tells us when the nested machine is disposed.
           // Future that tells us when the nested machine is done.
-          var done = machine.transitions.firstWhere((t) {
+
+          var done = machine.transitions.where((t) {
             if (t.isToFinalState) return true;
             return _isDone != null ? _isDone!(t) : false;
-          });
-          // TODO: need to subscribe to disposal for state machine as well as finishing?
+          }).map((_) => whenDoneMessage);
+
+          var disposed = machine.lifecycle
+              .firstWhere((s) => s == LifecycleState.disposed)
+              .then((_) => whenDisposedMessage)
+              .asStream();
+
           currentNestedState = await machine.start();
-          ctx.post(done.then((_) => whenDoneMessage));
+
+          var group = StreamGroup<Object>();
+          group.add(done);
+          group.add(disposed);
+          Future<Object> msgFuture = group.stream.first;
+          ctx.post(msgFuture);
         },
         (ctx) {
           if (_initialMachine._disposeMachineOnExit) {

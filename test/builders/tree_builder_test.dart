@@ -273,7 +273,7 @@ void main() {
         expect(finalNestedData!.val, equals('1'));
       });
 
-      test('should create a machine state that can complete ot of band', () async {
+      test('should create a nested machine that can complete out of band', () async {
         var nestedSb = createNestedBuilder();
         var nestedSm = TreeStateMachine(nestedSb);
         var nestedCurrentState = await nestedSm.start();
@@ -300,6 +300,36 @@ void main() {
         expect(currentState.key, equals(state2));
         expect(finalNestedData, isNotNull);
         expect(finalNestedData!.val, equals('1'));
+      });
+
+      test('should create a nested machine that can dispose out of band', () async {
+        var nestedSb = createNestedBuilder();
+        var nestedSm = TreeStateMachine(nestedSb);
+        await nestedSm.start();
+
+        StateData? finalNestedData;
+        var sb = StateTreeBuilder(initialState: state1);
+        sb.machineState(
+          state1,
+          InitialMachine((_) => nestedSm),
+          (finalState) {
+            finalNestedData = finalState.dataValue<StateData>();
+            return state2;
+          },
+          onDisposed: () => state2,
+        );
+        sb.state(state2, emptyState);
+
+        var stateMachine = TreeStateMachine(sb);
+        var currentState = await stateMachine.start();
+
+        var toState2Future =
+            stateMachine.transitions.firstWhere((t) => t.to == state2, orElse: null);
+        nestedSm.dispose();
+        await toState2Future;
+
+        expect(currentState.key, equals(state2));
+        expect(finalNestedData, isNull);
       });
 
       test('should use isDone to determine completion', () async {

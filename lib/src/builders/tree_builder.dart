@@ -241,17 +241,22 @@ class StateTreeBuilder {
     InitialMachine initialMachine,
     FutureOr<StateKey> Function(CurrentState finalState) onDone, {
     bool Function(Transition transition)? isDone,
+    FutureOr<StateKey> Function()? onDisposed,
     // TODO: move this parameter to InitialMachine?
     bool forwardMessages = true,
     StateKey? parent,
     String? label,
   }) {
+    FutureOr<StateKey> Function() _onDisposed =
+        onDisposed ?? () => throw StateError('Nested state machine was disposed unexpectedly');
+
     _addState(_MachineStateBuilder(
       stateKey,
       initialMachine,
       forwardMessages,
       onDone,
       isDone,
+      _onDisposed,
       parent,
     ));
   }

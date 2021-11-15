@@ -1,28 +1,54 @@
+import 'dart:async';
+
 import 'package:async/async.dart';
+import 'package:tree_state_machine/async.dart';
+import 'package:tree_state_machine/tree_state_machine.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
+
+/// Enumerates the lifecycle of a [TreeStateMachine].
+enum LifecycleState {
+  /// The state machine has been created, but not started.
+  constructed,
+
+  /// [TreeStateMachine.start] has been called, but the returned future has not yet completed.
+  starting,
+
+  /// [TreeStateMachine.start] has been called, and the returned future has completed.
+  started,
+
+  /// [TreeStateMachine.stop] has been called, and the returned future has not yet completed.
+  stopping,
+
+  /// [TreeStateMachine.stop] has been called, and the returned future has completed.
+  stopped,
+
+  /// [TreeStateMachine.dispose] has been called. The state machine will never leave this state.
+  disposed,
+}
 
 /// Defines the lifecycle of a [TreeStateMachine].
 ///
 /// It's the state machine for the state machine.
 class Lifecycle {
-  _LifecycleState status = _Constructed();
+  final _stateSubject = ValueSubject<_LifecycleState>.initialValue(_Constructed());
 
-  bool get isConstructed => status is _Constructed;
-  bool get isDisposed => status is _Disposed;
-  bool get isStarted => status is _Started;
-  bool get isStarting => status is _Starting;
-  bool get isStopped => status is _Stopped;
-  bool get isStopping => status is _Stopping;
+  /// A broadcast stream of the state changes of this lifecycle.
+  Stream<LifecycleState> get states => _stateSubject.map((s) => s.status);
+
+  /// The current state of this lifecycle.
+  LifecycleState get state => _stateSubject.value.status;
 
   /// Starts the lifecycle, moving it to the Starting state.
   ///
   /// When the returned future completes, the lifecycle will be in the Started state.
   Future start(Future<Object> Function() doStart) {
-    final transition = status.start(() async {
-      final val = await doStart();
-      return status = _Started(val);
+    final transition = _stateSubject.value.start(() async {
+      var val = await doStart();
+      var next = _Started(val);
+      _stateSubject.add(next);
+      return next;
     });
-    status = transition.state;
+    if (_stateSubject.value != transition.state) _stateSubject.add(transition.state);
     return transition.nextState;
   }
 
@@ -30,11 +56,13 @@ class Lifecycle {
   ///
   /// When the returned future completes, the lifecycle will be in the Stopped state.
   Future stop(Future<Object> Function() doStop) {
-    final transition = status.stop(() async {
-      final val = await doStop();
-      return status = _Stopped(val);
+    final transition = _stateSubject.value.stop(() async {
+      var val = await doStop();
+      var next = _Stopped(val);
+      _stateSubject.add(next);
+      return next;
     });
-    status = transition.state;
+    if (_stateSubject.value != transition.state) _stateSubject.add(transition.state);
     return transition.nextState;
   }
 
@@ -42,12 +70,15 @@ class Lifecycle {
   ///
   /// This is irrevocable, and the liefecycle is permanently disposed.
   void dispose(void Function() doDispose) {
-    status = status.dispose(doDispose);
+    var next = _stateSubject.value.dispose(doDispose);
+    if (next != _stateSubject.value) {
+      _stateSubject.add(next);
+    }
   }
 
   /// Throws [DisposedError] if this lifecycle has been disposed.
   void throwIfDisposed([String? message]) {
-    if (isDisposed) {
+    if (state == LifecycleState.disposed) {
       throw DisposedError(message ?? 'This object has been disposed');
     }
   }
@@ -56,6 +87,7 @@ class Lifecycle {
 /// Base class for states representing [TreeStateMachine] lifecycle.
 abstract class _LifecycleState {
   _Disposed dispose(void Function() onDispose);
+  LifecycleState get status;
 
   LifecycleTransition<_Started> start(Future<_Started> Function() doStart) =>
       throw StateError('Unable to start from lifecycle state $runtimeType');
@@ -73,6 +105,9 @@ class LifecycleTransition<T extends _LifecycleState> {
 
 class _Constructed extends _LifecycleState {
   @override
+  LifecycleState get status => LifecycleState.constructed;
+
+  @override
   _Disposed dispose(void Function() onDispose) {
     onDispose();
     return _Disposed();
@@ -87,6 +122,8 @@ class _Constructed extends _LifecycleState {
 
 class _Disposed extends _LifecycleState {
   @override
+  LifecycleState get status => LifecycleState.disposed;
+  @override
   _Disposed dispose(void Function() onDispose) => this;
   @override
   LifecycleTransition<_Started> start(Future<_Started> Function() doStart) => throw DisposedError();
@@ -96,6 +133,9 @@ class _Disposed extends _LifecycleState {
 
 class _Started extends _LifecycleState {
   final Object value;
+  @override
+  LifecycleState get status => LifecycleState.started;
+
   _Started(this.value);
 
   @override
@@ -121,6 +161,9 @@ class _Starting extends _LifecycleState {
   Future<_Started> get future => _operation.value;
 
   @override
+  LifecycleState get status => LifecycleState.starting;
+
+  @override
   _Disposed dispose(void Function() onDispose) {
     _operation.cancel();
     onDispose();
@@ -143,6 +186,9 @@ class _Stopped extends _LifecycleState {
   _Stopped(this.value);
 
   @override
+  LifecycleState get status => LifecycleState.stopped;
+
+  @override
   _Disposed dispose(void Function() onDispose) {
     onDispose();
     return _Disposed();
@@ -161,6 +207,9 @@ class _Stopping extends _LifecycleState {
   _Stopping(Future<_Stopped> future) : _operation = CancelableOperation.fromFuture(future);
 
   Future<_Stopped> get future => _operation.value;
+
+  @override
+  LifecycleState get status => LifecycleState.stopping;
 
   @override
   _Disposed dispose(void Function() onDispose) {

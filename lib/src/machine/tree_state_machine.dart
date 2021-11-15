@@ -100,7 +100,7 @@ class TreeStateMachine {
   }
 
   /// Returns `true` if the future returned by [start] has completed..
-  bool get isStarted => _lifecycle.isStarted;
+  bool get isStarted => _lifecycle.state == LifecycleState.started;
 
   /// Returns `true` if the state machine has ended.
   ///
@@ -109,7 +109,18 @@ class TreeStateMachine {
   bool get isDone => _machine.currentLeaf?.isFinalLeaf ?? false;
 
   /// Returns `true` if [dispose] has been called.
-  bool get isDisposed => _lifecycle.isDisposed;
+  bool get isDisposed => _lifecycle.state == LifecycleState.disposed;
+
+  /// A broadcast stream of [LifecycleState] events.
+  ///
+  /// An event is emitted on this stream as the state machine moves through its lifecycle. For
+  /// example, [LifecycleState.started] will be emitted when [start] is called, and the returned
+  /// future completes.
+  Stream<LifecycleState> get lifecycle => _lifecycle.states;
+
+  // /// A future which is completed when the state machine is disposed.
+  // Future<void> get disposed =>
+  //     _lifecycle.states.firstWhere((s) => s == LifecycleState.disposed, orElse: null);
 
   /// A broadcast stream of [Transition] events.
   ///
