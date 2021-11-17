@@ -440,20 +440,30 @@ class _DataStateBuilder<D> extends _StateBuilderBase
   }
 }
 
-class _MachineStateBuilder extends _StateBuilderBase {
+class MachineStateBuilder extends _StateBuilderBase {
   final InitialMachine _initialMachine;
   final bool Function(Transition transition)? _isDone;
-  final FutureOr<StateKey> Function(CurrentState finalState) _onDone;
-  final FutureOr<StateKey> Function() _onDisposed;
+  _ContinuationMessageHandlerDescriptor<CurrentState>? _doneHandler;
+  _MessageHandlerDescriptor? _disposedHandler;
 
-  _MachineStateBuilder(
+  MachineStateBuilder(
     StateKey key,
     this._initialMachine,
-    this._onDone,
     this._isDone,
-    this._onDisposed,
     StateKey? parent,
   ) : super._(key, false, parent, null);
+
+  void onMachineDone(void Function(MachineDoneHandlerBuilder builder) buildHandler) {
+    var builder = MachineDoneHandlerBuilder._(key, 'Done');
+    buildHandler(builder);
+    _doneHandler = builder._handler;
+  }
+
+  void onMachineDisposed(void Function(MachineDisposedHandlerBuilder builder) buildHandler) {
+    var builder = MachineDisposedHandlerBuilder._(key, 'Done');
+    buildHandler(builder);
+    _disposedHandler = builder._handler;
+  }
 
   @override
   TreeState _createState() {
@@ -465,14 +475,17 @@ class _MachineStateBuilder extends _StateBuilderBase {
         (ctx) async {
           // The nested state machine is done, so transition to the next state
           if (ctx.message == whenDoneMessage) {
-            var nextState = await _onDone(currentNestedState!);
-            return ctx.goTo(nextState);
+            var handler = _doneHandler!.continuation(currentNestedState!);
+            return handler(ctx);
           }
 
           // The nested state machine was disposed, so transition to the next state
           if (ctx.message == whenDisposedMessage) {
-            var nextState = await _onDisposed();
-            return ctx.goTo(nextState);
+            if (_disposedHandler != null) {
+              return _disposedHandler!.handler(ctx);
+            } else {
+              throw StateError('');
+            }
           }
 
           // Dispatch messages sent to parent state machine to the child state machine.
@@ -486,23 +499,13 @@ class _MachineStateBuilder extends _StateBuilderBase {
         (ctx) async {
           var machine = await _initialMachine._create(ctx);
 
-          // Future<Object?> done = machine.transitions
-          //     .map((t) {
-          //       if (t.isToFinalState) return true;
-          //       return _isDone != null ? _isDone!(t) : false;
-          //     })
-          //     .firstWhere((isDone) => isDone, orElse: () => false)
-          //     .then((isDone) {
-          //       return isDone ? whenDoneMessage : null;
-          //     });
-          // // Future that tells us when the nested machine is disposed.
           // Future that tells us when the nested machine is done.
-
           var done = machine.transitions.where((t) {
             if (t.isToFinalState) return true;
             return _isDone != null ? _isDone!(t) : false;
           }).map((_) => whenDoneMessage);
 
+          // Future that tells us when the nested machine is disposed.
           var disposed = machine.lifecycle
               .firstWhere((s) => s == LifecycleState.disposed)
               .then((_) => whenDisposedMessage)

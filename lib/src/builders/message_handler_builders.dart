@@ -9,49 +9,17 @@ enum ActionResult {
   unhandled,
 }
 
-/// Provides methods for describing how a state behaves in response to a message of type [M].
-///
-/// A [MessageHandlerBuilder] is provided to the build callback provided to [StateBuilder.onMessage],
-/// and is used to describe how messages of a particular type are handled by a state.
-///
-/// ```dart
-/// class MyMessage {}
-/// var state1 = StateKey('s1');
-/// var state2 = StateKey('s2');
-/// var builder = StateTreeBuilder(initialState: state1);
-/// builder.state(state1, (b) {
-///   // Describe how state responds to MyMessage messages
-///   b.onMessage<MyMessage>((b) => b.goTo(state2));
-/// });
-/// ```
-class MessageHandlerBuilder<M> {
-  final StateKey _forState;
-  final String? _messageName;
+abstract class _MessageHandlerBuilder<M> {
+  StateKey get _forState;
+  String? get _messageName;
   _MessageHandlerDescriptor? _handler;
+}
 
-  /// A [MessageActionBuilder] that can be used to specify actions that should take place when
-  /// handling messages.
-  ///
-  /// ```dart
-  /// class MyMessage {}
-  /// var state1 = StateKey('s1');
-  /// var state2 = StateKey('s2');
-  /// var builder = StateTreeBuilder(initialState: state1);
-  /// builder.state(state1, (b) {
-  ///   b.onMessage<MyMessage>((b) => b.goTo(
-  ///     state2,
-  ///     // Perform an action before state transition occurs.
-  ///     action: b.act.run((msgCtx, msg) =>
-  ///       print('Going to $state2 in response to message $msg')));
-  /// });
-  late final MessageActionBuilder<M> act = MessageActionBuilder<M>._(_forState);
-
-  MessageHandlerBuilder._(this._forState, this._messageName);
-
+mixin _GoToMessageHandlerBuilder<M> on _MessageHandlerBuilder<M> {
   /// Indicates that a transition to [targetState] should occur.
   ///
-  /// If [action] is provided, this action will be invoked before the transition occurs. The [act]
-  /// builder can be used to specify this action.
+  /// If [action] is provided, this action will be invoked before the transition occurs. The
+  /// [MessageHandlerBuilder.act] builder can be used to specify this action.
   ///
   /// If [payload] is provided, this function will be called to generate a value for
   /// [TransitionContext.payload] before the transition occurs.
@@ -82,6 +50,91 @@ class MessageHandlerBuilder<M> {
       _messageName,
     );
   }
+
+  void enterChannel<P>(
+    Channel<P> channel,
+    FutureOr<P> Function(MessageContext msgCtx, M msg) payload, {
+    bool reenterTarget = false,
+  }) {
+    goTo(channel.to, payload: payload, reenterTarget: reenterTarget);
+  }
+}
+
+/// Provides methods for describing how a state behaves in response to a message of type [M].
+///
+/// A [MessageHandlerBuilder] is provided to the build callback provided to [StateBuilder.onMessage],
+/// and is used to describe how messages of a particular type are handled by a state.
+///
+/// ```dart
+/// class MyMessage {}
+/// var state1 = StateKey('s1');
+/// var state2 = StateKey('s2');
+/// var builder = StateTreeBuilder(initialState: state1);
+/// builder.state(state1, (b) {
+///   // Describe how state responds to MyMessage messages
+///   b.onMessage<MyMessage>((b) => b.goTo(state2));
+/// });
+/// ```
+class MessageHandlerBuilder<M> extends _MessageHandlerBuilder<M>
+    with _GoToMessageHandlerBuilder<M> {
+  @override
+  final StateKey _forState;
+  @override
+  final String? _messageName;
+
+  /// A [MessageActionBuilder] that can be used to specify actions that should take place when
+  /// handling messages.
+  ///
+  /// ```dart
+  /// class MyMessage {}
+  /// var state1 = StateKey('s1');
+  /// var state2 = StateKey('s2');
+  /// var builder = StateTreeBuilder(initialState: state1);
+  /// builder.state(state1, (b) {
+  ///   b.onMessage<MyMessage>((b) => b.goTo(
+  ///     state2,
+  ///     // Perform an action before state transition occurs.
+  ///     action: b.act.run((msgCtx, msg) =>
+  ///       print('Going to $state2 in response to message $msg')));
+  /// });
+  late final act = MessageActionBuilder<M>._(_forState);
+
+  MessageHandlerBuilder._(this._forState, this._messageName);
+
+  // /// Indicates that a transition to [targetState] should occur.
+  // ///
+  // /// If [action] is provided, this action will be invoked before the transition occurs. The [act]
+  // /// builder can be used to specify this action.
+  // ///
+  // /// If [payload] is provided, this function will be called to generate a value for
+  // /// [TransitionContext.payload] before the transition occurs.
+  // ///
+  // /// If [transitionAction] is specified, this function will be called during the transition
+  // /// between states, after all states are exited, but before entering any new states.
+  // ///
+  // /// If [reenterTarget] is true, then the target state will be re-enterd (that is, its exit and
+  // /// entry handlers will be called), even if the state is already active.
+  // ///
+  // /// The state transition can be labeled when formatting a state tree by providing a [label].
+  // void goTo(
+  //   StateKey targetState, {
+  //   TransitionHandler? transitionAction,
+  //   bool reenterTarget = false,
+  //   FutureOr<Object?> Function(MessageContext ctx, M message)? payload,
+  //   _MessageAction<M>? action,
+  //   String? label,
+  // }) {
+  //   _handler = _GoToDescriptor.createForMessage<M>(
+  //     _forState,
+  //     targetState,
+  //     transitionAction,
+  //     reenterTarget,
+  //     payload,
+  //     action,
+  //     label,
+  //     _messageName,
+  //   );
+  // }
 
   /// Indicates that the message has been handled, and that a self transition should occur.
   ///
@@ -147,14 +200,14 @@ class MessageHandlerBuilder<M> {
     );
   }
 
-  void enterChannel<P>(
-    Channel<P> channel,
-    FutureOr<P> Function(MessageContext msgCtx, M msg) payload, {
-    bool reenterTarget = false,
-  }) {
-    var channelEntry = channel._entry(payload);
-    channelEntry.enter(this, reenterTarget);
-  }
+  // void enterChannel<P>(
+  //   Channel<P> channel,
+  //   FutureOr<P> Function(MessageContext msgCtx, M msg) payload, {
+  //   bool reenterTarget = false,
+  // }) {
+  //   var channelEntry = channel._entry(payload);
+  //   channelEntry.enter(this, reenterTarget);
+  // }
 
   MessageHandlerWhenBuilder<M> when(
     FutureOr<bool> Function(MessageContext msgCtx, M msg) condition,
@@ -206,6 +259,55 @@ class MessageHandlerBuilder<M> {
     );
     return MessageHandlerWhenResultBuilder<M, T>(_forState, refFailure);
   }
+}
+
+class MachineDoneHandlerBuilder {
+  final StateKey _forState;
+  final String? _messageName;
+  _ContinuationMessageHandlerDescriptor<CurrentState>? _handler;
+
+  MachineDoneHandlerBuilder._(this._forState, this._messageName);
+
+  late final act = ContinuationMessageActionBuilder<Object, CurrentState>();
+
+  void goTo(
+    StateKey targetState, {
+    TransitionHandler? transitionAction,
+    bool reenterTarget = false,
+    FutureOr<Object?> Function(CurrentState finalState)? payload,
+    _ContinuationMessageAction<Object, CurrentState>? action,
+    String? label,
+  }) {
+    _handler = _ContinuationGoToDescriptor.createForMessage<Object, CurrentState>(
+      _forState,
+      targetState,
+      transitionAction,
+      reenterTarget,
+      payload != null ? (_, __, currentState) => payload(currentState) : null,
+      action,
+      null,
+      label,
+    );
+  }
+
+  void enterChannel<P>(
+    Channel<P> channel,
+    FutureOr<P> Function(CurrentState finalState) payload, {
+    bool reenterTarget = false,
+  }) {
+    // var channelEntry = channel._entry(payload);
+    // channelEntry.enter(this, reenterTarget);
+  }
+}
+
+class MachineDisposedHandlerBuilder extends _MessageHandlerBuilder<Object>
+    with _GoToMessageHandlerBuilder<Object> {
+  @override
+  final StateKey _forState;
+  @override
+  final String? _messageName;
+
+  MachineDisposedHandlerBuilder._(this._forState, this._messageName);
 }
 
 class DataMessageHandlerBuilder<M, D> {

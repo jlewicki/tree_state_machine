@@ -34,9 +34,9 @@ class Channel<P> {
   /// Constructs a channel for the [to] state.
   Channel(this.to, {this.label});
 
-  _ChannelEntry<P, M> _entry<M>(FutureOr<P> Function(MessageContext ctx, M message)? payload) {
-    return _ChannelEntry(this, payload);
-  }
+  // _ChannelEntry<P, M> _entry<M>(FutureOr<P> Function(MessageContext ctx, M message)? payload) {
+  //   return _ChannelEntry(this, payload);
+  // }
 
   _ChannelEntryWithData<P, M, D> _entryWithData<M, D>(
     FutureOr<P> Function(MessageContext msgCtx, M msg, D data)? payload,
@@ -57,15 +57,16 @@ class Channel<P> {
   }
 }
 
-class _ChannelEntry<P, M> {
-  final Channel<P> channel;
-  final FutureOr<P> Function(MessageContext ctx, M message)? payload;
-  _ChannelEntry(this.channel, this.payload);
+// TODO: these entry class are not particularly useful.  Consider removing them
+// class _ChannelEntry<P, M> {
+//   final Channel<P> channel;
+//   final FutureOr<P> Function(MessageContext ctx, M message)? payload;
+//   _ChannelEntry(this.channel, this.payload);
 
-  void enter(MessageHandlerBuilder<M> builder, bool reenterTarget) {
-    builder.goTo(channel.to, payload: payload, reenterTarget: reenterTarget);
-  }
-}
+//   void enter(MessageHandlerBuilder<M> builder, bool reenterTarget) {
+//     builder.goTo(channel.to, payload: payload, reenterTarget: reenterTarget);
+//   }
+//}
 
 class _ChannelEntryWithData<P, M, D> {
   final Channel<P> channel;

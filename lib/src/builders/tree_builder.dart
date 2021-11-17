@@ -229,11 +229,10 @@ class StateTreeBuilder {
   /// transition to a non-final state in the nested machine, and if `true` is returned, the nested
   /// state machine will be considered to have completed.
   ///
-  /// When completion occurs, [onDone] will be called with the final [CurrentState] of the
-  /// nested state machine, and it will return the key of the next state to transition to.
-  ///
-  /// If the nested state machine is disposed, [onDisposed] will be called to determine the key
-  /// of the next state to transition to. This is typically only needed if
+  /// The behavior of the state when the nested state machine completes is configured with the
+  /// [build] callback. [MachineStateBuilder.onMachineDone] can be used to determine the next state
+  /// to transition to when the state machione completes. [MachineStateBuilder.onMachineDisposed]
+  /// can be used to determine the next state on disposal, but this is typically only needed if
   /// [InitialMachine.fromMachine] is used to return a machine that is disposed by code running
   /// outside of the parent state machine.
   ///
@@ -241,24 +240,15 @@ class StateTreeBuilder {
   /// parent state.
   void machineState(
     StateKey stateKey,
-    InitialMachine initialMachine, {
-    required FutureOr<StateKey> Function(CurrentState finalState) onDone,
+    InitialMachine initialMachine,
+    void Function(MachineStateBuilder) build, {
     bool Function(Transition transition)? isDone,
-    FutureOr<StateKey> Function()? onDisposed,
     StateKey? parent,
     String? label,
   }) {
-    FutureOr<StateKey> Function() _onDisposed =
-        onDisposed ?? () => throw StateError('Nested state machine was disposed unexpectedly');
-
-    _addState(_MachineStateBuilder(
-      stateKey,
-      initialMachine,
-      onDone,
-      isDone,
-      _onDisposed,
-      parent,
-    ));
+    var builder = MachineStateBuilder(stateKey, initialMachine, isDone, parent);
+    build(builder);
+    _addState(builder);
   }
 
   /// Writes a textual description of the state stree to the [sink]. The specific output format is
@@ -545,3 +535,12 @@ class InitialMachine {
     }, true, true);
   }
 }
+
+// class MachineDone {
+//   MessageResult Function(MessageContext) _eval;
+//   MachineDone._(this._eval);
+
+//   factory MachineDone.goTo(StateKey toState) {
+//     return MachineDone._((msgCtx) => msgCtx.goTo(toState));
+//   }
+// }

@@ -145,7 +145,6 @@ void main() {
 
     group('schedule', () {
       test('should schedule message', () async {
-        enableLogging();
         var b = StateTreeBuilder(initialState: state1);
         Message? messageFromAction;
         int? dataFromAction;

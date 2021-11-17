@@ -1,0 +1,247 @@
+import 'dart:async';
+
+import 'package:async/async.dart';
+import 'package:tree_state_machine/tree_state_machine.dart';
+import 'package:tree_state_machine/tree_builders.dart';
+
+//
+// Models and Services
+//
+class AuthorizedUser {
+  final String firstName;
+  final String lastName;
+  final String email;
+  AuthorizedUser(this.firstName, this.lastName, this.email);
+}
+
+class RegistrationRequest {
+  final String email = '';
+  final String password = '';
+  final String firstName = '';
+  final String lastName = '';
+}
+
+class AuthenticationRequest {
+  final String email = '';
+  final String password = '';
+}
+
+abstract class AuthService {
+  Future<Result<AuthorizedUser>> authenticate(AuthenticationRequest request);
+  Future<Result<AuthorizedUser>> register(RegistrationRequest request);
+}
+
+//
+// State keys
+//
+class States {
+  static const login = StateKey('login');
+  static const loginEntry = StateKey('loginEntry');
+  static const authenticating = StateKey('authenticating');
+  static const registration = StateKey('registration');
+  static const credentialsRegistration = StateKey('credentialsRegistration');
+  static const demographicsRegistration = StateKey('demographicsRegistration');
+  static const authenticated = StateKey('authenticated');
+}
+
+//
+// Messages
+//
+class SubmitCredentials implements AuthenticationRequest {
+  @override
+  final String email;
+  @override
+  final String password;
+  SubmitCredentials(this.email, this.password);
+}
+
+class SubmitDemographics {
+  final String firstName;
+  final String lastName;
+  SubmitDemographics(this.firstName, this.lastName);
+}
+
+class AuthFuture {
+  final FutureOr<Result<AuthorizedUser>> futureOr;
+  AuthFuture(this.futureOr);
+}
+
+enum Messages { goToLogin, goToRegister, back, logout, submitRegistration }
+
+//
+// Channels
+//
+final authenticatingChannel = Channel<SubmitCredentials>(States.authenticating);
+final authenticatedChannel = Channel<AuthorizedUser>(States.authenticated);
+
+//
+// State Data
+//
+class RegisterData implements RegistrationRequest {
+  @override
+  String email = '';
+  @override
+  String password = '';
+  @override
+  String firstName = '';
+  @override
+  String lastName = '';
+  bool isBusy = false;
+  String errorMessage = '';
+}
+
+class LoginData implements AuthenticationRequest {
+  @override
+  String email = '';
+  @override
+  String password = '';
+  bool rememberMe = false;
+  String errorMessage = '';
+}
+
+class AuthenticatedData {
+  final AuthorizedUser user;
+  AuthenticatedData(this.user);
+}
+
+class HomeData {
+  String userSplashText = '';
+}
+
+//
+// State tree
+//
+
+StateTreeBuilder authenticateStateTree(
+  AuthService authService, {
+  StateKey initialState = States.login,
+}) {
+  var b = StateTreeBuilder(initialState: initialState);
+
+  b.dataState<RegisterData>(
+    States.registration,
+    InitialData(() => RegisterData()),
+    (b) {
+      b.onMessageValue(Messages.submitRegistration, (b) {
+        // Model the registration action as an asynchrous Result. The 'registering' status while the
+        // operation is in progress is modeled as flag in RegisterData, and a state transition (to
+        // Authenticated) does not occur until the operation is complete.
+        b.whenResult<AuthorizedUser>(
+          (msgCtx, msg, data) => _register(msgCtx, data, authService),
+          (b) {
+            b.enterChannel(authenticatedChannel, (_, __, ___, authorizedUser) => authorizedUser);
+          },
+          label: 'register user',
+        ).otherwise(((b) {
+          b.stay();
+        }));
+      });
+    },
+    initialChild: InitialChild(States.credentialsRegistration),
+  );
+
+  b.state(States.credentialsRegistration, (b) {
+    b.onMessage<SubmitCredentials>((b) {
+      b.goTo(States.demographicsRegistration,
+          action: b.act.updateData<RegisterData>((_, msg, data) => data
+            ..email = msg.email
+            ..password = msg.password));
+    });
+  }, parent: States.registration);
+
+  b.state(States.demographicsRegistration, (b) {
+    b.onMessage<SubmitDemographics>((b) {
+      b.unhandled(
+        action: b.act.updateData<RegisterData>((_, msg, data) => data
+          ..firstName = msg.firstName
+          ..lastName = msg.lastName),
+      );
+    });
+  }, parent: States.registration);
+
+  b.dataState<LoginData>(
+    States.login,
+    InitialData(() => LoginData()),
+    emptyDataState,
+    initialChild: InitialChild(States.loginEntry),
+  );
+
+  b.state(States.loginEntry, (b) {
+    b.onMessage<SubmitCredentials>((b) {
+      // Model the 'logging in' status as a distinct state in the state machine. This is an
+      // alternative design to modeling with a flag in state data, as was done with 'registering'
+      // status.
+      b.enterChannel(authenticatingChannel, (_, msg) => msg);
+    });
+  }, parent: States.login);
+
+  b.state(States.authenticating, (b) {
+    b.onEnterFromChannel<SubmitCredentials>(authenticatingChannel, (b) {
+      b.post<AuthFuture>(getMessage: (_, creds) => _login(creds, authService));
+    });
+    b.onMessage<AuthFuture>((b) {
+      b.whenResult<AuthorizedUser>((_, msg) => msg.futureOr, (b) {
+        b.enterChannel<AuthorizedUser>(authenticatedChannel, (_, __, user) => user);
+      }).otherwise((b) {
+        b.goTo(
+          States.loginEntry,
+          action: b.act.updateData<LoginData>(
+              (_, __, current, err) => current..errorMessage = err.error.toString()),
+        );
+      });
+    });
+  }, parent: States.login);
+
+  b.finalDataState<AuthenticatedData>(
+    States.authenticated,
+    InitialData.fromChannel(
+      authenticatedChannel,
+      (AuthorizedUser user) => AuthenticatedData(user),
+    ),
+    emptyFinalDataState,
+  );
+
+  return b;
+}
+
+AuthFuture _login(SubmitCredentials creds, AuthService authService) {
+  return AuthFuture(authService.authenticate(creds));
+}
+
+Future<Result<AuthorizedUser>> _register(
+  MessageContext msgCtx,
+  RegisterData registerData,
+  AuthService authService,
+) async {
+  var errorMessage = '';
+  var dataVal = msgCtx.dataOrThrow<RegisterData>();
+  try {
+    dataVal.update((_) => registerData
+      ..isBusy = true
+      ..errorMessage = '');
+
+    var result = await authService.register(registerData);
+
+    if (result.isError) {
+      errorMessage = result.asError!.error.toString();
+    }
+    return result;
+  } finally {
+    dataVal.update((_) => registerData
+      ..isBusy = false
+      ..errorMessage = errorMessage);
+  }
+}
+
+class MockAuthService implements AuthService {
+  Future<Result<AuthorizedUser>> Function(AuthenticationRequest) doAuthenticate;
+  Future<Result<AuthorizedUser>> Function(RegistrationRequest) doRegister;
+  MockAuthService(this.doAuthenticate, this.doRegister);
+
+  @override
+  Future<Result<AuthorizedUser>> authenticate(AuthenticationRequest request) =>
+      doAuthenticate(request);
+
+  @override
+  Future<Result<AuthorizedUser>> register(RegistrationRequest request) => doRegister(request);
+}
