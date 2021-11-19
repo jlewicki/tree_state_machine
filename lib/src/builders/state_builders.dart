@@ -167,7 +167,7 @@ abstract class _StateBuilderBase {
   final Logger _log;
   StateKey? _parent;
   // Key is either a Type object representing message type or a message value
-  final Map<Object, _MessageHandlerDescriptor> _messageHandlerMap = {};
+  final Map<Object, _MessageHandlerInfo> _messageHandlerMap = {};
   // 'Open-coded' message handler. This is mutually exclusive with _messageHandlerMap
   MessageHandler? _messageHandler;
   // Builder for onExit handler. This is mutually exclusive with _onExitHandler
@@ -256,7 +256,9 @@ abstract class _StateBuilderBase {
       // a message must exactly match the registered type. That is, a message cannot be a subclass
       // of the registered type.
       var descriptor = handlerMap[msg] ?? handlerMap[msg.runtimeType];
-      return descriptor?.handler(msgCtx) ?? msgCtx.unhandled();
+      return descriptor is _MessageHandlerDescriptor
+          ? descriptor.handler(msgCtx)
+          : msgCtx.unhandled();
     };
   }
 
@@ -448,13 +450,18 @@ class _DataStateBuilder<D> extends _StateBuilderBase
   }
 }
 
-class MachineStateBuilder extends _StateBuilderBase {
+abstract class MachineStateBuilder {
+  void onMachineDone(void Function(MachineDoneHandlerBuilder builder) buildHandler);
+  void onMachineDisposed(void Function(MachineDisposedHandlerBuilder builder) buildHandler);
+}
+
+class _MachineStateBuilder extends _StateBuilderBase implements MachineStateBuilder {
   final InitialMachine _initialMachine;
   final bool Function(Transition transition)? _isDone;
   _ContinuationMessageHandlerDescriptor<CurrentState>? _doneHandler;
   _MessageHandlerDescriptor? _disposedHandler;
 
-  MachineStateBuilder(
+  _MachineStateBuilder(
     StateKey key,
     this._initialMachine,
     this._isDone,
@@ -462,23 +469,40 @@ class MachineStateBuilder extends _StateBuilderBase {
     StateKey? parent,
   ) : super._(key, false, log, parent, null);
 
+  @override
   void onMachineDone(void Function(MachineDoneHandlerBuilder builder) buildHandler) {
-    var builder = MachineDoneHandlerBuilder._(key, _log, 'Done');
+    var messageName = _getMessageName('Machine Done');
+    var builder = MachineDoneHandlerBuilder._(key, _log, messageName);
     buildHandler(builder);
     _doneHandler = builder._handler;
+    _messageHandlerMap[messageName] = _doneHandler!;
   }
 
+  @override
   void onMachineDisposed(void Function(MachineDisposedHandlerBuilder builder) buildHandler) {
-    var builder = MachineDisposedHandlerBuilder._(key, _log, 'Done');
+    var messageName = _getMessageName('Machine Disposed');
+    var builder = MachineDisposedHandlerBuilder._(key, _log, messageName);
     buildHandler(builder);
     _disposedHandler = builder._handler;
+    _messageHandlerMap[messageName] = _disposedHandler!;
+  }
+
+  String _getMessageName(String messageName) {
+    // Placeholder for future labeling of messages
+    return messageName;
   }
 
   @override
   TreeState _createState() {
+    var doneHandler = _doneHandler;
+    if (doneHandler == null) {
+      throw StateError(
+          "Nested machine state '$key' does not have a done handler. Make sure to call onMachineDone.");
+    }
+
     return NestedMachineState(
       _initialMachine,
-      _doneHandler!.continuation,
+      doneHandler.continuation,
       _log,
       _isDone,
       _disposedHandler?.handler,

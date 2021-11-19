@@ -120,7 +120,7 @@ class _DotFormatter {
         var handler = handlerEntry.value;
         var handlerType = handlerEntry.value.handlerType;
         if (handlerType != _MessageHandlerType.unhandled) {
-          var conditions = handler.tryGetConditions();
+          var conditions = handler is _MessageHandlerDescriptor ? handler.tryGetConditions() : null;
           if (conditions == null) {
             transitions.add(_labelMessageHandler(child, handler, childStateName, postNodeName));
           } else {
@@ -169,6 +169,9 @@ class _DotFormatter {
   String _writeLeafState(_StateBuilderBase leaf, StringSink sb) {
     var stateName = _getStateName(leaf);
     sb.write('${_indent()}$stateName [shape=Mrecord, ');
+    if (leaf is MachineStateBuilder) {
+      sb.write('style=diagonals, ');
+    }
     _labelState(leaf, sink);
     sb.writeln(']');
     return stateName;
@@ -181,6 +184,11 @@ class _DotFormatter {
 
     if (stateBuilder is _DataStateBuilder) {
       sink.write('|dataType: ${stateBuilder.dataType}');
+    }
+
+    if (stateBuilder is _MachineStateBuilder) {
+      sink.write(
+          '|stateMachine: ${stateBuilder._initialMachine.label ?? '<Nested State Machine>'}');
     }
 
     if (stateBuilder._onEnter != null) {

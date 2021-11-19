@@ -116,8 +116,10 @@ treeBuilder.machineState(
    nestedMachineState, 
    // A nested state machine will be created from this state tree
    InitialMachine.fromTree((transCtx) => nestedTreeBuilder()),
-   // When the nested machine completes, go to otherState
-   onDone: (CurrentState finalState) => otherState),
+   (b) {
+      // When the nested machine completes, go to otherState
+      b.onMachineDone((b) => b.goTo(otherState));
+   }
 );
 ```
 

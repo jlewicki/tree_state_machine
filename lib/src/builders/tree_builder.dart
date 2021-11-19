@@ -261,7 +261,7 @@ class StateTreeBuilder {
     StateKey? parent,
     String? label,
   }) {
-    var builder = MachineStateBuilder(stateKey, initialMachine, isDone, _log, parent);
+    var builder = _MachineStateBuilder(stateKey, initialMachine, isDone, _log, parent);
     build(builder);
     _addState(builder);
   }
@@ -334,9 +334,10 @@ class StateTreeBuilder {
 
     // Make sure transitions are to known states
     for (var state in _stateBuilders.values) {
-      for (var handlerEntry in state._messageHandlerMap.entries) {
+      for (var handlerEntry
+          in state._messageHandlerMap.entries.where((e) => e.value is _MessageHandlerDescriptor)) {
         var handlerInfo = handlerEntry.value;
-        var targetStateKey = handlerInfo.tryGetTargetState();
+        var targetStateKey = (handlerInfo as _MessageHandlerDescriptor).tryGetTargetState();
         if (targetStateKey != null && !_stateBuilders.containsKey(targetStateKey)) {
           throw StateError('State ${state.key} has a transition to unknown state $targetStateKey');
         }
@@ -526,9 +527,10 @@ class InitialChild {
 class InitialMachine {
   final bool forwardMessages;
   final bool disposeMachineOnExit;
+  final String? label;
   final FutureOr<TreeStateMachine> Function(TransitionContext) _create;
 
-  InitialMachine._(this._create, this.disposeMachineOnExit, this.forwardMessages);
+  InitialMachine._(this._create, this.disposeMachineOnExit, this.forwardMessages, this.label);
 
   FutureOr<TreeStateMachine> call(TransitionContext transCtx) => _create(transCtx);
 
@@ -544,18 +546,25 @@ class InitialMachine {
     FutureOr<TreeStateMachine> Function(TransitionContext) create, {
     bool disposeOnExit = true,
     bool forwardMessages = true,
+    String? label,
   }) {
-    return InitialMachine._(create, disposeOnExit, forwardMessages);
+    return InitialMachine._(create, disposeOnExit, forwardMessages, label);
   }
 
   /// Constructs an [InitialMachine] that will create and start a nested state machine using
   /// the [StateTreeBuilder] produced by the [create] function.
   factory InitialMachine.fromTree(
     FutureOr<StateTreeBuilder> Function(TransitionContext transCtx) create, {
+    String? label,
     String? logName,
   }) {
-    return InitialMachine._((ctx) {
-      return create(ctx).bind((treeBuilder) => TreeStateMachine(treeBuilder, logName: logName));
-    }, true, true);
+    return InitialMachine._(
+      (ctx) {
+        return create(ctx).bind((treeBuilder) => TreeStateMachine(treeBuilder, logName: logName));
+      },
+      true,
+      true,
+      label,
+    );
   }
 }

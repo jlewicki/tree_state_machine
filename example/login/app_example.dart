@@ -61,10 +61,12 @@ StateTreeBuilder appStateTree(AuthService authService) {
 
   b.machineState(
     States.authenticate,
-    InitialMachine.fromTree((transCtx) => auth.authenticateStateTree(
-          authService,
-          initialState: transCtx.payload as StateKey,
-        )),
+    InitialMachine.fromTree(
+        (transCtx) => auth.authenticateStateTree(
+              authService,
+              initialState: transCtx.payload as StateKey,
+            ),
+        label: 'Authenticate Machine'),
     (b) {
       b.onMachineDone((b) => b.enterChannel(
             authenticatedChannel,

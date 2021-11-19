@@ -293,7 +293,7 @@ class MachineDoneHandlerBuilder {
       payload != null ? (_, __, currentState) => payload(currentState) : null,
       action,
       null,
-      label,
+      label ?? _messageName,
     );
   }
 
