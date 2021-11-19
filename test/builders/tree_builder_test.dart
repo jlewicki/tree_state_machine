@@ -370,7 +370,8 @@ void main() {
         var stateMachine = TreeStateMachine(sb);
         var currentState = await stateMachine.start();
         var msgResult = await currentState.post('state3');
-        expect(msgResult, isA<UnhandledMessage>());
+        expect(msgResult, isA<HandledMessage>());
+        expect((msgResult as HandledMessage).transition, isNull);
       });
 
       test('should use isDone to determine completion', () async {
