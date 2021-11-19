@@ -1,6 +1,7 @@
 ## 1.1.0
-- Add support for final data states
-- Add nested state machines
+- Add support for final data states.
+- Add nested state machines.
+- Adjust logging so that log messages can be named to reflect the state machine that emits them.
 
 ## 1.0.3
 - Package updates to improve pub.dev score.

@@ -5,7 +5,10 @@ export 'src/machine/extensions.dart';
 export 'src/machine/tree_state.dart'
     hide
         TreeState,
+        DelegatingTreeState,
         DataTreeState,
+        DelegatingDataTreeState,
+        NestedMachineState,
         GoToResult,
         InternalTransitionResult,
         SelfTransitionResult,

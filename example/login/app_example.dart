@@ -24,25 +24,19 @@ class States {
 //
 // Messages
 //
-enum Messages { goToLogin, goToRegister }
+enum Messages { goToLogin, goToRegister, logout }
 
 //
 // Channnels
 //
-class AuthenticatePayload {
-  StateKey authState = auth.States.login;
-}
 
-final authenticateChannel = Channel<AuthenticatePayload>(States.authenticate);
+// Paylod is the initial state in the nested state machine enter.
+final authenticateChannel = Channel<StateKey>(States.authenticate);
 final authenticatedChannel = Channel<AuthorizedUser>(States.authenticated);
 
 //
 // State Data
 //
-class AuthenticatedData {
-  final AuthorizedUser user;
-  AuthenticatedData(this.user);
-}
 
 class HomeData {
   String userSplashText = '';
@@ -52,12 +46,12 @@ class HomeData {
 // State tree
 //
 StateTreeBuilder appStateTree(AuthService authService) {
-  var b = StateTreeBuilder(initialState: States.unauthenticated);
+  var b = StateTreeBuilder(initialState: States.splash, logName: 'app');
 
   b.state(States.splash, (b) {
     b.onMessageValue(
       Messages.goToLogin,
-      (b) => b.enterChannel(authenticateChannel, (_, __) => auth.States.login),
+      (b) => b.enterChannel<StateKey>(authenticateChannel, (_, __) => auth.States.login),
     );
     b.onMessageValue(
       Messages.goToRegister,
@@ -67,12 +61,23 @@ StateTreeBuilder appStateTree(AuthService authService) {
 
   b.machineState(
     States.authenticate,
-    InitialMachine.fromTree((_) => auth.authenticateStateTree(authService)),
+    InitialMachine.fromTree((transCtx) => auth.authenticateStateTree(
+          authService,
+          initialState: transCtx.payload as StateKey,
+        )),
     (b) {
       b.onMachineDone((b) => b.enterChannel(
             authenticatedChannel,
-            (finalState) => finalState.dataValue<AuthorizedUser>(),
+            (finalState) => finalState.dataValue<auth.AuthenticatedData>()!.user,
           ));
+    },
+  );
+
+  b.dataState<AuthorizedUser>(
+    States.authenticated,
+    InitialData.fromChannel(authenticatedChannel, (AuthorizedUser p) => p),
+    (b) {
+      b.onMessageValue(Messages.logout, (b) => b.goTo(States.splash));
     },
   );
 
@@ -101,35 +106,45 @@ void main() async {
   );
 
   var treeBuilder = appStateTree(authService);
+  var s = StringBuffer();
+  treeBuilder.format(s, DotFormatter());
+  var dot = s.toString();
+
   var stateMachine = TreeStateMachine(treeBuilder);
   var currentState = await stateMachine.start();
   assert(currentState.key == States.splash);
 
-  // await currentState.post(Messages.goToLogin);
-  // assert(currentState.key == States.loginEntry);
-  // assert(currentState.isInState(States.login));
+  await currentState.post(Messages.goToLogin);
+  assert(currentState.key == States.authenticate);
 
-  // authService.doAuthenticate = (req) async {
-  //   return Result.value(AuthorizedUser('Chandler', 'Bing', 'chandler.bing@hotmail.com'));
-  // };
-  // await currentState.post(SubmitCredentials('chandler.bing@hotmail.com', 'friends123'));
+  var nestedState = currentState.dataValue<NestedMachineData>()!.nestedState;
+  assert(nestedState.isInState(auth.States.login));
+  assert(nestedState.key == auth.States.loginEntry);
 
-  // // Wait for login to complete
-  // await stateMachine.transitions.first;
-  // assert(currentState.key == States.authenticated);
-  // assert(currentState.dataValue<AuthenticatedData>()!.user.email == 'chandler.bing@hotmail.com');
-  // assert(stateMachine.isDone);
+  authService.doAuthenticate = (req) async {
+    return Result.value(AuthorizedUser('Chandler', 'Bing', 'chandler.bing@hotmail.com'));
+  };
+  await currentState.post(auth.SubmitCredentials('chandler.bing@hotmail.com', 'friends123'));
 
-  // await currentState.post(Messages.logout);
-  // assert(currentState.key == States.splash);
-  // assert(currentState.isInState(States.unauthenticated));
+  // Check that nested state machine finished
+  assert(nestedState.key == auth.States.authenticated);
+  assert(
+      nestedState.dataValue<auth.AuthenticatedData>()!.user.email == 'chandler.bing@hotmail.com');
+  assert(nestedState.stateMachine.isDone);
 
-  // await currentState.post(Messages.goToRegister);
-  // assert(currentState.key == States.credentialsRegistration);
-  // assert(currentState.isInState(States.registration));
+  await stateMachine.transitions.firstWhere((t) => t.to == States.authenticated);
+  await currentState.post(Messages.logout);
+  assert(currentState.key == States.splash);
 
-  // await currentState.post(SubmitCredentials('phoebes@smellycat.com', 'imnotursala'));
-  // assert(currentState.key == States.demographicsRegistration);
+  await currentState.post(Messages.goToRegister);
+  assert(currentState.key == States.authenticate);
+
+  nestedState = currentState.dataValue<NestedMachineData>()!.nestedState;
+  assert(nestedState.isInState(auth.States.registration));
+  assert(nestedState.key == auth.States.credentialsRegistration);
+
+  await currentState.post(auth.SubmitCredentials('phoebes@smellycat.com', 'imnotursala'));
+  assert(nestedState.key == auth.States.demographicsRegistration);
 
   // await currentState.post(SubmitDemographics('Phoebe', 'Buffay'));
 
@@ -148,6 +163,6 @@ void initLogging() {
   hierarchicalLoggingEnabled = true;
   Logger('tree_state_machine').level = Level.ALL;
   Logger.root.onRecord.listen((record) {
-    print('${record.level.name}: ${record.time}: ${record.message}');
+    print('${record.level.name}: ${record.time}: ${record.loggerName}: ${record.message}');
   });
 }

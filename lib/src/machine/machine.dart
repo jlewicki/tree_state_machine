@@ -246,9 +246,10 @@ class Machine {
     }
 
     void bookkeepingHandler() {
-      assert(transCtx.currentNode.isLeaf, 'Transition did not end at a leaf node');
-      _log.fine("Transitioned to state '${transCtx.currentNode.key}'");
-      _currentLeafNode = nodes[transCtx.currentNode.key]!;
+      var node = transCtx.currentNode;
+      assert(node.isLeaf, 'Transition did not end at a leaf node');
+      _log.fine(() => "Transitioned to ${node.isFinalLeaf ? 'final' : ''} state '${node.key}'");
+      _currentLeafNode = nodes[node.key]!;
     }
 
     var f = _runTransitionHandlers(
@@ -374,7 +375,6 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
   @override
   DataValue<D>? data<D>([StateKey? key]) {
     assert(notifiedNodes.isNotEmpty);
-    //return notifiedNodes.last.selfOrAncestorDataValue<D>(key: key ?? handlingNode.key);
     return notifiedNodes.last.selfOrAncestorDataValue<D>(key: key);
   }
 
@@ -647,7 +647,7 @@ class MachineNode {
 
 final stopMessage = Object();
 
-final _stoppedState = TreeState(
+final _stoppedState = DelegatingTreeState(
   (ctx) => throw StateError('Can not send message to a final state'),
   (ctx) => {},
   (ctx) => throw StateError('Can not leave a final state.'),

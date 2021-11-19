@@ -13,6 +13,7 @@ abstract class _MessageHandlerBuilder<M> {
   StateKey get _forState;
   String? get _messageName;
   _MessageHandlerDescriptor? _handler;
+  Logger get _log;
 }
 
 mixin _GoToMessageHandlerBuilder<M> on _MessageHandlerBuilder<M> {
@@ -44,6 +45,7 @@ mixin _GoToMessageHandlerBuilder<M> on _MessageHandlerBuilder<M> {
       targetState,
       transitionAction,
       reenterTarget,
+      _log,
       payload,
       action,
       label,
@@ -81,6 +83,8 @@ class MessageHandlerBuilder<M> extends _MessageHandlerBuilder<M>
   final StateKey _forState;
   @override
   final String? _messageName;
+  @override
+  final Logger _log;
 
   /// A [MessageActionBuilder] that can be used to specify actions that should take place when
   /// handling messages.
@@ -99,7 +103,7 @@ class MessageHandlerBuilder<M> extends _MessageHandlerBuilder<M>
   /// });
   late final act = MessageActionBuilder<M>._(_forState);
 
-  MessageHandlerBuilder._(this._forState, this._messageName);
+  MessageHandlerBuilder._(this._forState, this._log, this._messageName);
 
   // /// Indicates that a transition to [targetState] should occur.
   // ///
@@ -214,11 +218,11 @@ class MessageHandlerBuilder<M> extends _MessageHandlerBuilder<M>
     void Function(MessageHandlerBuilder<M>) buildTrueHandler, {
     String? label,
   }) {
-    var trueBuilder = MessageHandlerBuilder<M>._(_forState, _messageName);
+    var trueBuilder = MessageHandlerBuilder<M>._(_forState, _log, _messageName);
     buildTrueHandler(trueBuilder);
     var conditions = [_MessageCondition(condition, trueBuilder._handler!, label)];
     _handler = _WhenDescriptor.createForMessage<M>(conditions);
-    return MessageHandlerWhenBuilder<M>(_forState, conditions, _messageName);
+    return MessageHandlerWhenBuilder<M>(_forState, conditions, _log, _messageName);
   }
 
   MessageHandlerWhenWithContextBuilder<M, T> whenWith<T>(
@@ -227,7 +231,7 @@ class MessageHandlerBuilder<M> extends _MessageHandlerBuilder<M>
     void Function(MessageHandlerBuilder<M>) buildTrueHandler, {
     String? label,
   }) {
-    var trueBuilder = MessageHandlerBuilder<M>._(_forState, _messageName);
+    var trueBuilder = MessageHandlerBuilder<M>._(_forState, _log, _messageName);
     buildTrueHandler(trueBuilder);
     var conditions = [
       _MessageConditionWithContext<M, T>(
@@ -237,7 +241,7 @@ class MessageHandlerBuilder<M> extends _MessageHandlerBuilder<M>
       )
     ];
     _handler = _WhenWithContextDescriptor.createForMessage<M, T>(context, conditions);
-    return MessageHandlerWhenWithContextBuilder<M, T>(_forState, conditions, _messageName);
+    return MessageHandlerWhenWithContextBuilder<M, T>(_forState, conditions, _log, _messageName);
   }
 
   MessageHandlerWhenResultBuilder<M, T> whenResult<T>(
@@ -245,7 +249,7 @@ class MessageHandlerBuilder<M> extends _MessageHandlerBuilder<M>
     void Function(ContinuationMessageHandlerBuilder<M, T>) buildTrueHandler, {
     String? label,
   }) {
-    var continuationBuilder = ContinuationMessageHandlerBuilder<M, T>(_forState);
+    var continuationBuilder = ContinuationMessageHandlerBuilder<M, T>(_forState, _log);
     buildTrueHandler(continuationBuilder);
 
     var refFailure = Ref<_ContinuationMessageHandlerDescriptor<AsyncError>?>(null);
@@ -254,19 +258,21 @@ class MessageHandlerBuilder<M> extends _MessageHandlerBuilder<M>
       result,
       continuationBuilder._continuationHandler!,
       refFailure,
+      _log,
       label,
       null,
     );
-    return MessageHandlerWhenResultBuilder<M, T>(_forState, refFailure);
+    return MessageHandlerWhenResultBuilder<M, T>(_forState, refFailure, _log);
   }
 }
 
 class MachineDoneHandlerBuilder {
   final StateKey _forState;
   final String? _messageName;
+  final Logger _log;
   _ContinuationMessageHandlerDescriptor<CurrentState>? _handler;
 
-  MachineDoneHandlerBuilder._(this._forState, this._messageName);
+  MachineDoneHandlerBuilder._(this._forState, this._log, this._messageName);
 
   late final act = ContinuationMessageActionBuilder<Object, CurrentState>();
 
@@ -283,6 +289,7 @@ class MachineDoneHandlerBuilder {
       targetState,
       transitionAction,
       reenterTarget,
+      _log,
       payload != null ? (_, __, currentState) => payload(currentState) : null,
       action,
       null,
@@ -295,8 +302,7 @@ class MachineDoneHandlerBuilder {
     FutureOr<P> Function(CurrentState finalState) payload, {
     bool reenterTarget = false,
   }) {
-    // var channelEntry = channel._entry(payload);
-    // channelEntry.enter(this, reenterTarget);
+    goTo(channel.to, payload: payload, reenterTarget: reenterTarget);
   }
 }
 
@@ -305,18 +311,21 @@ class MachineDisposedHandlerBuilder extends _MessageHandlerBuilder<Object>
   @override
   final StateKey _forState;
   @override
+  final Logger _log;
+  @override
   final String? _messageName;
 
-  MachineDisposedHandlerBuilder._(this._forState, this._messageName);
+  MachineDisposedHandlerBuilder._(this._forState, this._log, this._messageName);
 }
 
 class DataMessageHandlerBuilder<M, D> {
   final StateKey _forState;
   final String? _messageName;
+  final Logger _log;
   late final act = MessageActionWithDataBuilder<M, D>._(_forState);
   _MessageHandlerDescriptor? _handler;
 
-  DataMessageHandlerBuilder(this._forState, this._messageName);
+  DataMessageHandlerBuilder(this._forState, this._messageName, this._log);
 
   void goTo(
     StateKey targetState, {
@@ -331,6 +340,7 @@ class DataMessageHandlerBuilder<M, D> {
       targetState,
       transitionAction,
       reenterTarget,
+      _log,
       payload,
       action,
       label,
@@ -402,11 +412,11 @@ class DataMessageHandlerBuilder<M, D> {
     void Function(DataMessageHandlerBuilder<M, D>) buildTrueHandler, {
     String? label,
   }) {
-    var trueBuilder = DataMessageHandlerBuilder<M, D>(_forState, _messageName);
+    var trueBuilder = DataMessageHandlerBuilder<M, D>(_forState, _messageName, _log);
     buildTrueHandler(trueBuilder);
     var conditions = [_MessageConditionWithContext(condition, trueBuilder._handler!, label)];
     _handler = _WhenDescriptor.createForMessageAndData<M, D>(conditions);
-    return MessageHandlerWhenWithDataBuilder<M, D>(_forState, conditions, _messageName);
+    return MessageHandlerWhenWithDataBuilder<M, D>(_forState, conditions, _log, _messageName);
   }
 
   MessageHandlerWhenWithDataAndContextBuilder<M, D, T> whenWith<T>(
@@ -415,7 +425,7 @@ class DataMessageHandlerBuilder<M, D> {
     void Function(DataMessageHandlerBuilder<M, D>) buildTrueHandler, {
     String? label,
   }) {
-    var trueBuilder = DataMessageHandlerBuilder<M, D>(_forState, _messageName);
+    var trueBuilder = DataMessageHandlerBuilder<M, D>(_forState, _messageName, _log);
     buildTrueHandler(trueBuilder);
     var conditions = [
       _MessageConditionWithDataAndContext<M, D, T>(
@@ -426,7 +436,7 @@ class DataMessageHandlerBuilder<M, D> {
     ];
     _handler = _WhenWithContextDescriptor.createForMessageAndData<M, D, T>(context, conditions);
     return MessageHandlerWhenWithDataAndContextBuilder<M, D, T>(
-        _forState, conditions, _messageName);
+        _forState, conditions, _messageName, _log);
   }
 
   MessageHandlerWhenResultWithDataBuilder<M, D, T> whenResult<T>(
@@ -434,7 +444,7 @@ class DataMessageHandlerBuilder<M, D> {
     void Function(ContinuationWithDataMessageHandlerBuilder<M, D, T>) buildTrueHandler, {
     String? label,
   }) {
-    var continuationBuilder = ContinuationWithDataMessageHandlerBuilder<M, D, T>(_forState);
+    var continuationBuilder = ContinuationWithDataMessageHandlerBuilder<M, D, T>(_forState, _log);
     buildTrueHandler(continuationBuilder);
 
     var refFailure = Ref<_ContinuationMessageHandlerDescriptor<AsyncError>?>(null);
@@ -445,17 +455,20 @@ class DataMessageHandlerBuilder<M, D> {
       refFailure,
       label,
       null,
+      _log,
     );
-    return MessageHandlerWhenResultWithDataBuilder<M, D, T>(_forState, refFailure);
+    return MessageHandlerWhenResultWithDataBuilder<M, D, T>(_forState, refFailure, _log);
   }
 }
 
 class ContinuationMessageHandlerBuilder<M, T> {
   final StateKey _forState;
+  final Logger _log;
   _ContinuationMessageHandlerDescriptor<T>? _continuationHandler;
+
   final ContinuationMessageActionBuilder<M, T> act = ContinuationMessageActionBuilder<M, T>();
 
-  ContinuationMessageHandlerBuilder(this._forState);
+  ContinuationMessageHandlerBuilder(this._forState, this._log);
 
   void goTo(StateKey targetState,
       {TransitionHandler? transitionAction,
@@ -468,6 +481,7 @@ class ContinuationMessageHandlerBuilder<M, T> {
       targetState,
       transitionAction,
       reenterTarget,
+      _log,
       payload,
       action,
       null,
@@ -540,11 +554,12 @@ class ContinuationMessageHandlerBuilder<M, T> {
 
 class ContinuationWithDataMessageHandlerBuilder<M, D, T> {
   final StateKey _forState;
+  final Logger _log;
   _ContinuationMessageHandlerDescriptor<T>? _continuationHandler;
-  final ContinuationMessageActionWithDataBuilder<M, D, T> act =
-      ContinuationMessageActionWithDataBuilder<M, D, T>();
 
-  ContinuationWithDataMessageHandlerBuilder(this._forState);
+  final act = ContinuationMessageActionWithDataBuilder<M, D, T>();
+
+  ContinuationWithDataMessageHandlerBuilder(this._forState, this._log);
 
   void goTo(
     StateKey targetState, {
@@ -559,6 +574,7 @@ class ContinuationWithDataMessageHandlerBuilder<M, D, T> {
       targetState,
       transitionAction,
       reenterTarget,
+      _log,
       payload,
       action,
       null,
@@ -632,14 +648,16 @@ class MessageHandlerWhenBuilder<M> {
   final StateKey _forState;
   final String? _messageName;
   final List<_MessageCondition<M>> _conditions;
-  MessageHandlerWhenBuilder(this._forState, this._conditions, this._messageName);
+  final Logger _log;
+
+  MessageHandlerWhenBuilder(this._forState, this._conditions, this._log, this._messageName);
 
   MessageHandlerWhenBuilder<M> when(
     FutureOr<bool> Function(MessageContext msgCtx, M msg) condition,
     void Function(MessageHandlerBuilder<M>) buildTrueHandler, {
     String? label,
   }) {
-    var trueBuilder = MessageHandlerBuilder<M>._(_forState, _messageName);
+    var trueBuilder = MessageHandlerBuilder<M>._(_forState, _log, _messageName);
     buildTrueHandler(trueBuilder);
     _conditions.add(_MessageCondition(condition, trueBuilder._handler!, label));
     return this;
@@ -649,7 +667,7 @@ class MessageHandlerWhenBuilder<M> {
     void Function(MessageHandlerBuilder<M>) buildOtherwise, {
     String? label,
   }) {
-    var otherwiseBuilder = MessageHandlerBuilder<M>._(_forState, _messageName);
+    var otherwiseBuilder = MessageHandlerBuilder<M>._(_forState, _log, _messageName);
     buildOtherwise(otherwiseBuilder);
     _conditions.add(_MessageCondition((msgCts, msg) => true, otherwiseBuilder._handler!, label));
   }
@@ -659,14 +677,16 @@ class MessageHandlerWhenWithContextBuilder<M, T> {
   final StateKey _forState;
   final String? _messageName;
   final List<_MessageConditionWithContext<M, T>> _conditions;
-  MessageHandlerWhenWithContextBuilder(this._forState, this._conditions, this._messageName);
+  final Logger _log;
+  MessageHandlerWhenWithContextBuilder(
+      this._forState, this._conditions, this._log, this._messageName);
 
   MessageHandlerWhenWithContextBuilder<M, T> when(
     FutureOr<bool> Function(MessageContext msgCtx, M msg, T ctx) condition,
     void Function(MessageHandlerBuilder<M>) buildTrueHandler, {
     String? label,
   }) {
-    var trueBuilder = MessageHandlerBuilder<M>._(_forState, _messageName);
+    var trueBuilder = MessageHandlerBuilder<M>._(_forState, _log, _messageName);
     buildTrueHandler(trueBuilder);
     _conditions.add(_MessageConditionWithContext(
       condition,
@@ -680,7 +700,7 @@ class MessageHandlerWhenWithContextBuilder<M, T> {
     void Function(MessageHandlerBuilder<M>) buildOtherwise, {
     String? label,
   }) {
-    var otherwiseBuilder = MessageHandlerBuilder<M>._(_forState, _messageName);
+    var otherwiseBuilder = MessageHandlerBuilder<M>._(_forState, _log, _messageName);
     buildOtherwise(otherwiseBuilder);
     _conditions.add(_MessageConditionWithContext(
       (msgCtx, msg, ctx) => true,
@@ -694,14 +714,16 @@ class MessageHandlerWhenWithDataAndContextBuilder<M, D, T> {
   final StateKey _forState;
   final String? _messageName;
   final List<_MessageConditionWithDataAndContext<M, D, T>> _conditions;
-  MessageHandlerWhenWithDataAndContextBuilder(this._forState, this._conditions, this._messageName);
+  final Logger _log;
+  MessageHandlerWhenWithDataAndContextBuilder(
+      this._forState, this._conditions, this._messageName, this._log);
 
   MessageHandlerWhenWithDataAndContextBuilder<M, D, T> when(
     FutureOr<bool> Function(MessageContext msgCtx, M msg, D data, T ctx) condition,
     void Function(DataMessageHandlerBuilder<M, D>) buildTrueHandler, {
     String? label,
   }) {
-    var trueBuilder = DataMessageHandlerBuilder<M, D>(_forState, _messageName);
+    var trueBuilder = DataMessageHandlerBuilder<M, D>(_forState, _messageName, _log);
     buildTrueHandler(trueBuilder);
     _conditions.add(_MessageConditionWithDataAndContext(
       condition,
@@ -715,7 +737,7 @@ class MessageHandlerWhenWithDataAndContextBuilder<M, D, T> {
     void Function(DataMessageHandlerBuilder<M, D>) buildOtherwise, {
     String? label,
   }) {
-    var otherwiseBuilder = DataMessageHandlerBuilder<M, D>(_forState, _messageName);
+    var otherwiseBuilder = DataMessageHandlerBuilder<M, D>(_forState, _messageName, _log);
     buildOtherwise(otherwiseBuilder);
     _conditions.add(_MessageConditionWithDataAndContext(
       (msgCtx, msg, ctx, data) => true,
@@ -729,14 +751,15 @@ class MessageHandlerWhenWithDataBuilder<M, D> {
   final StateKey _forState;
   final String? _messageName;
   final List<_MessageConditionWithContext<M, D>> _conditions;
-  MessageHandlerWhenWithDataBuilder(this._forState, this._conditions, this._messageName);
+  final Logger _log;
+  MessageHandlerWhenWithDataBuilder(this._forState, this._conditions, this._log, this._messageName);
 
   MessageHandlerWhenWithDataBuilder<M, D> when(
     FutureOr<bool> Function(MessageContext msgCtx, M msg, D data) condition,
     void Function(DataMessageHandlerBuilder<M, D>) buildTrueHandler, {
     String? label,
   }) {
-    var trueBuilder = DataMessageHandlerBuilder<M, D>(_forState, _messageName);
+    var trueBuilder = DataMessageHandlerBuilder<M, D>(_forState, _messageName, _log);
     buildTrueHandler(trueBuilder);
     _conditions.add(_MessageConditionWithContext(
       condition,
@@ -750,7 +773,7 @@ class MessageHandlerWhenWithDataBuilder<M, D> {
     void Function(DataMessageHandlerBuilder<M, D>) buildOtherwise, {
     String? label,
   }) {
-    var otherwiseBuilder = DataMessageHandlerBuilder<M, D>(_forState, _messageName);
+    var otherwiseBuilder = DataMessageHandlerBuilder<M, D>(_forState, _messageName, _log);
     buildOtherwise(otherwiseBuilder);
     _conditions.add(_MessageConditionWithContext(
       (msgCtx, msg, ctx) => true,
@@ -763,14 +786,15 @@ class MessageHandlerWhenWithDataBuilder<M, D> {
 class MessageHandlerWhenResultBuilder<M, T> {
   final StateKey _forState;
   final Ref<_ContinuationMessageHandlerDescriptor<AsyncError>?> _failureContinuationRef;
+  final Logger _log;
 
-  MessageHandlerWhenResultBuilder(this._forState, this._failureContinuationRef);
+  MessageHandlerWhenResultBuilder(this._forState, this._failureContinuationRef, this._log);
 
   void otherwise(
     void Function(ContinuationMessageHandlerBuilder<M, AsyncError>) buildErrorHandler, {
     String? label,
   }) {
-    var errorBuilder = ContinuationMessageHandlerBuilder<M, AsyncError>(_forState);
+    var errorBuilder = ContinuationMessageHandlerBuilder<M, AsyncError>(_forState, _log);
     buildErrorHandler(errorBuilder);
     _failureContinuationRef.value = errorBuilder._continuationHandler;
   }
@@ -779,14 +803,15 @@ class MessageHandlerWhenResultBuilder<M, T> {
 class MessageHandlerWhenResultWithDataBuilder<M, D, T> {
   final StateKey _forState;
   final Ref<_ContinuationMessageHandlerDescriptor<AsyncError>?> _failureContinuationRef;
+  final Logger _log;
 
-  MessageHandlerWhenResultWithDataBuilder(this._forState, this._failureContinuationRef);
+  MessageHandlerWhenResultWithDataBuilder(this._forState, this._failureContinuationRef, this._log);
 
   void otherwise(
     void Function(ContinuationWithDataMessageHandlerBuilder<M, D, AsyncError>) buildErrorHandler, {
     String? label,
   }) {
-    var errorBuilder = ContinuationWithDataMessageHandlerBuilder<M, D, AsyncError>(_forState);
+    var errorBuilder = ContinuationWithDataMessageHandlerBuilder<M, D, AsyncError>(_forState, _log);
     buildErrorHandler(errorBuilder);
     _failureContinuationRef.value = errorBuilder._continuationHandler;
   }

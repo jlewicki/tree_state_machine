@@ -2,8 +2,9 @@ part of tree_builders;
 
 /// Provides methods to describe a state tree.
 ///
-/// States are defined and added to the state tree are described by calling the [state],
-/// [dataState], and [finalState] methods.
+/// States are defined and added to the state tree are described by calling methods such [state],
+/// [dataState], and [finalState]. A state tree or state machine can be nested within another state
+/// tree with the [machineState] method.
 ///
 /// ```dart
 /// enum Messages { toggle }
@@ -38,9 +39,13 @@ part of tree_builders;
 /// [StateTreeFormatter] (for example a [DotFormatter]) representing the desired output format.
 class StateTreeBuilder {
   final StateKey _rootKey;
+  final String? logName;
   final Map<StateKey, _StateBuilderBase> _stateBuilders = {};
+  late final Logger _log = Logger(
+    'tree_state_machine.StateTreeBuilder${logName != null ? '.' + logName! : ''}',
+  );
 
-  StateTreeBuilder._(this._rootKey);
+  StateTreeBuilder._(this._rootKey, this.logName);
 
   /// The key identifying the root state that is implicitly added to a state tree, if the
   /// [new StateTreeBuilder] constructor is used.
@@ -51,8 +56,8 @@ class StateTreeBuilder {
   ///
   /// The state tree has an implicit root state, identified by [StateTreeBuilder.defaultRootKey].
   /// This state has no associated behavior, and it is typically safe to ignore its presence.
-  factory StateTreeBuilder({required StateKey initialState}) {
-    var b = StateTreeBuilder._(defaultRootKey);
+  factory StateTreeBuilder({required StateKey initialState, String? logName}) {
+    var b = StateTreeBuilder._(defaultRootKey, logName);
     b.state(defaultRootKey, emptyState, initialChild: InitialChild(initialState));
     return b;
   }
@@ -68,9 +73,10 @@ class StateTreeBuilder {
   factory StateTreeBuilder.withRoot(
     StateKey rootState,
     void Function(StateBuilder builder) build,
-    InitialChild initialChild,
-  ) {
-    var b = StateTreeBuilder._(rootState);
+    InitialChild initialChild, {
+    String? logName,
+  }) {
+    var b = StateTreeBuilder._(rootState, logName);
     b.state(rootState, build, initialChild: initialChild);
     return b;
   }
@@ -88,8 +94,9 @@ class StateTreeBuilder {
     void Function(DataStateBuilder<D> builder) build,
     InitialChild initialChild, {
     StateDataCodec? codec,
+    String? logName,
   }) {
-    var b = StateTreeBuilder._(rootState);
+    var b = StateTreeBuilder._(rootState, logName);
     b.dataState<D>(
       rootState,
       initialData,
@@ -130,7 +137,7 @@ class StateTreeBuilder {
     if (_stateBuilders.containsKey(stateKey)) {
       throw StateError('State $stateKey has already been configured.');
     }
-    var builder = _StateBuilder._(stateKey, parent, initialChild);
+    var builder = _StateBuilder._(stateKey, _log, parent, initialChild);
     build(builder);
     _addState(builder);
   }
@@ -179,7 +186,15 @@ class StateTreeBuilder {
     if (_stateBuilders.containsKey(stateKey)) {
       throw StateError('State $stateKey has already been configured.');
     }
-    var builder = _DataStateBuilder<D>._(stateKey, initialData, codec, parent, initialChild, false);
+    var builder = _DataStateBuilder<D>._(
+      stateKey,
+      initialData,
+      _log,
+      codec,
+      parent,
+      initialChild,
+      false,
+    );
     build(builder);
     _addState(builder);
   }
@@ -192,7 +207,7 @@ class StateTreeBuilder {
   ///
   /// A final state never has any child states, and is always a child of the root state.
   void finalState(StateKey stateKey, void Function(FinalStateBuilder builder) build) {
-    var builder = _StateBuilder._(stateKey, null, null, true);
+    var builder = _StateBuilder._(stateKey, _log, null, null, true);
     build(builder);
     _addState(builder);
   }
@@ -210,7 +225,7 @@ class StateTreeBuilder {
     void Function(FinalDataStateBuilder<D> builder) build, {
     StateDataCodec? codec,
   }) {
-    var builder = _DataStateBuilder<D>._(stateKey, initialData, codec, null, null, true);
+    var builder = _DataStateBuilder<D>._(stateKey, initialData, _log, codec, null, null, true);
     build(builder);
     _addState(builder);
   }
@@ -246,7 +261,7 @@ class StateTreeBuilder {
     StateKey? parent,
     String? label,
   }) {
-    var builder = MachineStateBuilder(stateKey, initialMachine, isDone, parent);
+    var builder = MachineStateBuilder(stateKey, initialMachine, isDone, _log, parent);
     build(builder);
     _addState(builder);
   }
@@ -312,7 +327,8 @@ class StateTreeBuilder {
         }
       } else if (initialChild._initialChildKey != null &&
           !children.any((c) => c == initialChild._initialChildKey)) {
-        throw StateError('Initial child $initialChild is not a child state of ${entry.key}');
+        throw StateError(
+            'Initial child ${initialChild._initialChildKey} is not a child state of ${entry.key}');
       }
     }
 
@@ -385,6 +401,10 @@ class InitialData<D> {
   /// value. The function is called each time the data state is entered.
   factory InitialData(D Function() create) {
     return InitialData._((_) => create());
+  }
+
+  factory InitialData.onTransition(D Function(TransitionContext) initialValue) {
+    return InitialData._(initialValue);
   }
 
   /// Creates an [InitialData] that produces its value by calling [initialValue] with the payload
@@ -504,11 +524,13 @@ class InitialChild {
 
 /// Describes the initial state machine of a [StateTreeBuilder.machineState].
 class InitialMachine {
-  final bool _forwardMessages;
-  final bool _disposeMachineOnExit;
+  final bool forwardMessages;
+  final bool disposeMachineOnExit;
   final FutureOr<TreeStateMachine> Function(TransitionContext) _create;
 
-  InitialMachine._(this._create, this._disposeMachineOnExit, this._forwardMessages);
+  InitialMachine._(this._create, this.disposeMachineOnExit, this.forwardMessages);
+
+  FutureOr<TreeStateMachine> call(TransitionContext transCtx) => _create(transCtx);
 
   /// Constructs an [InitialMachine] that will use the state machine produced by the [create]
   /// function as the nested state machine.
@@ -529,18 +551,11 @@ class InitialMachine {
   /// Constructs an [InitialMachine] that will create and start a nested state machine using
   /// the [StateTreeBuilder] produced by the [create] function.
   factory InitialMachine.fromTree(
-      FutureOr<StateTreeBuilder> Function(TransitionContext transCtx) create) {
+    FutureOr<StateTreeBuilder> Function(TransitionContext transCtx) create, {
+    String? logName,
+  }) {
     return InitialMachine._((ctx) {
-      return create(ctx).bind((treeBuilder) => TreeStateMachine(treeBuilder));
+      return create(ctx).bind((treeBuilder) => TreeStateMachine(treeBuilder, logName: logName));
     }, true, true);
   }
 }
-
-// class MachineDone {
-//   MessageResult Function(MessageContext) _eval;
-//   MachineDone._(this._eval);
-
-//   factory MachineDone.goTo(StateKey toState) {
-//     return MachineDone._((msgCtx) => msgCtx.goTo(toState));
-//   }
-// }

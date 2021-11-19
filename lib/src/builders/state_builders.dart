@@ -164,6 +164,7 @@ abstract class _StateBuilderBase {
   final bool isFinal;
   final List<StateKey> _children = [];
   final InitialChild? _initialChild;
+  final Logger _log;
   StateKey? _parent;
   // Key is either a Type object representing message type or a message value
   final Map<Object, _MessageHandlerDescriptor> _messageHandlerMap = {};
@@ -178,7 +179,7 @@ abstract class _StateBuilderBase {
   // 'Open-coded' onEnter handler. This is mutually exclusive with _onEnter
   TransitionHandler? _onEnterHandler;
 
-  _StateBuilderBase._(this.key, this.isFinal, this._parent, this._initialChild);
+  _StateBuilderBase._(this.key, this.isFinal, this._log, this._parent, this._initialChild);
 
   _StateType get _stateType {
     if (_parent == null) return _StateType.root;
@@ -235,7 +236,7 @@ abstract class _StateBuilderBase {
   }
 
   TreeState _createState() {
-    return TreeState(
+    return DelegatingTreeState(
       _createMessageHandler(),
       _createOnEnter(),
       _createOnExit(),
@@ -288,9 +289,9 @@ abstract class _StateBuilderBase {
 class _StateBuilder extends _StateBuilderBase
     with _OpaqueHandlersMixin
     implements StateBuilder, FinalStateBuilder {
-  _StateBuilder._(StateKey key, StateKey? parent, InitialChild? initialChild,
+  _StateBuilder._(StateKey key, Logger log, StateKey? parent, InitialChild? initialChild,
       [bool isFinal = false])
-      : super._(key, isFinal, parent, initialChild);
+      : super._(key, isFinal, log, parent, initialChild);
 
   @override
   void onEnter(void Function(TransitionHandlerBuilder b) build) {
@@ -322,7 +323,7 @@ class _StateBuilder extends _StateBuilderBase
       throw ArgumentError('Message handlers cannot be registered for final states.');
     }
 
-    var builder = MessageHandlerBuilder<M>._(key, null);
+    var builder = MessageHandlerBuilder<M>._(key, _log, null);
     buildHandler(builder);
     if (builder._handler != null) {
       var messageKey = TypeLiteral<M>().type;
@@ -342,7 +343,7 @@ class _StateBuilder extends _StateBuilderBase
 
     var messageType = TypeLiteral<M>().type;
     messageName = _getMessageName(messageName, message);
-    var builder = MessageHandlerBuilder<M>._(key, messageName);
+    var builder = MessageHandlerBuilder<M>._(key, _log, messageName);
     buildHandler(builder);
     if (builder._handler != null) {
       var messageKey = message ?? messageType;
@@ -373,9 +374,15 @@ class _DataStateBuilder<D> extends _StateBuilderBase
   @override
   final StateDataCodec? serializer;
 
-  _DataStateBuilder._(StateKey key, this._initialValue, this.serializer, StateKey? parent,
-      InitialChild? initialChild, bool isFinal)
-      : super._(key, isFinal, parent, initialChild);
+  _DataStateBuilder._(
+    StateKey key,
+    this._initialValue,
+    Logger log,
+    this.serializer,
+    StateKey? parent,
+    InitialChild? initialChild,
+    bool isFinal,
+  ) : super._(key, isFinal, log, parent, initialChild);
 
   @override
   void onEnter(void Function(TransitionHandlerBuilderWithData<D>) handler) {
@@ -400,7 +407,7 @@ class _DataStateBuilder<D> extends _StateBuilderBase
       throw ArgumentError('Message handlers cannot be registered for final states.');
     }
     var messageKey = TypeLiteral<M>().type;
-    var builder = DataMessageHandlerBuilder<M, D>(key, null);
+    var builder = DataMessageHandlerBuilder<M, D>(key, null, _log);
     handler(builder);
     _messageHandlerMap[messageKey] = builder._handler!;
   }
@@ -417,7 +424,7 @@ class _DataStateBuilder<D> extends _StateBuilderBase
 
     var messageType = TypeLiteral<M>().type;
     var messageKey = message ?? messageType;
-    var builder = DataMessageHandlerBuilder<M, D>(key, _getMessageName(messageName, message));
+    var builder = DataMessageHandlerBuilder<M, D>(key, _getMessageName(messageName, message), _log);
     handler(builder);
     _messageHandlerMap[messageKey] = builder._handler!;
   }
@@ -431,11 +438,12 @@ class _DataStateBuilder<D> extends _StateBuilderBase
 
   @override
   TreeState _createState() {
-    return DataTreeState<D>(
+    return DelegatingDataTreeState<D>(
       _initialValue,
       _createMessageHandler(),
       _createOnEnter(),
       _createOnExit(),
+      emptyDispose,
     );
   }
 }
@@ -450,82 +458,31 @@ class MachineStateBuilder extends _StateBuilderBase {
     StateKey key,
     this._initialMachine,
     this._isDone,
+    Logger log,
     StateKey? parent,
-  ) : super._(key, false, parent, null);
+  ) : super._(key, false, log, parent, null);
 
   void onMachineDone(void Function(MachineDoneHandlerBuilder builder) buildHandler) {
-    var builder = MachineDoneHandlerBuilder._(key, 'Done');
+    var builder = MachineDoneHandlerBuilder._(key, _log, 'Done');
     buildHandler(builder);
     _doneHandler = builder._handler;
   }
 
   void onMachineDisposed(void Function(MachineDisposedHandlerBuilder builder) buildHandler) {
-    var builder = MachineDisposedHandlerBuilder._(key, 'Done');
+    var builder = MachineDisposedHandlerBuilder._(key, _log, 'Done');
     buildHandler(builder);
     _disposedHandler = builder._handler;
   }
 
   @override
   TreeState _createState() {
-    return (() {
-      var whenDoneMessage = Object();
-      var whenDisposedMessage = Object();
-      CurrentState? currentNestedState;
-      return TreeState(
-        (ctx) async {
-          // The nested state machine is done, so transition to the next state
-          if (ctx.message == whenDoneMessage) {
-            var handler = _doneHandler!.continuation(currentNestedState!);
-            return handler(ctx);
-          }
-
-          // The nested state machine was disposed, so transition to the next state
-          if (ctx.message == whenDisposedMessage) {
-            if (_disposedHandler != null) {
-              return _disposedHandler!.handler(ctx);
-            } else {
-              throw StateError('');
-            }
-          }
-
-          // Dispatch messages sent to parent state machine to the child state machine.
-          if (_initialMachine._forwardMessages) {
-            await currentNestedState!.post(ctx.message);
-          }
-
-          // The nested machine is still running, so stay in this state
-          return ctx.unhandled();
-        },
-        (ctx) async {
-          var machine = await _initialMachine._create(ctx);
-
-          // Future that tells us when the nested machine is done.
-          var done = machine.transitions.where((t) {
-            if (t.isToFinalState) return true;
-            return _isDone != null ? _isDone!(t) : false;
-          }).map((_) => whenDoneMessage);
-
-          // Future that tells us when the nested machine is disposed.
-          var disposed = machine.lifecycle
-              .firstWhere((s) => s == LifecycleState.disposed)
-              .then((_) => whenDisposedMessage)
-              .asStream();
-
-          currentNestedState = await machine.start();
-
-          var group = StreamGroup<Object>();
-          group.add(done);
-          group.add(disposed);
-          Future<Object> msgFuture = group.stream.first;
-          ctx.post(msgFuture);
-        },
-        (ctx) {
-          if (_initialMachine._disposeMachineOnExit) {
-            currentNestedState?.stateMachine.dispose();
-          }
-        },
-      );
-    })();
+    return NestedMachineState(
+      _initialMachine,
+      _doneHandler!.continuation,
+      _log,
+      _isDone,
+      _disposedHandler?.handler,
+    );
   }
 }
 
