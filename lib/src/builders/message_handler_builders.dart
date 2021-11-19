@@ -204,15 +204,6 @@ class MessageHandlerBuilder<M> extends _MessageHandlerBuilder<M>
     );
   }
 
-  // void enterChannel<P>(
-  //   Channel<P> channel,
-  //   FutureOr<P> Function(MessageContext msgCtx, M msg) payload, {
-  //   bool reenterTarget = false,
-  // }) {
-  //   var channelEntry = channel._entry(payload);
-  //   channelEntry.enter(this, reenterTarget);
-  // }
-
   MessageHandlerWhenBuilder<M> when(
     FutureOr<bool> Function(MessageContext msgCtx, M msg) condition,
     void Function(MessageHandlerBuilder<M>) buildTrueHandler, {
