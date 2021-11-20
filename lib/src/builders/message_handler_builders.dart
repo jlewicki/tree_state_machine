@@ -394,8 +394,7 @@ class DataMessageHandlerBuilder<M, D> {
     FutureOr<P> Function(MessageContext msgCtx, M msg, D data) payload, {
     bool reenterTarget = false,
   }) {
-    var channelEntry = channel._entryWithData(payload);
-    channelEntry.enter(this, reenterTarget);
+    goTo(channel.to, payload: payload, reenterTarget: reenterTarget);
   }
 
   MessageHandlerWhenWithDataBuilder<M, D> when(
@@ -538,8 +537,7 @@ class ContinuationMessageHandlerBuilder<M, T> {
     FutureOr<P> Function(MessageContext msgCtx, M msg, T ctx) payload, {
     bool reenterTarget = false,
   }) {
-    var channelEntry = channel._entryWithResult(payload);
-    channelEntry.enter(this, reenterTarget);
+    goTo(channel.to, payload: payload, reenterTarget: reenterTarget);
   }
 }
 
@@ -630,8 +628,7 @@ class ContinuationWithDataMessageHandlerBuilder<M, D, T> {
     FutureOr<P> Function(MessageContext msgCtx, M msg, D data, T ctx) payload, {
     bool reenterTarget = false,
   }) {
-    var channelEntry = channel._entryWithDataAndResult<M, D, T>(payload);
-    channelEntry.enter(this, reenterTarget);
+    goTo(channel.to, payload: payload, reenterTarget: reenterTarget);
   }
 }
 
