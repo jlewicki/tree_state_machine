@@ -295,7 +295,31 @@ class MachineDoneHandlerBuilder {
   }) {
     goTo(channel.to, payload: payload, reenterTarget: reenterTarget);
   }
+
+  // MachineDoneWhenBuilder when(
+  //   FutureOr<bool> Function(MessageContext msgCtx, CurrentState ctx) condition,
+  //   void Function(MachineDoneHandlerBuilder builder) buildTrueHandler, {
+  //   String? label,
+  // }) {
+  //   var trueBuilder = MachineDoneHandlerBuilder._(_forState, _log, _messageName);
+  //   buildTrueHandler(trueBuilder);
+  //   var trueHandler = trueBuilder._handler!;
+  //   var conditions = [
+  //     _ContinuationMessageCondition<Object, CurrentState>(
+  //         (finalState) => _MessageConditionWithContext<Object, CurrentState>(
+  //               (msgCtx, __, finalState) => condition(msgCtx, finalState),
+  //               null,
+  //               label,
+  //             ),
+  //         trueHandler,
+  //         label)
+  //   ];
+  //   _handler = _WhenWithContextDescriptor.createContinuation<Object, CurrentState>(conditions);
+  //   return MachineDoneWhenBuilder();
+  // }
 }
+
+class MachineDoneWhenBuilder {}
 
 class MachineDisposedHandlerBuilder extends _MessageHandlerBuilder<Object>
     with _GoToMessageHandlerBuilder<Object> {

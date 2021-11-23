@@ -114,6 +114,25 @@ class _WhenWithContextDescriptor extends _MessageHandlerDescriptor {
   List<_MessageActionInfo> get actions =>
       conditions.expand((c) => c.whenTrueDescriptor.actions).toList();
 
+  static _ContinuationMessageHandlerDescriptor<T> createContinuation<M, T>(
+    List<_ContinuationMessageCondition<M, T>> conditions, {
+    String? label,
+    String? messageName,
+  }) {
+    // var info = (MessageHandlerType.whenWithContext, M, messageName, [], label);
+    return _DeferredMessageHandlerDescriptor(
+        _MessageHandlerType.whenWithContext, M, messageName, [], label, (ctx) {
+      return (msgCtx) {
+        return _WhenDescriptor._runConditionsWithContext<M, T>(
+          conditions.map((c) => c._condition(ctx)).iterator,
+          msgCtx,
+          msgCtx.messageAsOrThrow<M>(),
+          ctx,
+        );
+      };
+    });
+  }
+
   static _WhenWithContextDescriptor createForMessage<M, T>(
     FutureOr<T> Function(MessageContext ctx, M message) context,
     List<_MessageConditionWithContext<M, T>> conditions, {
@@ -164,8 +183,48 @@ class _WhenWithContextDescriptor extends _MessageHandlerDescriptor {
   }
 }
 
-//     String? get label;
-//  _MessageHandlerDescriptor get whenTrueDescriptor;
+class _ContinuationWhenDescriptor extends _MessageHandlerDescriptor {
+  @override
+  final _MessageHandlerType handlerType = _MessageHandlerType.whenContinuation;
+  @override
+  final Type messageType;
+  @override
+  final MessageHandler handler;
+  @override
+  final String? label;
+  @override
+  final String? messageName;
+  final List<_MessageConditionInfo> conditions;
+  _ContinuationWhenDescriptor._(
+      this.messageType, this.messageName, this.conditions, this.handler, this.label);
+
+  @override
+  List<_MessageActionInfo> get actions =>
+      conditions.expand((c) => c.whenTrueDescriptor.actions).toList();
+
+  static _ContinuationWhenDescriptor createForMessage<M, T>(
+    FutureOr<T> Function(MessageContext ctx, M message) context,
+    List<_MessageConditionWithContext<M, T>> conditions, {
+    String? label,
+    String? messageName,
+  }) {
+    return _ContinuationWhenDescriptor._(
+      TypeLiteral<M>().type,
+      messageName,
+      conditions,
+      (msgCtx) {
+        var msg = msgCtx.messageAsOrThrow<M>();
+        return context(msgCtx, msg).bind((ctx) => _WhenDescriptor._runConditionsWithContext<M, T>(
+              conditions.iterator,
+              msgCtx,
+              msgCtx.messageAsOrThrow<M>(),
+              ctx,
+            ));
+      },
+      label,
+    );
+  }
+}
 
 class _WhenResultDescriptor extends _MessageHandlerDescriptor {
   @override
@@ -180,8 +239,15 @@ class _WhenResultDescriptor extends _MessageHandlerDescriptor {
   final String? messageName;
   final _MessageConditionInfo successCondition;
   final Ref<_ContinuationMessageHandlerDescriptor<AsyncError>?> errorContinuationRef;
-  _WhenResultDescriptor._(this.messageType, this.messageName, this.successCondition,
-      this.errorContinuationRef, this.handler, this.label);
+
+  _WhenResultDescriptor._(
+    this.messageType,
+    this.messageName,
+    this.successCondition,
+    this.errorContinuationRef,
+    this.handler,
+    this.label,
+  );
 
   @override
   List<_MessageActionInfo> get actions => [];
@@ -295,6 +361,15 @@ class _MessageConditionWithContext<M, T> implements _MessageConditionInfo {
   @override
   final String? label;
   _MessageConditionWithContext(this._condition, this.whenTrueDescriptor, this.label);
+}
+
+class _ContinuationMessageCondition<M, T> implements _MessageConditionInfo {
+  final _MessageConditionWithContext<M, T> Function(T ctx) _condition;
+  @override
+  final _ContinuationMessageHandlerDescriptor<T> whenTrueDescriptor;
+  @override
+  final String? label;
+  _ContinuationMessageCondition(this._condition, this.whenTrueDescriptor, this.label);
 }
 
 class _MessageConditionWithDataAndContext<M, D, T> implements _MessageConditionInfo {

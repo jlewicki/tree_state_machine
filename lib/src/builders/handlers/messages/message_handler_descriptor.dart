@@ -1,6 +1,15 @@
 part of tree_builders;
 
-enum _MessageHandlerType { goto, gotoSelf, stay, when, whenWithContext, whenResult, unhandled }
+enum _MessageHandlerType {
+  goto,
+  gotoSelf,
+  stay,
+  when,
+  whenWithContext,
+  whenResult,
+  whenContinuation,
+  unhandled
+}
 
 abstract class _MessageHandlerInfo {
   _MessageHandlerType get handlerType;
@@ -25,25 +34,42 @@ abstract class _MessageHandlerDescriptor extends _MessageHandlerInfo {
         return (this as _WhenWithContextDescriptor).conditions;
       case _MessageHandlerType.whenResult:
         return (this as _WhenResultDescriptor).conditions;
+      case _MessageHandlerType.whenContinuation:
+        return (this as _ContinuationWhenDescriptor).conditions;
       default:
         return null;
     }
   }
 
-  bool isConditional() {
-    switch (handlerType) {
-      case _MessageHandlerType.when:
-      case _MessageHandlerType.whenResult:
-      case _MessageHandlerType.whenWithContext:
-        return true;
-      default:
-        return false;
-    }
-  }
+  bool isConditional() => tryGetConditions() != null;
 }
 
 abstract class _ContinuationMessageHandlerDescriptor<T> extends _MessageHandlerInfo {
   MessageHandler Function(T ctx) get continuation;
+}
+
+class _DeferredMessageHandlerDescriptor<T> extends _ContinuationMessageHandlerDescriptor<T> {
+  @override
+  final _MessageHandlerType handlerType;
+  @override
+  final Type messageType;
+  @override
+  final String? label;
+  @override
+  final String? messageName;
+  @override
+  final List<_MessageActionInfo> actions;
+  @override
+  final MessageHandler Function(T ctx) continuation;
+
+  _DeferredMessageHandlerDescriptor(
+    this.handlerType,
+    this.messageType,
+    this.messageName,
+    this.actions,
+    this.label,
+    this.continuation,
+  );
 }
 
 abstract class _GoToInfo {
