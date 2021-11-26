@@ -105,41 +105,6 @@ class MessageHandlerBuilder<M> extends _MessageHandlerBuilder<M>
 
   MessageHandlerBuilder._(this._forState, this._log, this._messageName);
 
-  // /// Indicates that a transition to [targetState] should occur.
-  // ///
-  // /// If [action] is provided, this action will be invoked before the transition occurs. The [act]
-  // /// builder can be used to specify this action.
-  // ///
-  // /// If [payload] is provided, this function will be called to generate a value for
-  // /// [TransitionContext.payload] before the transition occurs.
-  // ///
-  // /// If [transitionAction] is specified, this function will be called during the transition
-  // /// between states, after all states are exited, but before entering any new states.
-  // ///
-  // /// If [reenterTarget] is true, then the target state will be re-enterd (that is, its exit and
-  // /// entry handlers will be called), even if the state is already active.
-  // ///
-  // /// The state transition can be labeled when formatting a state tree by providing a [label].
-  // void goTo(
-  //   StateKey targetState, {
-  //   TransitionHandler? transitionAction,
-  //   bool reenterTarget = false,
-  //   FutureOr<Object?> Function(MessageContext ctx, M message)? payload,
-  //   _MessageAction<M>? action,
-  //   String? label,
-  // }) {
-  //   _handler = _GoToDescriptor.createForMessage<M>(
-  //     _forState,
-  //     targetState,
-  //     transitionAction,
-  //     reenterTarget,
-  //     payload,
-  //     action,
-  //     label,
-  //     _messageName,
-  //   );
-  // }
-
   /// Indicates that the message has been handled, and that a self transition should occur.
   ///
   /// During a self-transition this state will be exited and re-entered.

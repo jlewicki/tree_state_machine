@@ -5,16 +5,19 @@ import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/extensions.dart';
 import './transition_handler_descriptor.dart';
 
-TransitionHandlerDescriptor<C> makeRunDescriptor<C, D>(
-  FutureOr<void> Function(TransitionContext transCtx, D data, C ctx) handler,
+TransitionHandlerDescriptor<C> makeRunDescriptor<D, C>(
+  FutureOr<void> Function(TransitionHandlerContext<D, C> ctx) handler,
+  FutureOr<C> Function(TransitionContext) makeContext,
   Logger log,
   String? label,
 ) {
   var info = TransitionHandlerInfo(TransitionHandlerType.run, [], label);
   return TransitionHandlerDescriptor<C>(
       info,
-      (ctx) => (transCtx) {
+      makeContext,
+      (descrCtx) => (transCtx) {
             var data = transCtx.dataValueOrThrow<D>();
-            return handler(transCtx, data, ctx);
+            var ctx = TransitionHandlerContext<D, C>(transCtx, data, descrCtx.ctx);
+            return handler(ctx);
           });
 }

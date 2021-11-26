@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
+import 'package:tree_state_machine/src/machine/extensions.dart';
 import './transition_handler_descriptor.dart';
 
 typedef TransitionCondition<C, D> = FutureOr<bool> Function(
@@ -10,6 +11,7 @@ typedef TransitionCondition<C, D> = FutureOr<bool> Function(
 
 TransitionHandlerDescriptor<C> makeWhenDescriptor<C>(
   List<TransitionConditionDescriptor<C>> conditions,
+  FutureOr<C> Function(TransitionContext) makeContext,
   Logger log,
   String? label,
 ) {
@@ -17,24 +19,29 @@ TransitionHandlerDescriptor<C> makeWhenDescriptor<C>(
   var info = TransitionHandlerInfo(TransitionHandlerType.when, conditionInfos, label);
   return TransitionHandlerDescriptor<C>(
     info,
-    (ctx) => (transCtx) => _runConditions(conditions.iterator, ctx, transCtx),
+    makeContext,
+    (ctx) => (transCtx) => _runConditions<C>(conditions.iterator, ctx.ctx, transCtx),
   );
 }
 
-TransitionHandlerDescriptor<C> makeWhenWithContextDescriptor<C, C2>(
-  FutureOr<C2> Function(TransitionContext msgCtx, C ctx) context,
-  List<TransitionConditionDescriptor<C>> conditions,
+TransitionHandlerDescriptor<C> makeWhenWithContextDescriptor<D, C, C2>(
+  FutureOr<C2> Function(TransitionHandlerContext<D, C> ctx) context,
+  List<TransitionConditionDescriptor<C2>> conditions,
+  FutureOr<C> Function(TransitionContext) makeContext,
   Logger log,
   String? label,
-  String? messageName,
 ) {
   var conditionInfos = conditions.map((e) => e.info).toList();
   var info = TransitionHandlerInfo(TransitionHandlerType.when, conditionInfos, label);
   return TransitionHandlerDescriptor<C>(
     info,
-    (ctx) => (transCtx) {
-      return context(transCtx, ctx)
-          .bind((newCtx) => _runConditions(conditions.iterator, newCtx, transCtx));
+    makeContext,
+    (descrCtx) => (transCtx) {
+      var data = transCtx.dataValueOrThrow<D>();
+      var ctx = TransitionHandlerContext<D, C>(transCtx, data, descrCtx.ctx);
+      return context(ctx).bind(
+        (newCtx) => _runConditions<C2>(conditions.iterator, newCtx, transCtx),
+      );
     },
   );
 }
@@ -49,7 +56,7 @@ FutureOr<void> _runConditions<C>(
     var condition = conditionDescr.makeCondition(ctx);
     return condition(transCtx).bind((allowed) {
       if (allowed) {
-        var handler = conditionDescr.whenTrueDescriptor.makeHandler(ctx);
+        var handler = conditionDescr.whenTrueDescriptor.makeHandler();
         return handler(transCtx);
       }
       return _runConditions(conditionIterator, ctx, transCtx);

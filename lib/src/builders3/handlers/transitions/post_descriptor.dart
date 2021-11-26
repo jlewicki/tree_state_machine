@@ -6,18 +6,20 @@ import 'package:tree_state_machine/src/machine/utility.dart';
 import 'package:tree_state_machine/src/machine/extensions.dart';
 import './transition_handler_descriptor.dart';
 
-TransitionHandlerDescriptor<C> makePostDescriptor<C, M, D>(
-  FutureOr<M> Function(TransitionContext transCtx, C ctx, D data) getMessage,
+TransitionHandlerDescriptor<C> makePostDescriptor<D, C, M>(
+  FutureOr<M> Function(TransitionHandlerContext<D, C> ctx) getMessage,
+  FutureOr<C> Function(TransitionContext) makeContext,
   Logger log,
   String? label,
 ) {
   var info = TransitionHandlerInfo(TransitionHandlerType.post, [], label, M);
   return TransitionHandlerDescriptor<C>(
     info,
-    (ctx) => (transCtx) {
-      // TODO: add prop to transCtx that returns the state data of current node?
+    makeContext,
+    (descrCtx) => (transCtx) {
       var data = transCtx.dataValueOrThrow<D>();
-      var msg = getMessage(transCtx, ctx, data).bind((msg) => msg as Object);
+      var ctx = TransitionHandlerContext<D, C>(transCtx, data, descrCtx.ctx);
+      var msg = getMessage(ctx).bind((msg) => msg as Object);
       transCtx.post(msg);
     },
   );

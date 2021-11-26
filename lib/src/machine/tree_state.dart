@@ -253,13 +253,20 @@ class NestedMachineData {
   }
 }
 
+/// Describes the initial state machine of a [StateTreeBuilder.machineState].
+abstract class NestedMachine {
+  bool get forwardMessages;
+  bool get disposeMachineOnExit;
+  FutureOr<TreeStateMachine> call(TransitionContext transCtx);
+}
+
 /// A state that encapsulates a nested state machine
 ///
 /// When this state is entered, a nested state machine is created and started. When the nested
 /// machine completes, this state will transition to a successor state, as determined the [onDone]
 /// callback.
 class NestedMachineState extends DataTreeState<NestedMachineData> {
-  final InitialMachine initialMachine;
+  final NestedMachine nestedMachine;
   final MessageHandler Function(CurrentState nestedState) onDone;
   final bool Function(Transition transition)? isDone;
   final MessageHandler? _onDisposed;
@@ -268,13 +275,13 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
   final Logger _log;
   CurrentState? currentNestedState;
 
-  NestedMachineState(this.initialMachine, this.onDone, this._log, this.isDone, this._onDisposed)
+  NestedMachineState(this.nestedMachine, this.onDone, this._log, this.isDone, this._onDisposed)
       : super(InitialData(() => NestedMachineData()));
 
   @override
   FutureOr<void> onEnter(TransitionContext transCtx) {
     return super.onEnter(transCtx).bind((_) async {
-      var machine = await initialMachine(transCtx);
+      var machine = await nestedMachine(transCtx);
 
       // Future that tells us when the nested machine is done.
       var done = machine.transitions.where((t) {
@@ -321,7 +328,7 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
     }
 
     // Dispatch messages sent to parent state machine to the child state machine.
-    if (initialMachine.forwardMessages) {
+    if (nestedMachine.forwardMessages) {
       _log.finer('Forwarding message ${msgCtx.message} to nested state machine.');
       await currentNestedState!.post(msgCtx.message);
     }
@@ -332,7 +339,7 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
 
   @override
   FutureOr<void> onExit(TransitionContext transCtx) {
-    if (initialMachine.disposeMachineOnExit) {
+    if (nestedMachine.disposeMachineOnExit) {
       currentNestedState?.stateMachine.dispose();
     }
     return super.onExit(transCtx);
