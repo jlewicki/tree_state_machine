@@ -1,17 +1,4 @@
-import 'dart:async';
-
-import 'package:async/async.dart';
-import 'package:logging/logging.dart';
-import 'package:tree_state_machine/src/machine/tree_state.dart';
-import 'package:tree_state_machine/src/machine/utility.dart';
-import 'package:tree_state_machine/tree_builders3.dart';
-import './message_action_builder.dart';
-import './handlers/messages/message_handler_descriptor.dart';
-import './handlers/messages/go_to_self_descriptor.dart';
-import './handlers/messages/go_to_descriptor.dart';
-import './handlers/messages/stay_or_unhandled_descriptor.dart';
-import './handlers/messages/when_descriptor.dart';
-import './handlers/messages/when_result_descriptor.dart';
+part of tree_builders3;
 
 /// Describes the message processing result of runnin an action with [MessageHandlerBuilder.action].
 enum ActionResult {
@@ -89,7 +76,11 @@ mixin _GoToHandlerBuilderMixin<M, D, C> on _MessageHandlerBuilder<M, D, C> {
   }
 }
 
-/// Provides methods for describing how a state behaves in response to a message of type [M].
+/// Provides methods for describing how a state, carrying state data of type [D], behaves in
+/// response to a message of type [M].
+///
+/// In some specialized situations, the builder may also carry a contextual value type [C]. In the
+/// general case [C] will be `void`.
 ///
 /// A [MessageHandlerBuilder] is provided to the build callback provided to [StateBuilder.onMessage],
 /// and is used to describe how messages of a particular type are handled by a state.
@@ -214,7 +205,8 @@ class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
     );
 
     whenBuilder.when(condition, buildTrueHandler, label: label);
-    descriptor = makeWhenDescriptor<M, D, C>(conditions, _makeContext, _log, label, _messageName);
+    descriptor =
+        makeWhenMessageDescriptor<M, D, C>(conditions, _makeContext, _log, label, _messageName);
     return whenBuilder;
   }
 
@@ -223,7 +215,7 @@ class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
     void Function(MessageHandlerBuilder<M, D, T> builder) buildSuccessHandler, {
     String? label,
   }) {
-    var whenResultBuilder = MessageHandlerWhenResultBuilder<M, D, C, T>(
+    var whenResultBuilder = MessageHandlerWhenResultBuilder<M, D, C, T>._(
       this,
       result,
       buildSuccessHandler,
@@ -236,28 +228,34 @@ class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
   }
 }
 
-class MachineDoneHandlerBuilder<D, C> extends _MessageHandlerBuilder<Object, D, C>
-    with _GoToHandlerBuilderMixin<Object, D, C> {
-  MachineDoneHandlerBuilder(
+/// Provides methods for describing how a [StateTreeBuilder.machineState] behaves when its nested
+/// state machine completes.
+///
+/// Because nothing meaningful can be done with the completed state machine , the
+/// [StateTreeBuilder.machineState] must transition to a new state on completion.  Therefore the
+/// methods of this builder can only be used to specifiy a transition.
+class MachineDoneHandlerBuilder<C> extends _MessageHandlerBuilder<Object, NestedMachineData, C>
+    with _GoToHandlerBuilderMixin<Object, NestedMachineData, C> {
+  MachineDoneHandlerBuilder._(
     StateKey forState,
     FutureOr<C> Function(MessageContext) makeContext,
     Logger log,
     String? messageName,
   ) : super(forState, makeContext, log, messageName);
 
-  MachineDoneWhenBuilder<D, C> when(
-    FutureOr<bool> Function(MessageHandlerContext<Object, D, C>) condition,
-    void Function(MachineDoneHandlerBuilder<D, C> builder) buildTrueHandler, {
+  MachineDoneWhenBuilder<C> when(
+    FutureOr<bool> Function(MessageHandlerContext<Object, NestedMachineData, C>) condition,
+    void Function(MachineDoneHandlerBuilder<C> builder) buildTrueHandler, {
     String? label,
   }) {
-    var conditions = <MessageConditionDescriptor<Object, D, C>>[];
-    var whenBuilder = MachineDoneWhenBuilder<D, C>(
-      () => MachineDoneHandlerBuilder<D, C>(_forState, _makeContext, _log, _messageName),
+    var conditions = <MessageConditionDescriptor<Object, NestedMachineData, C>>[];
+    var whenBuilder = MachineDoneWhenBuilder<C>(
+      () => MachineDoneHandlerBuilder<C>._(_forState, _makeContext, _log, _messageName),
       conditions,
     );
 
     whenBuilder.when(condition, buildTrueHandler, label: label);
-    descriptor = makeWhenDescriptor<Object, D, C>(
+    descriptor = makeWhenMessageDescriptor<Object, NestedMachineData, C>(
       conditions,
       _makeContext,
       _log,
@@ -267,12 +265,12 @@ class MachineDoneHandlerBuilder<D, C> extends _MessageHandlerBuilder<Object, D, 
     return whenBuilder;
   }
 
-  MachineDoneWhenResultBuilder<D, C, T> whenResult<T>(
-    FutureOr<Result<T>> Function(MessageHandlerContext<Object, D, C>) result,
-    void Function(MachineDoneHandlerBuilder<D, T> builder) buildSuccessHandler, {
+  MachineDoneWhenResultBuilder<C, T> whenResult<T>(
+    FutureOr<Result<T>> Function(MessageHandlerContext<Object, NestedMachineData, C>) result,
+    void Function(MachineDoneHandlerBuilder<T> builder) buildSuccessHandler, {
     String? label,
   }) {
-    var whenResultBuilder = MachineDoneWhenResultBuilder<D, C, T>(
+    var whenResultBuilder = MachineDoneWhenResultBuilder<C, T>._(
       this,
       result,
       buildSuccessHandler,
@@ -338,14 +336,15 @@ class MessageHandlerWhenBuilder<M, D, C>
   ) : super(makeBuilder, conditions);
 }
 
-class MachineDoneWhenBuilder<D, C>
-    extends _MessageHandlerWhenBuilder<Object, D, C, MachineDoneHandlerBuilder<D, C>> {
+class MachineDoneWhenBuilder<C>
+    extends _MessageHandlerWhenBuilder<Object, NestedMachineData, C, MachineDoneHandlerBuilder<C>> {
   MachineDoneWhenBuilder(
-    MachineDoneHandlerBuilder<D, C> Function() makeBuilder,
-    List<MessageConditionDescriptor<Object, D, C>> conditions,
+    MachineDoneHandlerBuilder<C> Function() makeBuilder,
+    List<MessageConditionDescriptor<Object, NestedMachineData, C>> conditions,
   ) : super(makeBuilder, conditions);
 }
 
+// Well that escalated quickly....
 class _MessageHandlerWhenResultBuilder<
     M,
     D,
@@ -371,7 +370,7 @@ class _MessageHandlerWhenResultBuilder<
     var successDesr = successBuilder.descriptor;
 
     if (successDesr != null) {
-      descriptor = makeWhenResultDescriptor<M, D, C, T>(
+      descriptor = makeWhenResultMessageDescriptor<M, D, C, T>(
         parentBuilder._forState,
         result,
         parentBuilder._makeContext,
@@ -397,7 +396,7 @@ class _MessageHandlerWhenResultBuilder<
 
 class MessageHandlerWhenResultBuilder<M, D, C, T> extends _MessageHandlerWhenResultBuilder<M, D, C,
     T, MessageHandlerBuilder<M, D, T>, MessageHandlerBuilder<M, D, AsyncError>> {
-  MessageHandlerWhenResultBuilder(
+  MessageHandlerWhenResultBuilder._(
     MessageHandlerBuilder<M, D, C> parentBuilder,
     FutureOr<Result<T>> Function(MessageHandlerContext<M, D, C>) result,
     void Function(MessageHandlerBuilder<M, D, T> builder) buildSuccessHandler,
@@ -418,21 +417,21 @@ class MessageHandlerWhenResultBuilder<M, D, C, T> extends _MessageHandlerWhenRes
             label);
 }
 
-class MachineDoneWhenResultBuilder<D, C, T> extends _MessageHandlerWhenResultBuilder<Object, D, C,
-    T, MachineDoneHandlerBuilder<D, T>, MachineDoneHandlerBuilder<D, AsyncError>> {
-  MachineDoneWhenResultBuilder(
-    MachineDoneHandlerBuilder<D, C> parentBuilder,
-    FutureOr<Result<T>> Function(MessageHandlerContext<Object, D, C>) result,
-    void Function(MachineDoneHandlerBuilder<D, T> builder) buildSuccessHandler,
+class MachineDoneWhenResultBuilder<C, T> extends _MessageHandlerWhenResultBuilder<Object,
+    NestedMachineData, C, T, MachineDoneHandlerBuilder<T>, MachineDoneHandlerBuilder<AsyncError>> {
+  MachineDoneWhenResultBuilder._(
+    MachineDoneHandlerBuilder<C> parentBuilder,
+    FutureOr<Result<T>> Function(MessageHandlerContext<Object, NestedMachineData, C>) result,
+    void Function(MachineDoneHandlerBuilder<T> builder) buildSuccessHandler,
     String? label,
   ) : super(
             parentBuilder,
-            (resultRef) => MachineDoneHandlerBuilder<D, T>(
+            (resultRef) => MachineDoneHandlerBuilder<T>._(
                 parentBuilder._forState,
                 (_) => resultRef.value!.asValue!.value,
                 parentBuilder._log,
                 parentBuilder._messageName),
-            (resultRef) => MachineDoneHandlerBuilder<D, AsyncError>(parentBuilder._forState, (_) {
+            (resultRef) => MachineDoneHandlerBuilder<AsyncError>._(parentBuilder._forState, (_) {
                   var err = resultRef.value!.asError!;
                   return AsyncError(err.error, err.stackTrace);
                 }, parentBuilder._log, parentBuilder._messageName),

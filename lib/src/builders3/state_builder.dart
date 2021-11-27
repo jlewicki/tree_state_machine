@@ -366,8 +366,9 @@ class MachineStateBuilder extends _StateBuilder {
   }) : super._(key, isFinal, NestedMachineData, codec, log, parent, null);
 
   void onMachineDone(
-      void Function(MachineDoneHandlerBuilder<void, CurrentState> builder) buildHandler) {
-    var builder = MachineDoneHandlerBuilder<void, CurrentState>(
+    void Function(MachineDoneHandlerBuilder<CurrentState> builder) buildHandler,
+  ) {
+    var builder = MachineDoneHandlerBuilder<CurrentState>._(
       key,
       (_) => _currentStateRef.value!,
       _log,

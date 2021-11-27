@@ -4,12 +4,13 @@ import 'package:logging/logging.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
 import 'package:tree_state_machine/src/machine/extensions.dart';
+import 'package:tree_state_machine/tree_builders3.dart';
 import './message_handler_descriptor.dart';
 
 typedef TransitionCondition<C, D> = FutureOr<bool> Function(
     TransitionContext transCtx, C ctx, D data);
 
-MessageHandlerDescriptor<C> makeWhenDescriptor<M, D, C>(
+MessageHandlerDescriptor<C> makeWhenMessageDescriptor<M, D, C>(
   List<MessageConditionDescriptor<M, D, C>> conditions,
   FutureOr<C> Function(MessageContext) makeContext,
   Logger log,

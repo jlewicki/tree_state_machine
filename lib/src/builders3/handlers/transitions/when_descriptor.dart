@@ -10,7 +10,7 @@ import './transition_handler_descriptor.dart';
 typedef TransitionCondition<C, D> = FutureOr<bool> Function(
     TransitionContext transCtx, C ctx, D data);
 
-TransitionHandlerDescriptor<C> makeWhenDescriptor<C>(
+TransitionHandlerDescriptor<C> makeWhenTransitionDescriptor<C>(
   List<TransitionConditionDescriptor<C>> conditions,
   FutureOr<C> Function(TransitionContext) makeContext,
   Logger log,

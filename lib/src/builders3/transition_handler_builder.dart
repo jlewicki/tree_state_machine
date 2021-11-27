@@ -242,7 +242,7 @@ class TransitionHandlerBuilder<D, C> {
     );
 
     whenBuilder.when(condition, buildTrue, label: label);
-    _descriptor = makeWhenDescriptor(conditions, _makeContext, _log, label);
+    _descriptor = makeWhenTransitionDescriptor(conditions, _makeContext, _log, label);
     return whenBuilder;
   }
 
@@ -307,7 +307,7 @@ class TransitionHandlerBuilder<D, C> {
     var successDesr = successBuilder._descriptor;
 
     var failureDescrRef = Ref<TransitionHandlerDescriptor<AsyncError>?>(null);
-    _descriptor = makeWhenResultDescriptor<C, D, T>(
+    _descriptor = makeWhenResultTransitionDescriptor<C, D, T>(
       _forState,
       result,
       _makeContext,

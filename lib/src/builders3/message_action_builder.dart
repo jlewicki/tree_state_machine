@@ -1,10 +1,4 @@
-import 'dart:async';
-
-import 'package:logging/logging.dart';
-import 'package:tree_state_machine/src/machine/tree_state.dart';
-import 'package:tree_state_machine/src/machine/extensions.dart';
-import 'package:tree_state_machine/src/machine/utility.dart';
-import './handlers/messages/message_handler_descriptor.dart';
+part of tree_builders3;
 
 /// Provides methods for describing actions that can be taken while a state handles a message.
 ///

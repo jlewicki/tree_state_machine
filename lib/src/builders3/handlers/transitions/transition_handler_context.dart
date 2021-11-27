@@ -15,7 +15,7 @@ class TransitionHandlerContext<D, C> {
   ///
   /// The context type is determined by the builder method that is used to define the transition
   /// handler. For example, when [StateBuilder.onEnterFromChannel] is used to define an entry
-  /// transitin, the context value will match the payload of the channel.
+  /// transition, the context value will match the payload of the channel.
   final C context;
   TransitionHandlerContext(this.transitionContext, this.data, this.context);
 }

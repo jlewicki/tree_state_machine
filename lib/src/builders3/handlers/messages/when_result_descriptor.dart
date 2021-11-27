@@ -5,9 +5,10 @@ import 'package:logging/logging.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/extensions.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
+import 'package:tree_state_machine/tree_builders3.dart';
 import './message_handler_descriptor.dart';
 
-MessageHandlerDescriptor<C> makeWhenResultDescriptor<M, D, C, T>(
+MessageHandlerDescriptor<C> makeWhenResultMessageDescriptor<M, D, C, T>(
   StateKey forState,
   FutureOr<Result<T>> Function(MessageHandlerContext<M, D, C>) result,
   FutureOr<C> Function(MessageContext) makeContext,

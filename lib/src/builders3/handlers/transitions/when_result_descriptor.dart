@@ -8,7 +8,7 @@ import 'package:tree_state_machine/src/machine/utility.dart';
 import 'package:tree_state_machine/tree_builders3.dart';
 import './transition_handler_descriptor.dart';
 
-TransitionHandlerDescriptor<C> makeWhenResultDescriptor<C, D, T>(
+TransitionHandlerDescriptor<C> makeWhenResultTransitionDescriptor<C, D, T>(
   StateKey forState,
   FutureOr<Result<T>> Function(TransitionHandlerContext<D, C>) result,
   FutureOr<C> Function(TransitionContext) makeContext,

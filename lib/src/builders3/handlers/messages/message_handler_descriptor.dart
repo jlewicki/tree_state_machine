@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
+import 'package:tree_state_machine/tree_builders3.dart';
 
 enum MessageHandlerType { goto, gotoSelf, stay, when, whenWithContext, whenResult, unhandled }
 
@@ -50,16 +51,6 @@ class MessageHandlerDescriptorContext<C> {
   final MessageContext msgCtx;
   final C ctx;
   MessageHandlerDescriptorContext(this.msgCtx, this.ctx);
-}
-
-/// Provides access to the context for a message handler, including the [MessageContext], the
-/// [message] being processed, the state [data], and the context value.
-class MessageHandlerContext<M, D, C> {
-  final MessageContext messageContext;
-  final M message;
-  final D data;
-  final C context;
-  MessageHandlerContext(this.messageContext, this.message, this.data, this.context);
 }
 
 class MessageHandlerDescriptor<C> {
