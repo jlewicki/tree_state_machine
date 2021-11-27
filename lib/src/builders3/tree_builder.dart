@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/src/machine/extensions.dart';
+import 'package:tree_state_machine/src/machine/tree_node.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/tree_state_machine.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
 import './state_builder.dart';
+import './tree_build_context.dart';
 
 /// Provides methods to describe a state tree.
 ///
@@ -46,13 +48,13 @@ import './state_builder.dart';
 /// [StateTreeFormatter] (for example a [DotFormatter]) representing the desired output format.
 class StateTreeBuilder {
   final StateKey _rootKey;
-  final String? _logName;
+  final String? logName;
   final Map<StateKey, StateBuilderBase> _stateBuilders = {};
   late final Logger _log = Logger(
-    'tree_state_machine.StateTreeBuilder${_logName != null ? '.' + _logName! : ''}',
+    'tree_state_machine.StateTreeBuilder${logName != null ? '.' + logName! : ''}',
   );
 
-  StateTreeBuilder._(this._rootKey, this._logName);
+  StateTreeBuilder._(this._rootKey, this.logName);
 
   /// The key identifying the root state that is implicitly added to a state tree, if the
   /// [new StateTreeBuilder] constructor is used.
@@ -68,6 +70,53 @@ class StateTreeBuilder {
     b.state(defaultRootKey, emptyState, initialChild: InitialChild(initialState));
     return b;
   }
+
+  /// Creates a [StateTreeBuilder] with a predefined root state.
+  ///
+  /// The root state is identified by [rootState], and has an initial child state identified by
+  /// [initialChild]. The behavior of the state is configured by calling methods on the
+  /// [StateBuilder] that is provided to the [build] callback.
+  ///
+  /// Any states without an explicit parent that are added to this builder will implicitly be
+  /// considered a child of this root state.
+  factory StateTreeBuilder.withRoot(
+    StateKey rootState,
+    void Function(StateBuilder builder) build,
+    InitialChild initialChild, {
+    String? logName,
+  }) {
+    var b = StateTreeBuilder._(rootState, logName);
+    b.state(rootState, build, initialChild: initialChild);
+    return b;
+  }
+
+  /// Creates a [StateTreeBuilder] with a root state carrying a value of type [D].
+  ///
+  /// The root state is identified by [rootState], and has an initial child state identified by
+  /// [initialChild]. The behavior of this root state is configured by the [build] callback.
+  ///
+  /// Any states without an explicit parent that are added to this builder will implicitly be
+  /// considered a child of this root state.
+  static StateTreeBuilder withDataRoot<D>(
+    StateKey rootState,
+    InitialData<D> initialData,
+    void Function(StateBuilder<D> builder) build,
+    InitialChild initialChild, {
+    StateDataCodec? codec,
+    String? logName,
+  }) {
+    var b = StateTreeBuilder._(rootState, logName);
+    b.dataState<D>(
+      rootState,
+      initialData,
+      build,
+      initialChild: initialChild,
+      codec: codec,
+    );
+    return b;
+  }
+
+  TreeNode call(TreeBuildContext context) => _build(context);
 
   /// Adds to the state tree a description of a state, identified by [stateKey].
   ///
@@ -256,6 +305,20 @@ class StateTreeBuilder {
     _addState(builder);
   }
 
+  TreeNode _build(TreeBuildContext context) {
+    _validate();
+
+    var rootBuilders = _stateBuilders.values.where((b) => b.stateType == StateType.root).toList();
+    if (rootBuilders.isEmpty) {
+      throw StateError('No root builders available');
+    } else if (rootBuilders.length > 1) {
+      throw StateError('Found multiple root nodes.');
+    }
+
+    // If there is a single root, then we have a well formed state tree.
+    return rootBuilders.first.toNode(context, _stateBuilders);
+  }
+
   void _addState(StateBuilderBase builder) {
     if (_stateBuilders.containsKey(builder.key)) {
       throw StateError("State '${builder.key}' has already been configured.");
@@ -335,6 +398,7 @@ class StateTreeBuilder {
 }
 
 class InitialData<D> {
+  final Type dataType = D;
   final D Function(TransitionContext) _initialValue;
   InitialData._(this._initialValue);
 
@@ -347,6 +411,8 @@ class InitialData<D> {
   factory InitialData.onTransition(D Function(TransitionContext) initialValue) {
     return InitialData._(initialValue);
   }
+
+  D call(TransitionContext transCtx) => _initialValue(transCtx);
 
   static final InitialData<void> empty = InitialData(() {});
 
@@ -411,15 +477,13 @@ class InitialData<D> {
     return InitialData._((ctx) => initialValue(ctx.dataValueOrThrow<DAncestor>()));
   }
 
-  /// Creates an [InitialData] that produces its initial value by calling [initialValue] with
+  /// Creates an [InitialData] that produces its initial value by calling [_initialDataOfD] with
   /// a value of type [DAncestor], obtained by from an ancestor state in the state tree, and the
   /// payload value of [channel].
   static InitialData<D> fromChannelAndAncestor<D, DAncestor, P>(
       Channel<P> channel, D Function(DAncestor parentData, P payload) map) {
     return InitialData._((ctx) => map(ctx.dataValueOrThrow<DAncestor>(), ctx.payloadOrThrow<P>()));
   }
-
-  D eval(TransitionContext transCtx) => _initialValue(transCtx);
 }
 
 /// Describes the initial child state of a parent state.
@@ -506,8 +570,7 @@ class InitialMachine implements NestedMachine {
     return InitialMachine._(
       (ctx) {
         return create(ctx).bind((treeBuilder) {
-          throw UnimplementedError();
-          //return TreeStateMachine(treeBuilder, logName: logName);
+          return TreeStateMachine.fromNewBuilder(treeBuilder, logName: logName);
         });
       },
       true,

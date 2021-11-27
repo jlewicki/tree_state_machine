@@ -13,6 +13,15 @@ import './handlers/messages/stay_or_unhandled_descriptor.dart';
 import './handlers/messages/when_descriptor.dart';
 import './handlers/messages/when_result_descriptor.dart';
 
+/// Describes the message processing result of runnin an action with [MessageHandlerBuilder.action].
+enum ActionResult {
+  /// The message was handled, and the state machine should stay in the current state.
+  handled,
+
+  /// The message was unhandled, and should be dispatched to a parent state for processing.
+  unhandled,
+}
+
 abstract class _MessageHandlerDescriptorProvider<C> {
   MessageHandlerDescriptor<C>? get descriptor;
 }
@@ -156,6 +165,21 @@ class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
       _forState,
       action,
       action?.info.label,
+      _messageName,
+      handled: true,
+    );
+  }
+
+  void action(
+    MessageActionDescriptor<M, D, C> action, [
+    ActionResult actionResult = ActionResult.handled,
+  ]) {
+    descriptor = makeStayOrUnhandledDescriptor<M, D, C>(
+      _makeContext,
+      _log,
+      _forState,
+      action,
+      action.info.label,
       _messageName,
       handled: true,
     );

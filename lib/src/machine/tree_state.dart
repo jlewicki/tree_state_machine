@@ -176,7 +176,7 @@ class DelegatingTreeState implements TreeState {
 /// is recreated each time she state is entered.
 abstract class DataTreeState<D> extends TreeState {
   final _refDataValue = Ref<ClosableDataValue<D>?>(null);
-  final InitialData<D> _initialData;
+  final D Function(TransitionContext) _initialData;
 
   DataTreeState(this._initialData);
 
@@ -186,7 +186,7 @@ abstract class DataTreeState<D> extends TreeState {
   @override
   FutureOr<void> onEnter(TransitionContext transCtx) {
     assert(_refDataValue.value == null);
-    var initialValue = _initialData.eval(transCtx);
+    var initialValue = _initialData(transCtx);
     _refDataValue.value = ClosableDataValue(initialValue);
   }
 
@@ -215,7 +215,7 @@ class DelegatingDataTreeState<D> extends DataTreeState<D> {
   final Dispose _onDispose;
 
   DelegatingDataTreeState(
-    InitialData<D> initialData,
+    D Function(TransitionContext) initialData,
     this._onMessage,
     this._onEnter,
     this._onExit,
@@ -276,7 +276,7 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
   CurrentState? currentNestedState;
 
   NestedMachineState(this.nestedMachine, this.onDone, this._log, this.isDone, this._onDisposed)
-      : super(InitialData(() => NestedMachineData()));
+      : super(InitialData(() => NestedMachineData()).eval);
 
   @override
   FutureOr<void> onEnter(TransitionContext transCtx) {

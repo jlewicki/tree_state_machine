@@ -441,7 +441,7 @@ class _DataStateBuilder<D> extends _StateBuilderBase
   @override
   TreeState _createState() {
     return DelegatingDataTreeState<D>(
-      _initialValue,
+      _initialValue.eval,
       _createMessageHandler(),
       _createOnEnter(),
       _createOnExit(),

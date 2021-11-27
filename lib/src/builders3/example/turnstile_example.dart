@@ -1,6 +1,6 @@
 import 'package:tree_state_machine/src/machine/tree_state_machine.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
-import 'package:tree_state_machine/tree_builders.dart';
+import './../tree_builder.dart';
 
 enum Messages {
   insertCoin,
@@ -24,7 +24,7 @@ StateTreeBuilder turnstileStateTree() {
 
 Future<void> main() async {
   var treeBuilder = turnstileStateTree();
-  var stateMachine = TreeStateMachine(treeBuilder);
+  var stateMachine = TreeStateMachine.fromNewBuilder(treeBuilder);
 
   var currentState = await stateMachine.start();
   assert(currentState.key == States.locked);

@@ -469,7 +469,7 @@ class InitialData<D> {
     return InitialData._((ctx) => initialValue(ctx.dataValueOrThrow<DAncestor>()));
   }
 
-  /// Creates an [InitialData] that produces its initial value by calling [initialValue] with
+  /// Creates an [InitialData] that produces its initial value by calling [_initialDataOfD] with
   /// a value of type [DAncestor], obtained by from an ancestor state in the state tree, and the
   /// payload value of [channel].
   static InitialData<D> fromChannelAndAncestor<D, DAncestor, P>(

@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:async/async.dart';
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
-import './../state_builder.dart';
-import './../tree_builder.dart';
+import './../../state_builder.dart';
+import './../../tree_builder.dart';
 
 import 'authenticate_state_tree.dart' as auth;
 
@@ -100,66 +100,66 @@ class MockAuthService implements AuthService {
   Future<Result<AuthorizedUser>> register(auth.RegistrationRequest request) => doRegister(request);
 }
 
-// void main() async {
-//   initLogging();
+void main() async {
+  initLogging();
 
-//   var authService = MockAuthService(
-//     (req) async => Result.error('nope'),
-//     (req) async => Result.error('nope'),
-//   );
+  var authService = MockAuthService(
+    (req) async => Result.error('nope'),
+    (req) async => Result.error('nope'),
+  );
 
-//   var treeBuilder = appStateTree(authService);
-//   // var s = StringBuffer();
-//   // treeBuilder.format(s, DotFormatter());
-//   // var dot = s.toString();
+  var treeBuilder = appStateTree(authService);
+  // var s = StringBuffer();
+  // treeBuilder.format(s, DotFormatter());
+  // var dot = s.toString();
 
-//   var stateMachine = TreeStateMachine(treeBuilder);
-//   var currentState = await stateMachine.start();
-//   assert(currentState.key == States.splash);
+  var stateMachine = TreeStateMachine.fromNewBuilder(treeBuilder);
+  var currentState = await stateMachine.start();
+  assert(currentState.key == States.splash);
 
-//   await currentState.post(Messages.goToLogin);
-//   assert(currentState.key == States.authenticate);
+  await currentState.post(Messages.goToLogin);
+  assert(currentState.key == States.authenticate);
 
-//   var nestedState = currentState.dataValue<NestedMachineData>()!.nestedState;
-//   assert(nestedState.isInState(auth.States.login));
-//   assert(nestedState.key == auth.States.loginEntry);
+  var nestedState = currentState.dataValue<NestedMachineData>()!.nestedState;
+  assert(nestedState.isInState(auth.States.login));
+  assert(nestedState.key == auth.States.loginEntry);
 
-//   authService.doAuthenticate = (req) async {
-//     return Result.value(AuthorizedUser('Chandler', 'Bing', 'chandler.bing@hotmail.com'));
-//   };
-//   await currentState.post(auth.SubmitCredentials('chandler.bing@hotmail.com', 'friends123'));
+  authService.doAuthenticate = (req) async {
+    return Result.value(AuthorizedUser('Chandler', 'Bing', 'chandler.bing@hotmail.com'));
+  };
+  await currentState.post(auth.SubmitCredentials('chandler.bing@hotmail.com', 'friends123'));
 
-//   // Check that nested state machine finished
-//   assert(nestedState.key == auth.States.authenticated);
-//   assert(
-//       nestedState.dataValue<auth.AuthenticatedData>()!.user.email == 'chandler.bing@hotmail.com');
-//   assert(nestedState.stateMachine.isDone);
+  // Check that nested state machine finished
+  assert(nestedState.key == auth.States.authenticated);
+  assert(
+      nestedState.dataValue<auth.AuthenticatedData>()!.user.email == 'chandler.bing@hotmail.com');
+  assert(nestedState.stateMachine.isDone);
 
-//   await stateMachine.transitions.firstWhere((t) => t.to == States.authenticated);
-//   await currentState.post(Messages.logout);
-//   assert(currentState.key == States.splash);
+  await stateMachine.transitions.firstWhere((t) => t.to == States.authenticated);
+  await currentState.post(Messages.logout);
+  assert(currentState.key == States.splash);
 
-//   await currentState.post(Messages.goToRegister);
-//   assert(currentState.key == States.authenticate);
+  await currentState.post(Messages.goToRegister);
+  assert(currentState.key == States.authenticate);
 
-//   nestedState = currentState.dataValue<NestedMachineData>()!.nestedState;
-//   assert(nestedState.isInState(auth.States.registration));
-//   assert(nestedState.key == auth.States.credentialsRegistration);
+  nestedState = currentState.dataValue<NestedMachineData>()!.nestedState;
+  assert(nestedState.isInState(auth.States.registration));
+  assert(nestedState.key == auth.States.credentialsRegistration);
 
-//   await currentState.post(auth.SubmitCredentials('phoebes@smellycat.com', 'imnotursala'));
-//   assert(nestedState.key == auth.States.demographicsRegistration);
+  await currentState.post(auth.SubmitCredentials('phoebes@smellycat.com', 'imnotursala'));
+  assert(nestedState.key == auth.States.demographicsRegistration);
 
-//   // await currentState.post(SubmitDemographics('Phoebe', 'Buffay'));
+  // await currentState.post(SubmitDemographics('Phoebe', 'Buffay'));
 
-//   // authService.doRegister = (req) async {
-//   //   return Result.value(AuthorizedUser('Phoebe', 'Buffay', 'phoebes@smellycat.com'));
-//   // };
-//   // await currentState.post(Messages.submitRegistration);
+  // authService.doRegister = (req) async {
+  //   return Result.value(AuthorizedUser('Phoebe', 'Buffay', 'phoebes@smellycat.com'));
+  // };
+  // await currentState.post(Messages.submitRegistration);
 
-//   // assert(currentState.key == States.userHome);
-//   // assert(currentState.isInState(States.authenticated));
-//   // assert(currentState.dataValue<AuthenticatedData>()!.user.email == 'phoebes@smellycat.com');
-// }
+  // assert(currentState.key == States.userHome);
+  // assert(currentState.isInState(States.authenticated));
+  // assert(currentState.dataValue<AuthenticatedData>()!.user.email == 'phoebes@smellycat.com');
+}
 
 // Example of enabling logging output from tree_state_machine library.
 void initLogging() {
