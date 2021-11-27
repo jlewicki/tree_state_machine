@@ -255,8 +255,14 @@ class NestedMachineData {
 
 /// Describes the initial state machine of a [StateTreeBuilder.machineState].
 abstract class NestedMachine {
+  /// Returns `true` if messages should be forwarded from a state machine to the nested state machine.
   bool get forwardMessages;
+
+  ///  Returns `true` if the nested state machine should be disposed when the
+  /// [StateTreeBuilder.machineState] is exited.
   bool get disposeMachineOnExit;
+
+  /// Creates a nested [TreeStateMachine].
   FutureOr<TreeStateMachine> call(TransitionContext transCtx);
 }
 

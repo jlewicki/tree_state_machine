@@ -13,6 +13,42 @@ import './transition_handler_builder.dart';
 import './tree_builder.dart';
 import './tree_build_context.dart';
 
+/// Indicates that a value of type [P] must be provided when entering a state.
+///
+/// Channels are intended as a contract indicating that in order to transition to a particular
+/// state, additional contextual information of type [P] must be provided by the transition source.
+/// ```dart
+/// class SubmitCredentials {}
+/// class AuthenticatedUser {}
+/// class AuthFuture {
+///   final FutureOr<AuthenticatedUser?> futureOr;
+///   AuthFuture(this.futureOr);
+/// }
+///
+/// var loginState = StateKey('login');
+/// var authenticatingState = StateKey('authenticating');
+///
+/// var authenticatingChannel = Channel<SubmitCredentials>(authenticatingState);
+///
+/// AuthFuture _login(SubmitCredentials creds) {
+///   // ...Perform authentication
+///   return AuthFuture(Future.value(AuthenticatedUser()));
+/// }
+/// var treeBuilder = StateTreeBuilder(initialState: loginState);
+///
+/// treeBuilder.state(loginState, (b) {
+///   b.onMessage<SubmitCredentials>((b) {
+///     // Provide a SubmitCredentials value when entering authenticating state
+///     b.enterChannel(authenticatingChannel, (ctx) => ctx.message);
+///   });
+/// });
+///
+/// treeBuilder.state(authenticatingState, (b) {
+///   b.onEnterFromChannel<SubmitCredentials>(authenticatingChannel, (b) {
+///     // The context argument provides access to the SubmitCredentials value
+///     b.post<AuthFuture>(getMessage: (ctx) => _login(ctx.context));
+///   });
+/// });
 class Channel<P> {
   /// The state to enter for this channel.
   final StateKey to;
@@ -82,7 +118,7 @@ abstract class StateBuilderBase {
           childAndLeafBuilders.map((cb) {
             return (childCtx) => cb.toNode(childCtx, builderMap);
           }),
-          initialChild!.eval,
+          initialChild!.call,
           codec,
         );
       case NodeType.interiorNode:
@@ -92,7 +128,7 @@ abstract class StateBuilderBase {
           children.map((e) {
             return (childCtx) => builderMap[e]!.toNode(childCtx, builderMap);
           }),
-          initialChild!.eval,
+          initialChild!.call,
           codec,
         );
       case NodeType.leafNode:

@@ -48,17 +48,21 @@ import './tree_build_context.dart';
 /// [StateTreeFormatter] (for example a [DotFormatter]) representing the desired output format.
 class StateTreeBuilder {
   final StateKey _rootKey;
-  final String? logName;
+  final String? _logName;
   final Map<StateKey, StateBuilderBase> _stateBuilders = {};
   late final Logger _log = Logger(
-    'tree_state_machine.StateTreeBuilder${logName != null ? '.' + logName! : ''}',
+    'tree_state_machine.StateTreeBuilder${_logName != null ? '.' + _logName! : ''}',
   );
 
-  StateTreeBuilder._(this._rootKey, this.logName);
+  StateTreeBuilder._(this._rootKey, this._logName);
 
   /// The key identifying the root state that is implicitly added to a state tree, if the
   /// [new StateTreeBuilder] constructor is used.
-  static const StateKey defaultRootKey = StateKey('StateTreeBuilderDefaultRootState');
+  static const StateKey defaultRootKey = StateKey('<_RootState_>');
+
+  /// Optional descriptor for this state tree that will appear in log output. This can be used to
+  /// correlate log messages with state trees when examining the output.
+  String? get logName => _logName;
 
   /// Creates a [StateTreeBuilder] that will build a state tree that starts in the state identified
   /// by [initialState].
@@ -116,6 +120,7 @@ class StateTreeBuilder {
     return b;
   }
 
+  /// Creates the root node of the state tree.
   TreeNode call(TreeBuildContext context) => _build(context);
 
   /// Adds to the state tree a description of a state, identified by [stateKey].
@@ -147,7 +152,7 @@ class StateTreeBuilder {
   }) {
     var builder = StateBuilder<void>(
       stateKey,
-      InitialData.empty,
+      InitialData._empty,
       _log,
       parent,
       initialChild,
@@ -171,7 +176,7 @@ class StateTreeBuilder {
   }) {
     var builder = StateBuilder<void>(
       stateKey,
-      InitialData.empty,
+      InitialData._empty,
       _log,
       parent,
       null,
@@ -184,30 +189,28 @@ class StateTreeBuilder {
   /// Adds to the state tree a description of a data state, identified by [stateKey] and carrying a
   /// value of type [D].
   ///
-  /// The behavior of the data state is configured by calling methods on the [DataStateBuilder]
-  /// that is provided to the [build] callback.
+  /// The behavior of the data state is configured by calling methods on the [StateBuilder]that is
+  /// provided to the [build] callback.
   ///
   /// The initial value of the state data is provided by [initialData], and will be evaluated each
   /// time the state is entered.
   ///
   /// ```dart
-  /// enum Messages { increment, decrement }
   /// var countingState = StateKey('counting');
-  /// var builder = new StateTreeBuilder(initialState: countingState);
+  /// var builder = StateTreeBuilder(initialState: countingState);
   ///
   /// // Describe a state carrying an integer, with an initial value of 1.
-  /// builder.dataState<int>(
-  ///   countingState,
-  ///   InitialData.value(1),
-  ///   (b) {
-  ///     // Define the behavior of the state
-  ///     b.onMessageValue<Messages>(Messages.increment, (b) {
-  ///       b.stay(action: b.act.updateData((ctx, msg, counter) => counter + 1));
-  ///     });
-  ///     b.onMessageValue<Messages>(Messages.decrement, (b) {
-  ///       b.stay(action: b.act.updateData((ctx, msg, counter) => counter - 1));
-  ///     });
+  /// builder.dataState<int>(countingState, InitialData(() => 1), (b) {
+  ///   // Define the behavior of the state
+  ///   b.onMessageValue<Messages>(Messages.increment, (b) {
+  ///     // The updateOwnData callback is called with a context that provides the current message
+  ///     // being processed, the and data value for the state.
+  ///     b.stay(action: b.act.updateOwnData((ctx) => ctx.data + 1));
   ///   });
+  ///   b.onMessageValue<Messages>(Messages.decrement, (b) {
+  ///     b.stay(action: b.act.updateOwnData((ctx) => ctx.data - 1));
+  ///   });
+  /// });
   /// ```
   ///
   /// The state can be declared as a child state, by providing a [parent] value referencing the
@@ -282,6 +285,38 @@ class StateTreeBuilder {
   /// can be used to determine the next state on disposal, but this is typically only needed if
   /// [InitialMachine.fromMachine] is used to return a machine that is disposed by code running
   /// outside of the parent state machine.
+  ///
+  /// ```dart
+  /// class AuthenticatedUser {}
+  ///
+  /// var authenticateState = StateKey('authenticate');
+  /// var authenticatedState = StateKey('authenticated');
+  /// var b = StateTreeBuilder(initialState: authenticateState, logName: 'app');
+  ///
+  /// StateTreeBuilder authenticateStateTree() {
+  ///   var sb = StateTreeBuilder(initialState: StateKey(''), logName: 'auth');
+  ///   // ...Nested state tree definition goes here.
+  ///   return sb;
+  /// }
+  ///
+  /// b.machineState(
+  ///   authenticateState,
+  ///   // Create a nested state machine representing an authentication flow.
+  ///   InitialMachine.fromTree((transCtx) => authenticateStateTree()),
+  ///   (b) {
+  ///     b.onMachineDone(
+  ///       (b) => b.goTo(
+  ///         authenticatedState,
+  ///         // The context property has a CurrentState value, representing the
+  ///         // current (final) state of the nested state machine. In this
+  ///         // example we assume the final state has a data value representing the
+  ///         // user that was authenticated.
+  ///         payload: (ctx) => ctx.context.dataValue<AuthenticatedUser>(),
+  ///       ),
+  ///     );
+  ///   },
+  /// );
+  /// ```
   ///
   /// This state can be declared as a child state, by providing a [parent] value referencing the
   /// parent state.
@@ -397,10 +432,19 @@ class StateTreeBuilder {
   }
 }
 
+/// Describes the initial value for a [StateTreeBuilder.dataState] that carries a value of type [D].
 class InitialData<D> {
+  /// The type of [D].
   final Type dataType = D;
   final D Function(TransitionContext) _initialValue;
+
   InitialData._(this._initialValue);
+
+  /// Initial data for a 'regular' state (that is, not a data state).
+  static final InitialData<void> _empty = InitialData(() {});
+
+  /// Creates the initial data value.
+  D call(TransitionContext transCtx) => _initialValue(transCtx);
 
   /// Creates an [InitialData] that will call the [create] function to obtain the initial data
   /// value. The function is called each time the data state is entered.
@@ -408,13 +452,12 @@ class InitialData<D> {
     return InitialData._((_) => create());
   }
 
-  factory InitialData.onTransition(D Function(TransitionContext) initialValue) {
-    return InitialData._(initialValue);
+  /// Creates an [InitialData] that will call the [create] function, passing the [TransitionContext]
+  /// for the transition in progress, to obtain the initial data value. The function is called each
+  /// time the data state is entered.
+  factory InitialData.run(D Function(TransitionContext) create) {
+    return InitialData._(create);
   }
-
-  D call(TransitionContext transCtx) => _initialValue(transCtx);
-
-  static final InitialData<void> empty = InitialData(() {});
 
   /// Creates an [InitialData] that produces its value by calling [initialValue] with the payload
   /// provided when entering the state through [channel].
@@ -501,7 +544,7 @@ class InitialData<D> {
 /// var builder = StateTreeBuilder(initialState: parentState);
 ///
 /// // Enter childState2 when parentState is entered
-/// builder.state(parentState, emptyState, initialChild: InitialChild.key(childState2));
+/// builder.state(parentState, emptyState, initialChild: InitialChild(childState2));
 /// builder.state(childState1, emptyState, parent: parentState);
 /// builder.state(childState2, emptyState, parent: parentState);
 /// ```
@@ -526,10 +569,11 @@ class InitialChild {
     return InitialChild._(getInitialChild, null);
   }
 
-  StateKey eval(TransitionContext transCtx) => _getInitialChild(transCtx);
+  /// Returns the key of the child state that should be entered.
+  StateKey call(TransitionContext transCtx) => _getInitialChild(transCtx);
 }
 
-// Describes the initial state machine of a [StateTreeBuilder.machineState].
+/// Describes the initial state machine of a [StateTreeBuilder.machineState].
 class InitialMachine implements NestedMachine {
   @override
   final bool forwardMessages;
@@ -580,5 +624,8 @@ class InitialMachine implements NestedMachine {
   }
 }
 
+/// A state builder callback that adds no behavior to a state.
 void emptyState<D>(StateBuilder<D> builder) {}
+
+/// A state builder callback that adds no behavior to a final state.
 void emptyFinalState<D>(EnterStateBuilder<D> builder) {}
