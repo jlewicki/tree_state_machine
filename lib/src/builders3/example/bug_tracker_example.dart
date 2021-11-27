@@ -1,6 +1,5 @@
 import 'package:tree_state_machine/tree_state_machine.dart';
-import './../tree_builder.dart';
-import './../state_builder.dart';
+import 'package:tree_state_machine/tree_builders3.dart';
 import './../handlers/messages/message_handler_descriptor.dart';
 import './../handlers/transitions/transition_handler_descriptor.dart';
 

@@ -5,9 +5,9 @@ library tree_builders;
 
 import 'dart:async';
 import 'dart:collection';
-import 'package:collection/collection.dart';
 
 import 'package:async/async.dart';
+import 'package:collection/collection.dart';
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';

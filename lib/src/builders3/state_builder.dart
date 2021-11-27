@@ -1,17 +1,4 @@
-import 'dart:collection';
-
-import 'package:logging/logging.dart';
-import 'package:tree_state_machine/src/machine/tree_node.dart';
-import 'package:tree_state_machine/src/machine/tree_state.dart';
-import 'package:tree_state_machine/src/machine/extensions.dart';
-import 'package:tree_state_machine/src/machine/tree_state_machine.dart';
-import 'package:tree_state_machine/src/machine/utility.dart';
-import './handlers/messages/message_handler_descriptor.dart';
-import './handlers/transitions/transition_handler_descriptor.dart';
-import './message_handler_builder.dart';
-import './transition_handler_builder.dart';
-import './tree_builder.dart';
-import './tree_build_context.dart';
+part of tree_builders3;
 
 /// Indicates that a value of type [P] must be provided when entering a state.
 ///
@@ -60,20 +47,20 @@ class Channel<P> {
   Channel(this.to, {this.label});
 }
 
-enum StateType { root, interior, leaf }
+enum _StateType { root, interior, leaf }
 
-abstract class StateBuilderBase {
+abstract class _StateBuilder {
   final StateKey key;
-  final bool isFinal;
-  final List<StateKey> children = [];
+  final bool _isFinal;
+  final List<StateKey> _children = [];
   final Logger _log;
-  final InitialChild? initialChild;
-  final Type? dataType;
-  final StateDataCodec? codec;
-  StateKey? parent;
+  final InitialChild? _initialChild;
+  final Type? _dataType;
+  final StateDataCodec? _codec;
+  StateKey? _parent;
 
   // Key is either a Type object representing message type or a message value
-  final Map<Object, MessageHandlerDescriptor<void>> messageHandlerMap = {};
+  final Map<Object, MessageHandlerDescriptor<void>> _messageHandlerMap = {};
   // 'Open-coded' message handler. This is mutually exclusive with _messageHandlerMap
   MessageHandler? _messageHandler;
   // Builder for onExit handler. This is mutually exclusive with _onExitHandler
@@ -85,66 +72,66 @@ abstract class StateBuilderBase {
   // 'Open-coded' onEnter handler. This is mutually exclusive with _onEnter
   TransitionHandler? _onEnterHandler;
 
-  StateBuilderBase._(
+  _StateBuilder._(
     this.key,
-    this.isFinal,
-    this.dataType,
-    this.codec,
+    this._isFinal,
+    this._dataType,
+    this._codec,
     this._log,
-    this.parent,
-    this.initialChild,
+    this._parent,
+    this._initialChild,
   );
 
-  StateType get stateType {
-    if (parent == null) return StateType.root;
-    if (children.isEmpty) return StateType.leaf;
-    return StateType.interior;
+  _StateType get _stateType {
+    if (_parent == null) return _StateType.root;
+    if (_children.isEmpty) return _StateType.leaf;
+    return _StateType.interior;
   }
 
-  bool get hasStateData => dataType != null;
+  bool get _hasStateData => _dataType != null;
 
-  void addChild(StateBuilderBase child) {
-    child.parent = key;
-    children.add(child.key);
+  void _addChild(_StateBuilder child) {
+    child._parent = key;
+    _children.add(child.key);
   }
 
-  TreeNode toNode(TreeBuildContext context, Map<StateKey, StateBuilderBase> builderMap) {
+  TreeNode _toNode(TreeBuildContext context, Map<StateKey, _StateBuilder> builderMap) {
     switch (_nodeType()) {
       case NodeType.rootNode:
-        var childAndLeafBuilders = children.map((e) => builderMap[e]!);
+        var childAndLeafBuilders = _children.map((e) => builderMap[e]!);
         return context.buildRoot(
           key,
           (_) => _createState(),
           childAndLeafBuilders.map((cb) {
-            return (childCtx) => cb.toNode(childCtx, builderMap);
+            return (childCtx) => cb._toNode(childCtx, builderMap);
           }),
-          initialChild!.call,
-          codec,
+          _initialChild!.call,
+          _codec,
         );
       case NodeType.interiorNode:
         return context.buildInterior(
           key,
           (_) => _createState(),
-          children.map((e) {
-            return (childCtx) => builderMap[e]!.toNode(childCtx, builderMap);
+          _children.map((e) {
+            return (childCtx) => builderMap[e]!._toNode(childCtx, builderMap);
           }),
-          initialChild!.call,
-          codec,
+          _initialChild!.call,
+          _codec,
         );
       case NodeType.leafNode:
-        return context.buildLeaf(key, (_) => _createState(), codec);
+        return context.buildLeaf(key, (_) => _createState(), _codec);
       case NodeType.finalLeafNode:
-        return context.buildLeaf(key, (_) => _createState(), codec, isFinal: true);
+        return context.buildLeaf(key, (_) => _createState(), _codec, isFinal: true);
       default:
         throw StateError('Unrecognized node type');
     }
   }
 
   NodeType _nodeType() {
-    if (parent == null) {
+    if (_parent == null) {
       return NodeType.rootNode;
-    } else if (children.isEmpty) {
-      return isFinal ? NodeType.finalLeafNode : NodeType.leafNode;
+    } else if (_children.isEmpty) {
+      return _isFinal ? NodeType.finalLeafNode : NodeType.leafNode;
     }
     return NodeType.interiorNode;
   }
@@ -164,7 +151,7 @@ abstract class StateBuilderBase {
     }
 
     final handlerMap = HashMap.fromEntries(
-      messageHandlerMap.entries.map((e) => MapEntry(e.key, e.value.makeHandler())),
+      _messageHandlerMap.entries.map((e) => MapEntry(e.key, e.value.makeHandler())),
     );
 
     return (MessageContext msgCtx) {
@@ -203,12 +190,23 @@ abstract class StateBuilderBase {
   void _makeVoidMessageContext(MessageContext ctx) {}
 }
 
+/// Provides methods for describing the behavior of a state, carrying state data of type [D], when
+/// is entered. [D] may be `void` if the state does not have any associated state data.
 abstract class EnterStateBuilder<D> {
   /// Describes how transitions to this state should be handled.
   ///
   /// The [build] function is called with a [TransitionHandlerBuilder] that can be used to describe
   /// the behavior of the entry transition.
   void onEnter(void Function(TransitionHandlerBuilder<D, void>) build);
+
+  /// Describes how transitions to this state should be handled.
+  ///
+  /// This method can be used when the entry handler requires access to state data of type [D2] from
+  /// an ancestor state.
+  ///
+  /// The [build] function is called with a [TransitionHandlerBuilder] that can be used to
+  /// describe the behavior of the exit transition.
+  void onEnterWithData<D2>(void Function(TransitionHandlerBuilder<D, D2>) build);
 
   /// Describes how transition to this state through [channel] should be handled.
   ///
@@ -220,10 +218,12 @@ abstract class EnterStateBuilder<D> {
   );
 }
 
-class StateBuilder<D> extends StateBuilderBase implements EnterStateBuilder<D> {
+/// Provides methods for describing the behavior of a state carrying state data of type [D]. [D] may
+/// be `void` if the state does not have any associated state data.
+class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
   final InitialData<D> _typedInitialData;
 
-  StateBuilder(
+  StateBuilder._(
     StateKey key,
     this._typedInitialData,
     Logger log,
@@ -245,18 +245,19 @@ class StateBuilder<D> extends StateBuilderBase implements EnterStateBuilder<D> {
   void onEnter(
     void Function(TransitionHandlerBuilder<D, void>) build,
   ) {
-    var builder = TransitionHandlerBuilder<D, void>(key, _log, _makeVoidTransitionContext);
+    var builder = TransitionHandlerBuilder<D, void>._(key, _log, _makeVoidTransitionContext);
     build(builder);
-    _onEnter = builder.descriptor;
+    _onEnter = builder._descriptor;
   }
 
-  void onEntertWithData<D2>(
-    void Function(TransitionHandlerBuilder<D2, D2>) build,
+  @override
+  void onEnterWithData<D2>(
+    void Function(TransitionHandlerBuilder<D, D2>) build,
   ) {
     var builder =
-        TransitionHandlerBuilder<D2, D2>(key, _log, (transCtx) => transCtx.dataValueOrThrow<D2>());
+        TransitionHandlerBuilder<D, D2>._(key, _log, (transCtx) => transCtx.dataValueOrThrow<D2>());
     build(builder);
-    _onEnter = builder.descriptor;
+    _onEnter = builder._descriptor;
   }
 
   @override
@@ -264,57 +265,74 @@ class StateBuilder<D> extends StateBuilderBase implements EnterStateBuilder<D> {
     Channel<P> channel,
     void Function(TransitionHandlerBuilder<D, P>) build,
   ) {
-    var builder = TransitionHandlerBuilder<D, P>(
+    var builder = TransitionHandlerBuilder<D, P>._(
       key,
       _log,
       (transCtx) => transCtx.payloadOrThrow<P>(),
     );
     build(builder);
-    _onEnter = builder.descriptor;
+    _onEnter = builder._descriptor;
   }
 
+  /// Describes how messages of type [M] should be handled by this state.
   ///
-  void onMessage<M>(void Function(MessageHandlerBuilder<M, D, void> b) buildHandler) {
+  /// The [build] function is called with a [MessageHandlerBuilder] that can be used to describe
+  /// the behavior of the message handler.
+  void onMessage<M>(void Function(MessageHandlerBuilder<M, D, void> b) build) {
     var builder = MessageHandlerBuilder<M, D, void>(key, _makeVoidMessageContext, _log, null);
-    buildHandler(builder);
+    build(builder);
     if (builder.descriptor != null) {
-      messageHandlerMap[M] = builder.descriptor!;
+      _messageHandlerMap[M] = builder.descriptor!;
     }
   }
 
+  /// Describes how a message value of type [M] should be handled by this state.
   ///
+  /// The [build] function is called with a [MessageHandlerBuilder] that can be used to describe
+  /// the behavior of the message handler.
   void onMessageValue<M>(
     M message,
-    void Function(MessageHandlerBuilder<M, D, void> b) buildHandler, {
+    void Function(MessageHandlerBuilder<M, D, void> b) build, {
     String? messageName,
   }) {
     var builder = MessageHandlerBuilder<M, D, void>(key, _makeVoidMessageContext, _log, null);
-    buildHandler(builder);
+    build(builder);
     if (builder.descriptor != null) {
-      messageHandlerMap[message as Object] = builder.descriptor!;
+      _messageHandlerMap[message as Object] = builder.descriptor!;
     }
   }
 
+  /// Describes how transitions from this state should be handled.
+  ///
+  /// The [build] function is called with a [TransitionHandlerBuilder] that can be used to describe
+  /// the behavior of the exit transition.
   void onExit(
     void Function(TransitionHandlerBuilder<D, void>) build,
   ) {
-    var builder = TransitionHandlerBuilder<D, void>(key, _log, _makeVoidTransitionContext);
+    var builder = TransitionHandlerBuilder<D, void>._(key, _log, _makeVoidTransitionContext);
     build(builder);
-    _onExit = builder.descriptor;
+    _onExit = builder._descriptor;
   }
 
+  /// Describes how transitions from this state should be handled.
+  ///
+  /// This method can be used when the exit handler requires access to state data of type [D2] from
+  /// an ancestor state.
+  ///
+  /// The [build] function is called with a [TransitionHandlerBuilder] that can be used to
+  /// describe the behavior of the exit transition.
   void onExitWithData<D2>(
-    void Function(TransitionHandlerBuilder<D2, D2>) build,
+    void Function(TransitionHandlerBuilder<D, D2>) build,
   ) {
     var builder =
-        TransitionHandlerBuilder<D2, D2>(key, _log, (transCtx) => transCtx.dataValueOrThrow<D2>());
+        TransitionHandlerBuilder<D, D2>._(key, _log, (transCtx) => transCtx.dataValueOrThrow<D2>());
     build(builder);
-    _onExit = builder.descriptor;
+    _onExit = builder._descriptor;
   }
 
   @override
   TreeState _createState() {
-    return hasStateData
+    return _hasStateData
         ? DelegatingDataTreeState<D>(
             _typedInitialData.call,
             _createMessageHandler(),
@@ -328,9 +346,9 @@ class StateBuilder<D> extends StateBuilderBase implements EnterStateBuilder<D> {
   static bool _isEmptyDataType<D>() => !isTypeOf<D, void>();
 }
 
-class MachineData {}
-
-class MachineStateBuilder extends StateBuilderBase {
+/// Provides methods for describing the transition from a [StateTreeBuilder.machineState] that
+/// occurs when the nested state machine completes.
+class MachineStateBuilder extends _StateBuilder {
   final InitialMachine _initialMachine;
   final bool Function(Transition transition)? _isDone;
   final _currentStateRef = Ref<CurrentState?>(null);
@@ -345,7 +363,7 @@ class MachineStateBuilder extends StateBuilderBase {
     StateKey? parent, {
     required bool isFinal,
     StateDataCodec? codec,
-  }) : super._(key, isFinal, MachineData, codec, log, parent, null);
+  }) : super._(key, isFinal, NestedMachineData, codec, log, parent, null);
 
   void onMachineDone(
       void Function(MachineDoneHandlerBuilder<void, CurrentState> builder) buildHandler) {

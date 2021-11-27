@@ -12,7 +12,7 @@ import 'lifecycle.dart';
 import 'tree_state.dart';
 import 'utility.dart';
 
-import './../builders3/tree_builder.dart' as tree_builder3;
+import 'package:tree_state_machine/tree_builders3.dart' as tree_builder3;
 import './../builders3/tree_build_context.dart' as tree_build_context3;
 
 /// A state machine that manages transitions among the states in a state tree.

@@ -3,9 +3,7 @@ import 'dart:async';
 import 'package:async/async.dart';
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
-import './../../state_builder.dart';
-import './../../tree_builder.dart';
-
+import 'package:tree_state_machine/tree_builders3.dart';
 import 'authenticate_state_tree.dart' as auth;
 
 typedef AuthService = auth.AuthService;

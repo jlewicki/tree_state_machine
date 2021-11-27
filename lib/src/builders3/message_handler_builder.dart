@@ -4,7 +4,7 @@ import 'package:async/async.dart';
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
-import './state_builder.dart';
+import 'package:tree_state_machine/tree_builders3.dart';
 import './message_action_builder.dart';
 import './handlers/messages/message_handler_descriptor.dart';
 import './handlers/messages/go_to_self_descriptor.dart';

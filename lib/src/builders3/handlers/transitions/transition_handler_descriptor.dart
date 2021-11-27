@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/extensions.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
+import 'package:tree_state_machine/tree_builders3.dart';
 
 enum TransitionHandlerType { run, post, schedule, updateData, channelEntry, when, whenResult }
 
@@ -25,15 +26,6 @@ class TransitionConditionInfo {
   final TransitionHandlerInfo whenTrueInfo;
 
   TransitionConditionInfo(this.label, this.whenTrueInfo);
-}
-
-/// Provides access to the context for a message handler, including the [MessageContext], the
-/// [message] being processed, the state [data], and the context value.
-class TransitionHandlerContext<D, C> {
-  final TransitionContext transitionContext;
-  final D data;
-  final C context;
-  TransitionHandlerContext(this.transitionContext, this.data, this.context);
 }
 
 class TransitionHandlerDescriptor<C> {

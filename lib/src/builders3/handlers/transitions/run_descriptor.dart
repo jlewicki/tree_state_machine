@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/extensions.dart';
+import 'package:tree_state_machine/tree_builders3.dart';
 import './transition_handler_descriptor.dart';
 
 TransitionHandlerDescriptor<C> makeRunDescriptor<D, C>(
