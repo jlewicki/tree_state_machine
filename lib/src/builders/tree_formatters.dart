@@ -94,10 +94,10 @@ class _DotFormatter {
     }
 
     // If any of the handlers for this state post/schedule, declare a node that represents the post
-    // operation. This node is used as a 'sink' destination node for edges that represrnt the post
+    // operation. This node is used as a 'sink' destination node for edges that represent the post
     // action.
     var postNodeName = '${clusterName}_${_getStateName(state)}_post';
-    tryWritePostNode(childStates, postNodeName, sink);
+    tryWritePostNode(childStates, state.key, postNodeName, sink);
 
     // Declare initial transition
     var initialChild =
@@ -157,14 +157,30 @@ class _DotFormatter {
     sink.writeln('$tabs}');
   }
 
-  void tryWritePostNode(List<_StateBuilder> childStates, String postNodeName, StringSink sink) {
+  void tryWritePostNode(
+    List<_StateBuilder> childStates,
+    StateKey postingState,
+    String postNodeName,
+    StringSink sink,
+  ) {
     var firstPostOrSchedule = childStates
         .expand((child) => child._messageHandlerMap.values)
-        .firstWhereOrNull((descr) => descr.info.actions.any(
+        .expand((descr) => _expandConditionHandlers([descr.info]))
+        .firstWhereOrNull((info) => info.actions.any(
             (act) => act.actionType == ActionType.post || act.actionType == ActionType.schedule));
     var hasPostHandler = firstPostOrSchedule != null;
     if (hasPostHandler) {
       sink.writeln('${_indent()}$postNodeName [shape=circle, style=dotted, label=""]');
+    }
+  }
+
+  Iterable<MessageHandlerInfo> _expandConditionHandlers(Iterable<MessageHandlerInfo> infos) sync* {
+    for (var info in infos) {
+      if (info.conditions.isNotEmpty) {
+        yield* _expandConditionHandlers(info.conditions.map((c) => c.whenTrueInfo));
+      } else {
+        yield info;
+      }
     }
   }
 
