@@ -12,9 +12,6 @@ import 'lifecycle.dart';
 import 'tree_state.dart';
 import 'utility.dart';
 
-import 'package:tree_state_machine/tree_builders3.dart' as tree_builder3;
-import './../builders3/tree_build_context.dart' as tree_build_context3;
-
 /// A state machine that manages transitions among the states in a state tree.
 ///
 /// A [TreeStateMachine] is constructed with a [StateTreeBuilder] that will create the specific
@@ -100,24 +97,6 @@ class TreeStateMachine {
     logName = logName ?? treeBuilder.logName;
     TreeStateMachine? treeMachine;
     var buildCtx = TreeBuildContext();
-    var rootNode = treeBuilder(buildCtx);
-    var machine = Machine(
-      rootNode,
-      buildCtx.nodes,
-      (message) => treeMachine!._queueMessage(message),
-      logName: logName,
-    );
-    var log = Logger(
-      'tree_state_machine.TreeStateMachine${logName != null ? '.' + logName : ''}',
-    );
-    return treeMachine = TreeStateMachine._(machine, log);
-  }
-
-  factory TreeStateMachine.fromNewBuilder(tree_builder3.StateTreeBuilder treeBuilder,
-      {String? logName}) {
-    logName = logName ?? treeBuilder.logName;
-    TreeStateMachine? treeMachine;
-    var buildCtx = tree_build_context3.TreeBuildContext();
     var rootNode = treeBuilder(buildCtx);
     var machine = Machine(
       rootNode,

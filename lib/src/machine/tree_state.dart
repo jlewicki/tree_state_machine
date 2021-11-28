@@ -282,7 +282,7 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
   CurrentState? currentNestedState;
 
   NestedMachineState(this.nestedMachine, this.onDone, this._log, this.isDone, this._onDisposed)
-      : super(InitialData(() => NestedMachineData()).eval);
+      : super(InitialData(() => NestedMachineData()).call);
 
   @override
   FutureOr<void> onEnter(TransitionContext transCtx) {

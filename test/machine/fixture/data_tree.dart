@@ -37,7 +37,7 @@ StateTreeBuilder treeBuilder({
   final _exitHandlers = exitHandlers ?? {};
   final _initialDataValueCreators = initialDataValues ?? {};
 
-  void Function(StateBuilder) buildState(StateKey key) {
+  void Function(StateBuilder<void>) buildState(StateKey key) {
     return (b) {
       b.runOnMessage(_messageHandlers[key] ?? _createMessageHandler(key));
       b.runOnEnter(_entryHandlers[key] ?? _createEntryHandler(key));
@@ -45,7 +45,7 @@ StateTreeBuilder treeBuilder({
     };
   }
 
-  void Function(DataStateBuilder<D>) buildDataState<D>(StateKey key) {
+  void Function(StateBuilder<D>) buildDataState<D>(StateKey key) {
     return (b) {
       b.runOnMessage(_messageHandlers[key] ?? _createMessageHandler(key));
       b.runOnEnter(_entryHandlers[key] ?? _createEntryHandler(key));
@@ -53,13 +53,13 @@ StateTreeBuilder treeBuilder({
     };
   }
 
-  void Function(FinalStateBuilder) buildFinalState(StateKey key) {
+  void Function(EnterStateBuilder<void>) buildFinalState(StateKey key) {
     return (b) {
       b.runOnEnter(_entryHandlers[key] ?? _createEntryHandler(key));
     };
   }
 
-  void Function(FinalDataStateBuilder<D>) buildFinalDataState<D>(StateKey key) {
+  void Function(EnterStateBuilder<D>) buildFinalDataState<D>(StateKey key) {
     return (b) {
       b.runOnEnter(_entryHandlers[key] ?? _createEntryHandler(key));
     };

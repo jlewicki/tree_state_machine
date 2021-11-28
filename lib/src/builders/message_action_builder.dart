@@ -1,4 +1,4 @@
-part of tree_builders3;
+part of tree_builders;
 
 /// Provides methods for describing actions that can be taken while a state handles a message.
 ///
@@ -202,7 +202,7 @@ class MessageActionBuilder<M, D, C> {
       info,
       (ctx) => _getMessage(ctx).bind((msg) {
         _log.fine(() => "State '$_forState' is posting message of type $M2");
-        ctx.messageContext.post(() => msg as Object);
+        ctx.messageContext.post(msg as Object);
       }),
     );
   }

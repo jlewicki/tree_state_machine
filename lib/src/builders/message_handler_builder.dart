@@ -1,4 +1,4 @@
-part of tree_builders3;
+part of tree_builders;
 
 /// Describes the message processing result of runnin an action with [MessageHandlerBuilder.action].
 enum ActionResult {
@@ -22,6 +22,23 @@ class _MessageHandlerBuilder<M, D, C> implements _MessageHandlerDescriptorProvid
   MessageHandlerDescriptor<C>? descriptor;
 
   _MessageHandlerBuilder(this._forState, this._makeContext, this._log, this._messageName);
+
+  /// A [MessageActionBuilder] that can be used to specify actions that should take place when
+  /// handling messages.
+  ///
+  /// ```dart
+  /// class MyMessage {}
+  /// var state1 = StateKey('s1');
+  /// var state2 = StateKey('s2');
+  /// var builder = StateTreeBuilder(initialState: state1);
+  /// builder.state(state1, (b) {
+  ///   b.onMessage<MyMessage>((b) => b.goTo(
+  ///     state2,
+  ///     // Perform an action before state transition occurs.
+  ///     action: b.act.run((ctx) =>
+  ///       print('Going to $state2 in response to message ${ctx.message}')));
+  /// });
+  late final act = MessageActionBuilder<M, D, C>(_forState, _log);
 }
 
 mixin _GoToHandlerBuilderMixin<M, D, C> on _MessageHandlerBuilder<M, D, C> {
@@ -103,23 +120,6 @@ class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
     Logger log,
     String? messageName,
   ) : super(forState, makeContext, log, messageName);
-
-  /// A [MessageActionBuilder] that can be used to specify actions that should take place when
-  /// handling messages.
-  ///
-  /// ```dart
-  /// class MyMessage {}
-  /// var state1 = StateKey('s1');
-  /// var state2 = StateKey('s2');
-  /// var builder = StateTreeBuilder(initialState: state1);
-  /// builder.state(state1, (b) {
-  ///   b.onMessage<MyMessage>((b) => b.goTo(
-  ///     state2,
-  ///     // Perform an action before state transition occurs.
-  ///     action: b.act.run((ctx) =>
-  ///       print('Going to $state2 in response to message ${ctx.message}')));
-  /// });
-  late final act = MessageActionBuilder<M, D, C>(_forState, _log);
 
   /// Indicates that the message has been handled, and that a self transition should occur.
   ///

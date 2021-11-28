@@ -1,4 +1,4 @@
-part of tree_builders3;
+part of tree_builders;
 
 /// Indicates that a value of type [P] must be provided when entering a state.
 ///
@@ -193,6 +193,8 @@ abstract class _StateBuilder {
 /// Provides methods for describing the behavior of a state, carrying state data of type [D], when
 /// is entered. [D] may be `void` if the state does not have any associated state data.
 abstract class EnterStateBuilder<D> {
+  void runOnEnter(TransitionHandler handler, {String? label});
+
   /// Describes how transitions to this state should be handled.
   ///
   /// The [build] function is called with a [TransitionHandlerBuilder] that can be used to describe
@@ -274,12 +276,47 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
     _onEnter = builder._descriptor;
   }
 
+  void runOnMessage(MessageHandler handler) {
+    _messageHandler = handler;
+  }
+
+  @override
+  void runOnEnter(TransitionHandler handler, {String? label}) {
+    _onEnter = TransitionHandlerDescriptor.ofHandler(handler, label);
+  }
+
+  void runOnExit(TransitionHandler handler, {String? label}) {
+    _onExit = TransitionHandlerDescriptor.ofHandler(handler, label);
+  }
+
   /// Describes how messages of type [M] should be handled by this state.
   ///
   /// The [build] function is called with a [MessageHandlerBuilder] that can be used to describe
   /// the behavior of the message handler.
-  void onMessage<M>(void Function(MessageHandlerBuilder<M, D, void> b) build) {
+  void onMessage<M>(void Function(MessageHandlerBuilder<M, D, void> b) build, {M? message}) {
     var builder = MessageHandlerBuilder<M, D, void>(key, _makeVoidMessageContext, _log, null);
+    build(builder);
+    if (builder.descriptor != null) {
+      var messageKey = message ?? M;
+      _messageHandlerMap[messageKey] = builder.descriptor!;
+    }
+  }
+
+  /// Describes how messages of type [M] should be handled by this state, when provided ancestor
+  /// state data of type [D2].
+  ///
+  /// This method can be used when the message handler for a state requires access to state data
+  /// from one of its ancestor states.
+  ///
+  /// The [build] function is called with a [TransitionHandlerBuilder] that can be used to
+  /// describe the behavior of the exit transition.
+  void onMessageWithData<M, D2>(void Function(MessageHandlerBuilder<M, D, D2> b) build) {
+    var builder = MessageHandlerBuilder<M, D, D2>(
+      key,
+      (msgCtx) => msgCtx.dataValueOrThrow<D2>(),
+      _log,
+      null,
+    );
     build(builder);
     if (builder.descriptor != null) {
       _messageHandlerMap[M] = builder.descriptor!;
@@ -343,7 +380,9 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
         : super._createState();
   }
 
-  static bool _isEmptyDataType<D>() => !isTypeOf<D, void>();
+  static bool _isEmptyDataType<D>() {
+    return TypeLiteral<D>().type == TypeLiteral<void>().type;
+  }
 }
 
 /// Provides methods for describing the transition from a [StateTreeBuilder.machineState] that
@@ -376,6 +415,19 @@ class MachineStateBuilder extends _StateBuilder {
     );
     buildHandler(builder);
     _doneDescriptor = builder.descriptor;
+  }
+
+  void onMachineDisposed(
+    void Function(MachineDoneHandlerBuilder<void> builder) buildHandler,
+  ) {
+    var builder = MachineDoneHandlerBuilder<void>._(
+      key,
+      (_) {},
+      _log,
+      null,
+    );
+    buildHandler(builder);
+    _disposedDescriptor = builder.descriptor;
   }
 
   @override

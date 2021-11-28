@@ -1,4 +1,4 @@
-part of tree_builders3;
+part of tree_builders;
 
 /// Provides access to the context for a message handler, including the [MessageContext], the
 /// [message] of type [M] being processed, the state [data] of type [D], and a context value of type

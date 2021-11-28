@@ -1,382 +1,70 @@
-part of tree_builders;
+import 'dart:async';
 
-class _WhenDescriptor extends _MessageHandlerDescriptor {
-  @override
-  final _MessageHandlerType handlerType = _MessageHandlerType.when;
-  @override
-  final Type messageType;
-  @override
-  final MessageHandler handler;
-  final List<_MessageConditionInfo> conditions;
-  @override
-  final String? label;
-  @override
-  final String? messageName;
-  _WhenDescriptor._(this.messageType, this.messageName, this.conditions, this.handler, this.label);
+import 'package:logging/logging.dart';
+import 'package:tree_state_machine/src/machine/tree_state.dart';
+import 'package:tree_state_machine/src/machine/utility.dart';
+import 'package:tree_state_machine/src/machine/extensions.dart';
+import 'package:tree_state_machine/tree_builders.dart';
+import './message_handler_descriptor.dart';
 
-  @override
-  List<_MessageActionInfo> get actions =>
-      conditions.expand((c) => c.whenTrueDescriptor.actions).toList();
+typedef TransitionCondition<C, D> = FutureOr<bool> Function(
+    TransitionContext transCtx, C ctx, D data);
 
-  static _WhenDescriptor createForMessage<M>(
-    List<_MessageCondition<M>> conditions, {
-    String? label,
-    String? messageName,
-  }) {
-    return _WhenDescriptor._(
-      TypeLiteral<M>().type,
-      messageName,
-      conditions,
-      (msgCtx) => _runConditions<M>(
-        conditions.iterator,
-        msgCtx,
-        msgCtx.messageAsOrThrow<M>(),
-      ),
-      label,
-    );
-  }
-
-  static _WhenDescriptor createForMessageAndData<M, D>(
-    List<_MessageConditionWithContext<M, D>> conditions, {
-    String? label,
-    String? messageName,
-  }) {
-    return _WhenDescriptor._(
-      TypeLiteral<M>().type,
-      messageName,
-      conditions,
-      (msgCtx) => _runConditionsWithContext<M, D>(
-          conditions.iterator, msgCtx, msgCtx.messageAsOrThrow<M>(), msgCtx.dataValueOrThrow<D>()),
-      label,
-    );
-  }
-
-  static FutureOr<MessageResult> _runConditions<M>(
-      Iterator<_MessageCondition<M>> conditionIterator, MessageContext msgCtx, M msg) {
-    if (!conditionIterator.moveNext()) {
-      return msgCtx.unhandled();
-    }
-
-    var condition = conditionIterator.current;
-    return condition._condition(msgCtx, msgCtx.messageAsOrThrow<M>()).bind((allowed) => allowed
-        ? condition.whenTrueDescriptor.handler(msgCtx)
-        : _runConditions(conditionIterator, msgCtx, msg));
-  }
-
-  static FutureOr<MessageResult> _runConditionsWithContext<M, T>(
-    Iterator<_MessageConditionWithContext<M, T>> conditionIterator,
-    MessageContext msgCtx,
-    M msg,
-    T ctx,
-  ) {
-    if (!conditionIterator.moveNext()) {
-      return msgCtx.unhandled();
-    }
-    var condition = conditionIterator.current;
-    return condition._condition(msgCtx, msgCtx.messageAsOrThrow<M>(), ctx).bind((allowed) => allowed
-        ? condition.whenTrueDescriptor.handler(msgCtx)
-        : _runConditionsWithContext(conditionIterator, msgCtx, msg, ctx));
-  }
-
-  static FutureOr<MessageResult> _runConditionsWithDataContext<M, D, T>(
-    Iterator<_MessageConditionWithDataAndContext<M, D, T>> conditionIterator,
-    MessageContext msgCtx,
-    M msg,
-    D data,
-    T ctx,
-  ) {
-    if (!conditionIterator.moveNext()) {
-      return msgCtx.unhandled();
-    }
-    var condition = conditionIterator.current;
-    return condition._condition(msgCtx, msg, data, ctx).bind((allowed) => allowed
-        ? condition.whenTrueDescriptor.handler(msgCtx)
-        : _runConditionsWithDataContext(conditionIterator, msgCtx, msg, data, ctx));
-  }
+MessageHandlerDescriptor<C> makeWhenMessageDescriptor<M, D, C>(
+  List<MessageConditionDescriptor<M, D, C>> conditions,
+  FutureOr<C> Function(MessageContext) makeContext,
+  Logger log,
+  String? label,
+  String? messageName,
+) {
+  var conditionInfos = conditions.map((e) => e.info).toList();
+  var info = MessageHandlerInfo(MessageHandlerType.when, M, [], conditionInfos, messageName, label);
+  return MessageHandlerDescriptor<C>(
+    info,
+    makeContext,
+    (descrCtx) => (msgCtx) {
+      var msg = msgCtx.messageAsOrThrow<M>();
+      var data = msgCtx.dataValueOrThrow<D>();
+      var handlerCtx = MessageHandlerContext<M, D, C>(msgCtx, msg, data, descrCtx.ctx);
+      return _runConditions<M, D, C>(conditions.iterator, handlerCtx);
+    },
+  );
 }
 
-class _WhenWithContextDescriptor extends _MessageHandlerDescriptor {
-  @override
-  final _MessageHandlerType handlerType = _MessageHandlerType.whenWithContext;
-  @override
-  final Type messageType;
-  @override
-  final MessageHandler handler;
-  @override
-  final String? label;
-  @override
-  final String? messageName;
-  final List<_MessageConditionInfo> conditions;
-  _WhenWithContextDescriptor._(
-      this.messageType, this.messageName, this.conditions, this.handler, this.label);
+// TransitionHandlerDescriptor<C> makeWhenWithContextDescriptor<D, C, C2>(
+//   FutureOr<C2> Function(TransitionContext msgCtx, D data, C ctx) context,
+//   List<TransitionConditionDescriptor<C2>> conditions,
+//   FutureOr<C> Function(TransitionContext) makeContext,
+//   Logger log,
+//   String? label,
+// ) {
+//   var conditionInfos = conditions.map((e) => e.info).toList();
+//   var info = TransitionHandlerInfo(TransitionHandlerType.when, conditionInfos, label);
+//   return TransitionHandlerDescriptor<C>(
+//     info,
+//     makeContext,
+//     (ctx) => (transCtx) {
+//       var data = transCtx.dataValueOrThrow<D>();
+//       return context(transCtx, data, ctx.ctx).bind(
+//         (newCtx) => _runConditions<C2>(conditions.iterator, newCtx, transCtx),
+//       );
+//     },
+//   );
+// }
 
-  @override
-  List<_MessageActionInfo> get actions =>
-      conditions.expand((c) => c.whenTrueDescriptor.actions).toList();
-
-  static _ContinuationMessageHandlerDescriptor<T> createContinuation<M, T>(
-    List<_ContinuationMessageCondition<M, T>> conditions, {
-    String? label,
-    String? messageName,
-  }) {
-    // var info = (MessageHandlerType.whenWithContext, M, messageName, [], label);
-    return _DeferredMessageHandlerDescriptor(
-        _MessageHandlerType.whenWithContext, M, messageName, [], label, (ctx) {
-      return (msgCtx) {
-        return _WhenDescriptor._runConditionsWithContext<M, T>(
-          conditions.map((c) => c._condition(ctx)).iterator,
-          msgCtx,
-          msgCtx.messageAsOrThrow<M>(),
-          ctx,
-        );
-      };
+FutureOr<MessageResult> _runConditions<M, D, C>(
+  Iterator<MessageConditionDescriptor<M, D, C>> conditionIterator,
+  MessageHandlerContext<M, D, C> ctx,
+) {
+  if (conditionIterator.moveNext()) {
+    var conditionDescr = conditionIterator.current;
+    return conditionDescr.evaluate(ctx).bind((allowed) {
+      if (allowed) {
+        var handler = conditionDescr.whenTrueDescriptor.makeHandler();
+        return handler(ctx.messageContext);
+      }
+      return _runConditions(conditionIterator, ctx);
     });
   }
-
-  static _WhenWithContextDescriptor createForMessage<M, T>(
-    FutureOr<T> Function(MessageContext ctx, M message) context,
-    List<_MessageConditionWithContext<M, T>> conditions, {
-    String? label,
-    String? messageName,
-  }) {
-    return _WhenWithContextDescriptor._(
-      TypeLiteral<M>().type,
-      messageName,
-      conditions,
-      (msgCtx) {
-        var msg = msgCtx.messageAsOrThrow<M>();
-        return context(msgCtx, msg).bind((ctx) => _WhenDescriptor._runConditionsWithContext<M, T>(
-              conditions.iterator,
-              msgCtx,
-              msgCtx.messageAsOrThrow<M>(),
-              ctx,
-            ));
-      },
-      label,
-    );
-  }
-
-  static _WhenWithContextDescriptor createForMessageAndData<M, D, T>(
-    FutureOr<T> Function(MessageContext ctx, M message, D data) context,
-    List<_MessageConditionWithDataAndContext<M, D, T>> conditions, {
-    String? label,
-    String? messageName,
-  }) {
-    return _WhenWithContextDescriptor._(
-      TypeLiteral<M>().type,
-      messageName,
-      conditions,
-      (msgCtx) {
-        var msg = msgCtx.messageAsOrThrow<M>();
-        var data = msgCtx.dataValueOrThrow<D>();
-        return context(msgCtx, msg, data)
-            .bind((ctx) => _WhenDescriptor._runConditionsWithDataContext<M, D, T>(
-                  conditions.iterator,
-                  msgCtx,
-                  msgCtx.messageAsOrThrow<M>(),
-                  data,
-                  ctx,
-                ));
-      },
-      label,
-    );
-  }
-}
-
-class _ContinuationWhenDescriptor extends _MessageHandlerDescriptor {
-  @override
-  final _MessageHandlerType handlerType = _MessageHandlerType.whenContinuation;
-  @override
-  final Type messageType;
-  @override
-  final MessageHandler handler;
-  @override
-  final String? label;
-  @override
-  final String? messageName;
-  final List<_MessageConditionInfo> conditions;
-  _ContinuationWhenDescriptor._(
-      this.messageType, this.messageName, this.conditions, this.handler, this.label);
-
-  @override
-  List<_MessageActionInfo> get actions =>
-      conditions.expand((c) => c.whenTrueDescriptor.actions).toList();
-
-  static _ContinuationWhenDescriptor createForMessage<M, T>(
-    FutureOr<T> Function(MessageContext ctx, M message) context,
-    List<_MessageConditionWithContext<M, T>> conditions, {
-    String? label,
-    String? messageName,
-  }) {
-    return _ContinuationWhenDescriptor._(
-      TypeLiteral<M>().type,
-      messageName,
-      conditions,
-      (msgCtx) {
-        var msg = msgCtx.messageAsOrThrow<M>();
-        return context(msgCtx, msg).bind((ctx) => _WhenDescriptor._runConditionsWithContext<M, T>(
-              conditions.iterator,
-              msgCtx,
-              msgCtx.messageAsOrThrow<M>(),
-              ctx,
-            ));
-      },
-      label,
-    );
-  }
-}
-
-class _WhenResultDescriptor extends _MessageHandlerDescriptor {
-  @override
-  final _MessageHandlerType handlerType = _MessageHandlerType.whenResult;
-  @override
-  final Type messageType;
-  @override
-  final MessageHandler handler;
-  @override
-  final String? label;
-  @override
-  final String? messageName;
-  final _MessageConditionInfo successCondition;
-  final Ref<_ContinuationMessageHandlerDescriptor<AsyncError>?> errorContinuationRef;
-
-  _WhenResultDescriptor._(
-    this.messageType,
-    this.messageName,
-    this.successCondition,
-    this.errorContinuationRef,
-    this.handler,
-    this.label,
-  );
-
-  @override
-  List<_MessageActionInfo> get actions => [];
-
-  List<_MessageConditionInfo> get conditions => [
-        successCondition,
-        if (errorContinuationRef.value != null)
-          _MessageConditionInfo('failure', errorContinuationRef.value!)
-      ];
-
-  static _WhenResultDescriptor createForMessage<M, T>(
-    StateKey forState,
-    FutureOr<Result<T>> Function(MessageContext ctx, M message) _result,
-    _ContinuationMessageHandlerDescriptor<T> successContinuation,
-    Ref<_ContinuationMessageHandlerDescriptor<AsyncError>?> errorContinuationRef,
-    Logger log,
-    String? label,
-    String? messageName,
-  ) {
-    var conditionLabel = label != null ? '$label success' : 'success';
-    return _WhenResultDescriptor._(
-      TypeLiteral<M>().type,
-      messageName,
-      _MessageConditionInfo(conditionLabel, successContinuation),
-      errorContinuationRef,
-      (msgCtx) {
-        var msg = msgCtx.messageAsOrThrow<M>();
-        return _result(msgCtx, msg).bind((result) => _handleResult(
-            forState, msgCtx, result, successContinuation, errorContinuationRef, log));
-      },
-      label,
-    );
-  }
-
-  static _WhenResultDescriptor createForMessageAndData<M, D, T>(
-    StateKey forState,
-    FutureOr<Result<T>> Function(MessageContext msgCtx, M msg, D data) getResult,
-    _ContinuationMessageHandlerDescriptor<T> successContinuation,
-    Ref<_ContinuationMessageHandlerDescriptor<AsyncError>?> errorContinuationRef,
-    String? label,
-    String? messageName,
-    Logger log,
-  ) {
-    FutureOr<Result<T>> _getResult(MessageContext msgCtx, M msg, D data) {
-      log.finer("State '$forState' invoking getResult function");
-      return getResult(msgCtx, msg, data);
-    }
-
-    var conditionLabel = label != null ? '$label success' : 'success';
-    return _WhenResultDescriptor._(
-      TypeLiteral<M>().type,
-      messageName,
-      _MessageConditionInfo(conditionLabel, successContinuation),
-      errorContinuationRef,
-      (msgCtx) {
-        var msg = msgCtx.messageAsOrThrow<M>();
-        var data = msgCtx.dataValueOrThrow<D>();
-        return _getResult(msgCtx, msg, data).bind((result) => _handleResult(
-            forState, msgCtx, result, successContinuation, errorContinuationRef, log));
-      },
-      label,
-    );
-  }
-
-  static FutureOr<MessageResult> _handleResult<T>(
-    StateKey forState,
-    MessageContext msgCtx,
-    Result<T> result,
-    _ContinuationMessageHandlerDescriptor<T> successContinuation,
-    Ref<_ContinuationMessageHandlerDescriptor<AsyncError>?> errorContinuationRef,
-    Logger log,
-  ) {
-    if (result.isError) {
-      var err = result.asError!;
-      var asyncErr = AsyncError(err.error, err.stackTrace);
-      log.fine("State '$forState' received error result '${asyncErr.error}'");
-      if (errorContinuationRef.value != null) {
-        log.finer("Invoking error continuation");
-        var errorHandler = errorContinuationRef.value!.continuation(asyncErr);
-        return errorHandler(msgCtx);
-      } else {
-        log.finer("Throwing error because no error continuation has been registered");
-        throw asyncErr;
-      }
-    }
-    log.finer("State '$forState' received a success result");
-    var successHandler = successContinuation.continuation(result.asValue!.value);
-    return successHandler(msgCtx);
-  }
-}
-
-class _MessageConditionInfo {
-  final String? label;
-  final _MessageHandlerInfo whenTrueDescriptor;
-  _MessageConditionInfo(this.label, this.whenTrueDescriptor);
-}
-
-class _MessageCondition<M> implements _MessageConditionInfo {
-  final FutureOr<bool> Function(MessageContext msgCtx, M msg) _condition;
-  @override
-  final _MessageHandlerDescriptor whenTrueDescriptor;
-  @override
-  final String? label;
-  _MessageCondition(this._condition, this.whenTrueDescriptor, this.label);
-}
-
-class _MessageConditionWithContext<M, T> implements _MessageConditionInfo {
-  final FutureOr<bool> Function(MessageContext msgCtx, M msg, T ctx) _condition;
-  @override
-  final _MessageHandlerDescriptor whenTrueDescriptor;
-  @override
-  final String? label;
-  _MessageConditionWithContext(this._condition, this.whenTrueDescriptor, this.label);
-}
-
-class _ContinuationMessageCondition<M, T> implements _MessageConditionInfo {
-  final _MessageConditionWithContext<M, T> Function(T ctx) _condition;
-  @override
-  final _ContinuationMessageHandlerDescriptor<T> whenTrueDescriptor;
-  @override
-  final String? label;
-  _ContinuationMessageCondition(this._condition, this.whenTrueDescriptor, this.label);
-}
-
-class _MessageConditionWithDataAndContext<M, D, T> implements _MessageConditionInfo {
-  final FutureOr<bool> Function(MessageContext msgCtx, M msg, D data, T ctx) _condition;
-  @override
-  final _MessageHandlerDescriptor whenTrueDescriptor;
-  @override
-  final String? label;
-  _MessageConditionWithDataAndContext(this._condition, this.whenTrueDescriptor, this.label);
+  return ctx.messageContext.unhandled();
 }

@@ -13,13 +13,13 @@ void main() {
 
         var b = StateTreeBuilder(initialState: state1);
         b.state(state1, (b) {
-          b.onMessage<Message>((b) => b.enterChannel(channel, (msgCtx, msg) => 'hi'));
+          b.onMessage<Message>((b) => b.enterChannel(channel, (_) => 'hi'));
         });
         b.dataState<StateData>(
           state2,
           InitialData.fromChannel(channel, (String payload) => StateData()..val = payload),
           (b) {
-            b.onEnter((b) => b.run((transCtx, data) => entryData = data));
+            b.onEnter((b) => b.run((ctx) => entryData = ctx.data));
           },
         );
 
@@ -44,7 +44,7 @@ void main() {
         b.dataState<StateData>(
           state2,
           InitialData(() => StateData()..val = '2'),
-          emptyDataState,
+          emptyState,
           initialChild: InitialChild(state3),
         );
         b.dataState<StateData2>(
@@ -52,7 +52,7 @@ void main() {
           InitialData.fromAncestor(
               (StateData ancData) => StateData2()..val = int.parse(ancData.val)),
           (b) {
-            b.onEnter((b) => b.run((transCtx, data) => entryData = data));
+            b.onEnter((b) => b.run((ctx) => entryData = ctx.data));
           },
           parent: state2,
         );
@@ -74,12 +74,12 @@ void main() {
 
         var b = StateTreeBuilder(initialState: state1);
         b.state(state1, (b) {
-          b.onMessage<Message>((b) => b.enterChannel(channel, (_, __) => '3'));
+          b.onMessage<Message>((b) => b.enterChannel(channel, (_) => '3'));
         });
         b.dataState<StateData>(
           state2,
           InitialData(() => StateData()..val = '2'),
-          emptyDataState,
+          emptyState,
           initialChild: InitialChild(state3),
         );
         b.dataState<StateData2>(
@@ -90,7 +90,7 @@ void main() {
                 StateData2()..val = int.parse(ancData.val + payload),
           ),
           (b) {
-            b.onEnter((b) => b.run((transCtx, data) => entryData = data));
+            b.onEnter((b) => b.run((ctx) => entryData = ctx.data));
           },
           parent: state2,
         );
