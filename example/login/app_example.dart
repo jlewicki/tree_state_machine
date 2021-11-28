@@ -107,9 +107,6 @@ void main() async {
   );
 
   var treeBuilder = appStateTree(authService);
-  // var s = StringBuffer();
-  // treeBuilder.format(s, DotFormatter());
-  // var dot = s.toString();
 
   var stateMachine = TreeStateMachine(treeBuilder);
   var currentState = await stateMachine.start();
@@ -146,6 +143,10 @@ void main() async {
 
   await currentState.post(auth.SubmitCredentials('phoebes@smellycat.com', 'imnotursala'));
   assert(nestedState.key == auth.States.demographicsRegistration);
+
+  var sb = StringBuffer();
+  treeBuilder.format(sb, DotFormatter());
+  print(sb.toString());
 
   // await currentState.post(SubmitDemographics('Phoebe', 'Buffay'));
 

@@ -33,4 +33,8 @@ Future<void> main() async {
 
   await currentState.post(Messages.push);
   assert(currentState.key == States.locked);
+
+  var sb = StringBuffer();
+  treeBuilder.format(sb, DotFormatter());
+  print(sb.toString());
 }

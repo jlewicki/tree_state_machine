@@ -13,9 +13,10 @@ TransitionHandlerDescriptor<C> makeScheduleDescriptor<D, C, M>(
   bool periodic,
   FutureOr<C> Function(TransitionContext) makeContext,
   Logger log,
+  String messageType,
   String? label,
 ) {
-  var info = TransitionHandlerInfo(TransitionHandlerType.schedule, [], label);
+  var info = TransitionHandlerInfo(TransitionHandlerType.schedule, [], label, messageType);
   return TransitionHandlerDescriptor<C>(
     info,
     makeContext,

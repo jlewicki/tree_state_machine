@@ -18,16 +18,16 @@ enum TransitionHandlerType {
 
 class TransitionHandlerInfo {
   final TransitionHandlerType handlerType;
-  final List<TransitionConditionInfo> conditions;
+  final Iterable<TransitionConditionInfo> conditions;
   final String? label;
-  final Type? messageType;
+  final String? postOrScheduleMessageType;
   final Type? updateDataType;
 
   TransitionHandlerInfo(
     this.handlerType,
     this.conditions,
     this.label, [
-    this.messageType,
+    this.postOrScheduleMessageType,
     this.updateDataType,
   ]);
 }

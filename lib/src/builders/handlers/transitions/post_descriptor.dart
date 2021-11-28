@@ -11,9 +11,10 @@ TransitionHandlerDescriptor<C> makePostDescriptor<D, C, M>(
   FutureOr<M> Function(TransitionHandlerContext<D, C> ctx) getMessage,
   FutureOr<C> Function(TransitionContext) makeContext,
   Logger log,
+  String messageType,
   String? label,
 ) {
-  var info = TransitionHandlerInfo(TransitionHandlerType.post, [], label, M);
+  var info = TransitionHandlerInfo(TransitionHandlerType.post, [], label, messageType);
   return TransitionHandlerDescriptor<C>(
     info,
     makeContext,

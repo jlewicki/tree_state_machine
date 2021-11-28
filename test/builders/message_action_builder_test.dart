@@ -40,7 +40,6 @@ void main() {
 
     group('post', () {
       test('should post message', () async {
-        enableLogging();
         var b = StateTreeBuilder(initialState: state1);
         b.state(state1, (b) {
           b.onMessage<Message>((b) => b.stay(action: b.act.post(message: Message2())));

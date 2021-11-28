@@ -170,7 +170,7 @@ class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
       _log,
       _forState,
       action,
-      action.info.label,
+      null,
       _messageName,
       handled: true,
     );
@@ -193,9 +193,19 @@ class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
     );
   }
 
+  /// Describes message handling behavior that may be run conditionally, sharing a context value
+  /// among conditions.
+  ///
+  /// The returned [TransitionHandlerWhenBuilder] may be used to define additional conditional
+  /// behavior, including a fallback [TransitionHandlerWhenBuilder.otherwise] condition.
+  ///
+  /// When the message is being processed, the [condition] functions are evaluated. If the function
+  /// returns `true`, the behavior described by the [buildTrue] callback will take place. If more
+  /// than one condition is defined, the conditions are evaluated in the order they are
+  /// defined by calls to [TransitionHandlerWhenBuilder.when].
   MessageHandlerWhenBuilder<M, D, C> when(
     FutureOr<bool> Function(MessageHandlerContext<M, D, C>) condition,
-    void Function(MessageHandlerBuilder<M, D, C> builder) buildTrueHandler, {
+    void Function(MessageHandlerBuilder<M, D, C> builder) buildTrue, {
     String? label,
   }) {
     var conditions = <MessageConditionDescriptor<M, D, C>>[];
@@ -204,9 +214,54 @@ class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
       conditions,
     );
 
-    whenBuilder.when(condition, buildTrueHandler, label: label);
+    whenBuilder.when(condition, buildTrue, label: label);
     descriptor =
         makeWhenMessageDescriptor<M, D, C>(conditions, _makeContext, _log, label, _messageName);
+    return whenBuilder;
+  }
+
+  /// Describes message handling behavior that may be run conditionally, sharing a context value
+  /// among conditions.
+  ///
+  /// This method is similar to [when], but a [context] function providing a contextual value is
+  /// first called before evaluating any conditions. The context value can be accessed by the
+  /// conditions with the [MessageHandlerContext.context] property. This may be useful in
+  /// avoiding generating the context value repeatedly in each condition.
+  ///
+  /// The returned [TransitionHandlerWhenBuilder] may be used to define additional conditional
+  /// behavior, including a fallback [TransitionHandlerWhenBuilder.otherwise] condition.
+  ///
+  /// When the message is being processed, the [condition] functions are evaluated. If the function
+  /// returns `true`, the behavior described by the [buildTrue] callback will take place. If more
+  /// than one condition is defined, the conditions are evaluated in the order they are
+  /// defined by calls to [TransitionHandlerWhenBuilder.when].
+  MessageHandlerWhenBuilder<M, D, C2> whenWith<C2>(
+    FutureOr<C2> Function(MessageHandlerContext<M, D, C> ctx) context,
+    FutureOr<bool> Function(MessageHandlerContext<M, D, C2> ctx) condition,
+    void Function(MessageHandlerBuilder<M, D, C2> builder) buildTrue, {
+    String? label,
+  }) {
+    var contextRef = Ref<C2?>(null);
+    var conditions = <MessageConditionDescriptor<M, D, C2>>[];
+    var whenBuilder = MessageHandlerWhenBuilder<M, D, C2>(
+      () => MessageHandlerBuilder<M, D, C2>(
+        _forState,
+        (_) => contextRef.value!,
+        _log,
+        _messageName,
+      ),
+      conditions,
+    );
+
+    whenBuilder.when(condition, buildTrue, label: label);
+    descriptor = makeWhenWithContextMessageDescriptor<M, D, C, C2>(
+      context,
+      conditions,
+      _makeContext,
+      _log,
+      label,
+      _messageName,
+    );
     return whenBuilder;
   }
 

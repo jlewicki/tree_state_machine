@@ -63,10 +63,14 @@ Future<void> main() async {
   await currentState.post(Messages.start);
   assert(currentState.key == States.green);
 
-  await Future.delayed(Duration(seconds: 20));
+  await Future.delayed(Duration(seconds: 1));
 
   await currentState.post(Messages.stop);
   assert(currentState.key == States.stopped);
+
+  var sb = StringBuffer();
+  treeBuilder.format(sb, DotFormatter());
+  print(sb.toString());
 }
 
 void initLogging() {

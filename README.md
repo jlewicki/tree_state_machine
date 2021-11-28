@@ -165,13 +165,13 @@ treeBuilder.state(States.credentialsRegistration, (b) {
    b.onMessage<SubmitCredentials>((b) {
       b.goTo(States.demographicsRegistration,
          // Update the RegisterData state data owned by the parent 
-         // Registration state. The callback is provided the message 
-         // context, the SubmitCredentials message being handled, and 
-         // the current state data value. The callback returns the new
-         // state data value.  
-         action: b.act.updateData<RegisterData>((msgCtx, msg, data) => data
-            ..email = msg.email
-            ..password = msg.password));
+         // Registration state. The callback is provided a 
+         // MessageHandlerContext, which gives access to the 
+         // SubmitCredentials message being handled, and the current 
+         // state data value. The callback returns the new state data value.  
+         action: b.act.updateData<RegisterData>((ctx) => ctx.data
+            ..email = ctx.message.email
+            ..password = ctx.message.password));
    });
 }, parent: States.registration);
 ```
@@ -191,7 +191,7 @@ treeBuilder.state(States.authenticating, (b) {
       // When this state is entered, perform a login operation, and post 
       // the result of the login as a message for future processing. 
       b.post<AuthFuture>(
-          getValue: (transCtx) => _doLogin(transCtx.payload as SubmitCredentials));
+          getMessage: (transCtx) => _doLogin(transCtx.payload as SubmitCredentials));
    });
 }
 ```
@@ -210,7 +210,7 @@ treeBuilder.state(States.loginEntry, (b) {
     b.onMessage<SubmitCredentials>((b) {
       // enterChannel is similar to goTo, but enforces that a SubmitCredentials
       // value is provided.
-      b.enterChannel(authenticatingChannel, (_, msg) => msg);
+      b.enterChannel(authenticatingChannel, (ctx) => ctx.message);
     });
   }, parent: States.login);
 
@@ -220,7 +220,7 @@ treeBuilder.state(States.authenticating, (b) {
     b.onEnterFromChannel<SubmitCredentials>(authenticatingChannel, (b) {
       // The builder argument provides access to the SubmitCredentials, in this
       // case as as argument to the getMessage function 
-      b.post<AuthFuture>(getMessage: (_, creds) => _login(creds, authService));
+      b.post<AuthFuture>(getMessage: (ctx) => _login(ctx.context, authService));
     });
  }, parent: States.login)
 ```

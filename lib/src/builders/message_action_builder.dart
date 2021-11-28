@@ -43,7 +43,7 @@ class MessageActionBuilder<M, D, C> {
     FutureOr<void> Function(MessageHandlerContext<M, D, C>) action, {
     String? label,
   }) {
-    var info = MessageActionInfo(ActionType.run, null, label);
+    var info = MessageActionInfo(ActionType.run, null, null, label);
     return MessageActionDescriptor<M, D, C>(info, action);
   }
 
@@ -72,7 +72,7 @@ class MessageActionBuilder<M, D, C> {
     StateKey? forState,
     String? label,
   }) {
-    var info = MessageActionInfo(ActionType.updateData, null, label);
+    var info = MessageActionInfo(ActionType.updateData, null, D2, label);
     return MessageActionDescriptor(info, (ctx) {
       _log.fine(() => "State '$_forState' is updating data of type $D2");
       var data = ctx.messageContext.dataOrThrow<D2>(forState);
@@ -85,7 +85,7 @@ class MessageActionBuilder<M, D, C> {
     StateKey? forState,
     String? label,
   }) {
-    var info = MessageActionInfo(ActionType.updateData, null, label);
+    var info = MessageActionInfo(ActionType.updateData, null, D, label);
     return MessageActionDescriptor(info, (ctx) {
       _log.fine(() => "State '$_forState' is updating data of type $D");
       var data = ctx.messageContext.dataOrThrow<D>(_forState);
@@ -143,7 +143,7 @@ class MessageActionBuilder<M, D, C> {
     }
 
     var _getMessage = getMessage ?? (_) => message!;
-    var info = MessageActionInfo(ActionType.schedule, M2, label);
+    var info = MessageActionInfo(ActionType.schedule, M2, null, label);
     return MessageActionDescriptor<M, D, C>(
       info,
       (ctx) => _getMessage(ctx).bind((msg) {
@@ -197,7 +197,7 @@ class MessageActionBuilder<M, D, C> {
     }
 
     var _getMessage = getMessage ?? (_) => message!;
-    var info = MessageActionInfo(ActionType.schedule, M2, label);
+    var info = MessageActionInfo(ActionType.schedule, M2, null, label);
     return MessageActionDescriptor<M, D, C>(
       info,
       (ctx) => _getMessage(ctx).bind((msg) {

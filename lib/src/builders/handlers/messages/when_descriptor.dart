@@ -17,7 +17,9 @@ MessageHandlerDescriptor<C> makeWhenMessageDescriptor<M, D, C>(
   String? label,
   String? messageName,
 ) {
-  var conditionInfos = conditions.map((e) => e.info).toList();
+  // Note lazy evaluation is deliberate here, since conditions can be added to the list after this
+  // methos is called.
+  var conditionInfos = conditions.map((e) => e.info);
   var info = MessageHandlerInfo(MessageHandlerType.when, M, [], conditionInfos, messageName, label);
   return MessageHandlerDescriptor<C>(
     info,
@@ -31,26 +33,32 @@ MessageHandlerDescriptor<C> makeWhenMessageDescriptor<M, D, C>(
   );
 }
 
-// TransitionHandlerDescriptor<C> makeWhenWithContextDescriptor<D, C, C2>(
-//   FutureOr<C2> Function(TransitionContext msgCtx, D data, C ctx) context,
-//   List<TransitionConditionDescriptor<C2>> conditions,
-//   FutureOr<C> Function(TransitionContext) makeContext,
-//   Logger log,
-//   String? label,
-// ) {
-//   var conditionInfos = conditions.map((e) => e.info).toList();
-//   var info = TransitionHandlerInfo(TransitionHandlerType.when, conditionInfos, label);
-//   return TransitionHandlerDescriptor<C>(
-//     info,
-//     makeContext,
-//     (ctx) => (transCtx) {
-//       var data = transCtx.dataValueOrThrow<D>();
-//       return context(transCtx, data, ctx.ctx).bind(
-//         (newCtx) => _runConditions<C2>(conditions.iterator, newCtx, transCtx),
-//       );
-//     },
-//   );
-// }
+MessageHandlerDescriptor<C> makeWhenWithContextMessageDescriptor<M, D, C, C2>(
+  FutureOr<C2> Function(MessageHandlerContext<M, D, C>) context,
+  List<MessageConditionDescriptor<M, D, C2>> conditions,
+  FutureOr<C> Function(MessageContext) makeContext,
+  Logger log,
+  String? label,
+  String? messageName,
+) {
+  // Note lazy evaluation is deliberate here, since conditions can be added to the list after this
+  // methos is called.
+  var conditionInfos = conditions.map((e) => e.info);
+  var info = MessageHandlerInfo(MessageHandlerType.when, M, [], conditionInfos, messageName, label);
+  return MessageHandlerDescriptor<C>(
+    info,
+    makeContext,
+    (descrCtx) => (msgCtx) {
+      var msg = msgCtx.messageAsOrThrow<M>();
+      var data = msgCtx.dataValueOrThrow<D>();
+      var handlerCtx = MessageHandlerContext<M, D, C>(msgCtx, msg, data, descrCtx.ctx);
+      return context(handlerCtx).bind((newCtx) {
+        var newHandlerCtx = MessageHandlerContext<M, D, C2>(msgCtx, msg, data, newCtx);
+        return _runConditions<M, D, C2>(conditions.iterator, newHandlerCtx);
+      });
+    },
+  );
+}
 
 FutureOr<MessageResult> _runConditions<M, D, C>(
   Iterator<MessageConditionDescriptor<M, D, C>> conditionIterator,

@@ -17,7 +17,8 @@ MessageHandlerDescriptor<C> makeStayOrUnhandledDescriptor<M, D, C>(
   required bool handled,
 }) {
   var actions = [if (action != null) action.info];
-  var info = MessageHandlerInfo(MessageHandlerType.goto, M, actions, [], messageName, label);
+  var handlerType = handled ? MessageHandlerType.stay : MessageHandlerType.unhandled;
+  var info = MessageHandlerInfo(handlerType, M, actions, [], messageName, label);
   return MessageHandlerDescriptor<C>(
       info,
       makeContext,

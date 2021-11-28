@@ -335,10 +335,12 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
     void Function(MessageHandlerBuilder<M, D, void> b) build, {
     String? messageName,
   }) {
-    var builder = MessageHandlerBuilder<M, D, void>(key, _makeVoidMessageContext, _log, null);
+    messageName = _getMessageName(messageName, message as Object);
+    var builder =
+        MessageHandlerBuilder<M, D, void>(key, _makeVoidMessageContext, _log, messageName);
     build(builder);
     if (builder.descriptor != null) {
-      _messageHandlerMap[message as Object] = builder.descriptor!;
+      _messageHandlerMap[message] = builder.descriptor!;
     }
   }
 
@@ -385,6 +387,14 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
 
   static bool _isEmptyDataType<D>() {
     return TypeLiteral<D>().type == TypeLiteral<void>().type;
+  }
+
+  static String? _getMessageName(String? messageName, Object? message) {
+    messageName = messageName ?? message?.toString();
+    if (message != null && isEnumValue(message)) {
+      messageName = describeEnum(message);
+    }
+    return messageName;
   }
 }
 

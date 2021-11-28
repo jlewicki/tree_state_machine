@@ -129,4 +129,8 @@ Future<void> main() async {
 
   await currentState.post(Messages.hangUp);
   assert(currentState.key == States.offHook);
+
+  var sb = StringBuffer();
+  treeBuilder.format(sb, DotFormatter());
+  print(sb.toString());
 }

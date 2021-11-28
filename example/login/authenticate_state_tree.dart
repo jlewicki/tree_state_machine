@@ -245,3 +245,14 @@ class MockAuthService implements AuthService {
   @override
   Future<Result<AuthorizedUser>> register(RegistrationRequest request) => doRegister(request);
 }
+
+Future<void> main() async {
+  var treeBuilder = authenticateStateTree(MockAuthService(
+    (req) async => Result.error('nope'),
+    (req) async => Result.error('nope'),
+  ));
+
+  var sb = StringBuffer();
+  treeBuilder.format(sb, DotFormatter());
+  print(sb.toString());
+}

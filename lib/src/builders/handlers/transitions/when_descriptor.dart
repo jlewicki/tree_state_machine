@@ -16,7 +16,9 @@ TransitionHandlerDescriptor<C> makeWhenTransitionDescriptor<C>(
   Logger log,
   String? label,
 ) {
-  var conditionInfos = conditions.map((e) => e.info).toList();
+  // Note lazy evaluation is deliberate here, since conditions can be added to the list after this
+  // method is called.
+  var conditionInfos = conditions.map((e) => e.info);
   var info = TransitionHandlerInfo(TransitionHandlerType.when, conditionInfos, label);
   return TransitionHandlerDescriptor<C>(
     info,
@@ -32,7 +34,9 @@ TransitionHandlerDescriptor<C> makeWhenWithContextDescriptor<D, C, C2>(
   Logger log,
   String? label,
 ) {
-  var conditionInfos = conditions.map((e) => e.info).toList();
+  // Note lazy evaluation is deliberate here, since conditions can be added to the list after this
+  // method is called.
+  var conditionInfos = conditions.map((e) => e.info);
   var info = TransitionHandlerInfo(TransitionHandlerType.when, conditionInfos, label);
   return TransitionHandlerDescriptor<C>(
     info,

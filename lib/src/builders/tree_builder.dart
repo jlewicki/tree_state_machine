@@ -334,6 +334,21 @@ class StateTreeBuilder {
     _addState(builder);
   }
 
+  /// Writes a textual description of the state stree to the [sink]. The specific output format is
+  /// controlled by the type of the [formatter].
+  ///
+  /// ```dart
+  /// void formatDOT(StateTreeBuilder treeBuilder) {
+  ///   var sink = StringBuffer();
+  ///   // Write the state tree Graphviz DOT format.
+  ///   treeBuilder.format(sink, DotFormatter());
+  /// }
+  /// ```
+  void format(StringSink sink, StateTreeFormatter formatter) {
+    _validate();
+    formatter.formatTo(this, sink);
+  }
+
   TreeNode _build(TreeBuildContext context) {
     _validate();
 

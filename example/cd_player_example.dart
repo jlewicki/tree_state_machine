@@ -137,7 +137,7 @@ StateTreeBuilder cdPlayerStateTree() {
           periodic: true,
         ));
     b.onMessage<Pause>((b) => b.goTo(States.paused));
-    b.onMessage<Play>((b) => b.action(b.act.run(_playTrack)));
+    b.onMessage<Play>((b) => b.action(b.act.run(_playTrack, label: 'play track')));
     b.onMessage<MoveTrack>((b) {
       b.when(
         (ctx) =>
@@ -181,11 +181,12 @@ void _playTrack(MessageHandlerContext<Play, void, void> ctx) {
   });
 }
 
-void main() {
-  // var treeBuilder = cdPlayerStateTree();
-  // var sink = StringBuffer();
-  // treeBuilder.format(sink, DotFormatter());
-  // var dot = sink.toString();
+Future<void> main() async {
+  var treeBuilder = cdPlayerStateTree();
   // var context = TreeBuildContext();
   // var node = treeBuilder.build(context);
+
+  var sb = StringBuffer();
+  treeBuilder.format(sb, DotFormatter());
+  print(sb.toString());
 }

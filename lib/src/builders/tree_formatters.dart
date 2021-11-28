@@ -121,7 +121,7 @@ class _DotFormatter {
         var handlerType = handlerEntry.value.info.handlerType;
         if (handlerType != MessageHandlerType.unhandled) {
           var conditions = handler is MessageHandlerDescriptor ? handler.info.conditions : null;
-          if (conditions == null) {
+          if (conditions == null || conditions.isEmpty) {
             transitions.add(
               _labelMessageHandler(child, handler.info, childStateName, postNodeName),
             );
@@ -220,9 +220,9 @@ class _DotFormatter {
   String _labelTransitionOp(TransitionHandlerDescriptor descr) {
     switch (descr.info.handlerType) {
       case TransitionHandlerType.post:
-        return 'POST ${descr.info.messageType}';
+        return 'POST ${descr.info.postOrScheduleMessageType}';
       case TransitionHandlerType.schedule:
-        return 'SCHEDULE ${descr.info.messageType}';
+        return 'SCHEDULE ${descr.info.postOrScheduleMessageType}';
       case TransitionHandlerType.updateData:
         return 'UPDATE ${descr.info.updateDataType}';
       case TransitionHandlerType.channelEntry:
@@ -280,7 +280,7 @@ class _DotFormatter {
         } else if (info.actions.length > 1) {
           throw StateError('Unexpected multiple actions');
         } else {
-          return msgTypeWithSlash;
+          return msgType;
         }
     }
   }
@@ -288,13 +288,13 @@ class _DotFormatter {
   String _labelActionOp(MessageActionInfo action) {
     switch (action.actionType) {
       case ActionType.run:
-        return 'Function';
+        return action.label ?? 'Function';
       case ActionType.post:
         return 'POST ${action.postMessageType}';
       case ActionType.schedule:
         return 'SCHEDULE ${action.postMessageType}';
       case ActionType.updateData:
-        return 'UPDATE';
+        return 'UPDATE ${action.updateDataType}';
     }
   }
 

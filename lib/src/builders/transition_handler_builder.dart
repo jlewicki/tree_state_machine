@@ -83,10 +83,13 @@ class TransitionHandlerBuilder<D, C> {
       throw ArgumentError('One of getMessage or message must be provided');
     }
     var _getMessage = getMessage ?? (_) => message!;
+    var messageName =
+        StateBuilder._getMessageName(null, message) ?? TypeLiteral<D>().type.toString();
     _descriptor = makePostDescriptor<D, C, M>(
       _getMessage,
       _makeContext,
       _log,
+      messageName,
       label,
     );
   }
@@ -112,13 +115,17 @@ class TransitionHandlerBuilder<D, C> {
     } else if (getMessage != null && message != null) {
       throw ArgumentError('One of getMessage or message must be provided');
     }
+    //var messageName = StateBuilder._getMessageName(null, message);
     var _getMessage = getMessage ?? (_) => message!;
+    var messageName =
+        StateBuilder._getMessageName(null, message) ?? TypeLiteral<D>().type.toString();
     _descriptor = makeScheduleDescriptor<D, C, M>(
       _getMessage,
       duration,
       periodic,
       _makeContext,
       _log,
+      messageName,
       label,
     );
   }
@@ -305,6 +312,11 @@ class TransitionHandlerBuilder<D, C> {
 
     buildSuccessHandler(successBuilder);
     var successDesr = successBuilder._descriptor;
+    if (successDesr == null) {
+      throw StateError(
+          'No success handler was defined for whenResult. Make sure to define the success '
+          'handler in the buildSuccessHandler function.');
+    }
 
     var failureDescrRef = Ref<TransitionHandlerDescriptor<AsyncError>?>(null);
     _descriptor = makeWhenResultTransitionDescriptor<C, D, T>(
@@ -312,7 +324,7 @@ class TransitionHandlerBuilder<D, C> {
       result,
       _makeContext,
       resultRef,
-      successDesr!, // TODO check for null
+      successDesr,
       failureDescrRef,
       _log,
       label,

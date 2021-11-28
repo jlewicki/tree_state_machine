@@ -90,7 +90,7 @@ void sendEmailToAssignee(BugData bug, String message) {
   print('${bug.assignee}, RE ${bug.title}: $message');
 }
 
-void main() async {
+Future<void> main() async {
   var treeBuilder = bugTrackerStateTree();
   var stateMachine = TreeStateMachine(treeBuilder);
 
@@ -111,4 +111,8 @@ void main() async {
 
   await currentState.post(Messages.close);
   assert(currentState.key == States.closed);
+
+  var sb = StringBuffer();
+  treeBuilder.format(sb, DotFormatter());
+  print(sb.toString());
 }
