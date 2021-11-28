@@ -293,9 +293,16 @@ class TransitionHandlerBuilder<D, C> {
     return whenBuilder;
   }
 
+  /// Describes transition behavior that runs conditionally, depending on a [Result] value.
+  ///
+  /// When the transition occurs, the [result] function is evaluated, and the returned [Result] is
+  /// used to determine the transition behavior. If [Result.isValue] is `true`, then the behavior
+  /// described by the [buildSuccess] callback will take place. If [Result.isError] is true, then
+  /// an exception will be raised. However, [TransitionHandlerWhenResultBuilder.otherwise] can be
+  /// used to override the default error handling.
   TransitionHandlerWhenResultBuilder<D> whenResult<T>(
     FutureOr<Result<T>> Function(TransitionHandlerContext<D, C> ctx) result,
-    void Function(TransitionHandlerBuilder<D, T> builder) buildSuccessHandler, {
+    void Function(TransitionHandlerBuilder<D, T> builder) buildSuccess, {
     String? label,
   }) {
     var resultRef = Ref<Result<T>?>(null);
@@ -310,7 +317,7 @@ class TransitionHandlerBuilder<D, C> {
       return AsyncError(err.error, err.stackTrace);
     });
 
-    buildSuccessHandler(successBuilder);
+    buildSuccess(successBuilder);
     var successDesr = successBuilder._descriptor;
     if (successDesr == null) {
       throw StateError(
@@ -333,8 +340,8 @@ class TransitionHandlerBuilder<D, C> {
   }
 }
 
-/// Provides methods for defining conditional transition behavior to a state carrying state data
-/// of type [D].
+/// Provides methods for defining conditional transition behavior for a state carrying state data
+/// of type [D], and a context value of type [C].
 class TransitionHandlerWhenBuilder<D, C> {
   final List<TransitionConditionDescriptor<C>> _conditions;
   final TransitionHandlerBuilder<D, C> Function() _makeBuilder;
@@ -387,18 +394,23 @@ class TransitionHandlerWhenBuilder<D, C> {
   }
 }
 
+/// Provides methods for error handling behavior for a state carrying state data
+/// of type [D], when a [Result] is an error value.
 class TransitionHandlerWhenResultBuilder<D> {
   final Ref<TransitionHandlerDescriptor<AsyncError>?> _failureDescrRef;
   final TransitionHandlerBuilder<D, AsyncError> Function() _makeErrorBuilder;
 
   TransitionHandlerWhenResultBuilder(this._makeErrorBuilder, this._failureDescrRef);
 
+  /// Adds a transition behavior that will take place when [Result.isError] is `true`.
+  ///
+  /// The [buildError] callback is used to define the behavior that should take place.
   void otherwise(
-    void Function(TransitionHandlerBuilder<D, AsyncError> builder) buildErrorHandler, {
+    void Function(TransitionHandlerBuilder<D, AsyncError> builder) buildError, {
     String? label,
   }) {
     var errorBuilder = _makeErrorBuilder();
-    buildErrorHandler(errorBuilder);
+    buildError(errorBuilder);
     _failureDescrRef.value = errorBuilder._descriptor;
   }
 }

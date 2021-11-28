@@ -196,13 +196,13 @@ class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
   /// Describes message handling behavior that may be run conditionally, sharing a context value
   /// among conditions.
   ///
-  /// The returned [TransitionHandlerWhenBuilder] may be used to define additional conditional
-  /// behavior, including a fallback [TransitionHandlerWhenBuilder.otherwise] condition.
+  /// The returned [MessageHandlerWhenBuilder] may be used to define additional conditional
+  /// behavior, including a fallback [MessageHandlerWhenBuilder.otherwise] condition.
   ///
   /// When the message is being processed, the [condition] functions are evaluated. If the function
   /// returns `true`, the behavior described by the [buildTrue] callback will take place. If more
   /// than one condition is defined, the conditions are evaluated in the order they are
-  /// defined by calls to [TransitionHandlerWhenBuilder.when].
+  /// defined by calls to [MessageHandlerWhenBuilder.when].
   MessageHandlerWhenBuilder<M, D, C> when(
     FutureOr<bool> Function(MessageHandlerContext<M, D, C>) condition,
     void Function(MessageHandlerBuilder<M, D, C> builder) buildTrue, {
@@ -228,13 +228,13 @@ class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
   /// conditions with the [MessageHandlerContext.context] property. This may be useful in
   /// avoiding generating the context value repeatedly in each condition.
   ///
-  /// The returned [TransitionHandlerWhenBuilder] may be used to define additional conditional
-  /// behavior, including a fallback [TransitionHandlerWhenBuilder.otherwise] condition.
+  /// The returned [MessageHandlerWhenBuilder] may be used to define additional conditional
+  /// behavior, including a fallback [MessageHandlerWhenBuilder.otherwise] condition.
   ///
   /// When the message is being processed, the [condition] functions are evaluated. If the function
   /// returns `true`, the behavior described by the [buildTrue] callback will take place. If more
   /// than one condition is defined, the conditions are evaluated in the order they are
-  /// defined by calls to [TransitionHandlerWhenBuilder.when].
+  /// defined by calls to [MessageHandlerWhenBuilder.when].
   MessageHandlerWhenBuilder<M, D, C2> whenWith<C2>(
     FutureOr<C2> Function(MessageHandlerContext<M, D, C> ctx) context,
     FutureOr<bool> Function(MessageHandlerContext<M, D, C2> ctx) condition,
@@ -265,15 +265,22 @@ class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
     return whenBuilder;
   }
 
+  /// Describes message handling behavior that runs conditionally, depending on a [Result] value.
+  ///
+  /// When the message is processed, the [result] function is evaluated, and the returned [Result] is
+  /// used to determine the handler behavior. If [Result.isValue] is `true`, then the behavior
+  /// described by the [buildSuccess] callback will take place. If [Result.isError] is true, then
+  /// an exception will be raised. However, [MessageHandlerWhenResultBuilder.otherwise] can be
+  /// used to override the default error handling.
   MessageHandlerWhenResultBuilder<M, D, C, T> whenResult<T>(
     FutureOr<Result<T>> Function(MessageHandlerContext<M, D, C>) result,
-    void Function(MessageHandlerBuilder<M, D, T> builder) buildSuccessHandler, {
+    void Function(MessageHandlerBuilder<M, D, T> builder) buildSuccess, {
     String? label,
   }) {
     var whenResultBuilder = MessageHandlerWhenResultBuilder<M, D, C, T>._(
       this,
       result,
-      buildSuccessHandler,
+      buildSuccess,
       label,
     );
 
@@ -298,6 +305,7 @@ class MachineDoneHandlerBuilder<C> extends _MessageHandlerBuilder<Object, Nested
     String? messageName,
   ) : super(forState, makeContext, log, messageName);
 
+  /// Adds a conditional behavior, in the same manner as [MessageHandlerBuilder.when].
   MachineDoneWhenBuilder<C> when(
     FutureOr<bool> Function(MessageHandlerContext<Object, NestedMachineData, C>) condition,
     void Function(MachineDoneHandlerBuilder<C> builder) buildTrueHandler, {
@@ -383,6 +391,8 @@ class _MessageHandlerWhenBuilder<M, D, C, B extends _MessageHandlerDescriptorPro
   }
 }
 
+/// Provides methods for defining conditional message handling behavior for messages of type [M],
+/// for a state carrying state data type [D], and a context value of type [C].
 class MessageHandlerWhenBuilder<M, D, C>
     extends _MessageHandlerWhenBuilder<M, D, C, MessageHandlerBuilder<M, D, C>> {
   MessageHandlerWhenBuilder(
@@ -391,6 +401,8 @@ class MessageHandlerWhenBuilder<M, D, C>
   ) : super(makeBuilder, conditions);
 }
 
+/// Provides methods for defining conditional behavior of a [StateTreeBuilder.machineState], when the
+/// nested state machine completes.
 class MachineDoneWhenBuilder<C>
     extends _MessageHandlerWhenBuilder<Object, NestedMachineData, C, MachineDoneHandlerBuilder<C>> {
   MachineDoneWhenBuilder(
@@ -439,16 +451,21 @@ class _MessageHandlerWhenResultBuilder<
     }
   }
 
+  /// Adds a message handling behavior that will take place when [Result.isError] is `true`.
+  ///
+  /// The [buildError] callback is used to define the behavior that should take place.
   void otherwise(
-    void Function(BError builder) buildErrorHandler, {
+    void Function(BError builder) buildError, {
     String? label,
   }) {
     var errorBuilder = _makeErrorBuilder(_resultRef);
-    buildErrorHandler(errorBuilder);
+    buildError(errorBuilder);
     _failureDescrRef.value = errorBuilder.descriptor;
   }
 }
 
+/// Provides methods for error handling behavior for a state carrying state data
+/// of type [D] and a context value of type [C], when a [Result] is an error value.
 class MessageHandlerWhenResultBuilder<M, D, C, T> extends _MessageHandlerWhenResultBuilder<M, D, C,
     T, MessageHandlerBuilder<M, D, T>, MessageHandlerBuilder<M, D, AsyncError>> {
   MessageHandlerWhenResultBuilder._(
@@ -472,6 +489,9 @@ class MessageHandlerWhenResultBuilder<M, D, C, T> extends _MessageHandlerWhenRes
             label);
 }
 
+/// Provides methods for error handling behavior for a [StateTreeBuilder.machineState] carrying
+/// context value of type [C], when a nested state machine has completted, and when a [Result] is
+/// an error value.
 class MachineDoneWhenResultBuilder<C, T> extends _MessageHandlerWhenResultBuilder<Object,
     NestedMachineData, C, T, MachineDoneHandlerBuilder<T>, MachineDoneHandlerBuilder<AsyncError>> {
   MachineDoneWhenResultBuilder._(
