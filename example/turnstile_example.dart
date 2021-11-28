@@ -1,4 +1,3 @@
-import 'package:tree_state_machine/src/machine/tree_state_machine.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'package:tree_state_machine/tree_builders.dart';
 
@@ -33,5 +32,9 @@ Future<void> main() async {
   assert(currentState.key == States.unlocked);
 
   await currentState.post(Messages.push);
-  assert(currentState.key != States.locked);
+  assert(currentState.key == States.locked);
+
+  var sb = StringBuffer();
+  treeBuilder.format(sb, DotFormatter());
+  print(sb.toString());
 }

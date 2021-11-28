@@ -5,6 +5,7 @@ import 'dart:convert';
 
 import 'package:async/async.dart';
 import 'package:test/test.dart';
+import 'package:tree_state_machine/src/machine/lifecycle.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/tree_state_machine.dart';
 import 'package:tree_state_machine/tree_builders.dart';
@@ -499,6 +500,33 @@ void main() {
         sm.dispose();
 
         expect(sm.isDisposed, isTrue);
+      });
+    });
+
+    group('disposed', () {
+      test('should complete when disposed', () async {
+        final sm = TreeStateMachine(tree.treeBuilder());
+        await sm.start();
+
+        var disposed = sm.lifecycle.firstWhere((s) => s == LifecycleState.disposed);
+        sm.dispose();
+        await disposed;
+
+        expect(sm.isDisposed, isTrue);
+        expect(sm.isStarted, isFalse);
+        expect(sm.isDone, isFalse);
+      });
+
+      test('should complete if subscribe happens after disposal', () async {
+        final sm = TreeStateMachine(tree.treeBuilder());
+        await sm.start();
+
+        sm.dispose();
+        await sm.lifecycle.firstWhere((s) => s == LifecycleState.disposed);
+
+        expect(sm.isDisposed, isTrue);
+        expect(sm.isStarted, isFalse);
+        expect(sm.isDone, isFalse);
       });
     });
 

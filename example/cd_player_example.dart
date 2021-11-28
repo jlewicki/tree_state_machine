@@ -91,7 +91,7 @@ StateTreeBuilder cdPlayerStateTree() {
   var b = StateTreeBuilder.withDataRoot<RootData>(
     States.root,
     InitialData(() => RootData()),
-    emptyDataState,
+    emptyState,
     InitialChild(States.idle),
   );
 
@@ -101,14 +101,16 @@ StateTreeBuilder cdPlayerStateTree() {
 
   b.state(States.open, (b) {
     b.onMessage<Eject>((b) => b.goTo(States.closed));
-    b.onMessage<Load>((b) => b.stay(action: b.act.run(_updateCD)));
+    b.onMessage<Load>((b) {
+      b.action(b.act.updateData<RootData>((ctx, data) => data..cd = ctx.message.cd));
+    });
   }, parent: States.idle);
 
   b.state(States.closed, (b) {
     b.onEnterWithData<RootData>((b) {
       // Auto play if the cd is inserted (and we were aleady idle)
-      b.when((ctx, data) => ctx.lca == States.idle && data.cd != null, (b) {
-        b.post(value: Play());
+      b.when((ctx) => ctx.transitionContext.lca == States.idle && ctx.context.cd != null, (b) {
+        b.post(message: Play());
       }, label: 'CD inserted');
     });
     b.onMessage<Eject>((b) => b.goTo(States.open));
@@ -119,7 +121,7 @@ StateTreeBuilder cdPlayerStateTree() {
     InitialData.fromChannel(busyChannel, (Cd cd) => BusyData(cd)),
     (b) {
       b.onEnter((b) {
-        b.updateData((_, busyData) => busyData
+        b.updateOwnData((ctx) => ctx.data
           ..track = 0
           ..elapsedTime = Duration.zero);
       });
@@ -135,12 +137,16 @@ StateTreeBuilder cdPlayerStateTree() {
           periodic: true,
         ));
     b.onMessage<Pause>((b) => b.goTo(States.paused));
-    b.onMessage<Play>((b) => b.stay(action: b.act.run(_playTrack)));
+    b.onMessage<Play>((b) => b.action(b.act.run(_playTrack, label: 'play track')));
     b.onMessage<MoveTrack>((b) {
       b.when(
-        (msgCtx, msg) => msgCtx.dataValueOrThrow<BusyData>().canMoveTrack(msg.trackCount),
+        (ctx) =>
+            ctx.messageContext.dataValueOrThrow<BusyData>().canMoveTrack(ctx.message.trackCount),
         (b) {
-          b.stay(action: b.act.run(_updateTrackCount, label: 'update next track'));
+          b.action(b.act.updateData<BusyData>(
+            (ctx, data) => data..track += ctx.message.trackCount,
+            label: 'update next track',
+          ));
         },
         label: 'next track valid',
       ).otherwise(
@@ -160,33 +166,27 @@ StateTreeBuilder cdPlayerStateTree() {
   return b;
 }
 
-void _updateCD(MessageContext ctx, Load msg) {
-  ctx.dataOrThrow<RootData>().update((current) => current..cd = msg.cd);
-}
-
 final Duration refreshDuration = Duration(seconds: 1);
 
-void _playTrack(MessageContext ctx, Object _) {
-  var dataVal = ctx.dataOrThrow<BusyData>();
-  var data = dataVal.value;
-  var elapsed = data.elapsedTime + refreshDuration;
-  var trackLength = data.cd.tracks[data.track].duration;
-  if (elapsed >= trackLength) {
-    ctx.post(Forward(1));
-  } else {
-    dataVal.update((_) => data..elapsedTime = elapsed);
-  }
+void _playTrack(MessageHandlerContext<Play, void, void> ctx) {
+  ctx.messageContext.dataOrThrow<BusyData>().update((data) {
+    var elapsed = data.elapsedTime + refreshDuration;
+    var trackLength = data.cd.tracks[data.track].duration;
+    if (elapsed >= trackLength) {
+      ctx.messageContext.post(Forward(1));
+    } else {
+      data = data..elapsedTime = elapsed;
+    }
+    return data;
+  });
 }
 
-void _updateTrackCount(MessageContext ctx, MoveTrack msg) {
-  ctx.dataOrThrow<BusyData>().update(((d) => d..track += msg.trackCount));
-}
-
-void main() {
-  // var treeBuilder = cdPlayerStateTree();
-  // var sink = StringBuffer();
-  // treeBuilder.format(sink, DotFormatter());
-  // var dot = sink.toString();
+Future<void> main() async {
+  var treeBuilder = cdPlayerStateTree();
   // var context = TreeBuildContext();
   // var node = treeBuilder.build(context);
+
+  var sb = StringBuffer();
+  treeBuilder.format(sb, DotFormatter());
+  print(sb.toString());
 }

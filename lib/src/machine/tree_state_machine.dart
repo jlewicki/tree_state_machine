@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:logging/logging.dart';
 import 'package:tree_state_machine/async.dart';
 import 'package:tree_state_machine/src/machine/data_value.dart';
 import 'package:tree_state_machine/src/machine/machine.dart';
@@ -71,9 +72,10 @@ class TreeStateMachine {
   final _processedMessages = StreamController<ProcessedMessage>.broadcast();
   final _messageQueue = StreamController<_QueuedMessage>.broadcast();
   final _dataStreams = <_DataStreamKey, ValueSubject>{};
+  final Logger _log;
   CurrentState? _currentState;
 
-  TreeStateMachine._(this._machine) {
+  TreeStateMachine._(this._machine, this._log) {
     _messageQueue.stream.listen(_onMessage);
 
     // Listen to states that are entered
@@ -87,20 +89,29 @@ class TreeStateMachine {
   }
 
   /// Constructs a state machine for the state tree defined by [treeBuilder].
-  factory TreeStateMachine(StateTreeBuilder treeBuilder) {
+  ///
+  /// If [logName] is provided, it will be used as a suffix in the name of the [Logger] that this
+  /// state machine logs with. This can help disambiguate log messages if more than one state
+  /// machine is running at the same time.
+  factory TreeStateMachine(StateTreeBuilder treeBuilder, {String? logName}) {
+    logName = logName ?? treeBuilder.logName;
     TreeStateMachine? treeMachine;
-    final buildCtx = TreeBuildContext();
-    final rootNode = treeBuilder(buildCtx);
-    final machine = Machine(
+    var buildCtx = TreeBuildContext();
+    var rootNode = treeBuilder(buildCtx);
+    var machine = Machine(
       rootNode,
       buildCtx.nodes,
       (message) => treeMachine!._queueMessage(message),
+      logName: logName,
     );
-    return treeMachine = TreeStateMachine._(machine);
+    var log = Logger(
+      'tree_state_machine.TreeStateMachine${logName != null ? '.' + logName : ''}',
+    );
+    return treeMachine = TreeStateMachine._(machine, log);
   }
 
   /// Returns `true` if the future returned by [start] has completed..
-  bool get isStarted => _lifecycle.isStarted;
+  bool get isStarted => _lifecycle.state == LifecycleState.started;
 
   /// Returns `true` if the state machine has ended.
   ///
@@ -109,7 +120,18 @@ class TreeStateMachine {
   bool get isDone => _machine.currentLeaf?.isFinalLeaf ?? false;
 
   /// Returns `true` if [dispose] has been called.
-  bool get isDisposed => _lifecycle.isDisposed;
+  bool get isDisposed => _lifecycle.state == LifecycleState.disposed;
+
+  /// A broadcast stream of [LifecycleState] events.
+  ///
+  /// An event is emitted on this stream as the state machine moves through its lifecycle. For
+  /// example, [LifecycleState.started] will be emitted when [start] is called, and the returned
+  /// future completes.
+  Stream<LifecycleState> get lifecycle => _lifecycle.states;
+
+  // /// A future which is completed when the state machine is disposed.
+  // Future<void> get disposed =>
+  //     _lifecycle.states.firstWhere((s) => s == LifecycleState.disposed, orElse: null);
 
   /// A broadcast stream of [Transition] events.
   ///
@@ -175,9 +197,9 @@ class TreeStateMachine {
 
   /// Stops the state machine.
   ///
-  /// Stopping the state machine will cause a transition to a state identified by [stoppedStateKey].
-  /// This transition is irrevocable, and the message handler of the current leaf state will not be
-  /// called.
+  /// Stopping the state machine will cause a transition to a final state identified by
+  /// [stoppedStateKey]. This transition is irrevocable, and the message handler of the current leaf
+  /// state will not be called before the transition occurs.
   ///
   /// When the returned future completes, the the [CurrentState.key] will be [stoppedStateKey], and
   /// [isDone] will return true.
@@ -544,17 +566,18 @@ class _DataStreamKey {
 }
 
 class TestableTreeStateMachine extends TreeStateMachine {
-  TestableTreeStateMachine._(Machine machine) : super._(machine);
+  TestableTreeStateMachine._(Machine machine, Logger log) : super._(machine, log);
   factory TestableTreeStateMachine(TreeNode Function(TreeBuildContext) buildRoot) {
     TreeStateMachine? treeMachine;
-    final buildCtx = TreeBuildContext();
-    final rootNode = buildRoot(buildCtx);
-    final machine = Machine(
+    var buildCtx = TreeBuildContext();
+    var rootNode = buildRoot(buildCtx);
+    var machine = Machine(
       rootNode,
       buildCtx.nodes,
       (message) => treeMachine!._queueMessage(message),
     );
-    return treeMachine = TestableTreeStateMachine._(machine);
+    var log = Logger('tree_state_machine.TestableTreeStateMachine');
+    return treeMachine = TestableTreeStateMachine._(machine, log);
   }
 
   /// Gets the internal machine for testing purposes

@@ -12,10 +12,10 @@ StateTreeBuilder treeBuilder({
 }) {
   var b = StateTreeBuilder(initialState: r_1_key);
   b.state(r_1_key, (b) {
-    if (state1Handler != null) b.runOnMessage(state1Handler);
+    if (state1Handler != null) b.handleOnMessage(state1Handler);
   });
   b.state(r_2_key, (b) {
-    if (state2Handler != null) b.runOnMessage(state2Handler);
+    if (state2Handler != null) b.handleOnMessage(state2Handler);
   });
   return b;
 }

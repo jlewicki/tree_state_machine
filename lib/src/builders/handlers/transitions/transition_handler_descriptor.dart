@@ -1,81 +1,107 @@
-part of tree_builders;
+import 'dart:async';
 
-enum _TransitionHandlerType {
+import 'package:tree_state_machine/src/machine/tree_state.dart';
+import 'package:tree_state_machine/src/machine/extensions.dart';
+import 'package:tree_state_machine/src/machine/utility.dart';
+import 'package:tree_state_machine/tree_builders.dart';
+
+enum TransitionHandlerType {
   run,
   post,
   schedule,
   updateData,
   channelEntry,
   when,
+  whenResult,
+  handler
 }
 
-class _TransitionHandlerDescriptor {
-  final _TransitionHandlerType handlerType;
-  String? label;
-  TransitionHandler _handler;
+class TransitionHandlerInfo {
+  final TransitionHandlerType handlerType;
+  final Iterable<TransitionConditionInfo> conditions;
+  final String? label;
+  final String? postOrScheduleMessageType;
+  final Type? updateDataType;
 
-  _TransitionHandlerDescriptor(this.handlerType, this._handler, this.label);
+  TransitionHandlerInfo(
+    this.handlerType,
+    this.conditions,
+    this.label, [
+    this.postOrScheduleMessageType,
+    this.updateDataType,
+  ]);
+}
 
-  factory _TransitionHandlerDescriptor.run(TransitionHandler handler, String? label) {
-    return _TransitionHandlerDescriptor(_TransitionHandlerType.run, handler, label);
+class TransitionConditionInfo {
+  final String? label;
+  final TransitionHandlerInfo whenTrueInfo;
+
+  TransitionConditionInfo(this.label, this.whenTrueInfo);
+}
+
+class TransitionHandlerDescriptor<C> {
+  final TransitionHandlerInfo info;
+  final FutureOr<C> Function(TransitionContext) makeContext;
+  final TransitionHandler Function(TransitionHandlerDescriptorContext<C>) makeHandlerFromContext;
+
+  TransitionHandler makeHandler() {
+    return (transCtx) {
+      return makeContext(transCtx).bind((ctx) {
+        var descrCtx = TransitionHandlerDescriptorContext<C>(transCtx, ctx);
+        var handler = makeHandlerFromContext(descrCtx);
+        return handler(transCtx);
+      });
+    };
   }
 
-  static _TransitionHandlerDescriptor updateData<D>(
-    D Function(TransitionContext transCtx, D current) update,
-    StateKey? key,
-    String? label,
+  TransitionHandlerDescriptor(this.info, this.makeContext, this.makeHandlerFromContext);
+
+  static TransitionHandlerDescriptor<void> ofHandler(TransitionHandler handler, String? label) {
+    var info = TransitionHandlerInfo(TransitionHandlerType.handler, [], label);
+    return TransitionHandlerDescriptor<void>(info, (_) {}, (_) => handler);
+  }
+}
+
+typedef TransitionConditionHandler = FutureOr<bool> Function(TransitionContext);
+
+class TransitionConditionDescriptor<C> {
+  final TransitionConditionInfo info;
+  final TransitionConditionHandler Function(C ctx) makeCondition;
+  final TransitionHandlerDescriptor<C> whenTrueDescriptor;
+
+  TransitionConditionDescriptor(this.info, this.makeCondition, this.whenTrueDescriptor);
+
+  static TransitionConditionDescriptor<C> withData<D, C>(
+    TransitionConditionInfo info,
+    FutureOr<bool> Function(TransitionHandlerContext<D, C>) condition,
+    TransitionHandlerDescriptor<C> whenTrue,
   ) {
-    return _UpdateDataTransitionHandlerDescriptor(
-      TypeLiteral<D>().type,
-      (transCtx) {
-        var data = transCtx.dataOrThrow<D>(key);
-        data.update((d) => update(transCtx, d));
+    return TransitionConditionDescriptor<C>(
+      info,
+      (ctx) => (transCtx) {
+        var data = transCtx.dataValueOrThrow<D>();
+        var handlerCtx = TransitionHandlerContext<D, C>(transCtx, data, ctx);
+        return condition(handlerCtx);
       },
-      label,
+      whenTrue,
     );
   }
-
-  static _TransitionHandlerDescriptor schedule<M>(
-    M Function(TransitionContext ctx) getValue,
-    Duration duration,
-    bool periodic,
-    String? label,
-  ) {
-    return _PostOrScheduleTransitionHandlerDescriptor(
-      _TransitionHandlerType.schedule,
-      TypeLiteral<M>().type,
-      (transCtx) {
-        transCtx.schedule(() => getValue(transCtx) as Object,
-            duration: duration, periodic: periodic);
-      },
-      label,
-    );
-  }
-
-  static _TransitionHandlerDescriptor post<M>(
-    M Function(TransitionContext ctx) getValue,
-    String? label,
-  ) {
-    return _PostOrScheduleTransitionHandlerDescriptor(
-      _TransitionHandlerType.post,
-      TypeLiteral<M>().type,
-      (transCtx) {
-        transCtx.post(getValue(transCtx) as Object);
-      },
-      label,
-    );
-  }
 }
 
-class _PostOrScheduleTransitionHandlerDescriptor extends _TransitionHandlerDescriptor {
-  final Type _messageType;
-  _PostOrScheduleTransitionHandlerDescriptor(
-      _TransitionHandlerType type, this._messageType, TransitionHandler handler, String? label)
-      : super(type, handler, label);
+class TransitionHandlerDescriptorContext<C> {
+  final TransitionContext transCtx;
+  final C ctx;
+  TransitionHandlerDescriptorContext(this.transCtx, this.ctx);
 }
 
-class _UpdateDataTransitionHandlerDescriptor extends _TransitionHandlerDescriptor {
-  final Type _dataType;
-  _UpdateDataTransitionHandlerDescriptor(this._dataType, TransitionHandler handler, String? label)
-      : super(_TransitionHandlerType.updateData, handler, label);
-}
+
+
+
+// void example() {
+//   var sb = _StateBuilder<int>(StateKey(''));
+//   sb.onEnter((b) {
+//     b.updateData<String>((transCtx, data, ctx) => data);
+//   });
+
+//   TransitionHandler handler = sb._onEnterDescriptor!.makeHandler();
+// }

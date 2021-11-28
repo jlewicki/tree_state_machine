@@ -34,17 +34,17 @@ StateTreeBuilder treeBuilder({
   final _exitHandlers = exitHandlers ?? {};
   final _initialChildCallbacks = initialChildCallbacks ?? {};
 
-  void Function(StateBuilder) buildState(StateKey key) {
+  void Function(StateBuilder<void>) buildState(StateKey key) {
     return (b) {
-      b.runOnMessage(_messageHandlers[key] ?? _createMessageHandler(key));
-      b.runOnEnter(_entryHandlers[key] ?? _createEntryHandler(key));
-      b.runOnExit(_exitHandlers[key] ?? _createExitHandler(key));
+      b.handleOnMessage(_messageHandlers[key] ?? _createMessageHandler(key));
+      b.handleOnEnter(_entryHandlers[key] ?? _createEntryHandler(key));
+      b.handleOnExit(_exitHandlers[key] ?? _createExitHandler(key));
     };
   }
 
-  void Function(FinalStateBuilder) buildFinalState(StateKey key) {
+  void Function(EnterStateBuilder<void>) buildFinalState(StateKey key) {
     return (b) {
-      b.runOnEnter(_entryHandlers[key] ?? _createEntryHandler(key));
+      b.handleOnEnter(_entryHandlers[key] ?? _createEntryHandler(key));
     };
   }
 

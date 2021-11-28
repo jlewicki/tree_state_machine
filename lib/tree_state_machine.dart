@@ -5,7 +5,10 @@ export 'src/machine/extensions.dart';
 export 'src/machine/tree_state.dart'
     hide
         TreeState,
+        DelegatingTreeState,
         DataTreeState,
+        DelegatingDataTreeState,
+        NestedMachineState,
         GoToResult,
         InternalTransitionResult,
         SelfTransitionResult,
@@ -15,3 +18,4 @@ export 'src/machine/tree_state.dart'
 export 'src/machine/data_value.dart' hide ClosableDataValue;
 export 'src/machine/tree_state_machine.dart'
     hide TestableTreeStateMachine, EncodableState, EncodableTree;
+export 'src/machine/lifecycle.dart' show LifecycleState;

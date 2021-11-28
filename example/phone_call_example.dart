@@ -1,4 +1,3 @@
-import 'package:tree_state_machine/src/machine/tree_state_machine.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'package:tree_state_machine/tree_builders.dart';
 
@@ -49,7 +48,7 @@ final ringingChannel = Channel<Dial>(States.ringing);
 StateTreeBuilder phoneCallStateTree() {
   return StateTreeBuilder(initialState: States.offHook)
     ..state(States.offHook, (b) {
-      b.onMessage<Dial>((b) => b.enterChannel(ringingChannel, (_, msg) => msg));
+      b.onMessage<Dial>((b) => b.enterChannel(ringingChannel, (ctx) => ctx.message));
     })
     ..state(States.ringing, (b) {
       b.onEnterFromChannel<Dial>(ringingChannel, (b) => b.run(onDialed));
@@ -77,30 +76,34 @@ StateTreeBuilder phoneCallStateTree() {
     ..finalState(States.phoneDestroyed, emptyFinalState);
 }
 
-void onCallStarted(TransitionContext ctx) {
+void onCallStarted(TransitionHandlerContext ctx) {
   print('Call started at ${DateTime.now()}.');
 }
 
-void onCallEnded(TransitionContext ctx) {
+void onCallEnded(TransitionHandlerContext ctx) {
   print('Call ended at ${DateTime.now()}.');
 }
 
-Future<void> onDialed(TransitionContext ctx, Dial? payload) async {
-  print('Call placed to ${payload!.callee}.');
+Future<void> onDialed(TransitionHandlerContext<void, Dial> ctx) async {
+  print('Call placed to ${ctx.context.callee}.');
   print('Connecting...');
-  ctx.schedule(() => Messages.callConnected, duration: Duration(seconds: 1), periodic: false);
+  ctx.transitionContext.schedule(
+    () => Messages.callConnected,
+    duration: Duration(seconds: 1),
+    periodic: false,
+  );
 }
 
-void onMute(MessageContext ctx, Object? msg) {
+void onMute(MessageHandlerContext ctx) {
   print('Microphone muted.');
 }
 
-void onUnmute(MessageContext ctx, Object? msg) {
+void onUnmute(MessageHandlerContext ctx) {
   print('Microphone unmuted.');
 }
 
-void onSetVolume(MessageContext ctx, SetVolume msg) {
-  print('Volume set to ${msg.level}');
+void onSetVolume(MessageHandlerContext<SetVolume, void, void> ctx) {
+  print('Volume set to ${ctx.message.level}');
 }
 
 Future<void> main() async {
@@ -126,4 +129,8 @@ Future<void> main() async {
 
   await currentState.post(Messages.hangUp);
   assert(currentState.key == States.offHook);
+
+  var sb = StringBuffer();
+  treeBuilder.format(sb, DotFormatter());
+  print(sb.toString());
 }

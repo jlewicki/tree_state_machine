@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:async/async.dart';
-import 'package:logging/logging.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'package:tree_state_machine/tree_builders.dart';
 
@@ -36,17 +35,13 @@ abstract class AuthService {
 // State keys
 //
 class States {
-  static final root = StateKey('root');
-  static final unauthenticated = StateKey('unauthenticated');
-  static final splash = StateKey('splash');
-  static final login = StateKey('login');
-  static final loginEntry = StateKey('loginEntry');
-  static final authenticating = StateKey('authenticating');
-  static final registration = StateKey('registration');
-  static final credentialsRegistration = StateKey('credentialsRegistration');
-  static final demographicsRegistration = StateKey('demographicsRegistration');
-  static final authenticated = StateKey('authenticated');
-  static final userHome = StateKey('userHome');
+  static const login = StateKey('login');
+  static const loginEntry = StateKey('loginEntry');
+  static const authenticating = StateKey('authenticating');
+  static const registration = StateKey('registration');
+  static const credentialsRegistration = StateKey('credentialsRegistration');
+  static const demographicsRegistration = StateKey('demographicsRegistration');
+  static const authenticated = StateKey('authenticated');
 }
 
 //
@@ -116,15 +111,12 @@ class HomeData {
 //
 // State tree
 //
-StateTreeBuilder loginStateTree(AuthService authService) {
-  var b = StateTreeBuilder(initialState: States.unauthenticated);
 
-  b.state(States.unauthenticated, (b) {
-    b.onMessageValue(Messages.goToLogin, (b) => b.goTo(States.login));
-    b.onMessageValue(Messages.goToRegister, (b) => b.goTo(States.registration));
-  }, initialChild: InitialChild(States.splash));
-
-  b.state(States.splash, emptyState, parent: States.unauthenticated);
+StateTreeBuilder authenticateStateTree(
+  AuthService authService, {
+  StateKey initialState = States.login,
+}) {
+  var b = StateTreeBuilder(initialState: initialState, logName: 'auth');
 
   b.dataState<RegisterData>(
     States.registration,
@@ -135,9 +127,9 @@ StateTreeBuilder loginStateTree(AuthService authService) {
         // operation is in progress is modeled as flag in RegisterData, and a state transition (to
         // Authenticated) does not occur until the operation is complete.
         b.whenResult<AuthorizedUser>(
-          (msgCtx, msg, data) => _register(msgCtx, data, authService),
+          (ctx) => _register(ctx.messageContext, ctx.data, authService),
           (b) {
-            b.enterChannel(authenticatedChannel, (_, __, ___, authorizedUser) => authorizedUser);
+            b.enterChannel(authenticatedChannel, (ctx) => ctx.context);
           },
           label: 'register user',
         ).otherwise(((b) {
@@ -145,25 +137,24 @@ StateTreeBuilder loginStateTree(AuthService authService) {
         }));
       });
     },
-    parent: States.unauthenticated,
     initialChild: InitialChild(States.credentialsRegistration),
   );
 
   b.state(States.credentialsRegistration, (b) {
     b.onMessage<SubmitCredentials>((b) {
       b.goTo(States.demographicsRegistration,
-          action: b.act.updateData<RegisterData>((_, msg, data) => data
-            ..email = msg.email
-            ..password = msg.password));
+          action: b.act.updateData<RegisterData>((ctx, data) => data
+            ..email = ctx.message.email
+            ..password = ctx.message.password));
     });
   }, parent: States.registration);
 
   b.state(States.demographicsRegistration, (b) {
     b.onMessage<SubmitDemographics>((b) {
       b.unhandled(
-        action: b.act.updateData<RegisterData>((_, msg, data) => data
-          ..firstName = msg.firstName
-          ..lastName = msg.lastName),
+        action: b.act.updateData<RegisterData>((ctx, data) => data
+          ..firstName = ctx.message.firstName
+          ..lastName = ctx.message.lastName),
       );
     });
   }, parent: States.registration);
@@ -171,8 +162,7 @@ StateTreeBuilder loginStateTree(AuthService authService) {
   b.dataState<LoginData>(
     States.login,
     InitialData(() => LoginData()),
-    emptyDataState,
-    parent: States.unauthenticated,
+    emptyState,
     initialChild: InitialChild(States.loginEntry),
   );
 
@@ -181,47 +171,34 @@ StateTreeBuilder loginStateTree(AuthService authService) {
       // Model the 'logging in' status as a distinct state in the state machine. This is an
       // alternative design to modeling with a flag in state data, as was done with 'registering'
       // status.
-      b.enterChannel(authenticatingChannel, (_, msg) => msg);
+      b.enterChannel(authenticatingChannel, (ctx) => ctx.message);
     });
   }, parent: States.login);
 
   b.state(States.authenticating, (b) {
     b.onEnterFromChannel<SubmitCredentials>(authenticatingChannel, (b) {
-      b.post<AuthFuture>(getMessage: (_, creds) => _login(creds, authService));
+      b.post<AuthFuture>(getMessage: (ctx) => _login(ctx.context, authService));
     });
     b.onMessage<AuthFuture>((b) {
-      b.whenResult<AuthorizedUser>((_, msg) => msg.futureOr, (b) {
-        b.enterChannel<AuthorizedUser>(authenticatedChannel, (_, __, user) => user);
+      b.whenResult<AuthorizedUser>((ctx) => ctx.message.futureOr, (b) {
+        b.enterChannel<AuthorizedUser>(authenticatedChannel, (ctx) => ctx.context);
       }).otherwise((b) {
         b.goTo(
           States.loginEntry,
           action: b.act.updateData<LoginData>(
-              (_, __, current, err) => current..errorMessage = err.error.toString()),
+              (ctx, err) => err..errorMessage = ctx.context.error.toString()),
         );
       });
     });
   }, parent: States.login);
 
-  b.dataState<AuthenticatedData>(
+  b.finalDataState<AuthenticatedData>(
     States.authenticated,
     InitialData.fromChannel(
       authenticatedChannel,
       (AuthorizedUser user) => AuthenticatedData(user),
     ),
-    (b) {
-      b.onMessageValue(Messages.logout, (b) {
-        b.goTo(States.unauthenticated);
-      });
-    },
-    initialChild: InitialChild(States.userHome),
-  );
-
-  b.dataState<HomeData>(
-    States.userHome,
-    InitialData.fromAncestor((AuthenticatedData authData) =>
-        HomeData()..userSplashText = 'Welcome ' + authData.user.firstName),
-    (b) {},
-    parent: States.authenticated,
+    emptyFinalState,
   );
 
   return b;
@@ -269,63 +246,13 @@ class MockAuthService implements AuthService {
   Future<Result<AuthorizedUser>> register(RegistrationRequest request) => doRegister(request);
 }
 
-void main() async {
-  initLogging();
-
-  var authService = MockAuthService(
+Future<void> main() async {
+  var treeBuilder = authenticateStateTree(MockAuthService(
     (req) async => Result.error('nope'),
     (req) async => Result.error('nope'),
-  );
+  ));
 
-  var treeBuilder = loginStateTree(authService);
-  var stateMachine = TreeStateMachine(treeBuilder);
-  var currentState = await stateMachine.start();
-  assert(currentState.key == States.splash);
-  assert(currentState.isInState(States.unauthenticated));
-
-  await currentState.post(Messages.goToLogin);
-  assert(currentState.key == States.loginEntry);
-  assert(currentState.isInState(States.login));
-
-  authService.doAuthenticate = (req) async {
-    return Result.value(AuthorizedUser('Chandler', 'Bing', 'chandler.bing@hotmail.com'));
-  };
-  await currentState.post(SubmitCredentials('chandler.bing@hotmail.com', 'friends123'));
-
-  // Wait for login to complete
-  await stateMachine.transitions.first;
-  assert(currentState.key == States.userHome);
-  assert(currentState.isInState(States.authenticated));
-  assert(currentState.dataValue<AuthenticatedData>()!.user.email == 'chandler.bing@hotmail.com');
-
-  await currentState.post(Messages.logout);
-  assert(currentState.key == States.splash);
-  assert(currentState.isInState(States.unauthenticated));
-
-  await currentState.post(Messages.goToRegister);
-  assert(currentState.key == States.credentialsRegistration);
-  assert(currentState.isInState(States.registration));
-
-  await currentState.post(SubmitCredentials('phoebes@smellycat.com', 'imnotursala'));
-  assert(currentState.key == States.demographicsRegistration);
-
-  await currentState.post(SubmitDemographics('Phoebe', 'Buffay'));
-
-  authService.doRegister = (req) async {
-    return Result.value(AuthorizedUser('Phoebe', 'Buffay', 'phoebes@smellycat.com'));
-  };
-  await currentState.post(Messages.submitRegistration);
-
-  assert(currentState.key == States.userHome);
-  assert(currentState.isInState(States.authenticated));
-  assert(currentState.dataValue<AuthenticatedData>()!.user.email == 'phoebes@smellycat.com');
-}
-
-// Example of enabling logging output from tree_state_machine library.
-void initLogging() {
-  hierarchicalLoggingEnabled = true;
-  Logger('tree_state_machine').level = Level.ALL;
-  Logger.root.onRecord.listen((record) {
-    print('${record.level.name}: ${record.time}: ${record.message}');
-  });
+  var sb = StringBuffer();
+  treeBuilder.format(sb, DotFormatter());
+  print(sb.toString());
 }

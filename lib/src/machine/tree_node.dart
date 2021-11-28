@@ -81,10 +81,7 @@ class TreeNode {
 
   void dispose() {
     if (_lazyState.hasValue) {
-      var state = _lazyState.value;
-      if (state.onDispose != null) {
-        state.onDispose!();
-      }
+      _lazyState.value.dispose();
     }
   }
 }
@@ -101,7 +98,7 @@ extension TreeNodeNavigationExtensions on TreeNode {
   ///
   /// Returns `null` if there is no node that matches the data type.
   TreeNode? selfOrAncestorWithData<D>() {
-    return selfAndAncestors().firstWhereOrNull((n) => n.data is DataValue<D>);
+    return selfAndAncestors().firstWhereOrNull((n) => n.data is DataValue<D> ? true : false);
   }
 
   /// Returns `true` if [stateKey] identifies this node, or one of its ancestor nodes.

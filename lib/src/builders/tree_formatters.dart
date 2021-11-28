@@ -60,7 +60,7 @@ class _DotFormatter {
   }
 
   void _writeCompositeState(
-    _StateBuilderBase state,
+    _StateBuilder state,
     StringSink sink,
     List<String> transitions,
   ) {
@@ -94,10 +94,10 @@ class _DotFormatter {
     }
 
     // If any of the handlers for this state post/schedule, declare a node that represents the post
-    // operation. This node is used as a 'sink' destination node for edges that represrnt the post
+    // operation. This node is used as a 'sink' destination node for edges that represent the post
     // action.
     var postNodeName = '${clusterName}_${_getStateName(state)}_post';
-    tryWritePostNode(childStates, postNodeName, sink);
+    tryWritePostNode(childStates, state.key, postNodeName, sink);
 
     // Declare initial transition
     var initialChild =
@@ -109,37 +109,36 @@ class _DotFormatter {
     // Declare state transitions
     // TODO: do we need to do this a loop? can we do it node by node during recursive calls?
     for (var child in childStates) {
-      for (var handlerEntry in child._messageHandlerMap.entries) {
-        var messageValueOrType = handlerEntry.key;
-        if (isEnumValue(messageValueOrType)) {
-          messageValueOrType = describeEnum(messageValueOrType);
-        }
+      for (var handlerInfo in child._getHandlerInfos()) {
         var childStateName = _getStateName(child);
         // Note that handlers of type unhandled are exluded, since they don't result in a transition
         // from this state
-        var handler = handlerEntry.value;
-        var handlerType = handlerEntry.value.handlerType;
-        if (handlerType != _MessageHandlerType.unhandled) {
-          var conditions = handler.tryGetConditions();
-          if (conditions == null) {
-            transitions.add(_labelMessageHandler(child, handler, childStateName, postNodeName));
+        //var handler = handlerEntry.value;
+        var handlerType = handlerInfo.handlerType;
+        if (handlerType != MessageHandlerType.unhandled) {
+          var conditions = handlerInfo.conditions;
+          if (conditions.isEmpty) {
+            transitions.add(
+              _labelMessageHandler(child, handlerInfo, childStateName, postNodeName),
+            );
           } else {
             // Conditions are displayed in the graph as an edge leading to a decision node, and then
             // edges from the decision node representing the transition targets.
             //
             // Render the decision node
             var decisionNodeName =
-                '${clusterName}_${childStateName}_decision_${messageValueOrType.toString().replaceAll('.', '_')}';
+                '${clusterName}_${childStateName}_decision_${handlerInfo.messageName.toString().replaceAll('.', '_')}';
             sink.writeln('$tabs$decisionNodeName [shape=circle, label="", width=0.25]');
 
             // Render edge from state to decision node
-            transitions.add('$childStateName -> $decisionNodeName [label=$messageValueOrType]');
+            transitions
+                .add('$childStateName -> $decisionNodeName [label=${handlerInfo.messageName}]');
 
             // Render edges for the targets
             for (var condition in conditions) {
               transitions.add(_labelMessageHandler(
                 child,
-                condition.whenTrueDescriptor,
+                condition.whenTrueInfo,
                 decisionNodeName,
                 postNodeName,
                 isTransitionFromDecisionNode: true,
@@ -155,32 +154,56 @@ class _DotFormatter {
     sink.writeln('$tabs}');
   }
 
-  void tryWritePostNode(List<_StateBuilderBase> childStates, String postNodeName, StringSink sink) {
+  void tryWritePostNode(
+    List<_StateBuilder> childStates,
+    StateKey postingState,
+    String postNodeName,
+    StringSink sink,
+  ) {
     var firstPostOrSchedule = childStates
-        .expand((child) => child._messageHandlerMap.values)
-        .firstWhereOrNull((descr) => descr.actions.any(
-            (act) => act.actionType == _ActionType.post || act.actionType == _ActionType.schedule));
+        .expand((child) => child._getHandlerInfos())
+        .expand((info) => _expandConditionHandlers([info]))
+        .firstWhereOrNull((info) => info.actions.any(
+            (act) => act.actionType == ActionType.post || act.actionType == ActionType.schedule));
     var hasPostHandler = firstPostOrSchedule != null;
     if (hasPostHandler) {
       sink.writeln('${_indent()}$postNodeName [shape=circle, style=dotted, label=""]');
     }
   }
 
-  String _writeLeafState(_StateBuilderBase leaf, StringSink sb) {
+  Iterable<MessageHandlerInfo> _expandConditionHandlers(Iterable<MessageHandlerInfo> infos) sync* {
+    for (var info in infos) {
+      if (info.conditions.isNotEmpty) {
+        yield* _expandConditionHandlers(info.conditions.map((c) => c.whenTrueInfo));
+      } else {
+        yield info;
+      }
+    }
+  }
+
+  String _writeLeafState(_StateBuilder leaf, StringSink sb) {
     var stateName = _getStateName(leaf);
     sb.write('${_indent()}$stateName [shape=Mrecord, ');
+    if (leaf is MachineStateBuilder) {
+      sb.write('style=diagonals, ');
+    }
     _labelState(leaf, sink);
     sb.writeln(']');
     return stateName;
   }
 
-  void _labelState(_StateBuilderBase stateBuilder, StringSink sink) {
+  void _labelState(_StateBuilder stateBuilder, StringSink sink) {
     // Note that label fields are wrapped in braces. In DOT format this means to
     // flip the layout of the records (flipping from left-right to top-bottom)
     sink.write('label="{${_getStateName(stateBuilder)}');
 
-    if (stateBuilder is _DataStateBuilder) {
-      sink.write('|dataType: ${stateBuilder.dataType}');
+    if (stateBuilder._hasStateData) {
+      sink.write('|dataType: ${stateBuilder._dataType}');
+    }
+
+    if (stateBuilder is MachineStateBuilder) {
+      sink.write(
+          '|stateMachine: ${stateBuilder._initialMachine.label ?? '<Nested State Machine>'}');
     }
 
     if (stateBuilder._onEnter != null) {
@@ -191,49 +214,48 @@ class _DotFormatter {
       sink.write('|exit: ${_labelTransitionHandler(stateBuilder._onExit!)}');
     }
 
-    for (var handlerEntry in stateBuilder._messageHandlerMap.entries) {
-      var handler = handlerEntry.value;
-      if (handler.handlerType == _MessageHandlerType.unhandled) {
-        var handlerOp = _labelMessageHandlerOp(handler, labelMessageType: false);
-        sink.write('|on ${handler.messageType}: $handlerOp');
+    for (var handlerInfo in stateBuilder._getHandlerInfos()) {
+      if (handlerInfo.handlerType == MessageHandlerType.unhandled) {
+        var handlerOp = _labelMessageHandlerOp(handlerInfo, labelMessageType: false);
+        sink.write('|on ${handlerInfo.messageType}: $handlerOp');
       }
     }
 
     sink.write('}"');
   }
 
-  String _labelTransitionHandler(_TransitionHandlerDescriptor entryInfo) {
-    var opName = entryInfo.label ?? _labelTransitionOp(entryInfo);
+  String _labelTransitionHandler(TransitionHandlerDescriptor entryInfo) {
+    var opName = entryInfo.info.label ?? _labelTransitionOp(entryInfo);
     return opName;
   }
 
-  String _labelTransitionOp(_TransitionHandlerDescriptor info) {
-    switch (info.handlerType) {
-      case _TransitionHandlerType.post:
-        return 'POST ${(info as _PostOrScheduleTransitionHandlerDescriptor)._messageType}';
-      case _TransitionHandlerType.schedule:
-        return 'SCHEDULE ${(info as _PostOrScheduleTransitionHandlerDescriptor)._messageType}';
-      case _TransitionHandlerType.updateData:
-        return 'UPDATE ${(info as _UpdateDataTransitionHandlerDescriptor)._dataType}';
-      case _TransitionHandlerType.channelEntry:
+  String _labelTransitionOp(TransitionHandlerDescriptor descr) {
+    switch (descr.info.handlerType) {
+      case TransitionHandlerType.post:
+        return 'POST ${descr.info.postOrScheduleMessageType}';
+      case TransitionHandlerType.schedule:
+        return 'SCHEDULE ${descr.info.postOrScheduleMessageType}';
+      case TransitionHandlerType.updateData:
+        return 'UPDATE ${descr.info.updateDataType}';
+      case TransitionHandlerType.channelEntry:
         return 'Channel Entry';
-      case _TransitionHandlerType.run:
-        return info.label ?? 'Function';
+      case TransitionHandlerType.run:
+        return descr.info.label ?? 'Function';
       default:
         return 'Function';
     }
   }
 
   String _labelMessageHandler(
-    _StateBuilderBase state,
-    _MessageHandlerInfo handlerInfo,
+    _StateBuilder state,
+    MessageHandlerInfo handlerInfo,
     String sourceNodeName,
     String postNodeName, {
     bool isTransitionFromDecisionNode = false,
-    _MessageConditionInfo? condition,
+    MessageConditionInfo? condition,
   }) {
-    var targetState = handlerInfo.handlerType == _MessageHandlerType.goto
-        ? treeBuilder._stateBuilders[(handlerInfo as _GoToInfo).targetState]!
+    var targetState = handlerInfo.handlerType == MessageHandlerType.goto
+        ? treeBuilder._stateBuilders[handlerInfo.goToTarget]!
         : state;
     var targetStateName = _getStateName(targetState);
     var conditionLabel = condition != null ? _labelCondition(condition) : '';
@@ -242,53 +264,53 @@ class _DotFormatter {
     var conditionAndOp =
         '$conditionLabel${conditionLabel.isNotEmpty && opName.isNotEmpty ? ' / ' : ''}$opName';
     var postOrScheduleAction = handlerInfo.actions.firstWhereOrNull((action) =>
-        action.actionType == _ActionType.post || action.actionType == _ActionType.schedule);
-    var isUnhandled = handlerInfo.handlerType == _MessageHandlerType.unhandled;
+        action.actionType == ActionType.post || action.actionType == ActionType.schedule);
+    var isUnhandled = handlerInfo.handlerType == MessageHandlerType.unhandled;
 
     if (postOrScheduleAction != null) {
       return '$sourceNodeName -> $postNodeName [label="$conditionAndOp"]';
     } else if (isUnhandled) {
       return '';
     }
-    var isNotStay = handlerInfo.handlerType == _MessageHandlerType.goto ||
-        handlerInfo.handlerType == _MessageHandlerType.gotoSelf;
+    var isNotStay = handlerInfo.handlerType == MessageHandlerType.goto ||
+        handlerInfo.handlerType == MessageHandlerType.gotoSelf;
     var style = isNotStay ? '' : ',style=dotted';
 
     return '$sourceNodeName -> $targetStateName [label="$conditionAndOp"$style]';
   }
 
-  String _labelMessageHandlerOp(_MessageHandlerInfo info, {bool labelMessageType = true}) {
-    var msgType = labelMessageType ? (info.messageName ?? info.messageType.toString()) : '';
-    var msgTypeWithSlash = msgType + (msgType.isNotEmpty ? ' / ' : '');
+  String _labelMessageHandlerOp(MessageHandlerInfo info, {bool labelMessageType = true}) {
+    var msgName = labelMessageType ? info.messageName : '';
+    var msgTypeWithSlash = msgName + (msgName.isNotEmpty ? ' / ' : '');
     switch (info.handlerType) {
-      case _MessageHandlerType.goto:
-      case _MessageHandlerType.gotoSelf:
-        return msgType;
+      case MessageHandlerType.goto:
+      case MessageHandlerType.gotoSelf:
+        return msgName;
       default:
         if (info.actions.length == 1) {
           return '$msgTypeWithSlash${_labelActionOp(info.actions.first)}';
         } else if (info.actions.length > 1) {
           throw StateError('Unexpected multiple actions');
         } else {
-          return msgTypeWithSlash;
+          return msgName;
         }
     }
   }
 
-  String _labelActionOp(_MessageActionInfo action) {
+  String _labelActionOp(MessageActionInfo action) {
     switch (action.actionType) {
-      case _ActionType.run:
-        return 'Function';
-      case _ActionType.post:
+      case ActionType.run:
+        return action.label ?? 'Function';
+      case ActionType.post:
         return 'POST ${action.postMessageType}';
-      case _ActionType.schedule:
+      case ActionType.schedule:
         return 'SCHEDULE ${action.postMessageType}';
-      case _ActionType.updateData:
-        return 'UPDATE';
+      case ActionType.updateData:
+        return 'UPDATE ${action.updateDataType}';
     }
   }
 
-  String _labelCondition(_MessageConditionInfo condition) {
+  String _labelCondition(MessageConditionInfo condition) {
     var label = '';
     if (condition.label != null) {
       label = condition.label!;
@@ -312,12 +334,12 @@ class _DotFormatter {
     return List.filled(_depth, '\t').join();
   }
 
-  String _getStateName(_StateBuilderBase state) {
+  String _getStateName(_StateBuilder state) {
     var name = getStateName != null ? getStateName!(state.key) : '${state.key}';
     return name == StateTreeBuilder.defaultRootKey.toString() ? 'Root' : name;
   }
 
-  _StateBuilderBase _findRootState() {
+  _StateBuilder _findRootState() {
     return treeBuilder._stateBuilders.values.firstWhere((sb) => sb._stateType == _StateType.root);
   }
 }

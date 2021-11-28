@@ -246,9 +246,10 @@ class Machine {
     }
 
     void bookkeepingHandler() {
-      assert(transCtx.currentNode.isLeaf, 'Transition did not end at a leaf node');
-      _log.fine("Transitioned to state '${transCtx.currentNode.key}'");
-      _currentLeafNode = nodes[transCtx.currentNode.key]!;
+      var node = transCtx.currentNode;
+      assert(node.isLeaf, 'Transition did not end at a leaf node');
+      _log.fine(() => "Transitioned to ${node.isFinalLeaf ? 'final' : ''} state '${node.key}'");
+      _currentLeafNode = nodes[node.key]!;
     }
 
     var f = _runTransitionHandlers(
@@ -374,7 +375,6 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
   @override
   DataValue<D>? data<D>([StateKey? key]) {
     assert(notifiedNodes.isNotEmpty);
-    //return notifiedNodes.last.selfOrAncestorDataValue<D>(key: key ?? handlingNode.key);
     return notifiedNodes.last.selfOrAncestorDataValue<D>(key: key);
   }
 
@@ -479,17 +479,14 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
   TreeNode get currentNode => _currentNode;
 
   Transition toTransition() {
-    return Transition(_requestedTransition.from, _currentNode.key, lca, exited, entered);
+    return Transition(_requestedTransition.from, _currentNode.key, lca, exited, entered,
+        _enteredNodes.last.isFinalLeaf);
   }
 
   @override
   void post(FutureOr<Object> message) {
     _throwIfDisposed();
-    if (message is Future<Object>) {
-      message.then(_machine._queueMessage);
-    } else {
-      _machine._queueMessage(message);
-    }
+    message.bind(_machine._queueMessage);
   }
 
   @override
@@ -567,6 +564,9 @@ class MachineTransition implements Transition {
 
   @override
   late final List<StateKey> path = nodePath.map((n) => n.key).toList();
+
+  @override
+  bool get isToFinalState => toNode.isFinalLeaf;
 
   /// Constructs a [TransitionPath] instance.
   MachineTransition._(
@@ -647,7 +647,7 @@ class MachineNode {
 
 final stopMessage = Object();
 
-final _stoppedState = TreeState(
+final _stoppedState = DelegatingTreeState(
   (ctx) => throw StateError('Can not send message to a final state'),
   (ctx) => {},
   (ctx) => throw StateError('Can not leave a final state.'),

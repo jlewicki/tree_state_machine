@@ -1,5 +1,8 @@
-## 1.0.4
-- Add support for final data states
+## 2.0.1
+- Adjustments and internal simplifications of tree_builders library.
+- Add support for final data states.
+- Add nested state machines.
+- Adjust logging so that log messages can be named to reflect the state machine that emits them.
 
 ## 1.0.3
 - Package updates to improve pub.dev score.

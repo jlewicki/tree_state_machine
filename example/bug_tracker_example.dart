@@ -43,41 +43,41 @@ StateTreeBuilder bugTrackerStateTree() {
   var b = StateTreeBuilder.withDataRoot<BugData>(
     States.root,
     InitialData(() => BugData()..title = 'New Bug'),
-    emptyDataState,
+    emptyState,
     InitialChild(States.open),
   );
 
   b.state(States.open, (b) {
     b.onMessage<Assign>((b) {
-      b.enterChannel(assignedChannel, (_, msg) => msg.assignee, reenterTarget: true);
+      b.enterChannel(assignedChannel, (ctx) => ctx.message.assignee, reenterTarget: true);
     });
     b.onMessageValue(Messages.close, (b) => b.goTo(States.closed));
     b.onMessageValue(Messages.defer, (b) => b.goTo(States.deferred));
   }, parent: States.root, initialChild: InitialChild(States.unassigned));
 
   b.state(States.unassigned, (b) {
-    b.onEnterWithData<BugData>((b) {
-      b.updateData((_, data) => data..assignee = null);
+    b.onEnter((b) {
+      b.updateData<BugData>((ctx) => ctx.data..assignee = null);
     });
   }, parent: States.open);
 
   b.state(States.assigned, (b) {
     b.onEnterFromChannel<String>(assignedChannel, (b) {
-      b.updateData<BugData>((_, data, assignee) => data..assignee = assignee);
+      b.updateData<BugData>((ctx) => ctx.data..assignee = ctx.context);
     });
     b.onExitWithData<BugData>((b) {
-      b.run((ctx, data) => sendEmailToAssignee(data, "You're off the hook."),
+      b.run((ctx) => sendEmailToAssignee(ctx.context, "You're off the hook."),
           label: 'send email to assignee');
     });
   }, parent: States.open);
 
   b.state(States.deferred, (b) {
-    b.onEnterWithData<BugData>((b) => b.updateData(
-          (_, data) => data..assignee = null,
+    b.onEnter((b) => b.updateData<BugData>(
+          (ctx) => ctx.data..assignee = null,
           label: 'clear assignee',
         ));
     b.onMessage<Assign>((b) {
-      b.enterChannel(assignedChannel, (_, msg) => msg.assignee);
+      b.enterChannel<String>(assignedChannel, (ctx) => ctx.message.assignee);
     });
   }, parent: States.root);
 
@@ -90,7 +90,7 @@ void sendEmailToAssignee(BugData bug, String message) {
   print('${bug.assignee}, RE ${bug.title}: $message');
 }
 
-void main() async {
+Future<void> main() async {
   var treeBuilder = bugTrackerStateTree();
   var stateMachine = TreeStateMachine(treeBuilder);
 
@@ -111,4 +111,8 @@ void main() async {
 
   await currentState.post(Messages.close);
   assert(currentState.key == States.closed);
+
+  var sb = StringBuffer();
+  treeBuilder.format(sb, DotFormatter());
+  print(sb.toString());
 }
