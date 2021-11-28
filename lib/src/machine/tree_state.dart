@@ -304,7 +304,7 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
       currentNestedState = await machine.start();
       data!.update((current) => current.._currentNestedState = currentNestedState);
 
-      // Post a futire
+      // Post a future that will notify the message handler when the nested machine is done.
       var group = StreamGroup<Object>();
       group.add(done);
       group.add(disposed);

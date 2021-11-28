@@ -193,7 +193,8 @@ abstract class _StateBuilder {
 /// Provides methods for describing the behavior of a state, carrying state data of type [D], when
 /// is entered. [D] may be `void` if the state does not have any associated state data.
 abstract class EnterStateBuilder<D> {
-  void runOnEnter(TransitionHandler handler, {String? label});
+  /// Handles all entry transitions with the [handler] function.
+  void handleOnEnter(TransitionHandler handler, {String? label});
 
   /// Describes how transitions to this state should be handled.
   ///
@@ -276,16 +277,18 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
     _onEnter = builder._descriptor;
   }
 
-  void runOnMessage(MessageHandler handler) {
+  /// Handles all messages with the [handler] function.
+  void handleOnMessage(MessageHandler handler) {
     _messageHandler = handler;
   }
 
   @override
-  void runOnEnter(TransitionHandler handler, {String? label}) {
+  void handleOnEnter(TransitionHandler handler, {String? label}) {
     _onEnter = TransitionHandlerDescriptor.ofHandler(handler, label);
   }
 
-  void runOnExit(TransitionHandler handler, {String? label}) {
+  /// Handles all entry transitions with the [handler] function.
+  void handleOnExit(TransitionHandler handler, {String? label}) {
     _onExit = TransitionHandlerDescriptor.ofHandler(handler, label);
   }
 
