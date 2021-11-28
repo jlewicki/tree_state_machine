@@ -109,21 +109,17 @@ class _DotFormatter {
     // Declare state transitions
     // TODO: do we need to do this a loop? can we do it node by node during recursive calls?
     for (var child in childStates) {
-      for (var handlerEntry in child._messageHandlerMap.entries) {
-        var messageValueOrType = handlerEntry.key;
-        if (isEnumValue(messageValueOrType)) {
-          messageValueOrType = describeEnum(messageValueOrType);
-        }
+      for (var handlerInfo in child._getHandlerInfos()) {
         var childStateName = _getStateName(child);
         // Note that handlers of type unhandled are exluded, since they don't result in a transition
         // from this state
-        var handler = handlerEntry.value;
-        var handlerType = handlerEntry.value.info.handlerType;
+        //var handler = handlerEntry.value;
+        var handlerType = handlerInfo.handlerType;
         if (handlerType != MessageHandlerType.unhandled) {
-          var conditions = handler is MessageHandlerDescriptor ? handler.info.conditions : null;
-          if (conditions == null || conditions.isEmpty) {
+          var conditions = handlerInfo.conditions;
+          if (conditions.isEmpty) {
             transitions.add(
-              _labelMessageHandler(child, handler.info, childStateName, postNodeName),
+              _labelMessageHandler(child, handlerInfo, childStateName, postNodeName),
             );
           } else {
             // Conditions are displayed in the graph as an edge leading to a decision node, and then
@@ -131,11 +127,12 @@ class _DotFormatter {
             //
             // Render the decision node
             var decisionNodeName =
-                '${clusterName}_${childStateName}_decision_${messageValueOrType.toString().replaceAll('.', '_')}';
+                '${clusterName}_${childStateName}_decision_${handlerInfo.messageName.toString().replaceAll('.', '_')}';
             sink.writeln('$tabs$decisionNodeName [shape=circle, label="", width=0.25]');
 
             // Render edge from state to decision node
-            transitions.add('$childStateName -> $decisionNodeName [label=$messageValueOrType]');
+            transitions
+                .add('$childStateName -> $decisionNodeName [label=${handlerInfo.messageName}]');
 
             // Render edges for the targets
             for (var condition in conditions) {
@@ -164,8 +161,8 @@ class _DotFormatter {
     StringSink sink,
   ) {
     var firstPostOrSchedule = childStates
-        .expand((child) => child._messageHandlerMap.values)
-        .expand((descr) => _expandConditionHandlers([descr.info]))
+        .expand((child) => child._getHandlerInfos())
+        .expand((info) => _expandConditionHandlers([info]))
         .firstWhereOrNull((info) => info.actions.any(
             (act) => act.actionType == ActionType.post || act.actionType == ActionType.schedule));
     var hasPostHandler = firstPostOrSchedule != null;
@@ -217,8 +214,7 @@ class _DotFormatter {
       sink.write('|exit: ${_labelTransitionHandler(stateBuilder._onExit!)}');
     }
 
-    for (var handlerEntry in stateBuilder._messageHandlerMap.entries) {
-      var handlerInfo = handlerEntry.value.info;
+    for (var handlerInfo in stateBuilder._getHandlerInfos()) {
       if (handlerInfo.handlerType == MessageHandlerType.unhandled) {
         var handlerOp = _labelMessageHandlerOp(handlerInfo, labelMessageType: false);
         sink.write('|on ${handlerInfo.messageType}: $handlerOp');
@@ -284,19 +280,19 @@ class _DotFormatter {
   }
 
   String _labelMessageHandlerOp(MessageHandlerInfo info, {bool labelMessageType = true}) {
-    var msgType = labelMessageType ? (info.messageName ?? info.messageType.toString()) : '';
-    var msgTypeWithSlash = msgType + (msgType.isNotEmpty ? ' / ' : '');
+    var msgName = labelMessageType ? info.messageName : '';
+    var msgTypeWithSlash = msgName + (msgName.isNotEmpty ? ' / ' : '');
     switch (info.handlerType) {
       case MessageHandlerType.goto:
       case MessageHandlerType.gotoSelf:
-        return msgType;
+        return msgName;
       default:
         if (info.actions.length == 1) {
           return '$msgTypeWithSlash${_labelActionOp(info.actions.first)}';
         } else if (info.actions.length > 1) {
           throw StateError('Unexpected multiple actions');
         } else {
-          return msgType;
+          return msgName;
         }
     }
   }

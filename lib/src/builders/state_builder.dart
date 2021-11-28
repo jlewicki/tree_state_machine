@@ -90,6 +90,8 @@ abstract class _StateBuilder {
 
   bool get _hasStateData => _dataType != null;
 
+  Iterable<MessageHandlerInfo> _getHandlerInfos() => _messageHandlerMap.values.map((e) => e.info);
+
   void _addChild(_StateBuilder child) {
     child._parent = key;
     _children.add(child.key);
@@ -424,7 +426,7 @@ class MachineStateBuilder extends _StateBuilder {
       key,
       (_) => _currentStateRef.value!,
       _log,
-      null,
+      'Machine Done',
     );
     buildHandler(builder);
     _doneDescriptor = builder.descriptor;
@@ -437,11 +439,17 @@ class MachineStateBuilder extends _StateBuilder {
       key,
       (_) {},
       _log,
-      null,
+      'Machine Disposed',
     );
     buildHandler(builder);
     _disposedDescriptor = builder.descriptor;
   }
+
+  @override
+  Iterable<MessageHandlerInfo> _getHandlerInfos() => super._getHandlerInfos().followedBy([
+        _doneDescriptor?.info,
+        _disposedDescriptor?.info
+      ].where((i) => i != null).cast<MessageHandlerInfo>());
 
   @override
   TreeState _createState() {

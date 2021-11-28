@@ -21,7 +21,7 @@ class MessageHandlerInfo {
   // In general there is at most 1 action
   final List<MessageActionInfo> actions;
   final Iterable<MessageConditionInfo> conditions;
-  final String? messageName;
+  final String? _messageName;
   final String? label;
   final StateKey? goToTarget;
 
@@ -30,10 +30,12 @@ class MessageHandlerInfo {
     this.messageType,
     this.actions,
     this.conditions,
-    this.messageName,
+    this._messageName,
     this.label, [
     this.goToTarget,
   ]);
+
+  String get messageName => _messageName ?? messageType.toString();
 }
 
 enum ActionType { schedule, post, updateData, run }
