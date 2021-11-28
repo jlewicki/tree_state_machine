@@ -14,7 +14,9 @@ extension TransitionContextExtensions on TransitionContext {
   D dataValueOrThrow<D>([StateKey? key]) {
     var data = this.data<D>(key);
     if (data == null) {
-      throw StateError('Unable to find data of type ${TypeLiteral<D>().type}');
+      return isTypeOf<Object, void>()
+          ? data as D
+          : throw StateError('Unable to find data value of type ${TypeLiteral<D>().type}');
     }
     return data.value;
   }
@@ -46,10 +48,12 @@ extension MessageContextExtensions on MessageContext {
   }
 
   D dataValueOrThrow<D>([StateKey? key]) {
+    if (isTypeOf<void, D>()) return null as D;
     var dataVal = data<D>(key);
     if (dataVal == null) {
-      throw StateError(
-          'Unable to find data value of type ${TypeLiteral<D>().type} in active data states');
+      return isTypeOf<Object, void>()
+          ? data as D
+          : throw StateError('Unable to find data value of type ${TypeLiteral<D>().type}');
     }
     return dataVal.value;
   }

@@ -7,15 +7,14 @@ import 'package:tree_state_machine/src/machine/utility.dart';
 import 'package:tree_state_machine/tree_builders.dart';
 import './message_handler_descriptor.dart';
 
-MessageHandlerDescriptor<C> makeStayOrUnhandledDescriptor<M, D, C>(
+MessageHandlerDescriptor<C> makeGoToSelfDescriptor<M, D, C>(
   FutureOr<C> Function(MessageContext) makeContext,
   Logger log,
-  StateKey stayInState,
+  TransitionHandler? transitionAction,
   MessageActionDescriptor<M, D, C>? action,
   String? label,
-  String? messageName, {
-  required bool handled,
-}) {
+  String? messageName,
+) {
   var actions = [if (action != null) action.info];
   var info = MessageHandlerInfo(MessageHandlerType.goto, M, actions, [], messageName, label);
   return MessageHandlerDescriptor<C>(
@@ -26,6 +25,7 @@ MessageHandlerDescriptor<C> makeStayOrUnhandledDescriptor<M, D, C>(
             var data = msgCtx.dataValueOrThrow<D>();
             var handlerCtx = MessageHandlerContext<M, D, C>(msgCtx, msg, data, descrCtx.ctx);
             var _action = action?.handle ?? (_) {};
-            return _action(handlerCtx).bind((_) => handled ? msgCtx.stay() : msgCtx.unhandled());
+            return _action(handlerCtx)
+                .bind((_) => msgCtx.goToSelf(transitionAction: transitionAction));
           });
 }

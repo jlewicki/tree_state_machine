@@ -127,9 +127,9 @@ StateTreeBuilder authenticateStateTree(
         // operation is in progress is modeled as flag in RegisterData, and a state transition (to
         // Authenticated) does not occur until the operation is complete.
         b.whenResult<AuthorizedUser>(
-          (msgCtx, msg, data) => _register(msgCtx, data, authService),
+          (ctx) => _register(ctx.messageContext, ctx.data, authService),
           (b) {
-            b.enterChannel(authenticatedChannel, (_, __, ___, authorizedUser) => authorizedUser);
+            b.enterChannel(authenticatedChannel, (ctx) => ctx.context);
           },
           label: 'register user',
         ).otherwise(((b) {
@@ -143,18 +143,18 @@ StateTreeBuilder authenticateStateTree(
   b.state(States.credentialsRegistration, (b) {
     b.onMessage<SubmitCredentials>((b) {
       b.goTo(States.demographicsRegistration,
-          action: b.act.updateData<RegisterData>((_, msg, data) => data
-            ..email = msg.email
-            ..password = msg.password));
+          action: b.act.updateData<RegisterData>((ctx, data) => data
+            ..email = ctx.message.email
+            ..password = ctx.message.password));
     });
   }, parent: States.registration);
 
   b.state(States.demographicsRegistration, (b) {
     b.onMessage<SubmitDemographics>((b) {
       b.unhandled(
-        action: b.act.updateData<RegisterData>((_, msg, data) => data
-          ..firstName = msg.firstName
-          ..lastName = msg.lastName),
+        action: b.act.updateData<RegisterData>((ctx, data) => data
+          ..firstName = ctx.message.firstName
+          ..lastName = ctx.message.lastName),
       );
     });
   }, parent: States.registration);
@@ -162,7 +162,7 @@ StateTreeBuilder authenticateStateTree(
   b.dataState<LoginData>(
     States.login,
     InitialData(() => LoginData()),
-    emptyDataState,
+    emptyState,
     initialChild: InitialChild(States.loginEntry),
   );
 
@@ -171,22 +171,22 @@ StateTreeBuilder authenticateStateTree(
       // Model the 'logging in' status as a distinct state in the state machine. This is an
       // alternative design to modeling with a flag in state data, as was done with 'registering'
       // status.
-      b.enterChannel(authenticatingChannel, (_, msg) => msg);
+      b.enterChannel(authenticatingChannel, (ctx) => ctx.message);
     });
   }, parent: States.login);
 
   b.state(States.authenticating, (b) {
     b.onEnterFromChannel<SubmitCredentials>(authenticatingChannel, (b) {
-      b.post<AuthFuture>(getMessage: (_, creds) => _login(creds, authService));
+      b.post<AuthFuture>(getMessage: (ctx) => _login(ctx.context, authService));
     });
     b.onMessage<AuthFuture>((b) {
-      b.whenResult<AuthorizedUser>((_, msg) => msg.futureOr, (b) {
-        b.enterChannel<AuthorizedUser>(authenticatedChannel, (_, __, user) => user);
+      b.whenResult<AuthorizedUser>((ctx) => ctx.message.futureOr, (b) {
+        b.enterChannel<AuthorizedUser>(authenticatedChannel, (ctx) => ctx.context);
       }).otherwise((b) {
         b.goTo(
           States.loginEntry,
           action: b.act.updateData<LoginData>(
-              (_, __, current, err) => current..errorMessage = err.error.toString()),
+              (ctx, err) => err..errorMessage = ctx.context.error.toString()),
         );
       });
     });
@@ -198,7 +198,7 @@ StateTreeBuilder authenticateStateTree(
       authenticatedChannel,
       (AuthorizedUser user) => AuthenticatedData(user),
     ),
-    emptyFinalDataState,
+    emptyFinalState,
   );
 
   return b;

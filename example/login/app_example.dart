@@ -4,7 +4,6 @@ import 'package:async/async.dart';
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'package:tree_state_machine/tree_builders.dart';
-
 import 'authenticate_state_tree.dart' as auth;
 
 typedef AuthService = auth.AuthService;
@@ -51,11 +50,11 @@ StateTreeBuilder appStateTree(AuthService authService) {
   b.state(States.splash, (b) {
     b.onMessageValue(
       Messages.goToLogin,
-      (b) => b.enterChannel<StateKey>(authenticateChannel, (_, __) => auth.States.login),
+      (b) => b.enterChannel<StateKey>(authenticateChannel, (_) => auth.States.login),
     );
     b.onMessageValue(
       Messages.goToRegister,
-      (b) => b.enterChannel(authenticateChannel, (_, __) => auth.States.registration),
+      (b) => b.enterChannel(authenticateChannel, (_) => auth.States.registration),
     );
   });
 
@@ -70,7 +69,7 @@ StateTreeBuilder appStateTree(AuthService authService) {
     (b) {
       b.onMachineDone((b) => b.enterChannel(
             authenticatedChannel,
-            (finalState) => finalState.dataValue<auth.AuthenticatedData>()!.user,
+            (ctx) => ctx.context.dataValue<auth.AuthenticatedData>()!.user,
           ));
     },
   );
@@ -108,9 +107,9 @@ void main() async {
   );
 
   var treeBuilder = appStateTree(authService);
-  var s = StringBuffer();
-  treeBuilder.format(s, DotFormatter());
-  var dot = s.toString();
+  // var s = StringBuffer();
+  // treeBuilder.format(s, DotFormatter());
+  // var dot = s.toString();
 
   var stateMachine = TreeStateMachine(treeBuilder);
   var currentState = await stateMachine.start();

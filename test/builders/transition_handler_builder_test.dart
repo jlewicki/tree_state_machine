@@ -44,14 +44,14 @@ void main() {
         var b = StateTreeBuilder.withDataRoot<StateData>(
           rootState,
           InitialData(() => StateData()),
-          emptyDataState,
+          emptyState,
           InitialChild(state1),
         );
         b.state(state1, (b) {
           b.onMessage<Message>((b) => b.goTo(state2));
         });
         b.state(state2, (b) {
-          b.onEnter((b) => b.updateData<StateData>((transCtx, data) => data..val = '1'));
+          b.onEnter((b) => b.updateData<StateData>((ctx) => ctx.data..val = '1'));
         });
 
         var stateMachine = TreeStateMachine(b);
@@ -72,7 +72,7 @@ void main() {
         b.state(state2, (b) {
           b.onEnter((b) => b.post(message: msgToPost));
           b.onMessage<Message2>(
-              (b) => b.goTo(state3, action: b.act.run((msgCtx, msg) => postedMsg = msg)));
+              (b) => b.goTo(state3, action: b.act.run((ctx) => postedMsg = ctx.message)));
         });
         b.state(state3, emptyState);
 
@@ -94,7 +94,7 @@ void main() {
         });
         b.state(state2, (b) {
           b.onMessageValue(msgToPost, (b) {
-            b.action(b.act.run((msgCtx, msg) => postedMsg = msg));
+            b.action(b.act.run((ctx) => postedMsg = ctx.message));
           });
         });
 
@@ -112,11 +112,11 @@ void main() {
         var trueHandlerCalled = false;
         var otherwiseHandlerCalled = false;
         b.state(state1, (b) {
-          b.onMessage<Message>((b) => b.goTo(state2, payload: (_, __) => 1));
+          b.onMessage<Message>((b) => b.goTo(state2, payload: (_) => 1));
         });
         b.state(state2, (b) {
           b.onEnter((b) {
-            b.when((transCtx) => 1 == transCtx.payload as int, (b) {
+            b.when((ctx) => 1 == ctx.transitionContext.payload as int, (b) {
               b.run((ctx) => trueHandlerCalled = true);
             }).otherwise((b) {
               b.run((ctx) => otherwiseHandlerCalled = true);
@@ -137,13 +137,13 @@ void main() {
         var trueHandler2Called = false;
         var otherwiseHandlerCalled = false;
         b.state(state1, (b) {
-          b.onMessage<Message>((b) => b.goTo(state2, payload: (_, __) => 1));
+          b.onMessage<Message>((b) => b.goTo(state2, payload: (_) => 1));
         });
         b.state(state2, (b) {
           b.onEnter((b) {
-            b.when((transCtx) => 1 == transCtx.payload as int, (b) {
+            b.when((ctx) => 1 == ctx.transitionContext.payload as int, (b) {
               b.run((ctx) => trueHandlerCalled = true);
-            }).when((transCtx) => 1 == transCtx.payload as int, (b) {
+            }).when((ctx) => 1 == ctx.transitionContext.payload as int, (b) {
               b.run((ctx) => trueHandler2Called = true);
             }).otherwise((b) {
               b.run((ctx) => otherwiseHandlerCalled = true);
@@ -164,11 +164,11 @@ void main() {
         var trueHandlerCalled = false;
         var otherwiseHandlerCalled = false;
         b.state(state1, (b) {
-          b.onMessage<Message>((b) => b.goTo(state2, payload: (_, __) => 2));
+          b.onMessage<Message>((b) => b.goTo(state2, payload: (_) => 2));
         });
         b.state(state2, (b) {
           b.onEnter((b) {
-            b.when((transCtx) => 1 == transCtx.payload! as int, (b) {
+            b.when((ctx) => 1 == ctx.transitionContext.payload! as int, (b) {
               b.run((ctx) => trueHandlerCalled = true);
             }).otherwise((b) {
               b.run((ctx) => otherwiseHandlerCalled = true);
@@ -195,17 +195,17 @@ void main() {
         StateData? handlerDataVal;
 
         b.state(state1, (b) {
-          b.onMessage<Message>((b) => b.goTo(state2, payload: (_, __) => 1));
+          b.onMessage<Message>((b) => b.goTo(state2, payload: (_) => 1));
         });
         b.dataState<StateData>(state2, InitialData(() => initDataVal), (b) {
           b.onEnter((b) {
-            b.when((transCtx, data) => '2' == data.val, (b) {
-              b.run((ctx, data) {
-                handlerDataVal = data;
+            b.when((ctx) => '2' == ctx.data.val, (b) {
+              b.run((ctx) {
+                handlerDataVal = ctx.data;
                 trueHandlerCalled = true;
               });
             }).otherwise((b) {
-              b.run((ctx, data) => otherwiseHandlerCalled = true);
+              b.run((_) => otherwiseHandlerCalled = true);
             });
           });
         });
@@ -226,15 +226,15 @@ void main() {
         StateData? handlerDataVal;
 
         b.state(state1, (b) {
-          b.onMessage<Message>((b) => b.goTo(state2, payload: (_, __) => 2));
+          b.onMessage<Message>((b) => b.goTo(state2, payload: (_) => 2));
         });
         b.dataState<StateData>(state2, InitialData(() => initDataVal), (b) {
           b.onEnter((b) {
-            b.when((transCtx, data) => '1' == data.val, (b) {
-              b.run((ctx, data) => trueHandlerCalled = true);
+            b.when((ctx) => '1' == ctx.data.val, (b) {
+              b.run((_) => trueHandlerCalled = true);
             }).otherwise((b) {
-              b.run((ctx, data) {
-                handlerDataVal = data;
+              b.run((ctx) {
+                handlerDataVal = ctx.data;
                 otherwiseHandlerCalled = true;
               });
             });
@@ -256,16 +256,16 @@ void main() {
       test('should update data from payload', () async {
         var s3Channel = Channel<String>(state3);
         var b = StateTreeBuilder.withDataRoot<StateData>(
-            rootState, InitialData(() => StateData()), emptyDataState, InitialChild(state1));
+            rootState, InitialData(() => StateData()), emptyState, InitialChild(state1));
         b.state(state1, (b) {
           b.onMessage<Message>((b) {
-            b.enterChannel(s3Channel, (_, msg) => msg.val, reenterTarget: true);
+            b.enterChannel(s3Channel, (ctx) => ctx.message.val, reenterTarget: true);
           });
         }, initialChild: InitialChild(state2));
         b.state(state2, emptyState, parent: state1);
         b.state(state3, (b) {
           b.onEnterFromChannel<String>(s3Channel, (b) {
-            b.updateData<StateData>((transCtx, current, payload) => current..val = payload);
+            b.updateData<StateData>((ctx) => ctx.data..val = ctx.context);
           });
         });
 

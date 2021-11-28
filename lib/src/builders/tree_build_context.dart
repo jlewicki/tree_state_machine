@@ -12,7 +12,7 @@ class TreeBuildContext {
   final TreeNode? parentNode;
 
   /// Map of nodes that have been built.
-  final HashMap<StateKey, TreeNode> nodes;
+  final Map<StateKey, TreeNode> nodes;
 
   TreeBuildContext._(this.parentNode, this.nodes);
 
@@ -24,7 +24,7 @@ class TreeBuildContext {
   TreeBuildContext _childContext(TreeNode newParentNode) =>
       TreeBuildContext._(newParentNode, nodes);
 
-  TreeNode _buildRoot(
+  TreeNode buildRoot(
     StateKey key,
     StateCreator createState,
     Iterable<_NodeBuilder> children,
@@ -39,7 +39,7 @@ class TreeBuildContext {
     return node;
   }
 
-  TreeNode _buildInterior(
+  TreeNode buildInterior(
     StateKey key,
     StateCreator createState,
     Iterable<_NodeBuilder> children,
@@ -54,7 +54,7 @@ class TreeBuildContext {
     return node;
   }
 
-  TreeNode _buildLeaf(
+  TreeNode buildLeaf(
     StateKey key,
     StateCreator createState,
     StateDataCodec? codec, {

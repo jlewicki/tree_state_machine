@@ -12,7 +12,7 @@ void main() {
         Message? messageFromAction;
         b.state(state1, (b) {
           b.onMessage<Message>(
-              (b) => b.goTo(state2, action: b.act.run((msgCtx, msg) => messageFromAction = msg)));
+              (b) => b.goTo(state2, action: b.act.run((ctx) => messageFromAction = ctx.message)));
         });
         b.state(state2, emptyState);
 
@@ -28,8 +28,7 @@ void main() {
       test('should update data', () async {
         var b = StateTreeBuilder(initialState: state1);
         b.dataState<int>(state1, InitialData(() => 1), (b) {
-          b.onMessage<Message>(
-              (b) => b.stay(action: b.act.updateData((msgCtx, msg, current) => current + 1)));
+          b.onMessage<Message>((b) => b.stay(action: b.act.updateOwnData((ctx) => ctx.data + 1)));
         });
 
         var stateMachine = TreeStateMachine(b);
@@ -41,6 +40,7 @@ void main() {
 
     group('post', () {
       test('should post message', () async {
+        enableLogging();
         var b = StateTreeBuilder(initialState: state1);
         b.state(state1, (b) {
           b.onMessage<Message>((b) => b.stay(action: b.act.post(message: Message2())));
@@ -83,9 +83,9 @@ void main() {
         int? dataFromAction;
         b.dataState<int>(state1, InitialData(() => 2), (b) {
           b.onMessage<Message>((b) => b.goTo(state2, action: b.act.run(
-                (msgCtx, msg, data) {
-                  messageFromAction = msg;
-                  dataFromAction = data;
+                (ctx) {
+                  messageFromAction = ctx.message;
+                  dataFromAction = ctx.data;
                 },
               )));
         });
@@ -104,8 +104,7 @@ void main() {
       test('should update data', () async {
         var b = StateTreeBuilder(initialState: state1);
         b.dataState<int>(state1, InitialData(() => 1), (b) {
-          b.onMessage<Message>(
-              (b) => b.stay(action: b.act.updateData((msgCtx, msg, current) => current + 1)));
+          b.onMessage<Message>((b) => b.stay(action: b.act.updateOwnData((ctx) => ctx.data + 1)));
         });
 
         var stateMachine = TreeStateMachine(b);
@@ -123,9 +122,9 @@ void main() {
         int? dataFromAction;
         b.dataState<int>(state1, InitialData(() => 2), (b) {
           b.onMessage<Message>((b) => b.stay(action: b.act.post(
-                getMessage: (_, msg, data) {
-                  messageFromAction = msg;
-                  dataFromAction = data;
+                getMessage: (ctx) {
+                  messageFromAction = ctx.message;
+                  dataFromAction = ctx.data;
                   return Message2();
                 },
               )));
@@ -151,10 +150,10 @@ void main() {
         b.dataState<int>(state1, InitialData(() => 2), (b) {
           b.onMessage<Message>((b) => b.stay(
                 action: b.act.schedule(
-                  getMessage: (_, msg, data) {
-                    messageFromAction = msg;
-                    dataFromAction = data;
-                    return () => Message2();
+                  getMessage: (ctx) {
+                    messageFromAction = ctx.message;
+                    dataFromAction = ctx.data;
+                    return Message2();
                   },
                   duration: Duration(milliseconds: 20),
                 ),

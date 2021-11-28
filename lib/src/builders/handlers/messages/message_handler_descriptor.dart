@@ -1,63 +1,100 @@
-part of tree_builders;
+import 'dart:async';
 
-enum _MessageHandlerType { goto, gotoSelf, stay, when, whenWithContext, whenResult, unhandled }
+import 'package:tree_state_machine/src/machine/tree_state.dart';
+import 'package:tree_state_machine/src/machine/utility.dart';
+import 'package:tree_state_machine/tree_builders.dart';
 
-abstract class _MessageHandlerInfo {
-  _MessageHandlerType get handlerType;
-  Type get messageType;
-  String? get messageName;
-  String? get label;
-  List<_MessageActionInfo> get actions;
+enum MessageHandlerType {
+  goto,
+  gotoSelf,
+  stay,
+  when,
+  whenWithContext,
+  whenResult,
+  unhandled,
+  handler
 }
 
-abstract class _MessageHandlerDescriptor extends _MessageHandlerInfo {
-  MessageHandler get handler;
+class MessageHandlerInfo {
+  final MessageHandlerType handlerType;
+  final Type messageType;
+  // In general there is at most 1 action
+  final List<MessageActionInfo> actions;
+  final List<MessageConditionInfo> conditions;
+  final String? messageName;
+  final String? label;
+  final StateKey? goToTarget;
 
-  StateKey? tryGetTargetState() {
-    return handlerType == _MessageHandlerType.goto ? (this as _GoToDescriptor).targetState : null;
+  MessageHandlerInfo(
+    this.handlerType,
+    this.messageType,
+    this.actions,
+    this.conditions,
+    this.messageName,
+    this.label, [
+    this.goToTarget,
+  ]);
+}
+
+enum ActionType { schedule, post, updateData, run }
+
+class MessageActionInfo {
+  final ActionType actionType;
+  final Type? postMessageType;
+  final String? label;
+
+  MessageActionInfo(
+    this.actionType,
+    this.postMessageType,
+    this.label,
+  );
+}
+
+class MessageConditionInfo {
+  final String? label;
+  final MessageHandlerInfo whenTrueInfo;
+  MessageConditionInfo(this.label, this.whenTrueInfo);
+}
+
+class MessageHandlerDescriptorContext<C> {
+  final MessageContext msgCtx;
+  final C ctx;
+  MessageHandlerDescriptorContext(this.msgCtx, this.ctx);
+}
+
+class MessageHandlerDescriptor<C> {
+  final MessageHandlerInfo info;
+  final FutureOr<C> Function(MessageContext) makeContext;
+  final MessageHandler Function(MessageHandlerDescriptorContext<C>) makeHandlerFromContext;
+
+  MessageHandlerDescriptor(this.info, this.makeContext, this.makeHandlerFromContext);
+
+  MessageHandler makeHandler() {
+    return (msgCtx) {
+      return makeContext(msgCtx).bind((ctx) {
+        var descrCtx = MessageHandlerDescriptorContext<C>(msgCtx, ctx);
+        var handler = makeHandlerFromContext(descrCtx);
+        return handler(msgCtx);
+      });
+    };
   }
-
-  List<_MessageConditionInfo>? tryGetConditions() {
-    switch (handlerType) {
-      case _MessageHandlerType.when:
-        return (this as _WhenDescriptor).conditions;
-      case _MessageHandlerType.whenWithContext:
-        return (this as _WhenWithContextDescriptor).conditions;
-      case _MessageHandlerType.whenResult:
-        return (this as _WhenResultDescriptor).conditions;
-      default:
-        return null;
-    }
-  }
-
-  bool isConditional() {
-    switch (handlerType) {
-      case _MessageHandlerType.when:
-      case _MessageHandlerType.whenResult:
-      case _MessageHandlerType.whenWithContext:
-        return true;
-      default:
-        return false;
-    }
-  }
 }
 
-abstract class _ContinuationMessageHandlerDescriptor<T> extends _MessageHandlerInfo {
-  MessageHandler Function(T ctx) get continuation;
+typedef MessageActionHandler = FutureOr<void> Function(MessageContext);
+
+class MessageActionDescriptor<M, D, C> {
+  final MessageActionInfo info;
+  final FutureOr<void> Function(MessageHandlerContext<M, D, C>) handle;
+
+  MessageActionDescriptor(this.info, this.handle);
 }
 
-abstract class _GoToInfo {
-  StateKey get targetState;
-}
+typedef MessageConditionHandler = FutureOr<bool> Function(MessageContext);
 
-FutureOr<void> _emptyAction<M>(MessageContext mc, M m) {}
-FutureOr<void> _emptyDataAction<M, D>(MessageContext mc, M m, D d) {}
-FutureOr<void> _emptyContinuationAction<M, T>(MessageContext mc, M n, T c) => null;
-FutureOr<void> _emptyContinuationActionWithData<M, D, T>(MessageContext mc, M m, D d, T c) => null;
+class MessageConditionDescriptor<M, D, C> {
+  final MessageConditionInfo info;
+  final MessageHandlerDescriptor<C> whenTrueDescriptor;
+  final FutureOr<bool> Function(MessageHandlerContext<M, D, C>) evaluate;
 
-FutureOr<Object?> _emptyPayload<M>(MessageContext mc, M m) => null;
-FutureOr<Object?> _emptyDataPayload<M, D>(MessageContext mc, M m, D data) => null;
-FutureOr<Object?> _emptyContinuationPayload<M, T>(MessageContext mc, M m, T ctx) => null;
-FutureOr<Object?> _emptyContinuationWithDataPayload<M, D, T>(MessageContext mc, M m, D d, T c) {
-  return null;
+  MessageConditionDescriptor(this.info, this.evaluate, this.whenTrueDescriptor);
 }
