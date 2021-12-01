@@ -44,7 +44,7 @@ class Channel<P> {
   final String? label;
 
   /// Constructs a channel for the [to] state.
-  Channel(this.to, {this.label});
+  const Channel(this.to, {this.label});
 }
 
 enum _StateType { root, interior, leaf }
