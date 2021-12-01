@@ -1,3 +1,6 @@
+## vNext
+- Add `const` Channel constructor.
+
 ## 2.0.1
 - Adjustments and internal simplifications of tree_builders library.
 - Add support for final data states.
