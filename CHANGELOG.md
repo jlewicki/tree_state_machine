@@ -1,5 +1,6 @@
 ## vNext
 - Add `const` Channel constructor.
+- Add rootKey prop to StateTreeBuilder 
 
 ## 2.0.1
 - Adjustments and internal simplifications of tree_builders library.

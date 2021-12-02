@@ -55,6 +55,9 @@ class StateTreeBuilder {
   /// correlate log messages with state trees when examining the output.
   String? get logName => _logName;
 
+  /// The key indentifying the root state of the state tree.
+  StateKey get rootKey => _rootKey;
+
   /// Creates a [StateTreeBuilder] that will build a state tree that starts in the state identified
   /// by [initialState].
   ///

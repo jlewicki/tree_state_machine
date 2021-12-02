@@ -21,6 +21,7 @@ void main() {
         expect(1, rootNode.children.length);
         expect(state1, rootNode.children.first.key);
         expect(StateTreeBuilder.defaultRootKey, rootNode.children.first.parent!.key);
+        expect(sb.rootKey, StateTreeBuilder.defaultRootKey);
       });
     });
 
@@ -33,6 +34,7 @@ void main() {
         expect(1, rootNode.children.length);
         expect(state1, rootNode.children.first.key);
         expect(rootState, rootNode.children.first.parent!.key);
+        expect(sb.rootKey, rootState);
       });
     });
 
@@ -50,6 +52,7 @@ void main() {
         expect(1, rootNode.children.length);
         expect(state1, rootNode.children.first.key);
         expect(rootState, rootNode.children.first.parent!.key);
+        expect(sb.rootKey, rootState);
       });
     });
 
