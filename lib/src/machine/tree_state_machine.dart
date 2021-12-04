@@ -438,36 +438,41 @@ class CurrentState {
   /// The [StateKey] identifying the current leaf state.
   StateKey get key => stateMachine._machine.currentLeaf!.key;
 
+  /// Returns the value stream of a given type associated with an active state.
+  ///
+  /// Starting with the current leaf state, each active state is visited. If a state has a state
+  /// data value that matches `D`, then that value stream for that state is returned. If [key] is
+  /// provided, then the value is only returned if the key matches the active state.
   ValueStream<D>? data<D>([StateKey? key]) {
     var node = stateMachine._machine.currentLeaf!;
     return node.selfOrAncestorDataValue<D>(key: key);
   }
 
+  /// Returns the state data of a given type associated with an active state.
   ///
+  /// Starting with the current leaf state, each active state is visited. If a state has a state
+  /// data value that matches `D`, then that data value is returned. If [key] is provided, then
+  /// the value is only returned if the key matches the active state.
+  ///
+  /// Returns `null` if a data value could not be resolved, or if `Object` is specified for `D`.
+  ///
+  /// ```dart
+  ///   // Assume the active state hierarchy is as follows, with S5 as the
+  ///   // current leaf state:
+  ///   // (S5, state data C) ->
+  ///   // (S4, state data C) ->
+  ///   // (S3: no state data) ->
+  ///   // (S2: state data B) ->
+  ///   // (S1: state data A)
+  ///
+  ///   currentState.dataValue<A>();      // Returns data from S1
+  ///   currentState.dataValue<B>();      // Returns data from S2
+  ///   currentState.dataValue<C>();      // Returns data from S5
+  ///   currentState.dataValue<C>(S4);    // Returns data from S4
+  ///   currentState.dataValue<D>();      // Returns null
+  ///   currentState.dataValue<Object>(); // Returns null
+  /// ```
   D? dataValue<D>([StateKey? key]) => data<D>(key)?.value;
-
-  // /// Finds the state data of a given type associated with an active state.
-  // ///
-  // /// Starting with the current leaf state, each active state is visited. If a state is a
-  // /// [DataTreeState] with a data type that matches `D`, then the value of [DataTreeState.data] is
-  // /// returned.
-  // ///
-  // /// Returns `null` if a data value could not be resolved, or if `Object` is specified for `D`.
-  // ///
-  // /// ```dart
-  // ///   // Assume the active state hierarchy is as follows, with S5 as the current leaf state
-  // ///   // S5:DataTreeState<C> -> S4:DataTreeState<Object> -> S3 -> S2:DataTreeState<B> -> S1:DataTreeState<A>
-  // ///   var cur = stateMachine.currentState;
-  // ///
-  // ///   cur.findData<A>();      // Returns data from S1
-  // ///   cur.findData<B>();      // Returns data from S2
-  // ///   cur.findData<C>();      // Returns data from S5
-  // ///   cur.findData<D>();      // Returns null
-  // ///   cur.findData<Object>(); // Returns null
-  // /// ```
-  // D? findData<D>() {
-  //   return isTypeOf<Object, D>() ? null : findDataValue<D>()?.value;
-  // }
 
   /// Returns `true` if the specified state is an active state in the state machine.
   ///
