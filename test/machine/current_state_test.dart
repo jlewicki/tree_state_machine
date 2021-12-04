@@ -171,8 +171,7 @@ void main() {
         final sm = TreeStateMachine(data_tree.treeBuilder());
         var currentState = await sm.start(data_tree.r_b_1_key);
         var data = currentState.dataValue();
-        expect(data, isNotNull);
-        expect(data!.label, equals('cool'));
+        expect(data, isNull);
       });
 
       test('should return null when data type cannot be resolved', () async {
