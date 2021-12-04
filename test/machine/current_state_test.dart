@@ -167,13 +167,21 @@ void main() {
         expect(data!.label, equals('cool'));
       });
 
+      test('should return null if data type is unspecified and leaf has no state data', () async {
+        final sm = TreeStateMachine(data_tree.treeBuilder());
+        var currentState = await sm.start(data_tree.r_b_1_key);
+        var data = currentState.dataValue();
+        expect(data, isNotNull);
+        expect(data!.label, equals('cool'));
+      });
+
       test('should return null when data type cannot be resolved', () async {
         final sm = TreeStateMachine(tree.treeBuilder());
         var currentState = await sm.start();
         expect(currentState.dataValue<ReadOnlyData>(), isNull);
       });
     });
-    group('listen', () {
+    group('data', () {
       test('should notify listeners when data is updated', () async {
         final sm = TreeStateMachine(data_tree.treeBuilder(
           initialDataValues: {data_tree.r_a_a_2_key: () => LeafData2()..label = 'cool'},
@@ -226,6 +234,19 @@ void main() {
         var subscription = currentState.data<String>()?.listen(null);
 
         expect(subscription, isNull);
+      });
+
+      test('should return void DataValue for non-data states', () async {
+        final sm = TreeStateMachine(data_tree.treeBuilder());
+        var currentState = await sm.start(data_tree.r_b_2_key);
+
+        var r_b_2_data = currentState.data<int>();
+        expect(r_b_2_data, isNotNull);
+        expect(r_b_2_data!.value, equals(2));
+
+        var r_b_data = currentState.data<void>();
+        expect(r_b_data, isNotNull);
+        expect(r_b_data!.hasValue, isTrue);
       });
     });
   });

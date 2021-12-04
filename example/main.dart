@@ -63,7 +63,7 @@ Future<void> main() async {
   await currentState.post(Messages.start);
   assert(currentState.key == States.green);
 
-  await Future.delayed(Duration(seconds: 1));
+  await Future.delayed(Duration(seconds: 30));
 
   await currentState.post(Messages.stop);
   assert(currentState.key == States.stopped);

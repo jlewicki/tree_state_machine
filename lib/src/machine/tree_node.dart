@@ -138,6 +138,10 @@ extension TreeNodeNavigationExtensions on TreeNode {
               'value of requested type ${TypeLiteral<D>().type}.');
     }
 
+    if (isTypeOf<void, D>()) {
+      return VoidDataValue() as DataValue<D>;
+    }
+
     if (throwIfNotFound) {
       var msg = key != null
           ? 'Unable to find data value that matches data type ${TypeLiteral<D>().type} and key $key'

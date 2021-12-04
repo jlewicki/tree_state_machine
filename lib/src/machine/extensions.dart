@@ -48,7 +48,6 @@ extension MessageContextExtensions on MessageContext {
   }
 
   D dataValueOrThrow<D>([StateKey? key]) {
-    if (isTypeOf<void, D>()) return null as D;
     var dataVal = data<D>(key);
     if (dataVal == null) {
       return isTypeOf<Object, void>()

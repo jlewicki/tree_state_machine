@@ -91,6 +91,22 @@ class DataValue<T> extends StreamView<T> implements ValueStream<T> {
   }
 }
 
+/// A `void` data value that can never be updated.
+class VoidDataValue extends DataValue<void> {
+  VoidDataValue._() : super._(ValueSubject<void>.initialValue(null));
+
+  /// Returns a singleton value.
+  factory VoidDataValue() => _instance;
+
+  /// Calling this method has no effect, since a void value cannot be updated.
+  @override
+  void update(void Function(void current) update) {
+    // This is a deliberate no-op, since a void value cannot be updated.
+  }
+
+  static final _instance = VoidDataValue._();
+}
+
 class ClosableDataValue<T> extends DataValue<T> {
   ClosableDataValue._(ValueSubject<T> subject) : super._(subject);
   factory ClosableDataValue(T initialValue) {

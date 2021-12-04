@@ -443,6 +443,9 @@ class CurrentState {
   /// Starting with the current leaf state, each active state is visited. If a state has a state
   /// data value that matches `D`, then that value stream for that state is returned. If [key] is
   /// provided, then the value is only returned if the key matches the active state.
+  ///
+  /// If [D] is `dynamic`, then the data for the current leaf state is returned, or `null` if the
+  /// current leaf state is not a data state.
   ValueStream<D>? data<D>([StateKey? key]) {
     var node = stateMachine._machine.currentLeaf!;
     return node.selfOrAncestorDataValue<D>(key: key);
@@ -453,6 +456,9 @@ class CurrentState {
   /// Starting with the current leaf state, each active state is visited. If a state has a state
   /// data value that matches `D`, then that data value is returned. If [key] is provided, then
   /// the value is only returned if the key matches the active state.
+  ///
+  /// If [D] is `dynamic`, then the data for the current leaf state is returned, or `null` if the
+  /// current leaf state is not a data state.
   ///
   /// Returns `null` if a data value could not be resolved, or if `Object` is specified for `D`.
   ///
@@ -470,7 +476,8 @@ class CurrentState {
   ///   currentState.dataValue<C>();      // Returns data from S5
   ///   currentState.dataValue<C>(S4);    // Returns data from S4
   ///   currentState.dataValue<D>();      // Returns null
-  ///   currentState.dataValue<Object>(); // Returns null
+  ///   currentState.dataValue();         // Returns data from S5
+  ///   currentState.dataValue<void>();   // Returns null
   /// ```
   D? dataValue<D>([StateKey? key]) => data<D>(key)?.value;
 

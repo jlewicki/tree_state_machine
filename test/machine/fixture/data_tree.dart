@@ -13,6 +13,7 @@ final r_a_a_1_key = StateKey('r_a_a_1');
 final r_a_a_2_key = StateKey('r_a_a_2');
 final r_b_key = StateKey('r_b');
 final r_b_1_key = StateKey('r_b_1');
+final r_b_2_key = StateKey('r_b_2');
 final r_c_key = StateKey('r_c');
 final r_c_a_key = StateKey('r_c_a');
 final r_c_a_1_key = StateKey('r_c_a_1');
@@ -147,6 +148,12 @@ StateTreeBuilder treeBuilder({
 
   b.state(r_b_key, buildState(r_b_key), parent: r_key, initialChild: InitialChild(r_b_1_key));
   b.state(r_b_1_key, buildState(r_b_1_key), parent: r_b_key);
+  b.dataState<int>(
+    r_b_2_key,
+    InitialData(buildInitialDataValue(r_b_2_key, 2)),
+    buildState(r_b_2_key),
+    parent: r_b_key,
+  );
 
   b.dataState<ReadOnlyData>(
     r_c_key,

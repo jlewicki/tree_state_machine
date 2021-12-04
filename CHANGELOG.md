@@ -1,6 +1,8 @@
-## vNext
+## 2.1.1
 - Add `const` Channel constructor.
 - Add rootKey prop to StateTreeBuilder 
+- Add handling of `void` state data.
+- Additional API documentation.
 
 ## 2.0.1
 - Adjustments and internal simplifications of tree_builders library.
