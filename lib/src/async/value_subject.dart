@@ -138,7 +138,7 @@ class ValueSubject<T> extends StreamView<T> implements Subject<T>, ValueStream<T
     // happen in the future if we are an async subject).
     if (onData != null && _currentValue.hasValue) {
       _callOrSchedule((() {
-        var val = _currentValue.value!;
+        var val = _currentValue.value;
         return () => onData(val);
       })());
     } else if (onError != null && _currentValue.hasError) {

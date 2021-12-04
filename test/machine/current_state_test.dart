@@ -247,6 +247,30 @@ void main() {
         expect(r_b_data, isNotNull);
         expect(r_b_data!.hasValue, isTrue);
       });
+
+      test('should complete subscription when non-data state is exited', () async {
+        final sm = TreeStateMachine(data_tree.treeBuilder(
+          messageHandlers: {
+            data_tree.r_b_1_key: (msgCtx) => msgCtx.goTo(data_tree.r_a_a_1_key),
+          },
+        ));
+        var currentState = await sm.start(data_tree.r_b_1_key);
+
+        var onDataCount = 0;
+        var isDone = false;
+        var subscription = currentState.data<void>(data_tree.r_b_1_key)!.listen(
+          (v) => onDataCount++,
+          onDone: () {
+            isDone = true;
+          },
+        );
+        expect(subscription, isNotNull);
+
+        await currentState.post(Object());
+
+        expect(onDataCount, 1);
+        expect(isDone, isTrue);
+      });
     });
   });
 }

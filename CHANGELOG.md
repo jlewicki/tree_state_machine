@@ -1,3 +1,6 @@
+## 2.1.2
+- Fix bug where data streams for `void` data states might not be completed when state exits.  
+
 ## 2.1.1
 - Add `const` Channel constructor.
 - Add rootKey prop to StateTreeBuilder 

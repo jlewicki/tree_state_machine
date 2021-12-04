@@ -120,7 +120,7 @@ extension TreeNodeNavigationExtensions on TreeNode {
   }
 
   DataValue<D>? selfOrAncestorDataValue<D>({StateKey? key, bool throwIfNotFound = false}) {
-    var typeofDIsObjectOrDynamic = isTypeOf<Object, D>() || isTypeOf<dynamic, D>();
+    var typeofDIsObjectOrDynamic = isTypeOfExact<Object, D>() || isTypeOfExact<dynamic, D>();
     // If requested type was Object, then we can't meaningfully search by type. So we can only
     // search by key, and if no key was specified, then we assume the current leaf.
     key = key ?? (typeofDIsObjectOrDynamic ? this.key : null);
@@ -136,10 +136,6 @@ extension TreeNodeNavigationExtensions on TreeNode {
           : throw StateError(
               'DataValue of type ${dataValue.runtimeType} for requested state ${node!.key} does have '
               'value of requested type ${TypeLiteral<D>().type}.');
-    }
-
-    if (isTypeOf<void, D>()) {
-      return VoidDataValue() as DataValue<D>;
     }
 
     if (throwIfNotFound) {

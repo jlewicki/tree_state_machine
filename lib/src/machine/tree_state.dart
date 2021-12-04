@@ -187,7 +187,9 @@ abstract class DataTreeState<D> extends TreeState {
   FutureOr<void> onEnter(TransitionContext transCtx) {
     assert(_refDataValue.value == null);
     var initialValue = _initialData(transCtx);
-    _refDataValue.value = ClosableDataValue(initialValue);
+    _refDataValue.value = isTypeOfExact<void, D>()
+        ? VoidDataValue() as ClosableDataValue<D>
+        : ClosableDataValue(initialValue);
   }
 
   @override

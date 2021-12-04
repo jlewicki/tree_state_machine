@@ -376,15 +376,13 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
 
   @override
   TreeState _createState() {
-    return _hasStateData
-        ? DelegatingDataTreeState<D>(
-            _typedInitialData.call,
-            _createMessageHandler(),
-            _createOnEnter(),
-            _createOnExit(),
-            () {},
-          )
-        : super._createState();
+    return DelegatingDataTreeState<D>(
+      _typedInitialData.call,
+      _createMessageHandler(),
+      _createOnEnter(),
+      _createOnExit(),
+      () {},
+    );
   }
 
   static bool _isEmptyDataType<D>() {

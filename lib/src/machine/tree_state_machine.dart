@@ -363,7 +363,7 @@ class TreeStateMachine {
     for (var i = 0; i < activeNodes.length; ++i) {
       final es = encodableTree.states[i];
       final node = activeNodes[i];
-      if (node.data != null) {
+      if (node.data != null && node.data is! DataValue<void>) {
         if (node.dataCodec == null) {
           throw StateError('Unable to deserialize state data because a serializer has not been '
               'specified for state ${node.key}');
@@ -446,6 +446,8 @@ class CurrentState {
   ///
   /// If [D] is `dynamic`, then the data for the current leaf state is returned, or `null` if the
   /// current leaf state is not a data state.
+  ///
+  /// The retured stream completes when the state to which it corresponds is no longer active.
   ValueStream<D>? data<D>([StateKey? key]) {
     var node = stateMachine._machine.currentLeaf!;
     return node.selfOrAncestorDataValue<D>(key: key);
