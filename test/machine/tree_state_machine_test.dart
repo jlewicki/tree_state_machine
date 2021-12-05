@@ -408,6 +408,29 @@ void main() {
       });
     });
 
+    group('stop', () {
+      test('should not complete streams', () async {
+        final sm = TreeStateMachine(tree.treeBuilder());
+        await sm.start();
+
+        var transitionsDone = false;
+        sm.transitions.listen((_) {}, onDone: () => transitionsDone = true);
+        var processedMessagesDone = false;
+        sm.processedMessages.listen((_) {}, onDone: () => processedMessagesDone = true);
+        var handledMessagesDone = false;
+        sm.handledMessages.listen((_) {}, onDone: () => handledMessagesDone = true);
+        var failedMessagesDone = false;
+        sm.failedMessages.listen((_) {}, onDone: () => failedMessagesDone = true);
+
+        await sm.stop();
+
+        expect(transitionsDone, isFalse);
+        expect(processedMessagesDone, isFalse);
+        expect(handledMessagesDone, isFalse);
+        expect(failedMessagesDone, isFalse);
+      });
+    });
+
     group('dispose', () {
       test('should be disposed', () async {
         final sm = TreeStateMachine(tree.treeBuilder());

@@ -204,6 +204,11 @@ class TreeStateMachine {
   /// When the returned future completes, the the [CurrentState.key] will be [stoppedStateKey], and
   /// [isDone] will return true.
   ///
+  /// Because the state machine could potentially be restarted, stopping the state machine does not
+  /// complete state machine streams such as [transitions]. If the state machine will never be
+  /// restarted, [dispose] can be used to complete the streams, or any subscriptions may explicitly
+  /// be canceled.
+  ///
   /// It is safe to call this method if [isDone] is already `true`.
   Future stop() {
     return _lifecycle.stop(() => _queueMessage(stopMessage));
