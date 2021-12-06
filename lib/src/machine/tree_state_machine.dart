@@ -72,10 +72,11 @@ class TreeStateMachine {
   final _processedMessages = StreamController<ProcessedMessage>.broadcast();
   final _messageQueue = StreamController<_QueuedMessage>.broadcast();
   final _dataStreams = <_DataStreamKey, ValueSubject>{};
+  final PostMessageErrorPolicy _errorPolicy;
   final Logger _log;
   CurrentState? _currentState;
 
-  TreeStateMachine._(this._machine, this._log) {
+  TreeStateMachine._(this._machine, this._errorPolicy, this._log) {
     _messageQueue.stream.listen(_onMessage);
 
     // Listen to states that are entered
@@ -93,7 +94,14 @@ class TreeStateMachine {
   /// If [logName] is provided, it will be used as a suffix in the name of the [Logger] that this
   /// state machine logs with. This can help disambiguate log messages if more than one state
   /// machine is running at the same time.
-  factory TreeStateMachine(StateTreeBuilder treeBuilder, {String? logName}) {
+  ///
+  /// [postMessageErrorPolicy] can be used to control how the future returned by [CurrentState.post]
+  /// behaves when an error occurs while processing the posted message.
+  factory TreeStateMachine(
+    StateTreeBuilder treeBuilder, {
+    String? logName,
+    PostMessageErrorPolicy postMessageErrorPolicy = PostMessageErrorPolicy.convertToFailedMessage,
+  }) {
     logName = logName ?? treeBuilder.logName;
     TreeStateMachine? treeMachine;
     var buildCtx = TreeBuildContext();
@@ -107,7 +115,7 @@ class TreeStateMachine {
     var log = Logger(
       'tree_state_machine.TreeStateMachine${logName != null ? '.' + logName : ''}',
     );
-    return treeMachine = TreeStateMachine._(machine, log);
+    return treeMachine = TreeStateMachine._(machine, postMessageErrorPolicy, log);
   }
 
   /// Returns `true` if the future returned by [start] has completed..
@@ -397,8 +405,13 @@ class TreeStateMachine {
       result = await _machine.processMessage(queuedMessage.message);
       raiseEvents(result);
     } catch (ex, stack) {
+      _log.warning("Error occurred when processing message '${queuedMessage.message}'", ex, stack);
       result = FailedMessage(queuedMessage.message, receivingState, ex, stack);
       raiseEvents(result);
+      if (_errorPolicy == PostMessageErrorPolicy.rethrowError) {
+        queuedMessage.completer.completeError(ex, stack);
+        return;
+      }
     }
     queuedMessage.completer.complete(result);
   }
@@ -423,6 +436,17 @@ class TreeStateMachine {
         .where((stateDataVal) => stateDataVal != null)
         .cast<_StateDataValue>();
   }
+}
+
+/// Describes how the future returned by [CurrentState.post] behaves when an error occurs when a
+/// state processes the posted message.
+enum PostMessageErrorPolicy {
+  /// The error is caught and converted to a [FailedMessage] that is returned when the future
+  /// returned by [CurrentState.post] is awaited.
+  convertToFailedMessage,
+
+  /// The error is rethrown when the future returned by [CurrentState.post] is awaited.
+  rethrowError,
 }
 
 /// Describes the current leaf state of a [TreeStateMachine].
@@ -509,6 +533,10 @@ class CurrentState {
   ///
   /// Returns a future that yields a [ProcessedMessage] describing how the message was processed,
   /// and any state transition that occured.
+  ///
+  /// If an error occurred while processing the message, and the state machine was created with
+  /// [PostMessageErrorPolicy.rethrowError], then the future will throw the error when awaited.
+  /// Otherwise, the future will yield a [FailedMessage] when awaited.
   Future<ProcessedMessage> post(Object message) {
     return stateMachine._queueMessage(message);
   }
@@ -585,8 +613,13 @@ class _DataStreamKey {
 }
 
 class TestableTreeStateMachine extends TreeStateMachine {
-  TestableTreeStateMachine._(Machine machine, Logger log) : super._(machine, log);
-  factory TestableTreeStateMachine(TreeNode Function(TreeBuildContext) buildRoot) {
+  TestableTreeStateMachine._(
+      Machine machine, PostMessageErrorPolicy failedMessagePolicy, Logger log)
+      : super._(machine, failedMessagePolicy, log);
+  factory TestableTreeStateMachine(
+    TreeNode Function(TreeBuildContext) buildRoot, {
+    PostMessageErrorPolicy failedMessagePolicy = PostMessageErrorPolicy.convertToFailedMessage,
+  }) {
     TreeStateMachine? treeMachine;
     var buildCtx = TreeBuildContext();
     var rootNode = buildRoot(buildCtx);
@@ -596,7 +629,7 @@ class TestableTreeStateMachine extends TreeStateMachine {
       (message) => treeMachine!._queueMessage(message),
     );
     var log = Logger('tree_state_machine.TestableTreeStateMachine');
-    return treeMachine = TestableTreeStateMachine._(machine, log);
+    return treeMachine = TestableTreeStateMachine._(machine, failedMessagePolicy, log);
   }
 
   /// Gets the internal machine for testing purposes

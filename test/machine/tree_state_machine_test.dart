@@ -198,6 +198,19 @@ void main() {
         expect(error.receivingState, equals(tree.r_a_a_2_key));
         expect(error.error, same(ex));
       });
+
+      test('should rethrow error if policy says it should', () async {
+        final ex = Exception('oops');
+        final sm = TreeStateMachine(
+            tree.treeBuilder(messageHandlers: {
+              tree.r_a_a_2_key: (ctx) => throw ex,
+            }),
+            postMessageErrorPolicy: PostMessageErrorPolicy.rethrowError);
+        var currentState = await sm.start();
+
+        final message = Object();
+        expect(() => currentState.post(message), throwsA(same(ex)));
+      });
     });
 
     group('isDone', () {
