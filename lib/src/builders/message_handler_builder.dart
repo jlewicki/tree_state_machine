@@ -53,7 +53,7 @@ mixin _GoToHandlerBuilderMixin<M, D, C> on _MessageHandlerBuilder<M, D, C> {
   /// If [transitionAction] is specified, this function will be called during the transition
   /// between states, after all states are exited, but before entering any new states.
   ///
-  /// If [reenterTarget] is true, then the target state will be re-enterd (that is, its exit and
+  /// If [reenterTarget] is true, then the target state will be re-entered (that is, its exit and
   /// entry handlers will be called), even if the state is already active.
   ///
   /// The state transition can be labeled when formatting a state tree by providing a [label].
@@ -84,12 +84,19 @@ mixin _GoToHandlerBuilderMixin<M, D, C> on _MessageHandlerBuilder<M, D, C> {
   ///
   /// The [payload] function wull be called to obtain the payload for the channel when the
   /// transition occurs.
+  ///
+  /// If [action] is provided, this action will be invoked before the transition occurs. The
+  /// [MessageHandlerBuilder.act] builder can be used to specify this action.
+  ///
+  /// If [reenterTarget] is true, then the target state will be re-entered (that is, its exit and
+  /// entry handlers will be called), even if the state is already active.
   void enterChannel<P>(
     Channel<P> channel,
     FutureOr<P> Function(MessageHandlerContext<M, D, C>) payload, {
+    MessageActionDescriptor<M, D, C>? action,
     bool reenterTarget = false,
   }) {
-    goTo(channel.to, payload: payload, reenterTarget: reenterTarget);
+    goTo(channel.to, payload: payload, reenterTarget: reenterTarget, action: action);
   }
 }
 
