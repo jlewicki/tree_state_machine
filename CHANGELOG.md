@@ -1,5 +1,6 @@
 ## 2.2.1
 - Add `action` parameter to `enterChannel` builder method.
+
 ## 2.2.0
 - Add suppport for rethrowing exceptions with `PostMessageErrorPolicy`.
 - Fix bug where data streams for `void` data states might not be completed when state exits.
