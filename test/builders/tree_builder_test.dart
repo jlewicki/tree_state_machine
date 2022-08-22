@@ -400,6 +400,23 @@ void main() {
 
         expect(currentState.key, equals(state2));
       });
+
+      test('should throw when not a leaf state', () async {
+        var nestedSb = createNestedBuilder();
+
+        var sb = StateTreeBuilder(initialState: state1);
+        sb.machineState(
+          state1,
+          InitialMachine.fromTree((_) => nestedSb),
+          (b) {
+            b.onMachineDone((b) => b.goTo(state3));
+          },
+        );
+        sb.state(state2, emptyState, parent: state1);
+        sb.state(state3, emptyState);
+
+        expect(() => TreeStateMachine(sb), throwsStateError);
+      });
     });
 
     group('build', () {
