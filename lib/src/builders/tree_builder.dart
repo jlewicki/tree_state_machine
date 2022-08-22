@@ -39,21 +39,23 @@ part of tree_builders;
 /// [StateTreeFormatter] (for example a [DotFormatter]) representing the desired output format.
 class StateTreeBuilder {
   final StateKey _rootKey;
-  final String? _logName;
   final Map<StateKey, _StateBuilder> _stateBuilders = {};
   late final Logger _log = Logger(
-    'tree_state_machine.StateTreeBuilder${_logName != null ? '.' + _logName! : ''}',
+    'tree_state_machine.StateTreeBuilder${logName != null ? '.' + logName! : ''}',
   );
 
-  StateTreeBuilder._(this._rootKey, this._logName);
+  StateTreeBuilder._(this._rootKey, this.name, String? logName) : logName = logName ?? name;
 
   /// The key identifying the root state that is implicitly added to a state tree, if the
   /// [new StateTreeBuilder] constructor is used.
   static const StateKey defaultRootKey = StateKey('<_RootState_>');
 
+  /// Optional descriptive name for this state tree for diagnostic purposes.
+  final String? name;
+
   /// Optional descriptor for this state tree that will appear in log output. This can be used to
   /// correlate log messages with state trees when examining the output.
-  String? get logName => _logName;
+  final String? logName;
 
   /// The key indentifying the root state of the state tree.
   StateKey get rootKey => _rootKey;
@@ -63,8 +65,11 @@ class StateTreeBuilder {
   ///
   /// The state tree has an implicit root state, identified by [StateTreeBuilder.defaultRootKey].
   /// This state has no associated behavior, and it is typically safe to ignore its presence.
-  factory StateTreeBuilder({required StateKey initialState, String? logName}) {
-    var b = StateTreeBuilder._(defaultRootKey, logName);
+  ///
+  /// The builder can optionally be given a [name] for diagnostic purposes, and a [logName] which
+  /// identifies the builder in log output. If [logName] is unspecifed, [name] will be used instead.
+  factory StateTreeBuilder({required StateKey initialState, String? name, String? logName}) {
+    var b = StateTreeBuilder._(defaultRootKey, name, logName);
     b.state(defaultRootKey, emptyState, initialChild: InitialChild(initialState));
     return b;
   }
@@ -77,13 +82,17 @@ class StateTreeBuilder {
   ///
   /// Any states without an explicit parent that are added to this builder will implicitly be
   /// considered a child of this root state.
+  ///
+  /// The builder can optionally be given a [name] for diagnostic purposes, and a [logName] which
+  /// identifies the builder in log output. If [logName] is unspecifed, [name] will be used instead.
   factory StateTreeBuilder.withRoot(
     StateKey rootState,
     void Function(StateBuilder builder) build,
     InitialChild initialChild, {
+    String? name,
     String? logName,
   }) {
-    var b = StateTreeBuilder._(rootState, logName);
+    var b = StateTreeBuilder._(rootState, name, logName);
     b.state(rootState, build, initialChild: initialChild);
     return b;
   }
@@ -95,15 +104,19 @@ class StateTreeBuilder {
   ///
   /// Any states without an explicit parent that are added to this builder will implicitly be
   /// considered a child of this root state.
+  ///
+  /// The builder can optionally be given a [name] for diagnostic purposes, and a [logName] which
+  /// identifies the builder in log output. If [logName] is unspecifed, [name] will be used instead.
   static StateTreeBuilder withDataRoot<D>(
     StateKey rootState,
     InitialData<D> initialData,
     void Function(StateBuilder<D> builder) build,
     InitialChild initialChild, {
     StateDataCodec? codec,
+    String? name,
     String? logName,
   }) {
-    var b = StateTreeBuilder._(rootState, logName);
+    var b = StateTreeBuilder._(rootState, name, logName);
     b.dataState<D>(
       rootState,
       initialData,

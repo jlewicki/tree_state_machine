@@ -76,7 +76,7 @@ class TreeStateMachine {
   final Logger _log;
   CurrentState? _currentState;
 
-  TreeStateMachine._(this._machine, this._errorPolicy, this._log) {
+  TreeStateMachine._(this._machine, this._errorPolicy, this._log, this.name) {
     _messageQueue.stream.listen(_onMessage);
 
     // Listen to states that are entered
@@ -99,10 +99,12 @@ class TreeStateMachine {
   /// behaves when an error occurs while processing the posted message.
   factory TreeStateMachine(
     StateTreeBuilder treeBuilder, {
+    String? name,
     String? logName,
     PostMessageErrorPolicy postMessageErrorPolicy = PostMessageErrorPolicy.convertToFailedMessage,
   }) {
-    logName = logName ?? treeBuilder.logName;
+    logName = logName ?? name ?? treeBuilder.logName;
+    name = name ?? treeBuilder.name;
     TreeStateMachine? treeMachine;
     var buildCtx = TreeBuildContext();
     var rootNode = treeBuilder(buildCtx);
@@ -115,8 +117,11 @@ class TreeStateMachine {
     var log = Logger(
       'tree_state_machine.TreeStateMachine${logName != null ? '.' + logName : ''}',
     );
-    return treeMachine = TreeStateMachine._(machine, postMessageErrorPolicy, log);
+    return treeMachine = TreeStateMachine._(machine, postMessageErrorPolicy, log, name);
   }
+
+  /// Am optional descriptive name for this state machine for diagnostic purposes.
+  final String? name;
 
   /// Returns `true` if the future returned by [start] has completed..
   bool get isStarted => _lifecycle.state == LifecycleState.started;
@@ -614,11 +619,12 @@ class _DataStreamKey {
 
 class TestableTreeStateMachine extends TreeStateMachine {
   TestableTreeStateMachine._(
-      Machine machine, PostMessageErrorPolicy failedMessagePolicy, Logger log)
-      : super._(machine, failedMessagePolicy, log);
+      Machine machine, PostMessageErrorPolicy failedMessagePolicy, Logger log, String name)
+      : super._(machine, failedMessagePolicy, log, name);
   factory TestableTreeStateMachine(
     TreeNode Function(TreeBuildContext) buildRoot, {
     PostMessageErrorPolicy failedMessagePolicy = PostMessageErrorPolicy.convertToFailedMessage,
+    String? name,
   }) {
     TreeStateMachine? treeMachine;
     var buildCtx = TreeBuildContext();
@@ -629,7 +635,7 @@ class TestableTreeStateMachine extends TreeStateMachine {
       (message) => treeMachine!._queueMessage(message),
     );
     var log = Logger('tree_state_machine.TestableTreeStateMachine');
-    return treeMachine = TestableTreeStateMachine._(machine, failedMessagePolicy, log);
+    return treeMachine = TestableTreeStateMachine._(machine, failedMessagePolicy, log, name ?? '');
   }
 
   /// Gets the internal machine for testing purposes
