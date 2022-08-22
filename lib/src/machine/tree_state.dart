@@ -246,12 +246,12 @@ class DelegatingDataTreeState<D> extends DataTreeState<D> {
 
 /// State data for a nested state machine state.
 class NestedMachineData {
-  CurrentState? _currentNestedState;
+  CurrentState? _nestedCurrentState;
 
   /// The [CurrentState] of the nested state machine.
-  CurrentState get nestedState {
-    assert(_currentNestedState != null);
-    return _currentNestedState!;
+  CurrentState get nestedCurrentState {
+    assert(_nestedCurrentState != null);
+    return _nestedCurrentState!;
   }
 }
 
@@ -281,7 +281,7 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
   final whenDoneMessage = Object();
   final whenDisposedMessage = Object();
   final Logger _log;
-  CurrentState? currentNestedState;
+  CurrentState? nestedCurrentState;
 
   NestedMachineState(this.nestedMachine, this.onDone, this._log, this.isDone, this._onDisposed)
       : super(InitialData(() => NestedMachineData()).call);
@@ -303,8 +303,8 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
           .then((_) => whenDisposedMessage)
           .asStream();
 
-      currentNestedState = await machine.start();
-      data!.update((current) => current.._currentNestedState = currentNestedState);
+      nestedCurrentState = await machine.start();
+      data!.update((current) => current.._nestedCurrentState = nestedCurrentState);
 
       // Post a future that will notify the message handler when the nested machine is done.
       var group = StreamGroup<Object>();
@@ -320,8 +320,8 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
     // The nested state machine is done, so transition to the next state
     if (msgCtx.message == whenDoneMessage) {
       _log.fine(
-          "Nested state machine reached final state '${currentNestedState!.key}' and is done.");
-      var handler = onDone(currentNestedState!);
+          "Nested state machine reached final state '${nestedCurrentState!.key}' and is done.");
+      var handler = onDone(nestedCurrentState!);
       return handler(msgCtx);
     }
 
@@ -338,7 +338,7 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
     // Dispatch messages sent to parent state machine to the child state machine.
     if (nestedMachine.forwardMessages) {
       _log.finer('Forwarding message ${msgCtx.message} to nested state machine.');
-      await currentNestedState!.post(msgCtx.message);
+      await nestedCurrentState!.post(msgCtx.message);
     }
 
     // The nested machine is still running, so stay in this state
@@ -348,7 +348,7 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
   @override
   FutureOr<void> onExit(TransitionContext transCtx) {
     if (nestedMachine.disposeMachineOnExit) {
-      currentNestedState?.stateMachine.dispose();
+      nestedCurrentState?.stateMachine.dispose();
     }
     return super.onExit(transCtx);
   }
