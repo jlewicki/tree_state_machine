@@ -17,6 +17,7 @@ const r_X_key = StateKey('r_X');
 final initialStateKey = r_a_a_2_key;
 
 StateTreeBuilder treeBuilder({
+  String? name,
   TransitionHandler Function(StateKey key)? createEntryHandler,
   TransitionHandler Function(StateKey key)? createExitHandler,
   MessageHandler Function(StateKey key)? createMessageHandler,
@@ -52,12 +53,17 @@ StateTreeBuilder treeBuilder({
       _initialChildCallbacks[key] ??
       (createInitialChildCallback != null ? createInitialChildCallback(key) : (_) {});
 
-  var b = StateTreeBuilder.withRoot(r_key, buildState(r_key), InitialChild.run(
-    (ctx) {
-      _initialChildCallback(r_key)(ctx);
-      return r_a_key;
-    },
-  ));
+  var b = StateTreeBuilder.withRoot(
+    r_key,
+    buildState(r_key),
+    InitialChild.run(
+      (ctx) {
+        _initialChildCallback(r_key)(ctx);
+        return r_a_key;
+      },
+    ),
+    label: name,
+  );
 
   b.finalState(r_X_key, buildFinalState(r_X_key));
 
