@@ -102,12 +102,12 @@ class TreeStateMachine {
   /// behaves when an error occurs while processing the posted message.
   factory TreeStateMachine(
     StateTreeBuilder treeBuilder, {
-    String? name,
+    String? label,
     String? logName,
     PostMessageErrorPolicy postMessageErrorPolicy = PostMessageErrorPolicy.convertToFailedMessage,
   }) {
-    logName = logName ?? name ?? treeBuilder.logName;
-    name = name ?? treeBuilder.label;
+    logName = logName ?? label ?? treeBuilder.logName;
+    label = label ?? treeBuilder.label;
     TreeStateMachine? treeMachine;
     var buildCtx = TreeBuildContext();
     var rootNode = treeBuilder(buildCtx);
@@ -120,7 +120,7 @@ class TreeStateMachine {
     var log = Logger(
       'tree_state_machine.TreeStateMachine${logName != null ? '.' + logName : ''}',
     );
-    return treeMachine = TreeStateMachine._(machine, postMessageErrorPolicy, log, name);
+    return treeMachine = TreeStateMachine._(machine, postMessageErrorPolicy, log, label);
   }
 
   /// An optional descriptive label for this state machine, for diagnostic purposes.

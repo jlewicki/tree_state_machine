@@ -744,7 +744,7 @@ void main() {
       test('should return name', () {
         var builderName = 'builder';
         var name = 'machine name';
-        final sm = TreeStateMachine(tree.treeBuilder(name: builderName), name: name);
+        final sm = TreeStateMachine(tree.treeBuilder(name: builderName), label: name);
         expect(sm.label, equals(name));
       });
 

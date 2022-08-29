@@ -62,7 +62,7 @@ StateTreeBuilder treeBuilder({
         return r_a_key;
       },
     ),
-    name: name,
+    label: name,
   );
 
   b.finalState(r_X_key, buildFinalState(r_X_key));

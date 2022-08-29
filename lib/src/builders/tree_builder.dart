@@ -69,10 +69,10 @@ class StateTreeBuilder {
   /// The state tree has an implicit root state, identified by [StateTreeBuilder.defaultRootKey].
   /// This state has no associated behavior, and it is typically safe to ignore its presence.
   ///
-  /// The builder can optionally be given a [name] for diagnostic purposes, and a [logName] which
-  /// identifies the builder in log output. If [logName] is unspecifed, [name] will be used instead.
-  factory StateTreeBuilder({required StateKey initialState, String? name, String? logName}) {
-    var b = StateTreeBuilder._(defaultRootKey, name, logName);
+  /// The builder can optionally be given a [label] for diagnostic purposes, and a [logName] which
+  /// identifies the builder in log output. If [logName] is unspecifed, [label] will be used instead.
+  factory StateTreeBuilder({required StateKey initialState, String? label, String? logName}) {
+    var b = StateTreeBuilder._(defaultRootKey, label, logName);
     b.state(defaultRootKey, emptyState, initialChild: InitialChild(initialState));
     return b;
   }
@@ -86,16 +86,16 @@ class StateTreeBuilder {
   /// Any states without an explicit parent that are added to this builder will implicitly be
   /// considered a child of this root state.
   ///
-  /// The builder can optionally be given a [name] for diagnostic purposes, and a [logName] which
-  /// identifies the builder in log output. If [logName] is unspecifed, [name] will be used instead.
+  /// The builder can optionally be given a [label] for diagnostic purposes, and a [logName] which
+  /// identifies the builder in log output. If [logName] is unspecifed, [label] will be used instead.
   factory StateTreeBuilder.withRoot(
     StateKey rootState,
     void Function(StateBuilder builder) build,
     InitialChild initialChild, {
-    String? name,
+    String? label,
     String? logName,
   }) {
-    var b = StateTreeBuilder._(rootState, name, logName);
+    var b = StateTreeBuilder._(rootState, label, logName);
     b.state(rootState, build, initialChild: initialChild);
     return b;
   }
@@ -108,18 +108,18 @@ class StateTreeBuilder {
   /// Any states without an explicit parent that are added to this builder will implicitly be
   /// considered a child of this root state.
   ///
-  /// The builder can optionally be given a [name] for diagnostic purposes, and a [logName] which
-  /// identifies the builder in log output. If [logName] is unspecifed, [name] will be used instead.
+  /// The builder can optionally be given a [label] for diagnostic purposes, and a [logName] which
+  /// identifies the builder in log output. If [logName] is unspecifed, [label] will be used instead.
   static StateTreeBuilder withDataRoot<D>(
     StateKey rootState,
     InitialData<D> initialData,
     void Function(StateBuilder<D> builder) build,
     InitialChild initialChild, {
     StateDataCodec? codec,
-    String? name,
+    String? label,
     String? logName,
   }) {
-    var b = StateTreeBuilder._(rootState, name, logName);
+    var b = StateTreeBuilder._(rootState, label, logName);
     b.dataState<D>(
       rootState,
       initialData,
