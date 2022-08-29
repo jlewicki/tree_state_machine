@@ -115,7 +115,7 @@ void main() async {
   await currentState.post(Messages.goToLogin);
   assert(currentState.key == States.authenticate);
 
-  var nestedState = currentState.dataValue<NestedMachineData>()!.nestedState;
+  var nestedState = currentState.dataValue<NestedMachineData>()!.nestedCurrentState;
   assert(nestedState.isInState(auth.States.login));
   assert(nestedState.key == auth.States.loginEntry);
 
@@ -137,7 +137,7 @@ void main() async {
   await currentState.post(Messages.goToRegister);
   assert(currentState.key == States.authenticate);
 
-  nestedState = currentState.dataValue<NestedMachineData>()!.nestedState;
+  nestedState = currentState.dataValue<NestedMachineData>()!.nestedCurrentState;
   assert(nestedState.isInState(auth.States.registration));
   assert(nestedState.key == auth.States.credentialsRegistration);
 

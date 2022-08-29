@@ -275,8 +275,8 @@ class StateTreeBuilder {
     _addState(builder);
   }
 
-  /// Adds to the state tree a description of a machine state, identifed by [stateKey], and which
-  /// will run a nested state machine.
+  /// Adds to the state tree a description of a machine state, identifed by [stateKey], which will
+  /// run a nested state machine.
   ///
   /// When this state is entered, a nested state machine that is produced by [initialMachine] will
   /// be started. By default any messages dispatched to this state will forwarded to the nested
@@ -291,6 +291,11 @@ class StateTreeBuilder {
   ///
   /// The machine state carries a state data value of [NestedMachineData]. This value can be
   /// obtained in the same ways as other state data, for example using [CurrentState.dataValue].
+  ///
+  /// A machine state is always a leaf state. It can be declared as a child state, by providing a
+  /// [parent] value. However, all messages will be handled by the machine state until the nested state
+  /// machine has entered a final state, and as such the parent state will not recieve any unhandled
+  /// messages from the child machine state.
   ///
   /// The behavior of the state when the nested state machine completes is configured with the
   /// [build] callback. [MachineStateBuilder.onMachineDone] can be used to determine the next state
@@ -331,8 +336,7 @@ class StateTreeBuilder {
   /// );
   /// ```
   ///
-  /// This state can be declared as a child state, by providing a [parent] value referencing the
-  /// parent state.
+  ///
   void machineState(
     StateKey stateKey,
     InitialMachine initialMachine,
@@ -397,7 +401,11 @@ class StateTreeBuilder {
         .where((e) => e.value._initialChild != null || e.value._children.isNotEmpty)) {
       var initialChild = entry.value._initialChild;
       var children = entry.value._children;
-      if (initialChild == null) {
+      if (children.isNotEmpty && entry.value is MachineStateBuilder) {
+        throw StateError(
+            'Machine state "${entry.key}" has child state(s): ${children.map((e) => '"$e"').join(', ')}. '
+            'Machine states must be leaf states.');
+      } else if (initialChild == null) {
         throw StateError('Parent state ${entry.key} is missing an initial child state');
       } else if (children.isEmpty) {
         var initialChildBuilder = _stateBuilders[initialChild];
@@ -514,7 +522,15 @@ class InitialData<D> {
   ///   });
   /// ```
   static InitialData<D> fromChannel<D, P>(Channel<P> channel, D Function(P payload) initialValue) {
-    return InitialData._((transCtx) => initialValue(transCtx.payloadOrThrow<P>()));
+    return InitialData._((transCtx) {
+      try {
+        return initialValue(transCtx.payloadOrThrow<P>());
+      } catch (e) {
+        throw StateError('Failed to obtain inital data of type $D for '
+            'channel ${channel.label != null ? '"${channel.label}" ' : ''}'
+            'to state ${channel.to}: $e');
+      }
+    });
   }
 
   /// Creates an [InitialData] that produces its initial value by calling [initialValue] with
