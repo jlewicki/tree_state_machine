@@ -1,3 +1,8 @@
+# 2.3.0
+- Rename `NestedMachineData.nestedState` -> `NestedMachineData.nestedCurrentState`.
+- Add `label` property to `TreeStateMachine` and `TreeStateBuilder` for debugging purposes.
+- Improve messages when an error occurs entering a channel.
+
 ## 2.2.1
 - Add `action` parameter to `enterChannel` builder method.
 
