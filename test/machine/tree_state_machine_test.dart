@@ -745,13 +745,13 @@ void main() {
         var builderName = 'builder';
         var name = 'machine name';
         final sm = TreeStateMachine(tree.treeBuilder(name: builderName), name: name);
-        expect(sm.name, equals(name));
+        expect(sm.label, equals(name));
       });
 
       test('should return builder name if not specified', () {
         var builderName = 'builder';
         final sm = TreeStateMachine(tree.treeBuilder(name: builderName));
-        expect(sm.name, equals(builderName));
+        expect(sm.label, equals(builderName));
       });
     });
   });

@@ -76,7 +76,7 @@ class TreeStateMachine {
   final Logger _log;
   CurrentState? _currentState;
 
-  TreeStateMachine._(this._machine, this._errorPolicy, this._log, this.name) {
+  TreeStateMachine._(this._machine, this._errorPolicy, this._log, this.label) {
     _messageQueue.stream.listen(_onMessage);
 
     // Listen to states that are entered
@@ -95,6 +95,9 @@ class TreeStateMachine {
   /// state machine logs with. This can help disambiguate log messages if more than one state
   /// machine is running at the same time.
   ///
+  /// A [label] can be optionally be provided for the this machine. This will not used by the state
+  /// machine, but may be useful for diagnostic purposes.
+  ///
   /// [postMessageErrorPolicy] can be used to control how the future returned by [CurrentState.post]
   /// behaves when an error occurs while processing the posted message.
   factory TreeStateMachine(
@@ -104,7 +107,7 @@ class TreeStateMachine {
     PostMessageErrorPolicy postMessageErrorPolicy = PostMessageErrorPolicy.convertToFailedMessage,
   }) {
     logName = logName ?? name ?? treeBuilder.logName;
-    name = name ?? treeBuilder.name;
+    name = name ?? treeBuilder.label;
     TreeStateMachine? treeMachine;
     var buildCtx = TreeBuildContext();
     var rootNode = treeBuilder(buildCtx);
@@ -120,8 +123,8 @@ class TreeStateMachine {
     return treeMachine = TreeStateMachine._(machine, postMessageErrorPolicy, log, name);
   }
 
-  /// Am optional descriptive name for this state machine for diagnostic purposes.
-  final String? name;
+  /// An optional descriptive label for this state machine, for diagnostic purposes.
+  final String? label;
 
   /// Returns `true` if the future returned by [start] has completed..
   bool get isStarted => _lifecycle.state == LifecycleState.started;

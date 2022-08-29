@@ -44,17 +44,20 @@ class StateTreeBuilder {
     'tree_state_machine.StateTreeBuilder${logName != null ? '.' + logName! : ''}',
   );
 
-  StateTreeBuilder._(this._rootKey, this.name, String? logName) : logName = logName ?? name;
+  StateTreeBuilder._(this._rootKey, this.label, String? logName) : logName = logName ?? label;
 
   /// The key identifying the root state that is implicitly added to a state tree, if the
   /// [new StateTreeBuilder] constructor is used.
   static const StateKey defaultRootKey = StateKey('<_RootState_>');
 
-  /// Optional descriptive name for this state tree for diagnostic purposes.
-  final String? name;
+  /// An optional descriptive label for this state tree, for diagnostic purposes.
+  final String? label;
 
-  /// Optional descriptor for this state tree that will appear in log output. This can be used to
-  /// correlate log messages with state trees when examining the output.
+  /// An optional name for this state tree that will be used as the suffix of the logger name used
+  /// when logging messages.
+  ///
+  /// This can be used to correlate log messages with specific state trees when examining the log
+  /// output.
   final String? logName;
 
   /// The key indentifying the root state of the state tree.
