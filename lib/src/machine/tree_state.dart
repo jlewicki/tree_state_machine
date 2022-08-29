@@ -268,6 +268,10 @@ abstract class NestedMachine {
   FutureOr<TreeStateMachine> call(TransitionContext transCtx);
 }
 
+/// The message that is sent to a state machine when a nested state machine has reached a final
+/// state.
+class NestedTreeStateMachineDoneMessage {}
+
 /// A state that encapsulates a nested state machine
 ///
 /// When this state is entered, a nested state machine is created and started. When the nested
@@ -278,7 +282,7 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
   final MessageHandler Function(CurrentState nestedState) onDone;
   final bool Function(Transition transition)? isDone;
   final MessageHandler? _onDisposed;
-  final whenDoneMessage = Object();
+  final whenDoneMessage = NestedTreeStateMachineDoneMessage();
   final whenDisposedMessage = Object();
   final Logger _log;
   CurrentState? nestedCurrentState;

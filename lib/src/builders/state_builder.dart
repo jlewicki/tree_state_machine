@@ -273,7 +273,15 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
     var builder = TransitionHandlerBuilder<D, P>._(
       key,
       _log,
-      (transCtx) => transCtx.payloadOrThrow<P>(),
+      (transCtx) {
+        try {
+          return transCtx.payloadOrThrow<P>();
+        } catch (e) {
+          throw StateError('Failed to enter channel '
+              '${channel.label != null ? '"${channel.label}" ' : ''}'
+              'to state ${channel.to}: $e');
+        }
+      },
     );
     build(builder);
     _onEnter = builder._descriptor;

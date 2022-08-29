@@ -506,7 +506,15 @@ class InitialData<D> {
   ///   });
   /// ```
   static InitialData<D> fromChannel<D, P>(Channel<P> channel, D Function(P payload) initialValue) {
-    return InitialData._((transCtx) => initialValue(transCtx.payloadOrThrow<P>()));
+    return InitialData._((transCtx) {
+      try {
+        return initialValue(transCtx.payloadOrThrow<P>());
+      } catch (e) {
+        throw StateError('Failed to obtain inital data of type $D for '
+            'channel ${channel.label != null ? '"${channel.label}" ' : ''}'
+            'to state ${channel.to}: $e');
+      }
+    });
   }
 
   /// Creates an [InitialData] that produces its initial value by calling [initialValue] with
