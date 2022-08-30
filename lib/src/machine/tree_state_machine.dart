@@ -262,7 +262,14 @@ class TreeStateMachine {
     });
   }
 
-  /// Gets the data stream for a data state with state data of type [D].
+  /// Gets the data stream for a data tree state with state data of type [D].
+  ///
+  /// A data tree state has an associated data value of type [D]. As messages are processed by the
+  /// state, it may update its data value. Each time the value changes, the value is published on
+  /// this stream.
+  ///
+  /// Note that this stream does not complete until this state machine is disposed. The stream will
+  /// continue to emit values if the data tree state is exited, and then re-entered.
   ValueStream<D> dataStream<D>([StateKey? key]) {
     _lifecycle.throwIfDisposed();
     var streamKey = key != null ? _DataStreamKey.forKey(key) : _DataStreamKey.forDataType(D);

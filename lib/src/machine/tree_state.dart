@@ -427,7 +427,8 @@ abstract class MessageContext {
   /// Posts a message that should be dispatched to the state machine asynchronously.
   void post(FutureOr<Object> message);
 
-  ///
+  /// Gets the [DataValue] matching the type [D] and [stateKey] from the current state, or one of
+  /// its ancestor states.
   DataValue<D>? data<D>([StateKey? key]);
 
   /// Schedules a message to be dispatched to the state machine asynchronously.
