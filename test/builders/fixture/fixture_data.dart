@@ -14,6 +14,8 @@ final rootState = StateKey('root');
 final state1 = StateKey('s1');
 final state2 = StateKey('s2');
 final state3 = StateKey('s3');
+final state4 = StateKey('s4');
+final state5 = StateKey('s5');
 
 class StateData {
   String val = '0';

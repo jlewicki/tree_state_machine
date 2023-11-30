@@ -22,6 +22,116 @@ void main() {
       });
     });
 
+    group('action', () {
+      test('should execute action and stay in current state', () async {
+        var wasRun = false;
+        var b = StateTreeBuilder(initialState: state1);
+        b.state(state1, (b) {
+          b.onMessage<Message>((b) => b.action(b.act.run((ctx) => wasRun = true)));
+        });
+        b.state(state2, emptyState);
+
+        var stateMachine = TreeStateMachine(b);
+        var currentState = await stateMachine.start();
+        var msg = Message();
+        await currentState.post(msg);
+        expect(currentState.key, equals(state1));
+        expect(wasRun, isTrue);
+      });
+
+      test('should execute action and dispatch to parent state when unhandled', () async {
+        var wasRun1 = false;
+        var wasRun2 = false;
+
+        var b = StateTreeBuilder.withRoot(rootState, emptyState, InitialChild(state1));
+        b.state(
+          state1,
+          (b) {
+            b.onMessage<Message>((b) => b.action(b.act.run((ctx) => wasRun1 = true)));
+          },
+          initialChild: InitialChild(state2),
+        );
+        b.state(
+          state2,
+          (b) {
+            b.onMessage<Message>(
+                (b) => b.action(b.act.run((ctx) => wasRun2 = true), ActionResult.unhandled));
+          },
+          parent: state1,
+        );
+
+        var stateMachine = TreeStateMachine(b);
+        var currentState = await stateMachine.start();
+        var msg = Message();
+        await currentState.post(msg);
+        expect(currentState.key, equals(state2));
+        expect(wasRun1, isTrue);
+        expect(wasRun2, isTrue);
+      });
+    });
+
+    group('unhandled', () {
+      test('should execute action and dispatch to parent state', () async {
+        var wasRun1 = false;
+        var wasRun2 = false;
+
+        var b = StateTreeBuilder.withRoot(rootState, emptyState, InitialChild(state1));
+        b.state(
+          state1,
+          (b) {
+            b.onMessage<Message>((b) => b.action(b.act.run((ctx) => wasRun1 = true)));
+          },
+          initialChild: InitialChild(state2),
+        );
+        b.state(
+          state2,
+          (b) {
+            b.onMessage<Message>((b) => b.unhandled(action: b.act.run((ctx) => wasRun2 = true)));
+          },
+          parent: state1,
+        );
+
+        var stateMachine = TreeStateMachine(b);
+        var currentState = await stateMachine.start();
+        var msg = Message();
+        await currentState.post(msg);
+        expect(currentState.key, equals(state2));
+        expect(wasRun1, isTrue);
+        expect(wasRun2, isTrue);
+      });
+    });
+
+    group('when', () {
+      var b = StateTreeBuilder(initialState: state1);
+      b.state(state1, (b) {
+        b.onMessage<Message>((b) => b
+            .when((ctx) => ctx.message.val == "2", (b) => b.goTo(state2))
+            .when((ctx) => ctx.message.val == "3", (b) => b.goTo(state3))
+            .when((ctx) => ctx.message.val.startsWith("3"), (b) => b.goTo(state4))
+            .otherwise((b) => b.goTo(state5)));
+      });
+      b.state(state2, emptyState);
+      b.state(state3, emptyState);
+      b.state(state4, emptyState);
+      b.state(state5, emptyState);
+
+      test('should evaluate conditions and use handler of first match', () async {
+        var stateMachine = TreeStateMachine(b);
+        var currentState = await stateMachine.start();
+        var msg = Message()..val = "3";
+        await currentState.post(msg);
+        expect(currentState.key, equals(state3));
+      });
+
+      test('should use otherwise handler when no match', () async {
+        var stateMachine = TreeStateMachine(b);
+        var currentState = await stateMachine.start();
+        var msg = Message()..val = "no match";
+        await currentState.post(msg);
+        expect(currentState.key, equals(state5));
+      });
+    });
+
     group('enterChannel', () {
       test('should go to target state with payload from channel', () async {
         var s2Channel = Channel<String>(state2);

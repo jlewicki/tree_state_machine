@@ -168,6 +168,10 @@ class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
     );
   }
 
+  /// Indicates that an action should take place when handling a message, and
+  /// that no state transition should occur.
+  ///
+  /// The [act] builder can be used to specify the action that should take place.
   void action(
     MessageActionDescriptor<M, D, C> action, [
     ActionResult actionResult = ActionResult.handled,
@@ -179,7 +183,7 @@ class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
       action,
       null,
       _messageName,
-      handled: true,
+      handled: actionResult == ActionResult.handled,
     );
   }
 
@@ -362,7 +366,7 @@ class _MessageHandlerWhenBuilder<M, D, C, B extends _MessageHandlerDescriptorPro
     this._conditions,
   );
 
-  void when(
+  void _when(
     FutureOr<bool> Function(MessageHandlerContext<M, D, C>) condition,
     void Function(B builder) buildTrueHandler, {
     String? label,
@@ -374,7 +378,7 @@ class _MessageHandlerWhenBuilder<M, D, C, B extends _MessageHandlerDescriptorPro
     if (descriptor != null) {
       _conditions.add(MessageConditionDescriptor<M, D, C>(
         MessageConditionInfo(label, descriptor.info),
-        (ctx) => true,
+        condition,
         descriptor,
       ));
     }
@@ -406,6 +410,24 @@ class MessageHandlerWhenBuilder<M, D, C>
     MessageHandlerBuilder<M, D, C> Function() makeBuilder,
     List<MessageConditionDescriptor<M, D, C>> conditions,
   ) : super(makeBuilder, conditions);
+
+  /// Describes message handling behavior that may be run conditionally.
+  ///
+  /// The returned [MessageHandlerWhenBuilder] may be used to define additional conditional
+  /// behavior, including a fallback [MessageHandlerWhenBuilder.otherwise] condition.
+  ///
+  /// When the message is being processed, the [condition] functions are evaluated. If the function
+  /// returns `true`, the behavior described by the [buildTrue] callback will take place. If more
+  /// than one condition is defined, the conditions are evaluated in the order they are
+  /// defined by calls to [MessageHandlerWhenBuilder.when].
+  MessageHandlerWhenBuilder<M, D, C> when(
+    FutureOr<bool> Function(MessageHandlerContext<M, D, C>) condition,
+    void Function(MessageHandlerBuilder<M, D, C> builder) buildTrue, {
+    String? label,
+  }) {
+    _when(condition, buildTrue, label: label);
+    return this;
+  }
 }
 
 /// Provides methods for defining conditional behavior of a [StateTreeBuilder.machineState], when the
@@ -416,6 +438,15 @@ class MachineDoneWhenBuilder<C>
     MachineDoneHandlerBuilder<C> Function() makeBuilder,
     List<MessageConditionDescriptor<Object, NestedMachineData, C>> conditions,
   ) : super(makeBuilder, conditions);
+
+  MachineDoneWhenBuilder<C> when(
+    FutureOr<bool> Function(MessageHandlerContext<Object, NestedMachineData, C>) condition,
+    void Function(MachineDoneHandlerBuilder<C> builder) buildTrue, {
+    String? label,
+  }) {
+    _when(condition, buildTrue, label: label);
+    return this;
+  }
 }
 
 // Well that escalated quickly....
