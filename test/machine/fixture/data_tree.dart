@@ -30,47 +30,47 @@ StateTreeBuilder treeBuilder({
   Map<StateKey, TransitionHandler>? exitHandlers,
   Map<StateKey, Object Function()>? initialDataValues,
 }) {
-  final _createEntryHandler = createEntryHandler ?? (_) => emptyTransitionHandler;
-  final _createExitHandler = createExitHandler ?? (_) => emptyTransitionHandler;
-  final _createMessageHandler = createMessageHandler ?? (_) => emptyMessageHandler;
-  final _entryHandlers = entryHandlers ?? {};
-  final _messageHandlers = messageHandlers ?? {};
-  final _exitHandlers = exitHandlers ?? {};
-  final _initialDataValueCreators = initialDataValues ?? {};
+  final createEntryHandler_ = createEntryHandler ?? (_) => emptyTransitionHandler;
+  final createExitHandler_ = createExitHandler ?? (_) => emptyTransitionHandler;
+  final createMessageHandler_ = createMessageHandler ?? (_) => emptyMessageHandler;
+  final entryHandlers_ = entryHandlers ?? {};
+  final messageHandlers_ = messageHandlers ?? {};
+  final exitHandlers_ = exitHandlers ?? {};
+  final initialDataValueCreators = initialDataValues ?? {};
 
   void Function(StateBuilder<void>) buildState(StateKey key) {
     return (b) {
-      b.handleOnMessage(_messageHandlers[key] ?? _createMessageHandler(key));
-      b.handleOnEnter(_entryHandlers[key] ?? _createEntryHandler(key));
-      b.handleOnExit(_exitHandlers[key] ?? _createExitHandler(key));
+      b.handleOnMessage(messageHandlers_[key] ?? createMessageHandler_(key));
+      b.handleOnEnter(entryHandlers_[key] ?? createEntryHandler_(key));
+      b.handleOnExit(exitHandlers_[key] ?? createExitHandler_(key));
     };
   }
 
   void Function(StateBuilder<D>) buildDataState<D>(StateKey key) {
     return (b) {
-      b.handleOnMessage(_messageHandlers[key] ?? _createMessageHandler(key));
-      b.handleOnEnter(_entryHandlers[key] ?? _createEntryHandler(key));
-      b.handleOnExit(_exitHandlers[key] ?? _createExitHandler(key));
+      b.handleOnMessage(messageHandlers_[key] ?? createMessageHandler_(key));
+      b.handleOnEnter(entryHandlers_[key] ?? createEntryHandler_(key));
+      b.handleOnExit(exitHandlers_[key] ?? createExitHandler_(key));
     };
   }
 
   void Function(EnterStateBuilder<void>) buildFinalState(StateKey key) {
     return (b) {
-      b.handleOnEnter(_entryHandlers[key] ?? _createEntryHandler(key));
+      b.handleOnEnter(entryHandlers_[key] ?? createEntryHandler_(key));
     };
   }
 
   void Function(EnterStateBuilder<D>) buildFinalDataState<D>(StateKey key) {
     return (b) {
-      b.handleOnEnter(_entryHandlers[key] ?? _createEntryHandler(key));
+      b.handleOnEnter(entryHandlers_[key] ?? createEntryHandler_(key));
     };
   }
 
   D Function() buildInitialDataValue<D>(StateKey key, D defaultValue) {
     return () {
       if (createInitialDataValues != null) return createInitialDataValues(key)() as D;
-      if (_initialDataValueCreators[key] != null) {
-        return _initialDataValueCreators[key]!() as D;
+      if (initialDataValueCreators[key] != null) {
+        return initialDataValueCreators[key]!() as D;
       }
       return defaultValue;
     };

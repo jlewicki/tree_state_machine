@@ -217,12 +217,12 @@ class DelegatingDataTreeState<D> extends DataTreeState<D> {
   final Dispose _onDispose;
 
   DelegatingDataTreeState(
-    D Function(TransitionContext) initialData,
+    super.initialData,
     this._onMessage,
     this._onEnter,
     this._onExit,
     this._onDispose,
-  ) : super(initialData);
+  );
 
   @override
   FutureOr<MessageResult> onMessage(MessageContext msgCtx) => _onMessage(msgCtx);
@@ -333,7 +333,7 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
     if (msgCtx.message == whenDisposedMessage) {
       _log.fine("Nested state machine was disposed");
       if (_onDisposed != null) {
-        return _onDisposed!(msgCtx);
+        return _onDisposed(msgCtx);
       } else {
         throw StateError('');
       }
@@ -484,7 +484,7 @@ class GoToResult extends MessageResult {
 
   @override
   String toString() {
-    return "GoToResult(targetState: '$targetStateKey'${payload != null ? ', payload: ' + payload!.toString() : ''}${reenterTarget ? ', reenterTarget: true' : ''})";
+    return "GoToResult(targetState: '$targetStateKey'${payload != null ? ', payload: ${payload!}' : ''}${reenterTarget ? ', reenterTarget: true' : ''})";
   }
 }
 
@@ -680,11 +680,11 @@ class HandledMessage extends ProcessedMessage {
   final Transition? transition;
 
   const HandledMessage(
-    Object message,
-    StateKey receivingState,
+    super.message,
+    super.receivingState,
     this.handlingState, [
     this.transition,
-  ]) : super._(message, receivingState);
+  ]) : super._();
 }
 
 /// A [ProcessedMessage] indicating that none of the active states in the state machine recognized
@@ -692,8 +692,8 @@ class HandledMessage extends ProcessedMessage {
 class UnhandledMessage extends ProcessedMessage {
   /// The collection of states that were notified of, but did not handle, the message.
   final Iterable<StateKey> notifiedStates;
-  const UnhandledMessage(Object message, StateKey receivingState, this.notifiedStates)
-      : super._(message, receivingState);
+  const UnhandledMessage(super.message, super.receivingState, this.notifiedStates)
+      : super._();
 }
 
 /// A [ProcessedMessage] indicating an error was thrown while processing a message.
@@ -704,8 +704,8 @@ class FailedMessage extends ProcessedMessage {
   /// The stack trace at the point the error was thrownn
   final StackTrace stackTrace;
 
-  const FailedMessage(Object message, StateKey receivingState, this.error, this.stackTrace)
-      : super._(message, receivingState);
+  const FailedMessage(super.message, super.receivingState, this.error, this.stackTrace)
+      : super._();
 }
 
 //==================================================================================================

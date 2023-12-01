@@ -89,18 +89,18 @@ abstract class _LifecycleState {
   _Disposed dispose(void Function() onDispose);
   LifecycleState get status;
 
-  LifecycleTransition<_Started> start(Future<_Started> Function() doStart) =>
+  _LifecycleTransition<_Started> start(Future<_Started> Function() doStart) =>
       throw StateError('Unable to start from lifecycle state $runtimeType');
 
-  LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) =>
+  _LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) =>
       throw StateError('Unable to start from lifecycle state $runtimeType');
 }
 
 /// An asynchronous transition between lifecycle states.
-class LifecycleTransition<T extends _LifecycleState> {
+class _LifecycleTransition<T extends _LifecycleState> {
   final _LifecycleState state;
   final Future<T> nextState;
-  LifecycleTransition(this.state, this.nextState);
+  _LifecycleTransition(this.state, this.nextState);
 }
 
 class _Constructed extends _LifecycleState {
@@ -114,9 +114,9 @@ class _Constructed extends _LifecycleState {
   }
 
   @override
-  LifecycleTransition<_Started> start(Future<_Started> Function() doStart) {
+  _LifecycleTransition<_Started> start(Future<_Started> Function() doStart) {
     final starting = _Starting(doStart());
-    return LifecycleTransition(starting, starting.future);
+    return _LifecycleTransition(starting, starting.future);
   }
 }
 
@@ -126,9 +126,10 @@ class _Disposed extends _LifecycleState {
   @override
   _Disposed dispose(void Function() onDispose) => this;
   @override
-  LifecycleTransition<_Started> start(Future<_Started> Function() doStart) => throw DisposedError();
+  _LifecycleTransition<_Started> start(Future<_Started> Function() doStart) =>
+      throw DisposedError();
   @override
-  LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) => throw DisposedError();
+  _LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) => throw DisposedError();
 }
 
 class _Started extends _LifecycleState {
@@ -145,13 +146,13 @@ class _Started extends _LifecycleState {
   }
 
   @override
-  LifecycleTransition<_Started> start(Future<_Started> Function() doStart) =>
-      LifecycleTransition(this, Future.value(this));
+  _LifecycleTransition<_Started> start(Future<_Started> Function() doStart) =>
+      _LifecycleTransition(this, Future.value(this));
 
   @override
-  LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) {
+  _LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) {
     final stopping = _Stopping(doStop());
-    return LifecycleTransition(stopping, stopping.future);
+    return _LifecycleTransition(stopping, stopping.future);
   }
 }
 
@@ -171,11 +172,11 @@ class _Starting extends _LifecycleState {
   }
 
   @override
-  LifecycleTransition<_Started> start(Future<_Started> Function() doStart) =>
-      LifecycleTransition(this, future);
+  _LifecycleTransition<_Started> start(Future<_Started> Function() doStart) =>
+      _LifecycleTransition(this, future);
 
   @override
-  LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) => LifecycleTransition(
+  _LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) => _LifecycleTransition(
         this,
         future.then((started) => started.stop(doStop).nextState),
       );
@@ -195,11 +196,11 @@ class _Stopped extends _LifecycleState {
   }
 
   @override
-  LifecycleTransition<_Started> start(Future<_Started> Function() doStart) =>
+  _LifecycleTransition<_Started> start(Future<_Started> Function() doStart) =>
       _Constructed().start(doStart);
   @override
-  LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) =>
-      LifecycleTransition(this, Future.value(this));
+  _LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) =>
+      _LifecycleTransition(this, Future.value(this));
 }
 
 class _Stopping extends _LifecycleState {
@@ -219,12 +220,12 @@ class _Stopping extends _LifecycleState {
   }
 
   @override
-  LifecycleTransition<_Started> start(Future<_Started> Function() doStart) => LifecycleTransition(
+  _LifecycleTransition<_Started> start(Future<_Started> Function() doStart) => _LifecycleTransition(
         this,
         future.then((_) => _Constructed().start(doStart).nextState),
       );
 
   @override
-  LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) =>
-      LifecycleTransition(this, future);
+  _LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) =>
+      _LifecycleTransition(this, future);
 }

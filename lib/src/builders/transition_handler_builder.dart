@@ -1,4 +1,4 @@
-part of tree_builders;
+part of '../../tree_builders.dart';
 
 /// Provides methods for describing how a state behaves during a transition.
 ///
@@ -82,11 +82,11 @@ class TransitionHandlerBuilder<D, C> {
     } else if (getMessage != null && message != null) {
       throw ArgumentError('One of getMessage or message must be provided');
     }
-    var _getMessage = getMessage ?? (_) => message!;
+    var getMessage_ = getMessage ?? (_) => message!;
     var messageName =
         StateBuilder._getMessageName(null, message) ?? TypeLiteral<D>().type.toString();
     _descriptor = makePostDescriptor<D, C, M>(
-      _getMessage,
+      getMessage_,
       _makeContext,
       _log,
       messageName,
@@ -116,11 +116,11 @@ class TransitionHandlerBuilder<D, C> {
       throw ArgumentError('One of getMessage or message must be provided');
     }
     //var messageName = StateBuilder._getMessageName(null, message);
-    var _getMessage = getMessage ?? (_) => message!;
+    var getMessage_ = getMessage ?? (_) => message!;
     var messageName =
         StateBuilder._getMessageName(null, message) ?? TypeLiteral<D>().type.toString();
     _descriptor = makeScheduleDescriptor<D, C, M>(
-      _getMessage,
+      getMessage_,
       duration,
       periodic,
       _makeContext,

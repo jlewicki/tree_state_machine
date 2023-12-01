@@ -505,7 +505,7 @@ void main() {
       });
 
       test('should close DataValues for data states', () async {
-        var sm = TestableTreeStateMachine(data_tree.treeBuilder());
+        var sm = TestableTreeStateMachine(data_tree.treeBuilder().call);
         var doneByKey = <StateKey, bool>{};
         await sm.start();
         for (var mn in sm.machine.nodes.values) {

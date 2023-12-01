@@ -29,7 +29,7 @@ class Machine {
     // Add an extra node to represent externally stopped state
     _addStoppedNode(rootNode, nodesByKey);
 
-    var log = Logger('tree_state_machine.Machine${logName != null ? '.' + logName : ''}');
+    var log = Logger('tree_state_machine.Machine${logName != null ? '.$logName' : ''}');
     var machineRoot = MachineNode(rootNode, log);
     var machineNodes = HashMap<StateKey, MachineNode>();
     for (var entry in nodesByKey.entries) {
@@ -68,8 +68,8 @@ class Machine {
     _log.fine('Processing message $message');
 
     if (_currentLeafNode == null) {
-      final _initialStateKey = initialStateKey ?? rootNode.treeNode.key;
-      await enterInitialState(_initialStateKey);
+      final initialStateKey_ = initialStateKey ?? rootNode.treeNode.key;
+      await enterInitialState(initialStateKey_);
     }
 
     // If the state machine is in a final state, do not dispatch the message for processing,

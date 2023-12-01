@@ -1,4 +1,4 @@
-part of tree_builders;
+part of '../../tree_builders.dart';
 
 /// Indicates that a value of type [P] must be provided when entering a state.
 ///

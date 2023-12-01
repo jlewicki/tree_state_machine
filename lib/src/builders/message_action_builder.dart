@@ -1,4 +1,4 @@
-part of tree_builders;
+part of '../../../tree_builders.dart';
 
 /// Provides methods for describing actions that can be taken while a state handles a message.
 ///
@@ -142,11 +142,11 @@ class MessageActionBuilder<M, D, C> {
       throw ArgumentError('One of getValue or value must be provided');
     }
 
-    var _getMessage = getMessage ?? (_) => message!;
+    var getMessage_ = getMessage ?? (_) => message!;
     var info = MessageActionInfo(ActionType.schedule, M2, null, label);
     return MessageActionDescriptor<M, D, C>(
       info,
-      (ctx) => _getMessage(ctx).bind((msg) {
+      (ctx) => getMessage_(ctx).bind((msg) {
         _log.fine(() =>
             "State '$_forState' is scheduling message of type $M2 ${periodic ? 'periodic: true' : ''}");
         ctx.messageContext.schedule(
@@ -196,11 +196,11 @@ class MessageActionBuilder<M, D, C> {
       throw ArgumentError('One of getMessage or message must be provided');
     }
 
-    var _getMessage = getMessage ?? (_) => message!;
+    var getMessage_ = getMessage ?? (_) => message!;
     var info = MessageActionInfo(ActionType.schedule, M2, null, label);
     return MessageActionDescriptor<M, D, C>(
       info,
-      (ctx) => _getMessage(ctx).bind((msg) {
+      (ctx) => getMessage_(ctx).bind((msg) {
         _log.fine(() => "State '$_forState' is posting message of type $M2");
         ctx.messageContext.post(msg as Object);
       }),

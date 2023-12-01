@@ -1,4 +1,4 @@
-part of tree_builders;
+part of '../../tree_builders.dart';
 
 /// Describes the message processing result of runnin an action with [MessageHandlerBuilder.action].
 enum ActionResult {
@@ -122,11 +122,11 @@ mixin _GoToHandlerBuilderMixin<M, D, C> on _MessageHandlerBuilder<M, D, C> {
 class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
     with _GoToHandlerBuilderMixin<M, D, C> {
   MessageHandlerBuilder(
-    StateKey forState,
-    FutureOr<C> Function(MessageContext) makeContext,
-    Logger log,
-    String? messageName,
-  ) : super(forState, makeContext, log, messageName);
+    super.forState,
+    super.makeContext,
+    super.log,
+    super.messageName,
+  ) : super();
 
   /// Indicates that the message has been handled, and that a self transition should occur.
   ///
@@ -310,11 +310,11 @@ class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
 class MachineDoneHandlerBuilder<C> extends _MessageHandlerBuilder<Object, NestedMachineData, C>
     with _GoToHandlerBuilderMixin<Object, NestedMachineData, C> {
   MachineDoneHandlerBuilder._(
-    StateKey forState,
-    FutureOr<C> Function(MessageContext) makeContext,
-    Logger log,
-    String? messageName,
-  ) : super(forState, makeContext, log, messageName);
+    super.forState,
+    super.makeContext,
+    super.log,
+    super.messageName,
+  ) : super();
 
   /// Adds a conditional behavior, in the same manner as [MessageHandlerBuilder.when].
   MachineDoneWhenBuilder<C> when(
@@ -407,9 +407,9 @@ class _MessageHandlerWhenBuilder<M, D, C, B extends _MessageHandlerDescriptorPro
 class MessageHandlerWhenBuilder<M, D, C>
     extends _MessageHandlerWhenBuilder<M, D, C, MessageHandlerBuilder<M, D, C>> {
   MessageHandlerWhenBuilder(
-    MessageHandlerBuilder<M, D, C> Function() makeBuilder,
-    List<MessageConditionDescriptor<M, D, C>> conditions,
-  ) : super(makeBuilder, conditions);
+    super.makeBuilder,
+    super.conditions,
+  ) : super();
 
   /// Describes message handling behavior that may be run conditionally.
   ///
@@ -435,9 +435,9 @@ class MessageHandlerWhenBuilder<M, D, C>
 class MachineDoneWhenBuilder<C>
     extends _MessageHandlerWhenBuilder<Object, NestedMachineData, C, MachineDoneHandlerBuilder<C>> {
   MachineDoneWhenBuilder(
-    MachineDoneHandlerBuilder<C> Function() makeBuilder,
-    List<MessageConditionDescriptor<Object, NestedMachineData, C>> conditions,
-  ) : super(makeBuilder, conditions);
+    super.makeBuilder,
+    super.conditions,
+  ) : super();
 
   MachineDoneWhenBuilder<C> when(
     FutureOr<bool> Function(MessageHandlerContext<Object, NestedMachineData, C>) condition,

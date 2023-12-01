@@ -26,7 +26,7 @@ MessageHandlerDescriptor<C> makeStayOrUnhandledDescriptor<M, D, C>(
             var msg = msgCtx.messageAsOrThrow<M>();
             var data = msgCtx.dataValueOrThrow<D>();
             var handlerCtx = MessageHandlerContext<M, D, C>(msgCtx, msg, data, descrCtx.ctx);
-            var _action = action?.handle ?? (_) {};
-            return _action(handlerCtx).bind((_) => handled ? msgCtx.stay() : msgCtx.unhandled());
+            var action_ = action?.handle ?? (_) {};
+            return action_(handlerCtx).bind((_) => handled ? msgCtx.stay() : msgCtx.unhandled());
           });
 }

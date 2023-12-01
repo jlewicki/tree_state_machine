@@ -45,7 +45,7 @@ String describeEnum(Object enumEntry) {
 
 class DisposedError extends StateError {
   /// Constructs a [DisposedError] with an optional error message.
-  DisposedError([String message = 'This object has been disposed']) : super(message);
+  DisposedError([super.message = 'This object has been disposed']);
 }
 
 //==================================================================================================
@@ -89,7 +89,7 @@ class MutableLazy<T> extends Lazy<T> {
   ///
   /// [evaluator] will be used to evaluate the instance of T when the [value] property is first
   /// read.
-  MutableLazy(T Function() evaluator) : super(evaluator);
+  MutableLazy(super.evaluator);
 
   set value(T value) {
     if (hasValue) {

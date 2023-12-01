@@ -118,7 +118,7 @@ class TreeStateMachine {
       logName: logName,
     );
     var log = Logger(
-      'tree_state_machine.TreeStateMachine${logName != null ? '.' + logName : ''}',
+      'tree_state_machine.TreeStateMachine${logName != null ? '.$logName' : ''}',
     );
     return treeMachine = TreeStateMachine._(machine, postMessageErrorPolicy, log, label);
   }
@@ -629,8 +629,8 @@ class _DataStreamKey {
 
 class TestableTreeStateMachine extends TreeStateMachine {
   TestableTreeStateMachine._(
-      Machine machine, PostMessageErrorPolicy failedMessagePolicy, Logger log, String name)
-      : super._(machine, failedMessagePolicy, log, name);
+      super.machine, super.failedMessagePolicy, super.log, String super.name)
+      : super._();
   factory TestableTreeStateMachine(
     TreeNode Function(TreeBuildContext) buildRoot, {
     PostMessageErrorPolicy failedMessagePolicy = PostMessageErrorPolicy.convertToFailedMessage,

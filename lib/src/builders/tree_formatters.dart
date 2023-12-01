@@ -1,4 +1,4 @@
-part of tree_builders;
+part of '../../tree_builders.dart';
 
 /// Defines methods for writing a textual description of the state tree represented by a
 /// [StateTreeBuilder].

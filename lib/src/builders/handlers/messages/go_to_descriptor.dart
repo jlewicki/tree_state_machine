@@ -36,9 +36,9 @@ MessageHandlerDescriptor<C> makeGoToDescriptor<M, D, C>(
             var msg = msgCtx.messageAsOrThrow<M>();
             var data = msgCtx.dataValueOrThrow<D>();
             var handlerCtx = MessageHandlerContext<M, D, C>(msgCtx, msg, data, descrCtx.ctx);
-            var _action = action?.handle ?? (_) {};
-            var _payload = payload ?? (_) => null;
-            return _action(handlerCtx).bind((_) => _payload(handlerCtx).bind((p) {
+            var action_ = action?.handle ?? (_) {};
+            var payload_ = payload ?? (_) => null;
+            return action_(handlerCtx).bind((_) => payload_(handlerCtx).bind((p) {
                   log.finer(() => "State '$forState' going to state '$targetState'");
                   return msgCtx.goTo(
                     targetState,

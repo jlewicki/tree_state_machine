@@ -1,4 +1,4 @@
-part of tree_builders;
+part of '../../tree_builders.dart';
 
 /// Provides methods to describe a state tree.
 ///
@@ -41,13 +41,13 @@ class StateTreeBuilder {
   final StateKey _rootKey;
   final Map<StateKey, _StateBuilder> _stateBuilders = {};
   late final Logger _log = Logger(
-    'tree_state_machine.StateTreeBuilder${logName != null ? '.' + logName! : ''}',
+    'tree_state_machine.StateTreeBuilder${logName != null ? '.${logName!}' : ''}',
   );
 
   StateTreeBuilder._(this._rootKey, this.label, String? logName) : logName = logName ?? label;
 
   /// The key identifying the root state that is implicitly added to a state tree, if the
-  /// [new StateTreeBuilder] constructor is used.
+  /// [StateTreeBuilder.new] constructor is used.
   static const StateKey defaultRootKey = StateKey('<_RootState_>');
 
   /// An optional descriptive label for this state tree, for diagnostic purposes.

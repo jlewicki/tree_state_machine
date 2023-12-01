@@ -92,7 +92,7 @@ class DataValue<T> extends StreamView<T> implements ValueStream<T> {
 }
 
 class ClosableDataValue<T> extends DataValue<T> {
-  ClosableDataValue._(ValueSubject<T> subject) : super._(subject);
+  ClosableDataValue._(super.subject) : super._();
   factory ClosableDataValue(T initialValue) {
     var subject = ValueSubject.initialValue(initialValue);
     return ClosableDataValue._(subject);

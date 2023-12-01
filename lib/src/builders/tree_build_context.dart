@@ -1,7 +1,7 @@
-part of tree_builders;
+part of '../../tree_builders.dart';
 
 /// Type of functions that can create a tree node.
-typedef _NodeBuilder = TreeNode Function(TreeBuildContext context);
+typedef NodeBuilder = TreeNode Function(TreeBuildContext context);
 
 /// Provides contextual information while a state tree is being constructed, and factory methods for
 /// creating tree nodes.
@@ -27,7 +27,7 @@ class TreeBuildContext {
   TreeNode buildRoot(
     StateKey key,
     StateCreator createState,
-    Iterable<_NodeBuilder> children,
+    Iterable<NodeBuilder> children,
     GetInitialChild initialChild,
     StateDataCodec? codec,
   ) {
@@ -42,7 +42,7 @@ class TreeBuildContext {
   TreeNode buildInterior(
     StateKey key,
     StateCreator createState,
-    Iterable<_NodeBuilder> children,
+    Iterable<NodeBuilder> children,
     GetInitialChild initialChild,
     StateDataCodec? codec,
   ) {

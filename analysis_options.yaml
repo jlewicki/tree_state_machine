@@ -16,13 +16,9 @@ include: package:lints/recommended.yaml
 analyzer:
   strong-mode:
     implicit-casts: false
-
-# Uncomment the following section to specify additional rules.
-
-# linter:
-#   rules:
-#     - camel_case_types
-
+  exclude:
+    - lib/**/*.g.dart
+    - test/**/*.g.dart
 
 # For more information about the core and recommended set of lints, see
 # https://dart.dev/go/core-lints

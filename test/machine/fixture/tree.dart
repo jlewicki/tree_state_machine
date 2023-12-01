@@ -27,30 +27,30 @@ StateTreeBuilder treeBuilder({
   Map<StateKey, TransitionHandler>? exitHandlers,
   Map<StateKey, void Function(TransitionContext)>? initialChildCallbacks,
 }) {
-  final _createEntryHandler = createEntryHandler ?? (_) => emptyTransitionHandler;
-  final _createExitHandler = createExitHandler ?? (_) => emptyTransitionHandler;
-  final _createMessageHandler = createMessageHandler ?? (_) => emptyMessageHandler;
-  final _entryHandlers = entryHandlers ?? {};
-  final _messageHandlers = messageHandlers ?? {};
-  final _exitHandlers = exitHandlers ?? {};
-  final _initialChildCallbacks = initialChildCallbacks ?? {};
+  final createEntryHandler_ = createEntryHandler ?? (_) => emptyTransitionHandler;
+  final createExitHandler_ = createExitHandler ?? (_) => emptyTransitionHandler;
+  final createMessageHandler_ = createMessageHandler ?? (_) => emptyMessageHandler;
+  final entryHandlers_ = entryHandlers ?? {};
+  final messageHandlers_ = messageHandlers ?? {};
+  final exitHandlers_ = exitHandlers ?? {};
+  final initialChildCallbacks_ = initialChildCallbacks ?? {};
 
   void Function(StateBuilder<void>) buildState(StateKey key) {
     return (b) {
-      b.handleOnMessage(_messageHandlers[key] ?? _createMessageHandler(key));
-      b.handleOnEnter(_entryHandlers[key] ?? _createEntryHandler(key));
-      b.handleOnExit(_exitHandlers[key] ?? _createExitHandler(key));
+      b.handleOnMessage(messageHandlers_[key] ?? createMessageHandler_(key));
+      b.handleOnEnter(entryHandlers_[key] ?? createEntryHandler_(key));
+      b.handleOnExit(exitHandlers_[key] ?? createExitHandler_(key));
     };
   }
 
   void Function(EnterStateBuilder<void>) buildFinalState(StateKey key) {
     return (b) {
-      b.handleOnEnter(_entryHandlers[key] ?? _createEntryHandler(key));
+      b.handleOnEnter(entryHandlers_[key] ?? createEntryHandler_(key));
     };
   }
 
-  void Function(TransitionContext) _initialChildCallback(StateKey key) =>
-      _initialChildCallbacks[key] ??
+  void Function(TransitionContext) initialChildCallback(StateKey key) =>
+      initialChildCallbacks_[key] ??
       (createInitialChildCallback != null ? createInitialChildCallback(key) : (_) {});
 
   var b = StateTreeBuilder.withRoot(
@@ -58,7 +58,7 @@ StateTreeBuilder treeBuilder({
     buildState(r_key),
     InitialChild.run(
       (ctx) {
-        _initialChildCallback(r_key)(ctx);
+        initialChildCallback(r_key)(ctx);
         return r_a_key;
       },
     ),
@@ -72,7 +72,7 @@ StateTreeBuilder treeBuilder({
     buildState(r_a_key),
     parent: r_key,
     initialChild: InitialChild.run((ctx) {
-      _initialChildCallback(r_a_key)(ctx);
+      initialChildCallback(r_a_key)(ctx);
       return r_a_a_key;
     }),
   );
@@ -82,7 +82,7 @@ StateTreeBuilder treeBuilder({
     buildState(r_a_a_key),
     parent: r_a_key,
     initialChild: InitialChild.run((ctx) {
-      _initialChildCallback(r_a_a_key)(ctx);
+      initialChildCallback(r_a_a_key)(ctx);
       return r_a_a_2_key;
     }),
   );
@@ -95,7 +95,7 @@ StateTreeBuilder treeBuilder({
     buildState(r_b_key),
     parent: r_key,
     initialChild: InitialChild.run((ctx) {
-      _initialChildCallback(r_b_key)(ctx);
+      initialChildCallback(r_b_key)(ctx);
       return r_b_1_key;
     }),
   );
