@@ -1,8 +1,8 @@
-# 2.4.0
+## 2.4.0
 - Fix issue with `MessageHandlerWhenBuilder` not evaluating multiple conditions correctly. 
 - Fix issue with `MessageHandlerBuilder.action` not evaluating `actionResult` parameter correctly. 
 
-# 2.3.0
+## 2.3.0
 - Rename `NestedMachineData.nestedState` -> `NestedMachineData.nestedCurrentState`.
 - Add `label` property to `TreeStateMachine` and `TreeStateBuilder` for debugging purposes.
 - Improve messages when an error occurs entering a channel.

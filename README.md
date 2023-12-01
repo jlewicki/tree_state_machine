@@ -80,7 +80,7 @@ treeBuilder.dataState<LoginData>(
    States.login,
    InitialData(() => LoginData()),
    (stateBuilder) {
-      // Use state builder to define how the splash state behaves
+      // Use state builder to define how the login state behaves
    },
    parent: States.unauthenticated,
    initialChild: InitialChild(States.loginEntry),
@@ -92,7 +92,7 @@ transitions will occur, and the state tree is considered ended, or complete. Not
 considered a child of the root state, and may not have any child states.
 ```dart
 treeBuilder.finalState(States.lockedOut, (stateBuilder) {
-   // Use state builder to define entry behavior for the state
+   // Use state builder to define entry behavior for the lockedOut state
 });
 ``` 
 
@@ -149,6 +149,7 @@ treeBuilder.state(States.unauthenticated, (sb) {
   sb.onMessageValue(Messages.goToRegister, (mhb) => mhb.goTo(States.registration));
 }, initialChild: InitialChild(States.splash));
 ```
+
 ### Message actions
 Often addition actions need to be taken when a state handles a message, in addition to transitioning to a different 
 state. These actions can be defined with `MessageActionBuilder` and associated types, and passed to the `action` 
