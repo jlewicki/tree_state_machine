@@ -408,7 +408,7 @@ class StateTreeBuilder {
       } else if (initialChild == null) {
         throw StateError('Parent state ${entry.key} is missing an initial child state');
       } else if (children.isEmpty) {
-        var initialChildBuilder = _stateBuilders[initialChild];
+        var initialChildBuilder = _stateBuilders[initialChild._initialChildKey];
         if (initialChildBuilder != null) {
           throw StateError(
               'Parent state ${entry.key} has initial child $initialChild, but $initialChild has '

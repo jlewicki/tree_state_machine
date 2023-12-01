@@ -434,11 +434,20 @@ void main() {
         expect(() => sb(), throwsStateError);
       });
 
-      test('should throw if initial child is not a child', () {
+      test('should throw if initial child has no parent', () {
         var sb = StateTreeBuilder(initialState: state1);
         sb.state(state1, emptyState, initialChild: InitialChild(state3));
         sb.state(state2, emptyState, parent: state1);
         sb.state(state3, emptyState);
+        expect(() => sb(), throwsStateError);
+      });
+
+      test('should throw if initial child has wrong parent', () {
+        var sb = StateTreeBuilder(initialState: state1);
+        sb.state(state1, emptyState, initialChild: InitialChild(state3));
+        sb.state(state2, emptyState, parent: state1);
+        sb.state(state3, emptyState, parent: state4);
+        sb.state(state4, emptyState, initialChild: InitialChild(state3));
         expect(() => sb(), throwsStateError);
       });
 
