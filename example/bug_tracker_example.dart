@@ -5,7 +5,7 @@ import 'package:tree_state_machine/tree_builders.dart';
 // State keys
 //
 class States {
-  static final root = StateKey('root');
+  static final root = DataStateKey<BugData>('root');
   static final open = StateKey('open');
   static final assigned = StateKey('assigned');
   static final unassigned = StateKey('unassigned');

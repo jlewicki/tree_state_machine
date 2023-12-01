@@ -1,8 +1,9 @@
 import 'package:test/test.dart';
 import 'package:tree_state_machine/tree_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
-
 import 'fixture/fixture_data.dart';
+
+final rootState = DataStateKey<StateData>('root');
 
 void main() {
   group('TransitionHandlerBuilder', () {
@@ -186,6 +187,7 @@ void main() {
   });
 
   group('TransitionHandlerBuilderWithData', () {
+    final state2 = DataStateKey<StateData>('state2');
     group('when', () {
       test('should run true handler when condition is true', () async {
         var b = StateTreeBuilder(initialState: state1);

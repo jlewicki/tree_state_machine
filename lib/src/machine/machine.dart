@@ -55,7 +55,7 @@ class Machine {
     final initialNode = initialStateKey != null ? nodes[initialStateKey] : rootNode;
     if (initialNode == null) {
       throw ArgumentError.value(
-        initialStateKey,
+        initialStateKey.toString(),
         'initalStateKey',
         'This TreeStateMachine does not contain the specified initial state.',
       );

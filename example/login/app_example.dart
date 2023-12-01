@@ -16,7 +16,7 @@ class States {
   static final unauthenticated = StateKey('unauthenticated');
   static final splash = StateKey('splash');
   static final authenticate = StateKey('authenticate');
-  static final authenticated = StateKey('authenticated');
+  static final authenticated = DataStateKey<AuthorizedUser>('authenticated');
   static final userHome = StateKey('userHome');
 }
 

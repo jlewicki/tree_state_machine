@@ -35,13 +35,13 @@ abstract class AuthService {
 // State keys
 //
 class States {
-  static const login = StateKey('login');
+  static const login = DataStateKey<LoginData>('login');
   static const loginEntry = StateKey('loginEntry');
   static const authenticating = StateKey('authenticating');
-  static const registration = StateKey('registration');
+  static const registration = DataStateKey<RegisterData>('registration');
   static const credentialsRegistration = StateKey('credentialsRegistration');
   static const demographicsRegistration = StateKey('demographicsRegistration');
-  static const authenticated = StateKey('authenticated');
+  static const authenticated = DataStateKey<AuthenticatedData>('authenticated');
 }
 
 //

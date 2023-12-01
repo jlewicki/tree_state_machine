@@ -111,7 +111,7 @@ class StateTreeBuilder {
   /// The builder can optionally be given a [label] for diagnostic purposes, and a [logName] which
   /// identifies the builder in log output. If [logName] is unspecifed, [label] will be used instead.
   static StateTreeBuilder withDataRoot<D>(
-    StateKey rootState,
+    DataStateKey<D> rootState,
     InitialData<D> initialData,
     void Function(StateBuilder<D> builder) build,
     InitialChild initialChild, {
@@ -228,7 +228,7 @@ class StateTreeBuilder {
   /// parent), then [initialChild] must be provided, indicating which child state should be entered
   /// when this state is entered.
   void dataState<D>(
-    StateKey stateKey,
+    DataStateKey<D> stateKey,
     InitialData<D> initialData,
     void Function(StateBuilder<D> builder) build, {
     StateKey? parent,
@@ -256,7 +256,7 @@ class StateTreeBuilder {
   ///
   /// A final state never has any child states, and is always a child of the root state.
   void finalDataState<D>(
-    StateKey stateKey,
+    DataStateKey<D> stateKey,
     InitialData<D> initialData,
     void Function(EnterStateBuilder<D> builder) build, {
     StateKey? parent,

@@ -20,9 +20,9 @@ class Cd {
 // State keys
 //
 class States {
-  static final root = StateKey('root');
+  static final root = DataStateKey<RootData>('root');
   static final idle = StateKey('idle');
-  static final busy = StateKey('busy');
+  static final busy = DataStateKey<BusyData>('busy');
   static final playing = StateKey('playing');
   static final paused = StateKey('paused');
   static final open = StateKey('open');
@@ -183,9 +183,6 @@ void _playTrack(MessageHandlerContext<Play, void, void> ctx) {
 
 Future<void> main() async {
   var treeBuilder = cdPlayerStateTree();
-  // var context = TreeBuildContext();
-  // var node = treeBuilder.build(context);
-
   var sb = StringBuffer();
   treeBuilder.format(sb, DotFormatter());
   print(sb.toString());

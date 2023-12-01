@@ -312,24 +312,24 @@ void main() {
 
       test('should read active data states from stream ', () async {
         var sm = TreeStateMachine(data_tree.treeBuilder(initialDataValues: {
-          tree.r_a_a_1_key: () => (LeafData1()..counter = 10),
-          tree.r_a_a_key: () => LeafDataBase()..name = 'Yo',
-          tree.r_a_key: () => ImmutableData((b) => b
+          data_tree.r_a_a_1_key: () => (LeafData1()..counter = 10),
+          data_tree.r_a_a_key: () => LeafDataBase()..name = 'Yo',
+          data_tree.r_a_key: () => ImmutableData((b) => b
             ..name = 'Dude'
             ..price = 8),
-          tree.r_key: () => SpecialDataD()
+          data_tree.r_key: () => SpecialDataD()
             ..playerName = 'FOO'
             ..startYear = 2000
             ..hiScores.add(HiScore('foo', 10)),
         }));
-        var currentState = await sm.start(tree.r_a_a_1_key);
+        var currentState = await sm.start(data_tree.r_a_a_1_key);
 
         var encoded = await _save(sm);
         sm = TreeStateMachine(data_tree.treeBuilder());
 
         await sm.loadFrom(Stream.fromIterable(encoded));
         expect(sm.isStarted, isTrue);
-        expect(currentState.key, tree.r_a_a_1_key);
+        expect(currentState.key, data_tree.r_a_a_1_key);
 
         final r_a_a_1_data = currentState.dataValue<LeafData1>();
         expect(r_a_a_1_data, isNotNull);

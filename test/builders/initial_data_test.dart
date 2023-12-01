@@ -4,6 +4,9 @@ import 'package:tree_state_machine/tree_state_machine.dart';
 
 import 'fixture/fixture_data.dart';
 
+final state2 = DataStateKey<StateData>('state2');
+final state3 = DataStateKey<StateData2>('state3');
+
 void main() {
   group('InitialData', () {
     group('fromChannel', () {

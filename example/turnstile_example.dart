@@ -7,8 +7,8 @@ enum Messages {
 }
 
 class States {
-  static final locked = StateKey.named('locked');
-  static final unlocked = StateKey.named('unlocked');
+  static final locked = StateKey('locked');
+  static final unlocked = StateKey('unlocked');
 }
 
 StateTreeBuilder turnstileStateTree() {

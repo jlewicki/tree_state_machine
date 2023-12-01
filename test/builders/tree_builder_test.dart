@@ -38,6 +38,7 @@ void main() {
     });
 
     group('factory.withDataRoot', () {
+      final rootState = DataStateKey<int>('root');
       test('should create explicit root state', () {
         var sb = StateTreeBuilder.withDataRoot<int>(
           rootState,
@@ -114,6 +115,7 @@ void main() {
 
     group('dataState', () {
       test('should create a leaf state', () {
+        final state1 = DataStateKey<int>('state1');
         var sb = StateTreeBuilder(initialState: state1);
         sb.dataState<int>(state1, InitialData(() => 1), emptyState, initialChild: null);
         var rootNode = sb();
@@ -125,6 +127,7 @@ void main() {
       });
 
       test('should create a leaf state (rooted)', () {
+        final state1 = DataStateKey<int>('state1');
         var sb = StateTreeBuilder.withRoot(rootState, emptyState, InitialChild(state1));
         sb.dataState<int>(state1, InitialData(() => 1), emptyState, initialChild: null);
         var rootNode = sb();
@@ -136,6 +139,8 @@ void main() {
       });
 
       test('should create an interior state', () {
+        final state1 = DataStateKey<String>('state1');
+        final state2 = DataStateKey<String>('state2');
         var sb = StateTreeBuilder(initialState: state1);
         sb.dataState<String>(state1, InitialData(() => ''), emptyState,
             initialChild: InitialChild(state2));
@@ -150,6 +155,7 @@ void main() {
       });
 
       test('should throw if state is defined more than once', () {
+        final state1 = DataStateKey<int>('state1');
         var sb = StateTreeBuilder(initialState: state1);
         sb.dataState<int>(state1, InitialData(() => 1), emptyState, initialChild: null);
         expect(
@@ -179,6 +185,7 @@ void main() {
     });
 
     group('finalDataState', () {
+      final state1 = DataStateKey<int>('state1');
       test('should create a final data leaf state', () {
         var sb = StateTreeBuilder(initialState: state1);
         sb.finalDataState<int>(state1, InitialData(() => 1), emptyFinalState);
@@ -202,7 +209,7 @@ void main() {
 
     group('machineState', () {
       final nestedState1 = StateKey('nestedState1');
-      final nestedState2 = StateKey('nestedState2');
+      final nestedState2 = DataStateKey<StateData>('nestedState2');
       final nestedState3 = StateKey('nestedState3');
 
       StateTreeBuilder createNestedBuilder() {

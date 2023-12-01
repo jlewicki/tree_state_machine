@@ -5,20 +5,20 @@ import 'package:tree_state_machine/tree_builders.dart';
 
 import 'state_data.dart';
 
-final r_key = StateKey('r');
-final r_a_key = StateKey('r_a');
-final r_a_a_key = StateKey('r_a_a');
-final r_a_1_key = StateKey('r_a_1');
-final r_a_a_1_key = StateKey('r_a_a_1');
-final r_a_a_2_key = StateKey('r_a_a_2');
+final r_key = DataStateKey<SpecialDataD>('r');
+final r_a_key = DataStateKey<ImmutableData>('r_a');
+final r_a_a_key = DataStateKey<LeafDataBase>('r_a_a');
+final r_a_1_key = DataStateKey<ImmutableData>('r_a_1');
+final r_a_a_1_key = DataStateKey<LeafData1>('r_a_a_1');
+final r_a_a_2_key = DataStateKey<LeafData2>('r_a_a_2');
 final r_b_key = StateKey('r_b');
 final r_b_1_key = StateKey('r_b_1');
-final r_b_2_key = StateKey('r_b_2');
-final r_c_key = StateKey('r_c');
-final r_c_a_key = StateKey('r_c_a');
+final r_b_2_key = DataStateKey<int>('r_b_2');
+final r_c_key = DataStateKey<ReadOnlyData>('r_c');
+final r_c_a_key = DataStateKey<ReadOnlyData>('r_c_a');
 final r_c_a_1_key = StateKey('r_c_a_1');
 final r_X_key = StateKey('r_X');
-final r_XD_key = StateKey('r_XD');
+final r_XD_key = DataStateKey<FinalData>('r_XD');
 
 StateTreeBuilder treeBuilder({
   TransitionHandler Function(StateKey key)? createEntryHandler,

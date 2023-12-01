@@ -4,6 +4,8 @@ import 'package:tree_state_machine/tree_state_machine.dart';
 
 import 'fixture/fixture_data.dart';
 
+final state2 = DataStateKey<String>('state2');
+
 void main() {
   group('MessageActionBuilder', () {
     group('goTo', () {

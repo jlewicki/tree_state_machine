@@ -12,41 +12,38 @@ import 'package:tree_state_machine/tree_state_machine.dart';
 // Keys
 //
 
-/// A [StateKey] is an indentifier for a state within a tree state machine.
+/// An identifier for a state within a tree state machine.
 ///
 /// Keys must be unique within a tree of states.
-abstract class StateKey {
-  const StateKey._();
-
+sealed class StateKey {
   /// Construct a [StateKey] with the specifed name.
   ///
   /// The name must be unique within a state tree.
   const factory StateKey(String name) = _ValueKey<String>;
-
-  /// Construct a [StateKey] with the specifed name.
-  ///
-  /// The name must be unique within a state tree.
-  const factory StateKey.named(String name) = _ValueKey<String>;
-
-  /// Construct a [StateKey] with a name based on the specified state type.
-  ///
-  /// This may be useful if each state in a tree is represented by its own [TreeState] subclass, and
-  /// therefore a unique name for the state can be inferred from the type name.
-  static StateKey forState<T extends TreeState>() => _ValueKey<Type>(TypeLiteral<T>().type);
 }
 
-class _ValueKey<T> extends StateKey {
+/// An identifier for a data state, carrying state data of type [D], within a
+/// tree state machine.
+///
+/// [DataStateKey] is a phantom type, in that [D] is not used at runtime, but
+/// is useful for documentation purposes, making the association between a data
+/// state and its data type more obvious.
+///
+/// Keys must be unique within a tree of states. Note however that [DataStateKey]
+/// incorporates the type [D] into it's identity, so different [DataStateKey]s may
+/// share the same name as long as [D] differs.
+class DataStateKey<D> extends _ValueKey<(Type, String)> implements StateKey {
+  const DataStateKey(String name) : super((D, name));
+}
+
+class _ValueKey<T> implements StateKey {
   final T value;
-  const _ValueKey(this.value) : super._();
+  const _ValueKey(this.value);
 
   @override
-  bool operator ==(Object other) {
-    if (other.runtimeType != runtimeType) {
-      return false;
-    }
-    final typedOther = other as _ValueKey<T>;
-    return value == typedOther.value;
-  }
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is _ValueKey<T> && runtimeType == other.runtimeType && value == other.value);
 
   @override
   int get hashCode {
@@ -57,7 +54,7 @@ class _ValueKey<T> extends StateKey {
   }
 
   @override
-  String toString() => '$value';
+  String toString() => value.toString();
 }
 
 /// Identifies the stopped state in a state tree.
@@ -692,8 +689,7 @@ class HandledMessage extends ProcessedMessage {
 class UnhandledMessage extends ProcessedMessage {
   /// The collection of states that were notified of, but did not handle, the message.
   final Iterable<StateKey> notifiedStates;
-  const UnhandledMessage(super.message, super.receivingState, this.notifiedStates)
-      : super._();
+  const UnhandledMessage(super.message, super.receivingState, this.notifiedStates) : super._();
 }
 
 /// A [ProcessedMessage] indicating an error was thrown while processing a message.
@@ -704,8 +700,7 @@ class FailedMessage extends ProcessedMessage {
   /// The stack trace at the point the error was thrownn
   final StackTrace stackTrace;
 
-  const FailedMessage(super.message, super.receivingState, this.error, this.stackTrace)
-      : super._();
+  const FailedMessage(super.message, super.receivingState, this.error, this.stackTrace) : super._();
 }
 
 //==================================================================================================

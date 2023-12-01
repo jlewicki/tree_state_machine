@@ -343,12 +343,12 @@ void main() {
             },
           );
           final machine = createMachine(buildTree);
-          await machine.enterInitialState(r_a_a_1_key);
+          await machine.enterInitialState(data_tree.r_a_a_1_key);
 
           await machine.processMessage(Object());
 
-          expect(machine.nodes[r_a_a_1_key]!.treeNode.data, isNull);
-          expect(machine.nodes[r_a_key]!.treeNode.data, isNull);
+          expect(machine.nodes[data_tree.r_a_a_1_key]!.treeNode.data, isNull);
+          expect(machine.nodes[data_tree.r_a_key]!.treeNode.data, isNull);
         });
       });
 
