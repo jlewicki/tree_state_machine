@@ -22,7 +22,11 @@ export 'src/machine/tree_state_machine.dart'
 export 'src/machine/lifecycle.dart' show LifecycleState;
 
 // To publish:
+// dart pub publish --dry-run
 // git tag -a vX.X.X -m "Publish vX.X.X"
 // git push origin vX.X.X
-// dart pub publish --dry-run
 // dart pub publish
+//
+// If you mess up
+// git tag -d vX.X.X
+// git push --delete origin vX.X.X
