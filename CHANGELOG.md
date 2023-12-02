@@ -1,3 +1,9 @@
+## 3.0.0
+- Upgrade to Dart3 SDK
+- Add `DataStateKey` to emphasize association between a data state and its state data type
+- Add `TreeStateMachine.startWith` to enable starting a state machine with specific initual values
+  for data states.
+
 ## 2.4.0
 - Fix issue with `MessageHandlerWhenBuilder` not evaluating multiple conditions correctly. 
 - Fix issue with `MessageHandlerBuilder.action` not evaluating `actionResult` parameter correctly. 
@@ -11,7 +17,7 @@
 - Add `action` parameter to `enterChannel` builder method.
 
 ## 2.2.0
-- Add suppport for rethrowing exceptions with `PostMessageErrorPolicy`.
+- Add support for rethrowing exceptions with `PostMessageErrorPolicy`.
 - Fix bug where data streams for `void` data states might not be completed when state exits.
 - Add `StreamCombineLatest`.
 
