@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:collection';
 import 'package:collection/collection.dart';
 import 'package:logging/logging.dart';
+import 'package:tree_state_machine/src/machine/data_value.dart';
+import 'package:tree_state_machine/src/machine/initial_state_data.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
-import 'package:tree_state_machine/tree_state_machine.dart';
+import 'package:tree_state_machine/src/machine/tree_state_machine.dart';
 import 'package:tree_state_machine/src/machine/tree_node.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
 
@@ -47,11 +49,15 @@ class Machine {
   ///
   /// Each state between the root state and the initial leaf state of the state machine will be
   /// entered. The initial leaf state is determined by following the initial child path starting at
-  /// the root state, or the state identified by [initialStateKey].
+  /// the root state, or the state identified by [initialState].
+  ///
+  /// Additionally, if [initialData] contains data values for any data states that are entered,
+  /// those values are used when realizing the initial data values for those states. The initial
+  /// data functions associated with those state will *not* be called.
   ///
   /// Returns a future yielding a [MachineTransitionContext] that describes the states that were
   /// entered.
-  Future<Transition> enterInitialState([StateKey? initialStateKey]) {
+  Future<Transition> enterInitialState([StateKey? initialStateKey, InitialStateData? initialData]) {
     final initialNode = initialStateKey != null ? nodes[initialStateKey] : rootNode;
     if (initialNode == null) {
       throw ArgumentError.value(
@@ -61,7 +67,7 @@ class Machine {
       );
     }
     final path = MachineTransition.enterFromRoot(rootNode.treeNode, to: initialNode.treeNode);
-    return _doTransition(path);
+    return _doTransition(path, initialStateData: initialData);
   }
 
   Future<ProcessedMessage> processMessage(Object message, [StateKey? initialStateKey]) async {
@@ -143,8 +149,8 @@ class Machine {
     );
     final transition = await _doTransition(
       requestedTransition,
-      result.transitionAction,
-      result.payload,
+      transitionAction: result.transitionAction,
+      payload: result.payload,
     );
     return HandledMessage(
       msgCtx.message,
@@ -196,7 +202,7 @@ class Machine {
       msgCtx.receivingLeafNode,
       from: msgCtx.handlingNode.parent ?? rootNode.treeNode,
     );
-    final transition = await _doTransition(path, result.transitionAction);
+    final transition = await _doTransition(path, transitionAction: result.transitionAction);
     return HandledMessage(
       msgCtx.message,
       msgCtx.receivingLeafNode.key,
@@ -218,17 +224,26 @@ class Machine {
   }
 
   Future<Transition> _doTransition(
-    MachineTransition path, [
+    MachineTransition path, {
     TransitionHandler? transitionAction,
     Object? payload,
-  ]) async {
+    InitialStateData? initialStateData,
+  }) async {
     var transCtx = MachineTransitionContext(this, path, payload);
 
     var exitHandlers = path.exitingNodes.map((n) {
       return () => transCtx.onExit(n);
     });
     final entryHandlers = path.enteringNodes.map((n) {
-      return () => transCtx.onEnter(n);
+      return initialStateData != null && n.state is DataTreeState
+          ? () {
+              var initialData = initialStateData(n.key);
+              if (initialData != null) {
+                (n.state as DataTreeState).initializeData(transCtx, initialData);
+              }
+              return transCtx.onEnter(n);
+            }
+          : () => transCtx.onEnter(n);
     });
 
     // Note that _initialChildPath iterates on demand, so next child won't be computed until

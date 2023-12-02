@@ -98,11 +98,7 @@ StateTreeBuilder treeBuilder({
 
   b.dataState<ImmutableData>(
     r_a_key,
-    InitialData(buildInitialDataValue(
-        r_a_key,
-        ImmutableData((b) => b
-          ..name = 'r_a'
-          ..price = 20))),
+    InitialData(buildInitialDataValue(r_a_key, ImmutableData(name: 'r_a', price: 20))),
     buildDataState<ImmutableData>(r_a_key),
     parent: r_key,
     initialChild: InitialChild(r_a_a_key),
@@ -136,11 +132,7 @@ StateTreeBuilder treeBuilder({
 
   b.dataState<ImmutableData>(
     r_a_1_key,
-    InitialData(buildInitialDataValue(
-        r_a_1_key,
-        ImmutableData((b) => b
-          ..name = 'r_a_1'
-          ..price = 10))),
+    InitialData(buildInitialDataValue(r_a_1_key, ImmutableData(name: 'r_a_1', price: 10))),
     buildDataState<ImmutableData>(r_a_1_key),
     parent: r_a_key,
     codec: ImmutableData.codec,

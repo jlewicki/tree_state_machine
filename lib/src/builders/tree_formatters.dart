@@ -107,7 +107,7 @@ class _DotFormatter {
     }
 
     // Declare state transitions
-    // TODO: do we need to do this a loop? can we do it node by node during recursive calls?
+    // FUTURE: do we need to do this a loop? can we do it node by node during recursive calls?
     for (var child in childStates) {
       for (var handlerInfo in child._getHandlerInfos()) {
         var childStateName = _getStateName(child);

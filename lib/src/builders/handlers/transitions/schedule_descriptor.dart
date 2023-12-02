@@ -22,7 +22,7 @@ TransitionHandlerDescriptor<C> makeScheduleDescriptor<D, C, M>(
     makeContext,
     (descrCtx) => (transCtx) {
       // TODO: reconsider getMessage. It probably shouldnt accept a transCtx, or alternatively
-      // the function passed to schedule  shoyuld accept a transCtx (which should be OK since the
+      // the function passed to schedule should accept a transCtx (which should be OK since the
       // timer is cancelled when state is exited)
       var data = transCtx.dataValueOrThrow<D>();
       var ctx = TransitionHandlerContext<D, C>(transCtx, data, descrCtx.ctx);

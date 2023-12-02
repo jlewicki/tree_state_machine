@@ -182,11 +182,13 @@ abstract class DataTreeState<D> extends TreeState {
 
   @override
   FutureOr<void> onEnter(TransitionContext transCtx) {
-    assert(_refDataValue.value == null);
-    var initialValue = _initialData(transCtx);
-    _refDataValue.value = isTypeOfExact<void, D>()
-        ? VoidDataValue() as ClosableDataValue<D>
-        : ClosableDataValue(initialValue);
+    // Typically _refDataValue.value will be null, since it is only initialized) when the state is
+    // entered, and cleared when the state is exited. However, even if this is the first time the
+    // state has been entered, it potentially might not be null, if the state machine was started
+    // with startWith, and one or more initial data values were provided.
+    if (_refDataValue.value == null) {
+      initializeData(transCtx);
+    }
   }
 
   @override
@@ -199,11 +201,13 @@ abstract class DataTreeState<D> extends TreeState {
   @override
   void dispose() => _refDataValue.value?.close();
 
-  void setValue(Object o) {
-    if (_refDataValue.value == null) {
-      throw StateError('DataValue has not been created because state has not yet been entered.');
-    }
-    _refDataValue.value!.setValue(o);
+  void initializeData(TransitionContext transCtx, [D? initialData]) {
+    assert(_refDataValue.value == null);
+    var initialData_ = initialData ?? _initialData(transCtx);
+    _refDataValue.value?.close();
+    _refDataValue.value = isTypeOfExact<void, D>()
+        ? VoidDataValue() as ClosableDataValue<D>
+        : ClosableDataValue(initialData_);
   }
 }
 

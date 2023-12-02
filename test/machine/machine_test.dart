@@ -333,9 +333,7 @@ void main() {
               data_tree.r_a_a_1_key: (msgCtx) {
                 msgCtx.updateOrThrow<LeafData1>((d) => d..counter = 10);
                 msgCtx.updateOrThrow<ImmutableData>(
-                  (d) => ImmutableData((b) => b
-                    ..name = 'bob'
-                    ..price = d.price),
+                  (d) => ImmutableData(name: 'bob', price: d.price),
                   key: data_tree.r_a_key,
                 );
                 return msgCtx.goTo(data_tree.r_b_1_key, reenterTarget: true);
@@ -469,6 +467,65 @@ void main() {
           expect(handled.transition!.entryPath, [r_a_key, r_a_a_key, r_a_a_1_key]);
           expect(actionCalled, isTrue);
         });
+      });
+    });
+
+    group('enterInitialState', () {
+      test('should enter initial state', () async {
+        final builder = treeBuilder();
+        final machine = createMachine(builder);
+
+        final transition = await machine.enterInitialState();
+        expectPath(transition, [], [r_key, r_a_key, r_a_a_key, r_a_a_2_key]);
+      });
+
+      test('should enter initial state and follow initial child path', () async {
+        final builder = treeBuilder();
+        final machine = createMachine(builder);
+
+        final transition = await machine.enterInitialState(r_b_key);
+        expectPath(transition, [], [r_key, r_b_key, r_b_1_key]);
+      });
+
+      test('should enter initial state intialize state data', () async {
+        final builder = data_tree.treeBuilder();
+        final machine = createMachine(builder);
+
+        final transition = await machine.enterInitialState(
+            data_tree.r_a_a_2_key,
+            InitialStateData((b) => b
+                .initialData<LeafData2>(
+                  data_tree.r_a_a_2_key,
+                  LeafData2()..label = 'r_a_a_2_key',
+                )
+                .initialData<LeafDataBase>(
+                  data_tree.r_a_a_key,
+                  LeafDataBase()..name = 'r_a_a_key',
+                )
+                .initialData<ImmutableData>(
+                  data_tree.r_a_key,
+                  ImmutableData(name: 'r_a_key', price: 2),
+                )
+                .initialData<SpecialDataD>(
+                  data_tree.r_key,
+                  SpecialDataD()..startYear = 1,
+                )));
+
+        expectPath(transition, [], [
+          data_tree.r_key,
+          data_tree.r_a_key,
+          data_tree.r_a_a_key,
+          data_tree.r_a_a_2_key,
+        ]);
+
+        D? getDataValue<D>(StateKey key) {
+          return machine.nodes[key]?.treeNode.data?.value as D?;
+        }
+
+        expect(1, equals(getDataValue<SpecialDataD>(data_tree.r_key)?.startYear));
+        expect('r_a_key', equals(getDataValue<ImmutableData>(data_tree.r_a_key)?.name));
+        expect('r_a_a_key', equals(getDataValue<LeafDataBase>(data_tree.r_a_a_key)?.name));
+        expect('r_a_a_2_key', equals(getDataValue<LeafData2>(data_tree.r_a_a_2_key)?.label));
       });
     });
   });

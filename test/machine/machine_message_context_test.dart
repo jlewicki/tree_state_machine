@@ -114,9 +114,7 @@ void main() {
       test('should replace data in ancestor state', () async {
         final buildTree = treeBuilder(messageHandlers: {
           r_a_a_1_key: (ctx) {
-            ctx.updateOrThrow<ImmutableData>((_) => ImmutableData((b) => b
-              ..name = 'Jim'
-              ..price = 2));
+            ctx.updateOrThrow<ImmutableData>((_) => ImmutableData(name: 'Jim', price: 2));
             return ctx.stay();
           }
         });
@@ -131,12 +129,8 @@ void main() {
       });
 
       test('should replace data in closest state', () async {
-        final r_a_data = ImmutableData((b) => b
-          ..name = 'John'
-          ..price = 10);
-        final r_a_1_data = ImmutableData((b) => b
-          ..name = 'Pete'
-          ..price = 5);
+        final r_a_data = ImmutableData(name: 'John', price: 10);
+        final r_a_1_data = ImmutableData(name: 'Pete', price: 5);
 
         final buildTree = treeBuilder(
           initialDataValues: {
@@ -145,9 +139,7 @@ void main() {
           },
           messageHandlers: {
             r_a_1_key: (ctx) {
-              ctx.updateOrThrow<ImmutableData>((_) => ImmutableData((b) => b
-                ..name = 'Jim'
-                ..price = 2));
+              ctx.updateOrThrow<ImmutableData>((_) => ImmutableData(name: 'Jim', price: 2));
               return ctx.stay();
             }
           },
@@ -168,10 +160,7 @@ void main() {
       test('should replace data in ancestor state by key', () async {
         final buildTree = treeBuilder(messageHandlers: {
           r_a_1_key: (ctx) {
-            ctx.updateOrThrow<ImmutableData>(
-                (_) => ImmutableData((b) => b
-                  ..name = 'Jim'
-                  ..price = 2),
+            ctx.updateOrThrow<ImmutableData>((_) => ImmutableData(name: 'Jim', price: 2),
                 key: r_a_key);
             return ctx.stay();
           }

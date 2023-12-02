@@ -82,7 +82,8 @@ class ReadOnlyData {
 abstract class ImmutableData implements Built<ImmutableData, ImmutableDataBuilder> {
   String get name;
   int get price;
-  factory ImmutableData([dynamic Function(ImmutableDataBuilder b) updates]) = _$ImmutableData;
+  factory ImmutableData({required String name, required int price}) =>
+      _$ImmutableData._(name: name, price: price);
   static StateDataCodec codec = StateDataCodec<ImmutableData>(
     (o) => serializers.serializeWith(_$immutableDataSerializer, o),
     (o) => serializers.deserializeWith(_$immutableDataSerializer, o),
