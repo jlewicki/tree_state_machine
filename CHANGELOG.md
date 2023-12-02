@@ -1,4 +1,4 @@
-## 3.0.0
+## 3.0.0-dev.1
 - Upgrade to Dart3 SDK
 - Add `DataStateKey` to emphasize association between a data state and its state data type
 - Add `TreeStateMachine.startWith` to enable starting a state machine with specific initual values
