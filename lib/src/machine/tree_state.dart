@@ -37,24 +37,24 @@ class DataStateKey<D> extends _ValueKey<(Type, String)> implements StateKey {
 }
 
 class _ValueKey<T> implements StateKey {
-  final T value;
-  const _ValueKey(this.value);
+  final T _value;
+  const _ValueKey(this._value);
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is _ValueKey<T> && runtimeType == other.runtimeType && value == other.value);
+      (other is _ValueKey<T> && runtimeType == other.runtimeType && _value == other._value);
 
   @override
   int get hashCode {
     var hash = 7;
     hash = 31 * hash + runtimeType.hashCode;
-    hash = 31 * hash + value.hashCode;
+    hash = 31 * hash + _value.hashCode;
     return hash;
   }
 
   @override
-  String toString() => value.toString();
+  String toString() => _value.toString();
 }
 
 /// Identifies the stopped state in a state tree.
