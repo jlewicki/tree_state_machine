@@ -20,3 +20,9 @@ export 'src/machine/data_value.dart' hide ClosableDataValue, VoidDataValue;
 export 'src/machine/tree_state_machine.dart'
     hide TestableTreeStateMachine, EncodableState, EncodableTree;
 export 'src/machine/lifecycle.dart' show LifecycleState;
+
+// To publish:
+// git tag -a vX.X.X -m "Publish vX.X.X"
+// git push origin vX.X.X
+// dart pub publish --dry-run
+// dart pub publish
