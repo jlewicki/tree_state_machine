@@ -9,6 +9,12 @@
 * Declarative state definitions with automated generation of state diagrams in DOT format 
 * Nested state machines
 
+## Overview
+The `tree_state_machine` library provides APIs for both defining a hierarchcal tree of states, and creating state 
+machines that can instantiate one of those state trees and managing the current state. The state machine can be used to
+dispatch messages to the current state for processing, and receiving notifications as  state transitions occur.
+
+
 ## Getting Started
 The primary API for the working with a tree state machine is provided by the `tree_state_machine` library. The API for 
 defining state trees is provided by `tree_builders` library. Depending on how your application is structured, you will 
@@ -18,19 +24,25 @@ import 'package:tree_state_machine/tree_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 ```
 
-## Naming States
+
+
+## State Trees
+
+### Naming States
 Each state in a state tree is uniquely identified by a `StateKey`. These keys are used when defining states, and naming
 the destination state when a state transition occurs. For convenience, they are often grouped together into a containing
-class.
+class. For example:
+
 ```dart
-class States {
+sealed class States {
   static const unauthenticated = StateKey('unauthenticated');
   static const authenticated = StateKey('authenticated');
-  ... 
+  // Use DataStateKey to identify a data state with an associated state data type
+  static const login = DataStateKey<LoginData>('login');
+  // ... 
 }
 ```
 
-## Defining a state tree
 `StateTreeBuilder` is used to to declare the states in a state tree. There are several factories available to create a
 a `StateTreeBuilder`, but the simplest names the state that will initially be active when the state machine starts.
 
@@ -38,37 +50,45 @@ a `StateTreeBuilder`, but the simplest names the state that will initially be ac
 var treeBuilder = StateTreeBuilder(initialState: States.unauthenticated);
 ```
 
-## Declaring States
-States are declared using the `state` method, passing a `StateKey` to identify the state, and a callback that will be 
-used to define how the state behaves.
+### Defning States
+States are declared using the `StateTreeBuilder.state` method, passing a `StateKey` to identify the state, and a 
+callback that will be used to define how the state behaves.
+
 ```dart
 treeBuilder.state(States.unauthenticated, (stateBuilder) {
    // Use state builder to define how the unauthenticated state behaves
-}, initialChild: InitialChild(States.splash));
+});
 ```
+
 See [Message Handlers](#Message-Handlers) to see how to use the state builder.
 
-### Child States
+#### Child States
 A state can be defined as a child of another state by specifying `parent` when the state is declared. If a state does 
 not handle a message, the parent state will have an opportunity to handle it.  
 
-Once a state has 
-been assigned a parent, the parent state must define which of its child states must be entered when the parent is 
-entered using `initialChild`.
+Once a state has been assigned a parent, that parent state must define which of its child states must be entered when 
+the parent is entered using `initialChild`.
+
 ```dart
 treeBuilder.state(States.splash, (stateBuilder) {
    // Use state builder to define how the splash state behaves
 }, parent: States.unauthenticated);
+
+treeBuilder.state(States.unauthenticated, (stateBuilder) {
+   // Use state builder to define how the unauthenticated state behaves
+}, initialChild: InitialChild(States.splash));
 ```
 If a state declaration does not specify `initialChild`, that state is considered a leaf state in the state tree. 
 
-### Data States
+#### Data States
 States often require additional data to model their behavior. For example, a 'counting' state might need an integer 
 value to store the number of times an event occured. The data value(s) needed by a state are collectively referred to as
 state data (or more formally, extended state variables).  
   
 A data state can be defined using the `dataState` method, providing the type of state data as a type parameter. An 
-`InitialData` must be provided, indicating how to create the initial value of the state data when the state is entered. 
+`InitialData` must be provided, indicating how to create the initial value of the state data when the state is entered.
+Also note that a `DataStateKey`, not a `StateKey`, must be used to identify a data state.
+
 ```dart
 class LoginData {
    String username = '';
@@ -78,29 +98,36 @@ class LoginData {
 
 treeBuilder.dataState<LoginData>(
    States.login,
+   // The initial value for the state data when the state is entered. 
    InitialData(() => LoginData()),
    (stateBuilder) {
-      // Use state builder to define how the login state behaves
+      // Use state builder to define how the login state behaves. The state has access 
+      // to a LoginData value while the state is active.
    },
    parent: States.unauthenticated,
-   initialChild: InitialChild(States.loginEntry),
 );
 ```
-### Final States
+See [Reading and writing state data](#Reading-and-writing-state-data) to learn how to read and write state data when 
+handling a message with a data state.
+
+
+#### Final States
 States may be delared as final states. Once a final state has been entered, no further message processing or state 
 transitions will occur, and the state tree is considered ended, or complete. Note that a final state is always 
 considered a child of the root state, and may not have any child states.
 ```dart
 treeBuilder.finalState(States.lockedOut, (stateBuilder) {
-   // Use state builder to define entry behavior for the lockedOut state
+   // Use state builder to define behavior for the lockedOut state when 
+   // it is entered.
 });
 ``` 
 
-### Machine States
-Existing state tree builders or machines can be composed with a state tree builder as a machine state. A machine state
+#### Machine States
+Existing state trees or state machines can be composed with a state tree builder as a machine state. A machine state
 is a leaf state, and when it is entered a nested state machine will be started. The machine state will forward any 
 messages to the nested state machine, and will remain the current state until the nested state machine reaches a final 
 state. When it does so, the machine state will invoke a callback to determine the next state to transition to.
+
 ```dart
 
 StateTreeBuilder nestedTreeBuilder() {
@@ -123,7 +150,7 @@ treeBuilder.machineState(
 );
 ```
 
-## Message Handlers
+### Defining Message Handlers
 The way a state responds to a message is defined by the `MessageHandler` function for the state. A message handler is 
 provided a `MessageContext` describing the message, and must return a `MessageResult` describing how the state responds
 to the message.
@@ -150,13 +177,13 @@ treeBuilder.state(States.unauthenticated, (sb) {
 }, initialChild: InitialChild(States.splash));
 ```
 
-### Message actions
+#### Message actions
 Often addition actions need to be taken when a state handles a message, in addition to transitioning to a different 
 state. These actions can be defined with `MessageActionBuilder` and associated types, and passed to the `action` 
 parameter of `goTo` and similar methods. These actions are run before `MessageResult` returned by the message handler
 is processed by the state machine. 
 
-### Reading and writing state data
+#### Reading and writing state data
 A data state can access its associated state data. Additionally, any state can access the state data of an ancestor 
 data state. This data can be requested in several ways, but often `updateData` is used to read and update state data 
 when handling a message.
@@ -177,7 +204,7 @@ treeBuilder.state(States.credentialsRegistration, (b) {
 }, parent: States.registration);
 ```
 
-## Transition Handlers
+### Defining Transition Handlers
 A state can receive notifications when it is entered or exited. These notifications are calls to `TransitionHandler`
 functions, and the handlers are passed a `TransitionContext` describing the transition that is occurring.
 ```dart
@@ -226,7 +253,9 @@ treeBuilder.state(States.authenticating, (b) {
  }, parent: States.login)
 ```
 
-## Creating a state machine
+
+## State Machines
+### Creating a state machine
 
 Once a state tree has been defined, a state machine can be created.
 ```dart
@@ -234,14 +263,14 @@ var treeBuilder = defineStateTree();
 var stateMachine = TreeStateMachine(treeBuilder);
 ```
 
-## Starting a state machine
+### Starting a state machine
 Before messages can be sent to the state machine for processing, it has be started. The `start` method returns a future 
 that yields a `CurrentState` that serves as a proxy to the current state after the machine has fully started.
 ```dart
 var currentState = await stateMachine.start();
 ```
 
-## Sending messages
+### Sending messages
 Once a state machine has started, a message may be dispatched to the current leaf state using the `post` method of 
 `CurrentState`. This returns a future that completes when the message has been processed and any resulting transition 
 has completed.
@@ -250,7 +279,7 @@ var message = SubmitCredentials(username: 'foo', password: 'bar');
 var messageResult = await currentState.post(message);
 ```
 
-## State machine streams
+### State machine streams
 In addition to inspecting the results of `post` to learn about how a message was processed, it is also possible to 
 subscribe to several stream properties of TreeStateMachine:
 
@@ -260,7 +289,7 @@ handled successfully, and whether or not a transition occurred as a result of th
 that the HandledMessage event is also emitted on the processedMessages stream.
 * `transitions` yields an event each time a transition between states occurs.
 
-## Ending a state machine
+### Ending a state machine
 A state machine can end in two ways.
 * When processing a message, if the state machine transitions to a final state, then no other message processing or 
 state transitions will occur, and the state machine has ended. This is called an 'internal stop'.
@@ -273,7 +302,7 @@ is called an 'external stop'.
    var done = stateMachine.isDone;
    ```
 
-## State machine logging
+### State machine logging
 The `tree_state_machine` packages logs diagnostic messages using the Dart SDK `logging` package. An application can 
 enable `logging` output to view the messages. If hierarchical logging is enabled, all logging is peformed under a parent
 logger named `tree_state_machine`.
