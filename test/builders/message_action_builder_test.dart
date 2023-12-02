@@ -70,7 +70,7 @@ void main() {
         var currentState = await stateMachine.start();
         await currentState.post(Message());
         expect(currentState.key, equals(state1));
-        await Future.delayed(Duration(milliseconds: 30));
+        await Future<void>.delayed(Duration(milliseconds: 30));
         expect(currentState.key, equals(state2));
       });
     });
@@ -169,7 +169,7 @@ void main() {
         await currentState.post(msg);
 
         expect(currentState.key, equals(state1));
-        await Future.delayed(Duration(milliseconds: 30));
+        await Future<void>.delayed(Duration(milliseconds: 30));
         expect(messageFromAction, equals(msg));
         expect(dataFromAction, equals(2));
         expect(currentState.key, equals(state2));

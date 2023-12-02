@@ -40,10 +40,10 @@ void main() {
         final dataByKey = <StateKey, Object?>{};
         final buildTree = treeBuilder(
             createEntryHandler: (key) => (ctx) {
-                  dataByKey[key] = ctx.data(key)?.value;
+                  dataByKey[key] = ctx.data<dynamic>(key)?.value;
                 },
             createExitHandler: (key) => (ctx) {
-                  dataByKey[key] = ctx.data(key)?.value;
+                  dataByKey[key] = ctx.data<dynamic>(key)?.value;
                 },
             messageHandlers: {
               r_b_1_key: (ctx) => ctx.goTo(r_a_a_2_key),
@@ -62,7 +62,7 @@ void main() {
 
     group('post', () {
       test('Should send message to end state when transition completes', () async {
-        final completer = Completer();
+        final completer = Completer<void>();
         var receivedMessage = false;
         final msg = Object();
         final buildTree = treeBuilder(
@@ -87,7 +87,7 @@ void main() {
       });
 
       test('Should send messages to end state if called more than once', () async {
-        final completer = Completer();
+        final completer = Completer<void>();
         var receivedMessage1 = false;
         var receivedMessage2 = false;
         final msg1 = Object();
@@ -137,7 +137,7 @@ void main() {
 
     group('schedule', () {
       test('should post messages when periodic is true', () async {
-        final completer = Completer();
+        final completer = Completer<void>();
         var receiveCount = 0;
         Dispose? dispose;
         final scheduledMsg = Object();
@@ -172,7 +172,7 @@ void main() {
       });
 
       test('should be canceled when dispose function is called', () async {
-        final completer = Completer();
+        final completer = Completer<void>();
         var receiveCount = 0;
         Dispose? dispose;
         final scheduledMsg = Object();
@@ -211,7 +211,7 @@ void main() {
       });
 
       test('should be canceled when scheduling state is exited', () async {
-        final completer = Completer();
+        final completer = Completer<void>();
         var receiveCount = 0;
         final scheduledMsg = Object();
         final completionMsg = Object();

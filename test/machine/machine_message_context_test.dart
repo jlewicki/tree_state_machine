@@ -16,7 +16,7 @@ void main() {
         final dataByKey = <StateKey, dynamic>{};
         final buildTree = treeBuilder(
           createMessageHandler: (key) => (ctx) {
-            dataByKey[key] = ctx.data(key)!.value;
+            dataByKey[key] = ctx.data<dynamic>(key)!.value;
             return ctx.unhandled();
           },
         );
@@ -36,7 +36,7 @@ void main() {
           createMessageHandler: (key) => (ctx) {
             // Look up data for ancestor state
             if (key == r_a_a_2_key || key == r_a_a_key) {
-              dataByKey[key] = ctx.data(r_a_key)!.value;
+              dataByKey[key] = ctx.data<dynamic>(r_a_key)!.value;
             }
 
             return ctx.unhandled();
@@ -54,7 +54,7 @@ void main() {
         final dataByKey = <StateKey, Object?>{};
         final buildTree = tree.treeBuilder(
           createMessageHandler: (key) => (ctx) {
-            dataByKey[key] = ctx.data()?.value;
+            dataByKey[key] = ctx.data<dynamic>()?.value;
             return ctx.unhandled();
           },
         );
@@ -73,11 +73,11 @@ void main() {
         final dataByKey = <StateKey, Object?>{};
         final buildTree = treeBuilder(messageHandlers: {
           r_a_a_key: (ctx) {
-            dataByKey[r_a_a_key] = ctx.data(r_a_a_2_key)?.value;
+            dataByKey[r_a_a_key] = ctx.data<dynamic>(r_a_a_2_key)?.value;
             return ctx.unhandled();
           },
           r_a_key: (ctx) {
-            dataByKey[r_a_key] = ctx.data(r_a_a_key)?.value;
+            dataByKey[r_a_key] = ctx.data<dynamic>(r_a_a_key)?.value;
             return ctx.unhandled();
           }
         });
@@ -204,7 +204,7 @@ void main() {
 
     group('post', () {
       test('Should send message', () async {
-        final completer = Completer();
+        final completer = Completer<void>();
         var receivedMessage = false;
         final msg = Object();
         final msgToPost = Object();
@@ -232,7 +232,7 @@ void main() {
 
     group('schedule', () {
       test('should post message immediately when duration is 0', () async {
-        final completer = Completer();
+        final completer = Completer<void>();
         var receivedMessage = false;
         final scheduleMsg = Object();
         final scheduledMsg = Object();
@@ -261,7 +261,7 @@ void main() {
       });
 
       test('should post messages when periodic is true', () async {
-        final completer = Completer();
+        final completer = Completer<void>();
         var receiveCount = 0;
         Dispose? dispose;
         final scheduleMsg = Object();
@@ -297,7 +297,7 @@ void main() {
       });
 
       test('should be canceled when dispose function is called', () async {
-        final completer = Completer();
+        final completer = Completer<void>();
         var receiveCount = 0;
         Dispose? dispose;
         final scheduleMsg = Object();
@@ -337,7 +337,7 @@ void main() {
       });
 
       test('should be canceled when scheduling state is exited', () async {
-        final completer = Completer();
+        final completer = Completer<void>();
         var receiveCount = 0;
         final scheduleMsg = Object();
         final scheduledMsg = Object();

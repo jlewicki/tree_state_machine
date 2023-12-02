@@ -159,7 +159,7 @@ void main() {
         var sb = StateTreeBuilder(initialState: state1);
         sb.dataState<int>(state1, InitialData(() => 1), emptyState, initialChild: null);
         expect(
-          () => sb.dataState(state1, InitialData(() => 1), emptyState, initialChild: null),
+          () => sb.dataState<int>(state1, InitialData(() => 1), emptyState, initialChild: null),
           throwsStateError,
         );
       });

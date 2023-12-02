@@ -11,7 +11,7 @@ analyzer:
     strict-raw-types: true
     # TODO: Investigate enabling
     # https://github.com/dart-lang/language/blob/main/resources/type-system/strict-inference.md
-    # strict-inference: true
+    strict-inference: true
   exclude:
     - lib/**/*.g.dart
     - test/**/*.g.dart

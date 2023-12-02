@@ -29,7 +29,7 @@ void main() {
           s3.add(1);
         });
 
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future<void>.delayed(Duration(milliseconds: 100));
 
         expect(emittedValues, isNotNull);
         expect(emittedValues, containsAllInOrder([3, 2, 1]));
@@ -44,7 +44,7 @@ void main() {
         List<int>? emittedValues;
         Object? error;
 
-        combined.listen((values) => emittedValues = values, onError: (err) => error = err);
+        combined.listen((values) => emittedValues = values, onError: (Object? err) => error = err);
 
         Timer(Duration(milliseconds: 25), () {
           expect(emittedValues, isNull);
@@ -63,7 +63,7 @@ void main() {
           s3.add(1);
         });
 
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future<void>.delayed(Duration(milliseconds: 100));
 
         expect(emittedValues, isNotNull);
         expect(emittedValues, containsAllInOrder([3, 2, 1]));
@@ -103,7 +103,7 @@ void main() {
           s3.add(1);
         });
 
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future<void>.delayed(Duration(milliseconds: 100));
 
         expect(emittedValues, isNull);
         expect(error, equals('oops'));
@@ -137,7 +137,7 @@ void main() {
           s3.add(1);
         });
 
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future<void>.delayed(Duration(milliseconds: 100));
 
         expect(emittedValues, isNull);
         expect(isDone, isTrue);

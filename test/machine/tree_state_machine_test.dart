@@ -35,7 +35,7 @@ void main() {
           tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_a_a_1_key),
         }));
         var currentState = await sm.start();
-        await Future.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
         Object? firstEvent;
         final nextProcessedMessage =
             StreamQueue(sm.processedMessages).next.then((pm) => firstEvent ??= pm);
@@ -501,7 +501,7 @@ void main() {
 
         sm.dispose();
 
-        await Future.delayed(Duration(milliseconds: 10));
+        await Future<void>.delayed(Duration(milliseconds: 10));
 
         expect(closedByKey[data_tree.r_a_key], isTrue);
       });
@@ -521,7 +521,7 @@ void main() {
         sm.dispose();
 
         // Yield so that the DataValue listeners will be notified of stream completion.
-        await Future.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
         // Now we can make sure we were notified of completion
         for (var mn in sm.machine.nodes.values) {
           if (mn.treeNode.data != null) {

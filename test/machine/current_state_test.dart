@@ -162,7 +162,7 @@ void main() {
           initialDataValues: {data_tree.r_a_a_2_key: () => LeafData2()..label = 'cool'},
         ));
         var currentState = await sm.start(data_tree.r_a_a_2_key);
-        var data = currentState.dataValue();
+        var data = currentState.dataValue<dynamic>();
         expect(data, isNotNull);
         expect(data!.label, equals('cool'));
       });
@@ -170,7 +170,7 @@ void main() {
       test('should return null if data type is unspecified and leaf has no state data', () async {
         final sm = TreeStateMachine(data_tree.treeBuilder());
         var currentState = await sm.start(data_tree.r_b_1_key);
-        var data = currentState.dataValue();
+        var data = currentState.dataValue<dynamic>();
         expect(data, isNull);
       });
 

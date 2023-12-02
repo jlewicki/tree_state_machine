@@ -143,7 +143,7 @@ void main() {
 
         Object? error;
         StackTrace? stackTrace;
-        subject.listen(null, onError: (e, st) {
+        subject.listen(null, onError: (Object? e, StackTrace? st) {
           error = e;
           stackTrace = st as StackTrace;
         });
