@@ -67,8 +67,8 @@ Future<void> main() async {
   var stateMachine = TreeStateMachine(SimpleStateTree().treeBuilder());
   var currentState = await stateMachine.start();
   await currentState.post(ToUppercase('hi'));
-  var uppercase = currentState.dataValue<String>();
   await currentState.post(Messages.finish);
-  uppercase = currentState.dataValue<String>();
+  var uppercase = currentState.dataValue<String>();
+  assert(uppercase == 'HI');
   print(uppercase);
 }
