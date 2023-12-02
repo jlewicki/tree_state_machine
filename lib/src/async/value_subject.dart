@@ -104,7 +104,7 @@ class ValueSubject<T> extends StreamView<T> implements Subject<T>, ValueStream<T
   }
 
   @override
-  Future addStream(Stream<T> stream, {bool? cancelOnError}) {
+  Future<void> addStream(Stream<T> stream, {bool? cancelOnError}) {
     var setCurrentValueTransformer = StreamTransformer<T, T>.fromHandlers(
       handleData: (data, sink) {
         _currentValue.setValue(data);
@@ -152,7 +152,7 @@ class ValueSubject<T> extends StreamView<T> implements Subject<T>, ValueStream<T
   }
 
   @override
-  Future close() => _controller.close();
+  Future<void> close() => _controller.close();
 
   void _callOrSchedule(void Function() action) {
     if (_sync) {

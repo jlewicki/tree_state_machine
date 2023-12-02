@@ -72,7 +72,7 @@ class TreeStateMachine {
   final _transitions = StreamController<Transition>.broadcast();
   final _processedMessages = StreamController<ProcessedMessage>.broadcast();
   final _messageQueue = StreamController<_QueuedMessage>.broadcast();
-  final _dataStreams = <_DataStreamKey, ValueSubject>{};
+  final _dataStreams = <_DataStreamKey, ValueSubject<dynamic>>{};
   final PostMessageErrorPolicy _errorPolicy;
   final Logger _log;
   CurrentState? _currentState;
@@ -232,7 +232,7 @@ class TreeStateMachine {
   /// be canceled.
   ///
   /// It is safe to call this method if [isDone] is already `true`.
-  Future stop() {
+  Future<void> stop() {
     return _lifecycle.stop(() => _queueMessage(stopMessage));
   }
 
@@ -341,7 +341,7 @@ class TreeStateMachine {
   /// Note that this method can only be called on a state machine that has not been started. When
   /// the returned future completes, the state machine will have been started, with the current state
   /// matching the current state recorded in the stream.
-  Future loadFrom(Stream<List<int>> stream) async {
+  Future<void> loadFrom(Stream<List<int>> stream) async {
     _lifecycle.throwIfDisposed();
     if (isStarted) {
       throw StateError('This TreeStateMachine must not be started before loading the tree.');
@@ -623,7 +623,7 @@ class EncodableTree {
 
 class _StateDataValue {
   final StateKey state;
-  final DataValue dataValue;
+  final DataValue<dynamic> dataValue;
   _StateDataValue(this.state, this.dataValue);
 }
 

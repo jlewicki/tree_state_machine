@@ -224,12 +224,12 @@ class _DotFormatter {
     sink.write('}"');
   }
 
-  String _labelTransitionHandler(TransitionHandlerDescriptor entryInfo) {
+  String _labelTransitionHandler(TransitionHandlerDescriptor<void> entryInfo) {
     var opName = entryInfo.info.label ?? _labelTransitionOp(entryInfo);
     return opName;
   }
 
-  String _labelTransitionOp(TransitionHandlerDescriptor descr) {
+  String _labelTransitionOp(TransitionHandlerDescriptor<void> descr) {
     switch (descr.info.handlerType) {
       case TransitionHandlerType.post:
         return 'POST ${descr.info.postOrScheduleMessageType}';

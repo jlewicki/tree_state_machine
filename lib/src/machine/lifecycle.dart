@@ -41,7 +41,7 @@ class Lifecycle {
   /// Starts the lifecycle, moving it to the Starting state.
   ///
   /// When the returned future completes, the lifecycle will be in the Started state.
-  Future start(Future<Object> Function() doStart) {
+  Future<void> start(Future<Object> Function() doStart) {
     final transition = _stateSubject.value.start(() async {
       var val = await doStart();
       var next = _Started(val);
@@ -55,7 +55,7 @@ class Lifecycle {
   /// Stops the lifecycle, moving it to the Stopping state.
   ///
   /// When the returned future completes, the lifecycle will be in the Stopped state.
-  Future stop(Future<Object> Function() doStop) {
+  Future<void> stop(Future<Object> Function() doStop) {
     final transition = _stateSubject.value.stop(() async {
       var val = await doStop();
       var next = _Stopped(val);

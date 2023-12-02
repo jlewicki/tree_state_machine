@@ -34,7 +34,7 @@ class TreeNode {
 
   // Codec to be used for encoding/decoding state data for this node. Will be null if this is not a
   // node for a data state, or if the state tree was built without serialization support.
-  final StateDataCodec? dataCodec;
+  final StateDataCodec<dynamic>? dataCodec;
 
   TreeNode(
     this.nodeType,
@@ -55,7 +55,7 @@ class TreeNode {
 
   /// The [DataValue] of the [DataTreeState] for this node, or `null` if [state] is not a
   /// [DataTreeState].
-  DataValue? get data {
+  DataValue<dynamic>? get data {
     var s = state;
     return s is DataTreeState ? s.data : null;
   }

@@ -84,7 +84,7 @@ abstract class ImmutableData implements Built<ImmutableData, ImmutableDataBuilde
   int get price;
   factory ImmutableData({required String name, required int price}) =>
       _$ImmutableData._(name: name, price: price);
-  static StateDataCodec codec = StateDataCodec<ImmutableData>(
+  static StateDataCodec<ImmutableData> codec = StateDataCodec<ImmutableData>(
     (o) => serializers.serializeWith(_$immutableDataSerializer, o),
     (o) => serializers.deserializeWith(_$immutableDataSerializer, o),
   );

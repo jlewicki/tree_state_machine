@@ -4,7 +4,7 @@ import 'package:tree_state_machine/tree_state_machine.dart';
 /// a state machine is started.
 interface class InitialStateDataBuilder {
   InitialStateDataBuilder(this._initialData);
-  final Map<DataStateKey, Object Function()> _initialData;
+  final Map<DataStateKey<dynamic>, Object Function()> _initialData;
 
   /// Adds [value] as the initial data value for the [forState] data state.
   InitialStateDataBuilder initialData<D>(DataStateKey<D> forState, D value) {
@@ -23,7 +23,7 @@ class InitialStateData {
     build(InitialStateDataBuilder(_initialData));
   }
 
-  final Map<DataStateKey, Object Function()> _initialData = {};
+  final Map<DataStateKey<dynamic>, Object Function()> _initialData = {};
 
   /// Returns the initial data value for the specified state, or null if none was defined.
   Object? call(StateKey key) {

@@ -29,7 +29,7 @@ class TreeBuildContext {
     StateCreator createState,
     Iterable<NodeBuilder> children,
     GetInitialChild initialChild,
-    StateDataCodec? codec,
+    StateDataCodec<dynamic>? codec,
   ) {
     assert(parentNode == null);
     var node = TreeNode(NodeType.rootNode, key, parentNode, createState, codec, initialChild);
@@ -44,7 +44,7 @@ class TreeBuildContext {
     StateCreator createState,
     Iterable<NodeBuilder> children,
     GetInitialChild initialChild,
-    StateDataCodec? codec,
+    StateDataCodec<dynamic>? codec,
   ) {
     assert(parentNode != null);
     var node = TreeNode(NodeType.interiorNode, key, parentNode!, createState, codec, initialChild);
@@ -57,7 +57,7 @@ class TreeBuildContext {
   TreeNode buildLeaf(
     StateKey key,
     StateCreator createState,
-    StateDataCodec? codec, {
+    StateDataCodec<dynamic>? codec, {
     bool isFinal = false,
   }) {
     assert(parentNode != null);

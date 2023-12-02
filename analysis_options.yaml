@@ -7,9 +7,9 @@ include: package:lints/recommended.yaml
 analyzer:
   language:
     strict-casts: true
-    # TODO: Investigate enabling these
     # https://github.com/dart-lang/language/blob/main/resources/type-system/strict-raw-types.md
-    # strict-raw-types: true
+    strict-raw-types: true
+    # TODO: Investigate enabling
     # https://github.com/dart-lang/language/blob/main/resources/type-system/strict-inference.md
     # strict-inference: true
   exclude:

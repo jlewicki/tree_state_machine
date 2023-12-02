@@ -42,6 +42,8 @@ enum Messages {
 //
 final ringingChannel = Channel<Dial>(States.ringing);
 
+typedef VoidTransitionHandlerContext = TransitionHandlerContext<void, void>;
+
 //
 // State tree
 //
@@ -76,11 +78,11 @@ StateTreeBuilder phoneCallStateTree() {
     ..finalState(States.phoneDestroyed, emptyFinalState);
 }
 
-void onCallStarted(TransitionHandlerContext ctx) {
+void onCallStarted(VoidTransitionHandlerContext ctx) {
   print('Call started at ${DateTime.now()}.');
 }
 
-void onCallEnded(TransitionHandlerContext ctx) {
+void onCallEnded(VoidTransitionHandlerContext ctx) {
   print('Call ended at ${DateTime.now()}.');
 }
 
@@ -94,11 +96,11 @@ Future<void> onDialed(TransitionHandlerContext<void, Dial> ctx) async {
   );
 }
 
-void onMute(MessageHandlerContext ctx) {
+void onMute(MessageHandlerContext<Messages, void, void> ctx) {
   print('Microphone muted.');
 }
 
-void onUnmute(MessageHandlerContext ctx) {
+void onUnmute(MessageHandlerContext<Messages, void, void> ctx) {
   print('Microphone unmuted.');
 }
 

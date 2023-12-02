@@ -56,7 +56,7 @@ abstract class _StateBuilder {
   final Logger _log;
   final InitialChild? _initialChild;
   final Type? _dataType;
-  final StateDataCodec? _codec;
+  final StateDataCodec<dynamic>? _codec;
   StateKey? _parent;
 
   // Key is either a Type object representing message type or a message value
@@ -235,7 +235,7 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
     StateKey? parent,
     InitialChild? initialChild, {
     required bool isFinal,
-    StateDataCodec? codec,
+    StateDataCodec<dynamic>? codec,
   }) : super._(
           key,
           isFinal,
@@ -422,8 +422,7 @@ class MachineStateBuilder extends _StateBuilder {
     Logger log,
     StateKey? parent, {
     required bool isFinal,
-    StateDataCodec? codec,
-  }) : super._(key, isFinal, NestedMachineData, codec, log, parent, null);
+  }) : super._(key, isFinal, NestedMachineData, null, log, parent, null);
 
   void onMachineDone(
     void Function(MachineDoneHandlerBuilder<CurrentState> builder) buildHandler,

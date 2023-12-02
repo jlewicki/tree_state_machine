@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 
-StreamSubscription enableLogging() {
+StreamSubscription<LogRecord> enableLogging() {
   Logger.root.level = Level.ALL;
   return Logger.root.onRecord.listen((record) {
     print('${record.level.name}: ${record.time}: ${record.message}');
