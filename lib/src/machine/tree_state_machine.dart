@@ -82,8 +82,9 @@ class TreeStateMachine {
 
     // Listen to states that are entered
     _transitions.stream.expand((t) => _mapStateDataValues(t.entryPath)).listen((sdv) {
-      var dataStream = _dataStreams[_DataStreamKey.forKey(sdv.state)] ??
-          _dataStreams[_DataStreamKey.forDataType(sdv.dataValue.dataType)];
+      var keyByStateKey = (sdv.stateKey, sdv.dataValue.dataType);
+      var keyByDataType = (null, sdv.dataValue.dataType);
+      var dataStream = _dataStreams[keyByStateKey] ?? _dataStreams[keyByDataType];
       if (dataStream != null) {
         dataStream.addStream(sdv.dataValue);
       }
@@ -274,14 +275,15 @@ class TreeStateMachine {
   /// Gets the data stream for a data tree state with state data of type [D].
   ///
   /// A data tree state has an associated data value of type [D]. As messages are processed by the
-  /// state, it may update its data value. Each time the value changes, the value is published on
-  /// this stream.
+  /// state, it may update its data value. Each time the value changes, the new value is published
+  /// to this stream.
   ///
   /// Note that this stream does not complete until this state machine is disposed. The stream will
   /// continue to emit values if the data tree state is exited, and then re-entered.
-  ValueStream<D> dataStream<D>([StateKey? key]) {
+  ValueStream<D> dataStream<D>([DataStateKey<D>? key]) {
     _lifecycle.throwIfDisposed();
-    var streamKey = key != null ? _DataStreamKey.forKey(key) : _DataStreamKey.forDataType(D);
+
+    _DataStreamKey streamKey = (key, D);
     var dataStream = _dataStreams[streamKey];
     if (dataStream == null) {
       // We don't have as datastream yet for this data type/key, so create a new one
@@ -291,7 +293,7 @@ class TreeStateMachine {
         for (var sdv in _mapStateDataValues(_currentState!.activeStates)) {
           // If the requested data type/key match one of the current active states, pipe the
           // notifications from the active state through the data stream.
-          if (sdv.state == key || sdv.dataValue.dataType == D) {
+          if (sdv.stateKey == key || sdv.dataValue.dataType == D) {
             dataStream.addStream(sdv.dataValue as ValueStream<D>);
           }
         }
@@ -458,8 +460,9 @@ class TreeStateMachine {
     return keys
         .map((key) {
           var treeNode = _machine.nodes[key]?.treeNode;
-          var data = treeNode?.data;
-          return data != null ? _StateDataValue(treeNode!.key, data) : null;
+          return treeNode?.key is DataStateKey
+              ? _StateDataValue(treeNode!.key as DataStateKey, treeNode.data!)
+              : null;
         })
         .where((stateDataVal) => stateDataVal != null)
         .cast<_StateDataValue>();
@@ -617,29 +620,14 @@ class EncodableTree {
 }
 
 class _StateDataValue {
-  final StateKey state;
+  final DataStateKey<dynamic> stateKey;
   final DataValue<dynamic> dataValue;
-  _StateDataValue(this.state, this.dataValue);
+  _StateDataValue(this.stateKey, this.dataValue);
 }
 
-// TODO make this a composite key based on StateKey and data type. Or probably can use DataStateKey
-// instead
-class _DataStreamKey {
-  Object _key;
-  _DataStreamKey._(this._key);
-  factory _DataStreamKey.forKey(StateKey key) => _DataStreamKey._(key);
-  factory _DataStreamKey.forDataType(Type type) => _DataStreamKey._(type);
-  @override
-  int get hashCode => _key.hashCode;
-  @override
-  bool operator ==(Object other) {
-    if (other.runtimeType != runtimeType) {
-      return false;
-    }
-    var typedOther = other as _DataStreamKey;
-    return typedOther._key == _key;
-  }
-}
+// Composite key for data streams.  If key is null, that means calling code requested a data string
+// by state data type, omitting the key of a specific state.
+typedef _DataStreamKey = (DataStateKey<dynamic>? key, Type);
 
 class TestableTreeStateMachine extends TreeStateMachine {
   TestableTreeStateMachine._(super.machine, super.failedMessagePolicy, super.log, super.name)
