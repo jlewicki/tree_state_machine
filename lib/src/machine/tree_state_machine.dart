@@ -197,6 +197,7 @@ class TreeStateMachine {
   /// It is safe to call [start] when the state machine is already started. It is also safe to call
   /// [start] if the state machine has been stopped, in which case the state machine will be
   /// restarted, and will re-enter the initial state.
+  // TODO: make this start({StateKey? startAt, InitialStateData? withStateData})
   Future<CurrentState> start([StateKey? startAt]) async {
     return _start(startAt, null);
   }

@@ -22,21 +22,34 @@ void main() {
   });
 
   group('DataStateKey', () {
-    test('should use value equality including type of D', () {
-      var key1 = DataStateKey<int>('key');
-      var key2 = DataStateKey<int>('key');
-      var key3 = DataStateKey<String>('key');
-      expect(key1 == key2, isTrue);
-      // ignore: unnecessary_cast
-      expect((key1 as StateKey) == (key3 as StateKey), isFalse);
+    group('equals', () {
+      test('should use value equality including type of D', () {
+        var key1 = DataStateKey<int>('key');
+        var key2 = DataStateKey<int>('key');
+        var key3 = DataStateKey<String>('key');
+        expect(key1 == key2, isTrue);
+        // ignore: unnecessary_cast
+        expect((key1 as StateKey) == (key3 as StateKey), isFalse);
+      });
     });
 
-    test('can be used as map keys', () {
-      var key1 = DataStateKey<int>('key');
-      var map = {key1: 1};
-      var key2 = DataStateKey<int>('key');
-      var val = map[key2];
-      expect(val, equals(1));
+    group('hashCode', () {
+      test('can be used as map keys', () {
+        var key1 = DataStateKey<int>('key');
+        var map = {key1: 1};
+        var key2 = DataStateKey<int>('key');
+        var val = map[key2];
+        expect(val, equals(1));
+      });
+    });
+
+    group('toString', () {
+      test('should return friendly string', () {
+        var str = DataStateKey<StateData>('State1').toString();
+        expect(str, equals('State1<StateData>'));
+      });
     });
   });
 }
+
+class StateData {}

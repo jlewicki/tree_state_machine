@@ -34,6 +34,12 @@ sealed class StateKey {
 /// share the same name as long as [D] differs.
 class DataStateKey<D> extends _ValueKey<(Type, String)> implements StateKey {
   const DataStateKey(String name) : super((D, name));
+
+  @override
+  String toString() {
+    var (type, name) = _value;
+    return "$name<$type>";
+  }
 }
 
 class _ValueKey<T> implements StateKey {
