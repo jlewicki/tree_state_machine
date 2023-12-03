@@ -116,7 +116,7 @@ StateTreeBuilder authenticateStateTree(
   AuthService authService, {
   StateKey initialState = States.login,
 }) {
-  var b = StateTreeBuilder(initialState: initialState, logName: 'auth');
+  var b = StateTreeBuilder(initialChild: initialState, logName: 'auth');
 
   b.dataState<RegisterData>(
     States.registration,

@@ -14,7 +14,7 @@ void main() {
         var channel = Channel<String>(state2);
         StateData? entryData;
 
-        var b = StateTreeBuilder(initialState: state1);
+        var b = StateTreeBuilder(initialChild: state1);
         b.state(state1, (b) {
           b.onMessage<Message>((b) => b.enterChannel(channel, (_) => 'hi'));
         });
@@ -40,7 +40,7 @@ void main() {
       test('should initialize data from ancestor state data', () async {
         StateData2? entryData;
 
-        var b = StateTreeBuilder(initialState: state1);
+        var b = StateTreeBuilder(initialChild: state1);
         b.state(state1, (b) {
           b.onMessage<Message>((b) => b.goTo(state2));
         });
@@ -75,7 +75,7 @@ void main() {
         StateData2? entryData;
         var channel = Channel<String>(state3);
 
-        var b = StateTreeBuilder(initialState: state1);
+        var b = StateTreeBuilder(initialChild: state1);
         b.state(state1, (b) {
           b.onMessage<Message>((b) => b.enterChannel(channel, (_) => '3'));
         });

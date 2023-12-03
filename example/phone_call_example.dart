@@ -48,7 +48,7 @@ typedef VoidTransitionHandlerContext = TransitionHandlerContext<void, void>;
 // State tree
 //
 StateTreeBuilder phoneCallStateTree() {
-  return StateTreeBuilder(initialState: States.offHook)
+  return StateTreeBuilder(initialChild: States.offHook)
     ..state(States.offHook, (b) {
       b.onMessage<Dial>((b) => b.enterChannel(ringingChannel, (ctx) => ctx.message));
     })

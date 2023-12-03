@@ -10,7 +10,7 @@ part of '../../tree_builders.dart';
 /// void handleExit(TransitionHandlerContext ctx) => print('State exited');
 ///
 /// var state1 = StateKey('s1');
-/// var builder = StateTreeBuilder(initialState: state1);
+/// var builder = StateTreeBuilder(initialChild: state1);
 ///
 /// builder.state(state1, (b) {
 ///   // Post a message when the state is entered
@@ -39,7 +39,7 @@ class TransitionHandlerBuilder<D, C> {
   /// void handleExit(TransitionHandlerContext ctx) => print('State exited');
   ///
   /// var state1 = StateKey('s1');
-  /// var builder = StateTreeBuilder(initialState: state1);
+  /// var builder = StateTreeBuilder(initialChild: state1);
   ///
   /// builder.state(state1, (b) {
   ///   // Run a function when the state is entered
@@ -63,7 +63,7 @@ class TransitionHandlerBuilder<D, C> {
   /// the returned message will be posted. Otherwise a [message] must be provided.
   /// ```dart
   /// var state1 = StateKey('s1');
-  /// var builder = StateTreeBuilder(initialState: state1);
+  /// var builder = StateTreeBuilder(initialChild: state1);
   ///
   /// builder.state(state1, (b) {
   ///   // Post a MyMessage message when this state is entered.
@@ -138,7 +138,7 @@ class TransitionHandlerBuilder<D, C> {
   /// }
   ///
   /// var state1 = StateKey('s1');
-  /// var builder = StateTreeBuilder(initialState: state1);
+  /// var builder = StateTreeBuilder(initialChild: state1);
   ///
   /// builder.dataState<MyStateData>(
   ///   state1,
@@ -167,7 +167,7 @@ class TransitionHandlerBuilder<D, C> {
   ///
   /// var state1 = StateKey('s1');
   /// var state2 = StateKey('s2');
-  /// var builder = StateTreeBuilder(initialState: state1);
+  /// var builder = StateTreeBuilder(initialChild: state1);
   ///
   /// builder.dataState<MyStateData>(
   ///   state1,
@@ -212,7 +212,7 @@ class TransitionHandlerBuilder<D, C> {
   ///
   /// var state1 = StateKey('s1');
   /// var payloadChannel = Channel<Payload>(state1);
-  /// var builder = StateTreeBuilder(initialState: state1);
+  /// var builder = StateTreeBuilder(initialChild: state1);
   ///
   /// builder.dataState<MyStateData>(
   ///   state1,

@@ -12,7 +12,7 @@ class States {
 }
 
 StateTreeBuilder turnstileStateTree() {
-  return StateTreeBuilder(initialState: States.locked)
+  return StateTreeBuilder(initialChild: States.locked)
     ..state(States.locked, (b) {
       b.onMessageValue(Messages.insertCoin, (b) => b.goTo(States.unlocked));
     })

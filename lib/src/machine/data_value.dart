@@ -24,7 +24,7 @@ import 'package:tree_state_machine/tree_state_machine.dart';
 /// }
 ///
 /// var state1 = StateKey('state1');
-/// var treeBuilder = StateTreeBuilder(initialState: state1);
+/// var treeBuilder = StateTreeBuilder(initialChild: state1);
 ///
 /// treeBuilder.dataState<MyData>(state1, (b) {
 ///   b.runOnMessage((MessageContext msgCtx) {

@@ -30,7 +30,7 @@ class _MessageHandlerBuilder<M, D, C> implements _MessageHandlerDescriptorProvid
   /// class MyMessage {}
   /// var state1 = StateKey('s1');
   /// var state2 = StateKey('s2');
-  /// var builder = StateTreeBuilder(initialState: state1);
+  /// var builder = StateTreeBuilder(initialChild: state1);
   /// builder.state(state1, (b) {
   ///   b.onMessage<MyMessage>((b) => b.goTo(
   ///     state2,
@@ -113,7 +113,7 @@ mixin _GoToHandlerBuilderMixin<M, D, C> on _MessageHandlerBuilder<M, D, C> {
 /// class MyMessage {}
 /// var state1 = StateKey('s1');
 /// var state2 = StateKey('s2');
-/// var builder = StateTreeBuilder(initialState: state1);
+/// var builder = StateTreeBuilder(initialChild: state1);
 /// builder.state(state1, (b) {
 ///   // Describe how state responds to MyMessage messages
 ///   b.onMessage<MyMessage>((b) => b.goTo(state2));

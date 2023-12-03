@@ -423,6 +423,18 @@ void main() {
       });
     });
 
+    group('start', () {
+      test('shoud start in initial state', () async {
+        var treeBuilder = StateTreeBuilder(initialChild: tree.r_b_key)
+          ..state(tree.r_a_key, emptyState, initialChild: InitialChild(tree.r_a_1_key))
+          ..state(tree.r_a_1_key, emptyState, parent: tree.r_a_key)
+          ..state(tree.r_b_key, emptyState);
+        var sm = TreeStateMachine(treeBuilder);
+        var cur = await sm.start();
+        expect(cur.key, equals(tree.r_b_key));
+      });
+    });
+
     group('stop', () {
       test('should not complete streams', () async {
         final sm = TreeStateMachine(tree.treeBuilder());

@@ -9,7 +9,7 @@ void main() {
   group('TransitionHandlerBuilder', () {
     group('run', () {
       test('should run handler on enter', () async {
-        var b = StateTreeBuilder(initialState: state1);
+        var b = StateTreeBuilder(initialChild: state1);
         var handlerCalled = false;
         b.state(state1, (b) {
           b.onMessage<Message>((b) => b.goTo(state2));
@@ -25,7 +25,7 @@ void main() {
       });
 
       test('should run handler on exit', () async {
-        var b = StateTreeBuilder(initialState: state1);
+        var b = StateTreeBuilder(initialChild: state1);
         var handlerCalled = false;
         b.state(state1, (b) {
           b.onMessage<Message>((b) => b.goTo(state2));
@@ -64,7 +64,7 @@ void main() {
 
     group('post', () {
       test('should post message', () async {
-        var b = StateTreeBuilder(initialState: state1);
+        var b = StateTreeBuilder(initialChild: state1);
         var msgToPost = Message2();
         dynamic postedMsg;
         b.state(state1, (b) {
@@ -85,7 +85,7 @@ void main() {
       });
 
       test('should post message to destination state when posted in onExit', () async {
-        var b = StateTreeBuilder(initialState: state1);
+        var b = StateTreeBuilder(initialChild: state1);
         var msgToPost = Message();
         dynamic postedMsg;
 
@@ -109,7 +109,7 @@ void main() {
 
     group('when', () {
       test('should run true handler when condition is true', () async {
-        var b = StateTreeBuilder(initialState: state1);
+        var b = StateTreeBuilder(initialChild: state1);
         var trueHandlerCalled = false;
         var otherwiseHandlerCalled = false;
         b.state(state1, (b) {
@@ -133,7 +133,7 @@ void main() {
       });
 
       test('should run true handler for first condition that is true', () async {
-        var b = StateTreeBuilder(initialState: state1);
+        var b = StateTreeBuilder(initialChild: state1);
         var trueHandlerCalled = false;
         var trueHandler2Called = false;
         var otherwiseHandlerCalled = false;
@@ -161,7 +161,7 @@ void main() {
       });
 
       test('should run otherwise handler when condition is not true', () async {
-        var b = StateTreeBuilder(initialState: state1);
+        var b = StateTreeBuilder(initialChild: state1);
         var trueHandlerCalled = false;
         var otherwiseHandlerCalled = false;
         b.state(state1, (b) {
@@ -190,7 +190,7 @@ void main() {
     final state2 = DataStateKey<StateData>('state2');
     group('when', () {
       test('should run true handler when condition is true', () async {
-        var b = StateTreeBuilder(initialState: state1);
+        var b = StateTreeBuilder(initialChild: state1);
         var initDataVal = StateData()..val = '2';
         var trueHandlerCalled = false;
         var otherwiseHandlerCalled = false;
@@ -221,7 +221,7 @@ void main() {
       });
 
       test('should run otherwise handler when condition is not true', () async {
-        var b = StateTreeBuilder(initialState: state1);
+        var b = StateTreeBuilder(initialChild: state1);
         var initDataVal = StateData()..val = '2';
         var trueHandlerCalled = false;
         var otherwiseHandlerCalled = false;

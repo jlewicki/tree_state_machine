@@ -10,7 +10,7 @@ StateTreeBuilder treeBuilder({
   MessageHandler? state1Handler,
   MessageHandler? state2Handler,
 }) {
-  var b = StateTreeBuilder(initialState: r_1_key);
+  var b = StateTreeBuilder(initialChild: r_1_key);
   b.state(r_1_key, (b) {
     if (state1Handler != null) b.handleOnMessage(state1Handler);
   });

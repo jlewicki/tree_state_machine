@@ -1,7 +1,12 @@
+## 3.0.0-dev.2
+- The `initialState` parameter of the `StateTreeBuilder` constructor was renamed to `initialChild` to reduce developer
+  confusion, and the error message was improved when this parameter refers to an invalid state.
+- [StateTreeDefinitionError] is thrown when validating a `StateTreeBuilder`, instead of [StateError].
+
 ## 3.0.0-dev.1
 - Upgrade to Dart3 SDK
-- Add `DataStateKey` to emphasize association between a data state and its state data type
-- Add `TreeStateMachine.startWith` to enable starting a state machine with specific initual values
+- Add `DataStateKey` to emphasize association between a data state and its state data type.
+- Add `TreeStateMachine.startWith` to enable starting a state machine with specific initial values.
   for data states.
 
 ## 2.4.0
@@ -39,7 +44,7 @@
 
 ## 1.0.2
 - Add more tests and documentation.
-- Adjust signature of `schedule` methods to emphasize that the message function is called each time timer elapses.
+- Adjust signature of `schedule` methods to emphasize that the message function is called each time the timer elapses.
 
 ## 1.0.1
 - Initial version.

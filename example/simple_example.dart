@@ -32,7 +32,7 @@ class ToLowercase {
 /// states.
 class SimpleStateTree {
   StateTreeBuilder treeBuilder() {
-    var b = StateTreeBuilder(initialState: _S.enterText, logName: 'simple');
+    var b = StateTreeBuilder(initialChild: _S.enterText, logName: 'simple');
 
     b.state(_S.enterText, (b) {
       b.onMessage<ToUppercase>((b) => b.goTo(_S.showUppercase, payload: (ctx) => ctx.message.text));

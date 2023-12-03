@@ -45,7 +45,7 @@ class HomeData {
 // State tree
 //
 StateTreeBuilder appStateTree(AuthService authService) {
-  var b = StateTreeBuilder(initialState: States.splash, logName: 'app');
+  var b = StateTreeBuilder(initialChild: States.splash, logName: 'app');
 
   b.state(States.splash, (b) {
     b.onMessageValue(

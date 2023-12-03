@@ -47,7 +47,7 @@ sealed class States {
 a `StateTreeBuilder`, but the simplest names the state that will initially be active when the state machine starts.
 
 ```dart
-var treeBuilder = StateTreeBuilder(initialState: States.unauthenticated);
+var treeBuilder = StateTreeBuilder(initialChild: States.unauthenticated);
 ```
 
 ### Defning States

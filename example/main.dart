@@ -25,7 +25,7 @@ StateTreeBuilder stoplightStateTree() {
   final yellowTimeout = Duration(seconds: 2);
   final redTimeout = Duration(seconds: 5);
 
-  var treeBuilder = StateTreeBuilder(initialState: States.stopped);
+  var treeBuilder = StateTreeBuilder(initialChild: States.stopped);
 
   treeBuilder.state(States.running, (b) {
     b.onMessageValue(Messages.stop, (b) => b.goTo(States.stopped));

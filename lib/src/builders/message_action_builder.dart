@@ -9,7 +9,7 @@ part of '../../../tree_builders.dart';
 ///
 /// var state1 = StateKey('s1');
 /// var state2 = StateKey('s2');
-/// var builder = StateTreeBuilder(initialState: state1);
+/// var builder = StateTreeBuilder(initialChild: state1);
 ///
 /// builder.state(state1, (b) {
 ///   // Calls the onMessage function as a side effect before the transition occurs
@@ -31,7 +31,7 @@ class MessageActionBuilder<M, D, C> {
   ///
   /// var state1 = StateKey('s1');
   /// var state2 = StateKey('s2');
-  /// var builder = StateTreeBuilder(initialState: state1);
+  /// var builder = StateTreeBuilder(initialChild: state1);
   ///
   /// builder.state(state1, (b) {
   ///   // Calls the onMessage function as a side effect before the transition occurs
@@ -54,7 +54,7 @@ class MessageActionBuilder<M, D, C> {
   /// ```dart
   /// enum Messages { increment  }
   /// var countingState = StateKey('counting');
-  /// var builder = new StateTreeBuilder(initialState: countingState);
+  /// var builder = new StateTreeBuilder(initialChild: countingState);
   ///
   /// builder.dataState<int>(
   ///   countingState,
@@ -115,7 +115,7 @@ class MessageActionBuilder<M, D, C> {
   /// void onDoIt(MessageContext, DoIt) => print('It was done');
   ///
   /// var state1 = StateKey('s1');
-  /// var builder = StateTreeBuilder(initialState: state1);
+  /// var builder = StateTreeBuilder(initialChild: state1);
   ///
   /// builder.state(state1, (b) {
   ///   // Handle DoItLater message by scheduling a DoIt message to be posted in
@@ -174,7 +174,7 @@ class MessageActionBuilder<M, D, C> {
   /// void onItWasDone(MessageContext ctx, ItWasDone msg) => print('It was done');
   ///
   /// var state1 = StateKey('s1');
-  /// var builder = StateTreeBuilder(initialState: state1);
+  /// var builder = StateTreeBuilder(initialChild: state1);
   ///
   /// builder.state(state1, (b) {
   ///   // Handle DoIt message by posting a ItWasDone message for future processing

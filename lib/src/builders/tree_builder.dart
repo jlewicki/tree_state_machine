@@ -13,7 +13,7 @@ part of '../../tree_builders.dart';
 ///
 /// StateTreeBuilder switchBuilder() {
 ///   // A simple switch with on and off states
-///   var treeBuilder = StateTreeBuilder(initialState: offState)
+///   var treeBuilder = StateTreeBuilder(initialChild: offState)
 ///   treeBuilder.state(offState, (b) {
 ///     b.onMessageValue(Messages.toggle, (b) => b.goTo(onState));
 ///   })
@@ -64,16 +64,22 @@ class StateTreeBuilder {
   StateKey get rootKey => _rootKey;
 
   /// Creates a [StateTreeBuilder] that will build a state tree that starts in the state identified
-  /// by [initialState].
+  /// by [initialChild].
   ///
   /// The state tree has an implicit root state, identified by [StateTreeBuilder.defaultRootKey].
   /// This state has no associated behavior, and it is typically safe to ignore its presence.
+  /// States defined with this builder that do not speciy a parent state in their definition will
+  /// be considered children of the implicit root.
+  ///
+  /// [initialChild] must refer to a state that is a child of the implicit root. Otherwise a
+  /// [StateTreeDefinitionError] will be thrown when a [TreeStateMachine] is constructed with this
+  /// builder.
   ///
   /// The builder can optionally be given a [label] for diagnostic purposes, and a [logName] which
   /// identifies the builder in log output. If [logName] is unspecifed, [label] will be used instead.
-  factory StateTreeBuilder({required StateKey initialState, String? label, String? logName}) {
+  factory StateTreeBuilder({required StateKey initialChild, String? label, String? logName}) {
     var b = StateTreeBuilder._(defaultRootKey, label, logName);
-    b.state(defaultRootKey, emptyState, initialChild: InitialChild(initialState));
+    b.state(defaultRootKey, emptyState, initialChild: InitialChild(initialChild));
     return b;
   }
 
@@ -142,7 +148,7 @@ class StateTreeBuilder {
   /// enum Messages { toggle }
   /// var offState = StateKey('off');
   /// var onState = StateKey('on');
-  /// var builder = new StateTreeBuilder(initialState: offState);
+  /// var builder = new StateTreeBuilder(initialChild: offState);
   ///
   /// // Describe a state
   /// builder.state(offState, (b) {
@@ -207,7 +213,7 @@ class StateTreeBuilder {
   ///
   /// ```dart
   /// var countingState = StateKey('counting');
-  /// var builder = StateTreeBuilder(initialState: countingState);
+  /// var builder = StateTreeBuilder(initialChild: countingState);
   ///
   /// // Describe a state carrying an integer, with an initial value of 1.
   /// builder.dataState<int>(countingState, InitialData(() => 1), (b) {
@@ -309,10 +315,10 @@ class StateTreeBuilder {
   ///
   /// var authenticateState = StateKey('authenticate');
   /// var authenticatedState = StateKey('authenticated');
-  /// var b = StateTreeBuilder(initialState: authenticateState, logName: 'app');
+  /// var b = StateTreeBuilder(initialChild: authenticateState, logName: 'app');
   ///
   /// StateTreeBuilder authenticateStateTree() {
-  ///   var sb = StateTreeBuilder(initialState: StateKey(''), logName: 'auth');
+  ///   var sb = StateTreeBuilder(initialChild: StateKey(''), logName: 'auth');
   ///   // ...Nested state tree definition goes here.
   ///   return sb;
   /// }
@@ -396,32 +402,54 @@ class StateTreeBuilder {
   void _validate() {
     _ensureChildren();
 
+    // // If an implicit root is used, make sure the initialChild for the root has no parent specified
+    // // This would be deyec
+    // if (_rootKey == defaultRootKey) {
+    //   var initialChildKey = _stateBuilders[_rootKey]?._initialChild?._initialChildKey;
+    //   if (initialChildKey != null) {
+    //     var parentKey = _stateBuilders[initialChildKey]?._parent;
+    //     if (parentKey != null) {}
+    //   }
+    // }
+
     // Make sure parent/child relationships are consistent.
     for (var entry in _stateBuilders.entries
         .where((e) => e.value._initialChild != null || e.value._children.isNotEmpty)) {
       var initialChild = entry.value._initialChild;
       var children = entry.value._children;
       if (children.isNotEmpty && entry.value is MachineStateBuilder) {
-        throw StateError(
+        throw StateTreeDefinitionError(
             'Machine state "${entry.key}" has child state(s): ${children.map((e) => '"$e"').join(', ')}. '
             'Machine states must be leaf states.');
       } else if (initialChild == null) {
-        throw StateError('Parent state ${entry.key} is missing an initial child state');
+        throw StateTreeDefinitionError(
+            'Parent state ${entry.key} is missing an initial child state');
       } else if (children.isEmpty) {
         var initialChildBuilder = _stateBuilders[initialChild._initialChildKey];
         if (initialChildBuilder != null) {
-          throw StateError(
+          throw StateTreeDefinitionError(
               'Parent state ${entry.key} has initial child $initialChild, but $initialChild has '
               'parent ${initialChildBuilder._parent}');
         } else {
-          throw StateError(
+          throw StateTreeDefinitionError(
               'Parent state ${entry.key} is has initial child $initialChild, but $initialChild is '
               'not defined.');
         }
       } else if (initialChild._initialChildKey != null &&
           !children.any((c) => c == initialChild._initialChildKey)) {
-        throw StateError(
-            'Initial child ${initialChild._initialChildKey} is not a child state of ${entry.key}');
+        var initChildKey = initialChild._initialChildKey;
+        // If an implicit root is used, make sure the initialChild for the root state has no parent specified
+        // A more descriptive error message is used in this case.
+        if (entry.key == defaultRootKey && _stateBuilders[initChildKey]?._parent != null) {
+          var parentKey = _stateBuilders[initChildKey]?._parent;
+          throw StateTreeDefinitionError(
+              'The initial chlld state $initChildKey specified for this implicit-root $runtimeType has '
+              '$parentKey as a parent. The initial child state of the implicit root can not have a parent '
+              'specified.');
+        } else {
+          throw StateTreeDefinitionError(
+              'Initial child $initChildKey is not a child state of ${entry.key}');
+        }
       }
     }
 
@@ -431,7 +459,8 @@ class StateTreeBuilder {
         var handlerInfo = handlerEntry.value;
         var targetStateKey = handlerInfo.info.goToTarget;
         if (targetStateKey != null && !_stateBuilders.containsKey(targetStateKey)) {
-          throw StateError('State ${state.key} has a transition to unknown state $targetStateKey');
+          throw StateTreeDefinitionError(
+              'State ${state.key} has a transition to unknown state $targetStateKey');
         }
       }
     }
@@ -442,9 +471,11 @@ class StateTreeBuilder {
       var parentKey = entry.value._parent;
       var parentState = _stateBuilders[parentKey];
       if (parentState == null) {
-        throw StateError('Unable to find parent state $parentKey for state ${entry.key}');
+        throw StateTreeDefinitionError(
+            'Unable to find parent state $parentKey for state ${entry.key}');
       } else if (parentState._isFinal) {
-        throw StateError('State ${entry.key} has final state ${parentState.key} as a parent');
+        throw StateTreeDefinitionError(
+            'State ${entry.key} has final state ${parentState.key} as a parent');
       }
       if (!parentState._children.any((c) => c == entry.value.key)) {
         parentState._children.add(entry.value.key);
@@ -455,7 +486,7 @@ class StateTreeBuilder {
     var rootState = _stateBuilders[_rootKey];
     if (rootState == null) {
       // This should never happen, since the root state is set in constructors.
-      throw StateError('Unable to find a root state.');
+      throw StateTreeDefinitionError('Unable to find a root state.');
     }
 
     // If there are states other than the root that do not have a parent specified (as will happen
@@ -505,7 +536,7 @@ class InitialData<D> {
   /// class S2Data {
   ///   String value = '';
   /// }
-  /// var builder = StateTreeBuilder(initialState: parentState);
+  /// var builder = StateTreeBuilder(initialChild: parentState);
   ///
   /// builder.state(s1, (b) {
   ///   b.onMessageValue('go', (b) => b.enterChannel(s2Channel, (msgCtx, msg) => 'Hi!'));
@@ -543,7 +574,7 @@ class InitialData<D> {
   /// }
   /// var parentState = StateKey('parent');
   /// var childState = StateKey('child');
-  /// var builder = StateTreeBuilder(initialState: parentState);
+  /// var builder = StateTreeBuilder(initialChild: parentState);
   ///
   /// builder.dataState<ParentData>(
   ///   parentState,
@@ -589,7 +620,7 @@ class InitialData<D> {
 /// var parentState = StateKey('p');
 /// var childState1 = StateKey('c1');
 /// var childState2 = StateKey('c2');
-/// var builder = StateTreeBuilder(initialState: parentState);
+/// var builder = StateTreeBuilder(initialChild: parentState);
 ///
 /// // Enter childState2 when parentState is entered
 /// builder.state(parentState, emptyState, initialChild: InitialChild(childState2));
@@ -677,3 +708,11 @@ void emptyState<D>(StateBuilder<D> builder) {}
 
 /// A state builder callback that adds no behavior to a final state.
 void emptyFinalState<D>(EnterStateBuilder<D> builder) {}
+
+/// Error occurring when an invalid state tree definition was produced.
+class StateTreeDefinitionError extends Error {
+  final String message;
+  StateTreeDefinitionError(this.message);
+  @override
+  String toString() => "Invalid definition: $message";
+}

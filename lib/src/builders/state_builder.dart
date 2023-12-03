@@ -21,7 +21,7 @@ part of '../../tree_builders.dart';
 ///   // ...Perform authentication
 ///   return AuthFuture(Future.value(AuthenticatedUser()));
 /// }
-/// var treeBuilder = StateTreeBuilder(initialState: loginState);
+/// var treeBuilder = StateTreeBuilder(initialChild: loginState);
 ///
 /// treeBuilder.state(loginState, (b) {
 ///   b.onMessage<SubmitCredentials>((b) {

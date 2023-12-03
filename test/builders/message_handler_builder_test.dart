@@ -10,7 +10,7 @@ void main() {
   group('MessageActionBuilder', () {
     group('goTo', () {
       test('should go to target state', () async {
-        var b = StateTreeBuilder(initialState: state1);
+        var b = StateTreeBuilder(initialChild: state1);
         b.state(state1, (b) {
           b.onMessage<Message>((b) => b.goTo(state2));
         });
@@ -27,7 +27,7 @@ void main() {
     group('action', () {
       test('should execute action and stay in current state', () async {
         var wasRun = false;
-        var b = StateTreeBuilder(initialState: state1);
+        var b = StateTreeBuilder(initialChild: state1);
         b.state(state1, (b) {
           b.onMessage<Message>((b) => b.action(b.act.run((ctx) => wasRun = true)));
         });
@@ -104,7 +104,7 @@ void main() {
     });
 
     group('when', () {
-      var b = StateTreeBuilder(initialState: state1);
+      var b = StateTreeBuilder(initialChild: state1);
       b.state(state1, (b) {
         b.onMessage<Message>((b) => b
             .when((ctx) => ctx.message.val == "2", (b) => b.goTo(state2))
@@ -138,7 +138,7 @@ void main() {
       test('should go to target state with payload from channel', () async {
         var s2Channel = Channel<String>(state2);
 
-        var b = StateTreeBuilder(initialState: state1);
+        var b = StateTreeBuilder(initialChild: state1);
         b.state(state1, (b) {
           b.onMessage<Message>((b) {
             b.enterChannel(s2Channel, (ctx) => ctx.message.val);
@@ -164,7 +164,7 @@ void main() {
         var s2Channel = Channel<String>(state2);
 
         var actionWasRun = false;
-        var b = StateTreeBuilder(initialState: state1);
+        var b = StateTreeBuilder(initialChild: state1);
         b.state(state1, (b) {
           b.onMessage<Message>((b) {
             b.enterChannel(s2Channel, (ctx) => ctx.message.val,
