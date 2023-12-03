@@ -120,7 +120,7 @@ void main() {
         final sm = TreeStateMachine(data_tree.treeBuilder(
           initialDataValues: {data_tree.r_a_a_2_key: () => LeafData2()..label = 'cool'},
         ));
-        var currentState = await sm.start(data_tree.r_a_a_2_key);
+        var currentState = await sm.start(at: data_tree.r_a_a_2_key);
 
         final data = currentState.dataValue<LeafData2>();
         expect(data, isNotNull);
@@ -134,7 +134,7 @@ void main() {
             data_tree.r_c_a_key: () => ReadOnlyData('r_c_a_key', 2)
           },
         ));
-        var currentState = await sm.start(data_tree.r_c_a_1_key);
+        var currentState = await sm.start(at: data_tree.r_c_a_1_key);
 
         // Since we only specify type, we find state data of nearest ancestor
         final data = currentState.dataValue<ReadOnlyData>();
@@ -149,7 +149,7 @@ void main() {
             data_tree.r_c_a_key: () => ReadOnlyData('r_c_a_key', 2)
           },
         ));
-        var currentState = await sm.start(data_tree.r_c_a_1_key);
+        var currentState = await sm.start(at: data_tree.r_c_a_1_key);
 
         // Since we only specify key, we find state data of that specific state
         final data = currentState.dataValue<ReadOnlyData>(data_tree.r_c_key);
@@ -161,7 +161,7 @@ void main() {
         final sm = TreeStateMachine(data_tree.treeBuilder(
           initialDataValues: {data_tree.r_a_a_2_key: () => LeafData2()..label = 'cool'},
         ));
-        var currentState = await sm.start(data_tree.r_a_a_2_key);
+        var currentState = await sm.start(at: data_tree.r_a_a_2_key);
         var data = currentState.dataValue<dynamic>();
         expect(data, isNotNull);
         expect(data!.label, equals('cool'));
@@ -169,7 +169,7 @@ void main() {
 
       test('should return null if data type is unspecified and leaf has no state data', () async {
         final sm = TreeStateMachine(data_tree.treeBuilder());
-        var currentState = await sm.start(data_tree.r_b_1_key);
+        var currentState = await sm.start(at: data_tree.r_b_1_key);
         var data = currentState.dataValue<dynamic>();
         expect(data, isNull);
       });
@@ -191,7 +191,7 @@ void main() {
             }
           },
         ));
-        var currentState = await sm.start(data_tree.r_a_a_2_key);
+        var currentState = await sm.start(at: data_tree.r_a_a_2_key);
 
         LeafData2? nextValue;
         currentState.data<LeafData2>()!.listen((value) => nextValue = value);
@@ -208,7 +208,7 @@ void main() {
             data_tree.r_a_a_2_key: (msgCtx) => msgCtx.goTo(data_tree.r_a_a_1_key),
           },
         ));
-        var currentState = await sm.start(data_tree.r_a_a_2_key);
+        var currentState = await sm.start(at: data_tree.r_a_a_2_key);
 
         var isDone = false;
         var subscription = currentState.data<LeafData2>()!.listen(null, onDone: () {
@@ -228,7 +228,7 @@ void main() {
             data_tree.r_a_a_1_key: (msgCtx) => msgCtx.goTo(data_tree.r_a_a_2_key),
           },
         ));
-        var currentState = await sm.start(data_tree.r_a_a_2_key);
+        var currentState = await sm.start(at: data_tree.r_a_a_2_key);
 
         var subscription = currentState.data<String>()?.listen(null);
 
@@ -237,7 +237,7 @@ void main() {
 
       test('should return void DataValue for non-data states', () async {
         final sm = TreeStateMachine(data_tree.treeBuilder());
-        var currentState = await sm.start(data_tree.r_b_2_key);
+        var currentState = await sm.start(at: data_tree.r_b_2_key);
 
         var r_b_2_data = currentState.data<int>();
         expect(r_b_2_data, isNotNull);
@@ -254,7 +254,7 @@ void main() {
             data_tree.r_b_1_key: (msgCtx) => msgCtx.goTo(data_tree.r_a_a_1_key),
           },
         ));
-        var currentState = await sm.start(data_tree.r_b_1_key);
+        var currentState = await sm.start(at: data_tree.r_b_1_key);
 
         var onDataCount = 0;
         var isDone = false;

@@ -185,7 +185,7 @@ class TreeStateMachine {
   /// Starts the state machine, transitioning the current state to the initial state of the state
   /// tree. Returns a [CurrentState] that can be used to send messages for processing.
   ///
-  /// [startAt] may be used to indicate the initial state. If provided, the state machine
+  /// [at] may be used to indicate the initial state. If provided, the state machine
   /// will transition from the root state to this state. If the initial state is a leaf state, that
   /// will be the current state when the returned future completes. Otherwise, the state machine
   /// will follow the initial child path for the initial state, until a leaf state is reached. This
@@ -194,28 +194,30 @@ class TreeStateMachine {
   /// If no initial state is specified, the state machine will follow the initial child path
   /// starting from the root until a leaf state is reached.
   ///
+  /// [withData] may be used to specify initial state data values for any data states that are
+  /// entered while starting the state machine. It is not necessary for the [withData] function to
+  /// specify a data value for every data state that is entered. If it does not contain a value for
+  /// a data state, the [InitialData] associated with that data state will used instead.
+  ///
+  /// Note that while [withData] can be used to start or restore the state machine with a specific
+  /// set of values, it is of course possible that these values may be ones that would never be
+  /// produced by the state machine itself when started without [withData], potentially breaking
+  /// invariants expected by the state tree. As a result, [withData] is intended primarily for
+  /// development and testing purposes, and care should be taken when using it.
+  ///
   /// It is safe to call [start] when the state machine is already started. It is also safe to call
   /// [start] if the state machine has been stopped, in which case the state machine will be
   /// restarted, and will re-enter the initial state.
-  // TODO: make this start({StateKey? startAt, InitialStateData? withStateData})
-  Future<CurrentState> start([StateKey? startAt]) async {
-    return _start(startAt, null);
-  }
-
-  /// Starts the state machine in the same way as [start], but uses any data values defined in
-  /// [initialStateData] to initialize the state data for the data states that are entered.
-  ///
-  /// It is not necessary for [initialStateData] to contain a data value for every data state that
-  /// is entered while starting the state machine. If it does not contain a value for a data state
-  /// that is being entered, the [InitialData] associated with the data state will used instead.
-  ///
-  /// Note that while this method can be used to start or restore the state machine with a specific
-  /// set of values, it is of course possible that these values may ones that would never be
-  /// produced by the state machine itself when started with [start] and then processing messages.
-  /// As a result, this method is intended primarily for development purposes, and care should be
-  /// taken when using it.
-  Future<CurrentState> startWith(InitialStateData initialStateData, {StateKey? startAt}) async {
-    return _start(startAt, initialStateData);
+  Future<CurrentState> start({StateKey? at, BuildInitialData? withData}) async {
+    await _lifecycle.start(() async {
+      var initData = withData != null ? InitialStateData(withData) : null;
+      var transition = await _machine.enterInitialState(at, initData);
+      _currentState = CurrentState._(this);
+      _transitions.add(transition);
+      return transition;
+    });
+    assert(_currentState != null);
+    return _currentState!;
   }
 
   /// Stops the state machine.
@@ -392,34 +394,26 @@ class TreeStateMachine {
     }
 
     // Start state machine so that the active nodes matches that in the encoded data.
-    await startWith(InitialStateData((b) {
-      for (var i = 0; i < activeNodes.length; ++i) {
-        final es = encodableTree.states[i];
-        final node = activeNodes[i];
-        // It's not useful to have a DataTreeState<void>, but it is not prohibited,
-        // so skip those states (there is no data to set)
-        if (node.state is DataTreeState && node.state is! DataTreeState<void>) {
-          if (node.dataCodec == null) {
-            throw StateError('Unable to deserialize state data because a serializer has not been '
-                'specified for state ${node.key}');
+    await start(
+      at: activeNodes[0].key,
+      withData: (b) {
+        for (var i = 0; i < activeNodes.length; ++i) {
+          final es = encodableTree.states[i];
+          final node = activeNodes[i];
+          // It's not useful to have a DataTreeState<void>, but it is not prohibited,
+          // so skip those states (there is no data to set)
+          if (node.state is DataTreeState && node.state is! DataTreeState<void>) {
+            if (node.dataCodec == null) {
+              throw StateError('Unable to deserialize state data because a serializer has not been '
+                  'specified for state ${node.key}');
+            }
+
+            var stateData = (node.dataCodec!).deserialize(es.encodedStateData) as Object;
+            b.initialData(node.key as DataStateKey, stateData);
           }
-
-          var stateData = (node.dataCodec!).deserialize(es.encodedStateData) as Object;
-          b.initialData(node.key as DataStateKey, stateData);
         }
-      }
-    }), startAt: activeNodes[0].key);
-  }
-
-  Future<CurrentState> _start(StateKey? startAt, InitialStateData? initialStateData) async {
-    await _lifecycle.start(() async {
-      var transition = await _machine.enterInitialState(startAt, initialStateData);
-      _currentState = CurrentState._(this);
-      _transitions.add(transition);
-      return transition;
-    });
-    assert(_currentState != null);
-    return _currentState!;
+      },
+    );
   }
 
   void _onMessage(_QueuedMessage queuedMessage) async {
@@ -628,7 +622,8 @@ class _StateDataValue {
   _StateDataValue(this.state, this.dataValue);
 }
 
-// TODO make this a composite key based on StateKey and data type
+// TODO make this a composite key based on StateKey and data type. Or probably can use DataStateKey
+// instead
 class _DataStreamKey {
   Object _key;
   _DataStreamKey._(this._key);

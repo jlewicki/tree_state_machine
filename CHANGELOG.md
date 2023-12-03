@@ -2,6 +2,8 @@
 - The `initialState` parameter of the `StateTreeBuilder` constructor was renamed to `initialChild` to reduce developer
   confusion, and the error message was improved when this parameter refers to an invalid state.
 - [StateTreeDefinitionError] is thrown when validating a `StateTreeBuilder`, instead of [StateError].
+- Remove `TreeStateMachine.startWith` and add optional named params to `TreeStateMachine.start`. Having two `start` type
+  methods might be confusing. 
 
 ## 3.0.0-dev.1
 - Upgrade to Dart3 SDK

@@ -5,7 +5,6 @@ import 'dart:convert';
 
 import 'package:async/async.dart';
 import 'package:test/test.dart';
-import 'package:tree_state_machine/src/machine/initial_state_data.dart';
 import 'package:tree_state_machine/src/machine/lifecycle.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/tree_state_machine.dart';
@@ -300,7 +299,7 @@ void main() {
 
       test('should read active states from stream ', () async {
         var sm = TreeStateMachine(tree.treeBuilder());
-        var currentState = await sm.start(tree.r_b_1_key);
+        var currentState = await sm.start(at: tree.r_b_1_key);
         var encoded = await _save(sm);
         sm = TreeStateMachine(tree.treeBuilder());
 
@@ -313,8 +312,9 @@ void main() {
 
       test('should read active data states from stream ', () async {
         var sm = TreeStateMachine(data_tree.treeBuilder());
-        var currentState = await sm.startWith(
-            InitialStateData((b) => b
+        var currentState = await sm.start(
+            at: data_tree.r_a_a_1_key,
+            withData: (b) => b
                 .initialData(data_tree.r_a_a_1_key, LeafData1()..counter = 10)
                 .initialData(data_tree.r_a_a_key, LeafDataBase()..name = 'Yo')
                 .initialData(data_tree.r_a_key, ImmutableData(name: 'Dude', price: 8))
@@ -323,8 +323,7 @@ void main() {
                     SpecialDataD()
                       ..playerName = 'FOO'
                       ..startYear = 2000
-                      ..hiScores.add(HiScore('foo', 10)))),
-            startAt: data_tree.r_a_a_1_key);
+                      ..hiScores.add(HiScore('foo', 10))));
 
         var encoded = await _save(sm);
         sm = TreeStateMachine(data_tree.treeBuilder());
@@ -364,7 +363,7 @@ void main() {
 
       test('should throw if machine does not contain states from stream', () async {
         var sm = TreeStateMachine(tree.treeBuilder());
-        await sm.start(tree.r_b_1_key);
+        await sm.start(at: tree.r_b_1_key);
         var encoded = await _save(sm);
 
         sm = TreeStateMachine(flat_tree.treeBuilder());
@@ -375,7 +374,7 @@ void main() {
           'should throw if active state path in stream is different from active state path in machine',
           () async {
         var sm = TreeStateMachine(tree.treeBuilder());
-        await sm.start(tree.r_b_1_key);
+        await sm.start(at: tree.r_b_1_key);
         var encoded = await _save(sm);
 
         // Define another tree that shares keys but has a different shape
@@ -403,7 +402,7 @@ void main() {
 
       test('should throw if stream has nodes thay are not in machine', () async {
         var sm = TreeStateMachine(tree.treeBuilder());
-        await sm.start(tree.r_b_1_key);
+        await sm.start(at: tree.r_b_1_key);
         var encoded = await _save(sm);
 
         // Define another tree that shares keys but has a different shape
@@ -606,7 +605,7 @@ void main() {
         var r_a_a_stream = sm.dataStream<LeafDataBase>(data_tree.r_a_a_key).map((d) => d.name!);
         var r_a_a_queue = StreamQueue<String>(r_a_a_stream);
 
-        var currentState = await sm.start(data_tree.r_a_a_2_key);
+        var currentState = await sm.start(at: data_tree.r_a_a_2_key);
 
         // Subscribers will be notified immediately of current values
         expect(currentState.key, equals(data_tree.r_a_a_2_key));
@@ -654,7 +653,7 @@ void main() {
           },
         ));
 
-        var currentState = await sm.start(data_tree.r_a_a_2_key);
+        var currentState = await sm.start(at: data_tree.r_a_a_2_key);
 
         // State machine is started, so the states we listen to here are active
         var r_a_a_2_stream = sm.dataStream<LeafData2>().map((d) => d.label!);
@@ -714,7 +713,7 @@ void main() {
           },
         ));
 
-        var currentState = await sm.start(data_tree.r_a_a_2_key);
+        var currentState = await sm.start(at: data_tree.r_a_a_2_key);
         await currentState.post(_GoToMessage(data_tree.r_b_1_key));
 
         // State machine is started, but in state r_b_1, so the states we subscribe to here are
