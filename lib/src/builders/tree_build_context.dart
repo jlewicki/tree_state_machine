@@ -3,6 +3,8 @@ part of '../../tree_builders.dart';
 /// Type of functions that can create a tree node.
 typedef NodeBuilder = TreeNode Function(TreeBuildContext context);
 
+typedef OnTreeNodeBuilt = void Function(TreeNodeInfo node);
+
 /// Provides contextual information while a state tree is being constructed, and factory methods for
 /// creating tree nodes.
 ///
@@ -14,15 +16,18 @@ class TreeBuildContext {
   /// Map of nodes that have been built.
   final Map<StateKey, TreeNode> nodes;
 
-  TreeBuildContext._(this.parentNode, this.nodes);
+  final OnTreeNodeBuilt? _onBuiltTreeNode;
+
+  TreeBuildContext._(this.parentNode, this.nodes, this._onBuiltTreeNode);
 
   /// Constructs a [TreeBuildContext].
-  factory TreeBuildContext() => TreeBuildContext._(null, HashMap());
+  factory TreeBuildContext({OnTreeNodeBuilt? onTreeNodeBuilt}) =>
+      TreeBuildContext._(null, HashMap(), onTreeNodeBuilt);
 
   /// Constructs a [TreeBuildContext] that adusts the current parent node, so child nodes can be
   /// built.
   TreeBuildContext _childContext(TreeNode newParentNode) =>
-      TreeBuildContext._(newParentNode, nodes);
+      TreeBuildContext._(newParentNode, nodes, _onBuiltTreeNode);
 
   TreeNode buildRoot(
     StateKey key,
@@ -30,12 +35,24 @@ class TreeBuildContext {
     Iterable<NodeBuilder> children,
     GetInitialChild initialChild,
     StateDataCodec<dynamic>? codec,
+    List<TreeStateFilter>? filters,
+    Map<String, Object>? metadata,
   ) {
     assert(parentNode == null);
-    var node = TreeNode(NodeType.rootNode, key, parentNode, createState, codec, initialChild);
+    var node = TreeNode(
+      NodeType.rootNode,
+      key,
+      parentNode,
+      createState,
+      codec,
+      filters,
+      metadata,
+      initialChild,
+    );
     final childCtx = _childContext(node);
     node.children.addAll(children.map((buildChild) => buildChild(childCtx)));
     _addNode(node);
+    _onBuiltTreeNode?.call(node);
     return node;
   }
 
@@ -45,12 +62,24 @@ class TreeBuildContext {
     Iterable<NodeBuilder> children,
     GetInitialChild initialChild,
     StateDataCodec<dynamic>? codec,
+    List<TreeStateFilter>? filters,
+    Map<String, Object>? metadata,
   ) {
     assert(parentNode != null);
-    var node = TreeNode(NodeType.interiorNode, key, parentNode!, createState, codec, initialChild);
+    var node = TreeNode(
+      NodeType.interiorNode,
+      key,
+      parentNode!,
+      createState,
+      codec,
+      filters,
+      metadata,
+      initialChild,
+    );
     final childCtx = _childContext(node);
     node.children.addAll(children.map((buildChild) => buildChild(childCtx)));
     _addNode(node);
+    _onBuiltTreeNode?.call(node);
     return node;
   }
 
@@ -59,12 +88,15 @@ class TreeBuildContext {
     StateCreator createState,
     StateDataCodec<dynamic>? codec, {
     bool isFinal = false,
+    List<TreeStateFilter>? filters,
+    Map<String, Object>? metadata,
   }) {
     assert(parentNode != null);
     var node = isFinal
-        ? TreeNode(NodeType.finalLeafNode, key, parentNode!, createState, codec)
-        : TreeNode(NodeType.leafNode, key, parentNode!, createState, codec);
+        ? TreeNode(NodeType.finalLeafNode, key, parentNode!, createState, codec, filters, metadata)
+        : TreeNode(NodeType.leafNode, key, parentNode!, createState, codec, filters, metadata);
     _addNode(node);
+    _onBuiltTreeNode?.call(node);
     return node;
   }
 

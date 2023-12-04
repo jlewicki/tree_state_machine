@@ -529,6 +529,9 @@ class StopResult extends MessageResult {
 /// A [MessageResult] indicating that a state did not recognize or handle a message.
 class UnhandledResult extends MessageResult {
   UnhandledResult._() : super._();
+  factory UnhandledResult() {
+    return value;
+  }
   static final UnhandledResult value = UnhandledResult._();
 
   @override
@@ -735,4 +738,22 @@ class StateDataCodec<D> {
   Object? serialize(D? stateData) => _encode(stateData);
 
   D? deserialize(Object? serialized) => _decode(serialized);
+}
+
+typedef MessageFilter = FutureOr<MessageResult> Function(
+  MessageContext msgCtx,
+  FutureOr<MessageResult> Function() next,
+);
+
+class TreeStateFilter {
+  TreeStateFilter({MessageFilter? onMessage}) : _onMessage = onMessage;
+
+  final MessageFilter? _onMessage;
+
+  FutureOr<MessageResult> onMessage(
+    MessageContext msgCtx,
+    FutureOr<MessageResult> Function() next,
+  ) {
+    return _onMessage != null ? _onMessage(msgCtx, next) : next();
+  }
 }

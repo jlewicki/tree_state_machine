@@ -57,6 +57,8 @@ abstract class _StateBuilder {
   final InitialChild? _initialChild;
   final Type? _dataType;
   final StateDataCodec<dynamic>? _codec;
+  final List<TreeStateFilter> _filters;
+  final Map<String, Object> _metadata;
   StateKey? _parent;
 
   // Key is either a Type object representing message type or a message value
@@ -80,7 +82,10 @@ abstract class _StateBuilder {
     this._log,
     this._parent,
     this._initialChild,
-  );
+    List<TreeStateFilter>? filters,
+    Map<String, Object>? metadata,
+  )   : _metadata = metadata ?? {},
+        _filters = filters ?? [];
 
   _StateType get _stateType {
     if (_parent == null) return _StateType.root;
@@ -89,6 +94,9 @@ abstract class _StateBuilder {
   }
 
   bool get _hasStateData => _dataType != null;
+
+  StateBuilderExtensionInfo _getExtensionInfo() =>
+      StateBuilderExtensionInfo(key, _metadata, _filters);
 
   Iterable<MessageHandlerInfo> _getHandlerInfos() => _messageHandlerMap.values.map((e) => e.info);
 
@@ -100,28 +108,39 @@ abstract class _StateBuilder {
   TreeNode _toNode(TreeBuildContext context, Map<StateKey, _StateBuilder> builderMap) {
     switch (_nodeType()) {
       case NodeType.rootNode:
-        var childAndLeafBuilders = _children.map((e) => builderMap[e]!);
         return context.buildRoot(
           key,
           (_) => _createState(),
-          childAndLeafBuilders.map((cb) {
-            return (childCtx) => cb._toNode(childCtx, builderMap);
+          _children.map((e) {
+            var childBuilder = builderMap[e]!;
+            return (childCtx) => childBuilder._toNode(childCtx, builderMap);
           }),
           _initialChild!.call,
           _codec,
+          _filters,
+          _metadata,
         );
       case NodeType.interiorNode:
         return context.buildInterior(
           key,
           (_) => _createState(),
           _children.map((e) {
-            return (childCtx) => builderMap[e]!._toNode(childCtx, builderMap);
+            var childBuilder = builderMap[e]!;
+            return (childCtx) => childBuilder._toNode(childCtx, builderMap);
           }),
           _initialChild!.call,
           _codec,
+          _filters,
+          _metadata,
         );
       case NodeType.leafNode:
-        return context.buildLeaf(key, (_) => _createState(), _codec);
+        return context.buildLeaf(
+          key,
+          (_) => _createState(),
+          _codec,
+          filters: _filters,
+          metadata: _metadata,
+        );
       case NodeType.finalLeafNode:
         return context.buildLeaf(key, (_) => _createState(), _codec, isFinal: true);
       default:
@@ -236,6 +255,8 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
     InitialChild? initialChild, {
     required bool isFinal,
     StateDataCodec<dynamic>? codec,
+    List<TreeStateFilter>? filters,
+    Map<String, Object>? metadata,
   }) : super._(
           key,
           isFinal,
@@ -244,6 +265,8 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
           log,
           parent,
           initialChild,
+          filters,
+          metadata,
         );
 
   @override
@@ -422,7 +445,21 @@ class MachineStateBuilder extends _StateBuilder {
     Logger log,
     StateKey? parent, {
     required bool isFinal,
-  }) : super._(key, isFinal, NestedMachineData, null, log, parent, null);
+    StateDataCodec<dynamic>? codec,
+    Map<String, Object>? metadata,
+  }) : super._(
+          key,
+          isFinal,
+          NestedMachineData,
+          codec,
+          log,
+          parent,
+          null,
+          // Machine states do not support filters, they might disrupt the lifecycle
+          // of the nested machine
+          [],
+          metadata,
+        );
 
   void onMachineDone(
     void Function(MachineDoneHandlerBuilder<CurrentState> builder) buildHandler,

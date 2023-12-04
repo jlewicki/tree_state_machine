@@ -6,20 +6,36 @@ import 'package:tree_state_machine/src/machine/utility.dart';
 
 enum NodeType { rootNode, interiorNode, leafNode, finalLeafNode }
 
+abstract class TreeNodeInfo {
+  /// The type of this tree node.
+  NodeType get nodeType;
+
+  /// The key identifying this tree node.
+  StateKey get key;
+
+  /// The parent node of this true node. Returns `null` if this is a root node.
+  TreeNodeInfo? get parent;
+
+  Map<String, Object> get metadata;
+}
+
 /// A node within a state tree.
 ///
 /// While a [TreeState] defines the message processing behavior of a state, it does not model the
 /// location of the state within a state tree (that is, a [TreeState] does not directly know its
 /// parent or child states). Instead, [TreeNode] composes together a tree state along with
 /// information about the location of the node with the tree.
-class TreeNode {
+class TreeNode implements TreeNodeInfo {
   /// The type of this tree node.
+  @override
   final NodeType nodeType;
 
   /// The key identifying this tree node.
+  @override
   final StateKey key;
 
   /// The parent node of this true node. Returns `null` if this is a root node.
+  @override
   final TreeNode? parent;
 
   /// The child nodes of this node. The list is empty for leaf nodes.
@@ -29,21 +45,30 @@ class TreeNode {
   /// `null` if this node does not have any children.
   final GetInitialChild? getInitialChild;
 
-  /// Lazily computed tree state for this node
-  final Lazy<TreeState> _lazyState;
-
   // Codec to be used for encoding/decoding state data for this node. Will be null if this is not a
   // node for a data state, or if the state tree was built without serialization support.
   final StateDataCodec<dynamic>? dataCodec;
+
+  /// Lazily computed tree state for this node
+  final Lazy<TreeState> _lazyState;
+
+  final List<TreeStateFilter> filters;
+
+  @override
+  final Map<String, Object> metadata;
 
   TreeNode(
     this.nodeType,
     this.key,
     this.parent,
     StateCreator createState,
-    this.dataCodec, [
+    this.dataCodec,
+    List<TreeStateFilter>? filters,
+    Map<String, Object>? metadata, [
     this.getInitialChild,
-  ]) : _lazyState = Lazy<TreeState>(() => createState(key));
+  ])  : _lazyState = Lazy<TreeState>(() => createState(key)),
+        filters = filters?.toList() ?? List.empty(),
+        metadata = metadata != null ? Map.from(metadata) : Map.unmodifiable({});
 
   bool get isRoot => nodeType == NodeType.rootNode;
   bool get isLeaf => nodeType == NodeType.leafNode || nodeType == NodeType.finalLeafNode;

@@ -51,31 +51,27 @@ class Machine {
   /// entered. The initial leaf state is determined by following the initial child path starting at
   /// the root state, or the state identified by [initialState].
   ///
-  /// Additionally, if [initialData] contains data values for any data states that are entered,
-  /// those values are used when realizing the initial data values for those states. The initial
-  /// data functions associated with those state will *not* be called.
-  ///
   /// Returns a future yielding a [MachineTransitionContext] that describes the states that were
   /// entered.
-  Future<Transition> enterInitialState([StateKey? initialStateKey, InitialStateData? initialData]) {
-    final initialNode = initialStateKey != null ? nodes[initialStateKey] : rootNode;
+  Future<Transition> enterInitialState(
+      [StateKey? initialState, InitialStateData? initialData, Object? payload]) {
+    final initialNode = initialState != null ? nodes[initialState] : rootNode;
     if (initialNode == null) {
       throw ArgumentError.value(
-        initialStateKey.toString(),
+        initialState,
         'initalStateKey',
         'This TreeStateMachine does not contain the specified initial state.',
       );
     }
     final path = MachineTransition.enterFromRoot(rootNode.treeNode, to: initialNode.treeNode);
-    return _doTransition(path, initialStateData: initialData);
+    return _doTransition(path, initialStateData: initialData, payload: payload);
   }
 
-  Future<ProcessedMessage> processMessage(Object message, [StateKey? initialStateKey]) async {
+  Future<ProcessedMessage> processMessage(Object message, [StateKey? initialState]) async {
     _log.fine('Processing message $message');
 
     if (_currentLeafNode == null) {
-      final initialStateKey_ = initialStateKey ?? rootNode.treeNode.key;
-      await enterInitialState(initialStateKey_);
+      await enterInitialState(initialState);
     }
 
     // If the state machine is in a final state, do not dispatch the message for processing,
@@ -364,8 +360,15 @@ class Machine {
   }
 
   static void _addStoppedNode(TreeNode rootNode, Map<StateKey, TreeNode> nodesByKey) {
-    var stoppedNode =
-        TreeNode(NodeType.finalLeafNode, stoppedStateKey, rootNode, (_) => _stoppedState, null);
+    var stoppedNode = TreeNode(
+      NodeType.finalLeafNode,
+      stoppedStateKey,
+      rootNode,
+      (_) => _stoppedState,
+      null,
+      [],
+      null,
+    );
     nodesByKey[stoppedStateKey] = stoppedNode;
     rootNode.children.add(stoppedNode);
   }
@@ -451,6 +454,24 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
 
   FutureOr<MessageResult> onMessage(TreeNode node) {
     notifiedNodes.add(node);
+    return _runMessageHandlers(node);
+  }
+
+  FutureOr<MessageResult> _runMessageHandlers(TreeNode node) {
+    if (node.filters.isNotEmpty) {
+      var filters = node.filters;
+      var currentFilterIndex = 0;
+      FutureOr<MessageResult> run() {
+        if (currentFilterIndex < filters.length) {
+          return filters[currentFilterIndex++].onMessage(this, run);
+        } else {
+          return node.state.onMessage(this);
+        }
+      }
+
+      return run();
+    }
+
     return node.state.onMessage(this);
   }
 }

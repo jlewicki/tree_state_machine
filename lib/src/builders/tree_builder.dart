@@ -100,9 +100,11 @@ class StateTreeBuilder {
     InitialChild initialChild, {
     String? label,
     String? logName,
+    void Function(StateExtensionBuilder)? extensions,
   }) {
     var b = StateTreeBuilder._(rootState, label, logName);
-    b.state(rootState, build, initialChild: initialChild);
+    var extensionBuilder = b.state(rootState, build, initialChild: initialChild);
+    extensions?.call(extensionBuilder);
     return b;
   }
 
@@ -160,7 +162,7 @@ class StateTreeBuilder {
   /// parent state. If the state is itself a parent state (that is, other states refer to it as a
   /// parent), then [initialChild] must be provided, indicating which child state should be entered
   /// when this state is entered.
-  void state(
+  StateExtensionBuilder state(
     StateKey stateKey,
     void Function(StateBuilder<void> builder) build, {
     StateKey? parent,
@@ -176,6 +178,7 @@ class StateTreeBuilder {
     );
     build(builder);
     _addState(builder);
+    return StateExtensionBuilder._(builder);
   }
 
   /// Adds to the state tree a description of a final state, identified by [stateKey]. The behavior
@@ -233,13 +236,13 @@ class StateTreeBuilder {
   /// parent state. If the state is itself a parent state (that is, other states refer to it as a
   /// parent), then [initialChild] must be provided, indicating which child state should be entered
   /// when this state is entered.
-  void dataState<D>(
+  StateExtensionBuilder dataState<D>(
     DataStateKey<D> stateKey,
     InitialData<D> initialData,
     void Function(StateBuilder<D> builder) build, {
     StateKey? parent,
     InitialChild? initialChild,
-    StateDataCodec<D>? codec,
+    StateDataCodec<dynamic>? codec,
   }) {
     var builder = StateBuilder<D>._(
       stateKey,
@@ -252,6 +255,7 @@ class StateTreeBuilder {
     );
     build(builder);
     _addState(builder);
+    return StateExtensionBuilder._(builder);
   }
 
   /// Adds to the state tree a description of a final data state, identified by [stateKey] and

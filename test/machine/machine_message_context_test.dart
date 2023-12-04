@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:test/test.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'fixture/fixture_util.dart';
@@ -389,6 +390,51 @@ void main() {
         expect(receiveCount, equals(3));
         expect(machine.currentLeaf!.key, equals(r_b_1_key));
       });
+    });
+
+    test('should run state filters in order', () async {
+      var filtersExecutedBefore = <int>[];
+      var filtersExecutedAfter = <int>[];
+      var wasTreeStateHandlerRun = false;
+      final buildTree = treeBuilder(
+        filters: {
+          r_a_a_2_key: [
+            TreeStateFilter(onMessage: (msgCtx, next) {
+              filtersExecutedBefore.add(1);
+              var result = next();
+              filtersExecutedAfter.add(1);
+              return result;
+            }),
+            TreeStateFilter(onMessage: (msgCtx, next) {
+              filtersExecutedBefore.add(2);
+              var result = next();
+              filtersExecutedAfter.add(2);
+              return result;
+            }),
+            TreeStateFilter(onMessage: (msgCtx, next) {
+              filtersExecutedBefore.add(3);
+              var result = next();
+              filtersExecutedAfter.add(3);
+              return result;
+            })
+          ],
+        },
+        messageHandlers: {
+          r_a_a_2_key: (ctx) {
+            wasTreeStateHandlerRun = true;
+            return ctx.stay();
+          }
+        },
+      );
+
+      final machine = createMachine(buildTree);
+      await machine.enterInitialState();
+      var result = await machine.processMessage(Object());
+
+      expect(ListEquality<int>().equals([1, 2, 3], filtersExecutedBefore), isTrue);
+      expect(ListEquality<int>().equals([3, 2, 1], filtersExecutedAfter), isTrue);
+      expect(result, isA<HandledMessage>());
+      expect(wasTreeStateHandlerRun, isTrue);
     });
   });
 }
