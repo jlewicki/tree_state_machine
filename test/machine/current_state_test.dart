@@ -205,20 +205,34 @@ void main() {
         final sm = TreeStateMachine(data_tree.treeBuilder(
           initialDataValues: {data_tree.r_a_a_2_key: () => LeafData2()..label = 'cool'},
           messageHandlers: {
-            data_tree.r_a_a_2_key: (msgCtx) => msgCtx.goTo(data_tree.r_a_a_1_key),
+            data_tree.r_a_a_2_key: (msgCtx) => msgCtx.goTo(data_tree.r_b_2_key),
           },
         ));
         var currentState = await sm.start(at: data_tree.r_a_a_2_key);
 
-        var isDone = false;
-        var subscription = currentState.data<LeafData2>()!.listen(null, onDone: () {
-          isDone = true;
-        });
-        expect(subscription, isNotNull);
+        var isDone_r_a_a_2 = false;
+        var subscription_r_a_a_2 =
+            currentState.data<LeafData2>()!.listen(null, onDone: () => isDone_r_a_a_2 = true);
+
+        var isDone_r_a_a = false;
+        var subscription_r_a_a = currentState
+            .data<LeafDataBase>(data_tree.r_a_a_key)!
+            .listen(null, onDone: () => isDone_r_a_a = true);
+
+        var isDone_r_a = false;
+        var subscription_r_a = currentState
+            .data<ImmutableData>(data_tree.r_a_key)!
+            .listen(null, onDone: () => isDone_r_a = true);
+
+        expect(subscription_r_a_a_2, isNotNull);
+        expect(subscription_r_a_a, isNotNull);
+        expect(subscription_r_a, isNotNull);
 
         await currentState.post(Object());
 
-        expect(isDone, isTrue);
+        expect(isDone_r_a_a_2, isTrue);
+        expect(isDone_r_a_a, isTrue);
+        expect(isDone_r_a, isTrue);
       });
 
       test('should return null if requested state data is not active', () async {
@@ -235,7 +249,7 @@ void main() {
         expect(subscription, isNull);
       });
 
-      test('should return void DataValue for non-data states', () async {
+      test('should return null DataValue for non-data states', () async {
         final sm = TreeStateMachine(data_tree.treeBuilder());
         var currentState = await sm.start(at: data_tree.r_b_2_key);
 
@@ -244,32 +258,7 @@ void main() {
         expect(r_b_2_data!.value, equals(2));
 
         var r_b_data = currentState.data<void>();
-        expect(r_b_data, isNotNull);
-        expect(r_b_data!.hasValue, isTrue);
-      });
-
-      test('should complete subscription when non-data state is exited', () async {
-        final sm = TreeStateMachine(data_tree.treeBuilder(
-          messageHandlers: {
-            data_tree.r_b_1_key: (msgCtx) => msgCtx.goTo(data_tree.r_a_a_1_key),
-          },
-        ));
-        var currentState = await sm.start(at: data_tree.r_b_1_key);
-
-        var onDataCount = 0;
-        var isDone = false;
-        var subscription = currentState.data<void>(data_tree.r_b_1_key)!.listen(
-          (v) => onDataCount++,
-          onDone: () {
-            isDone = true;
-          },
-        );
-        expect(subscription, isNotNull);
-
-        await currentState.post(Object());
-
-        expect(onDataCount, 1);
-        expect(isDone, isTrue);
+        expect(r_b_data, isNull);
       });
     });
   });

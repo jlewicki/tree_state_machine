@@ -434,9 +434,9 @@ abstract class MessageContext {
   /// Posts a message that should be dispatched to the state machine asynchronously.
   void post(FutureOr<Object> message);
 
-  /// Gets the [DataValue] matching the type [D] and [stateKey] from the current state, or one of
+  /// Gets the [DataValue] matching the type [D] and [key] from the current state, or one of
   /// its ancestor states.
-  DataValue<D>? data<D>([StateKey? key]);
+  DataValue<D>? data<D>([DataStateKey<D>? key]);
 
   /// Schedules a message to be dispatched to the state machine asynchronously.
   ///
@@ -578,7 +578,7 @@ abstract class TransitionContext {
   /// This property makes this payload accessible during the transition.
   Object? get payload;
 
-  DataValue<D>? data<D>([StateKey? key]);
+  DataValue<D>? data<D>([DataStateKey<D>? key]);
 
   /// Posts a message that should be sent to the end state of this transition, after the transition
   /// has completed.

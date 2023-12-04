@@ -3,7 +3,7 @@ import 'package:tree_state_machine/src/machine/utility.dart';
 
 /// Utility extensions on [TransitionContext].
 extension TransitionContextExtensions on TransitionContext {
-  DataValue<D> dataOrThrow<D>([StateKey? key]) {
+  DataValue<D> dataOrThrow<D>([DataStateKey<D>? key]) {
     var data = this.data<D>(key);
     if (data == null) {
       throw StateError('Unable to find data of type ${TypeLiteral<D>().type}');
@@ -11,7 +11,7 @@ extension TransitionContextExtensions on TransitionContext {
     return data;
   }
 
-  D dataValueOrThrow<D>([StateKey? key]) {
+  D dataValueOrThrow<D>([DataStateKey<D>? key]) {
     var data = this.data<D>(key);
     if (data == null) {
       return isTypeOf<Object, void>()
@@ -38,7 +38,7 @@ extension TransitionContextExtensions on TransitionContext {
 
 /// Utility extensions on [MessageContext].
 extension MessageContextExtensions on MessageContext {
-  DataValue<D> dataOrThrow<D>([StateKey? key]) {
+  DataValue<D> dataOrThrow<D>([DataStateKey<D>? key]) {
     var dataVal = data<D>(key);
     if (dataVal == null) {
       throw StateError(
@@ -47,7 +47,7 @@ extension MessageContextExtensions on MessageContext {
     return dataVal;
   }
 
-  D dataValueOrThrow<D>([StateKey? key]) {
+  D dataValueOrThrow<D>([DataStateKey<D>? key]) {
     var dataVal = data<D>(key);
     if (dataVal == null) {
       return isTypeOf<Object, void>()
@@ -65,7 +65,7 @@ extension MessageContextExtensions on MessageContext {
         'Message of type ${message.runtimeType} is not of expected type ${TypeLiteral<M>().type}');
   }
 
-  D updateOrThrow<D>(D Function(D current) update, {StateKey? key}) {
+  D updateOrThrow<D>(D Function(D current) update, {DataStateKey<D>? key}) {
     var data = dataOrThrow<D>(key);
     data.update(update);
     return data.value;

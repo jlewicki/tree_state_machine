@@ -507,8 +507,11 @@ class CurrentState {
   /// If [D] is `dynamic`, then the data for the current leaf state is returned, or `null` if the
   /// current leaf state is not a data state.
   ///
+  /// If [D] is `void`, `null` is returned.
+  ///
   /// The retured stream completes when the state to which it corresponds is no longer active.
-  ValueStream<D>? data<D>([StateKey? key]) {
+  ValueStream<D>? data<D>([DataStateKey<D>? key]) {
+    if (isTypeOfExact<void, D>()) return null;
     var node = stateMachine._machine.currentLeaf!;
     return node.selfOrAncestorDataValue<D>(key: key);
   }
@@ -541,7 +544,7 @@ class CurrentState {
   ///   currentState.dataValue();         // Returns data from S5
   ///   currentState.dataValue<void>();   // Returns null
   /// ```
-  D? dataValue<D>([StateKey? key]) => data<D>(key)?.value;
+  D? dataValue<D>([DataStateKey<D>? key]) => data<D>(key)?.value;
 
   /// Returns `true` if the specified state is an active state in the state machine.
   ///

@@ -388,7 +388,7 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
       : assert(receivingLeafNode.isLeaf);
 
   @override
-  DataValue<D>? data<D>([StateKey? key]) {
+  DataValue<D>? data<D>([DataStateKey<D>? key]) {
     assert(notifiedNodes.isNotEmpty);
     return notifiedNodes.last.selfOrAncestorDataValue<D>(key: key);
   }
@@ -487,7 +487,7 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
   StateKey get lca => _requestedTransition.lca;
 
   @override
-  DataValue<D>? data<D>([StateKey? key]) {
+  DataValue<D>? data<D>([DataStateKey<D>? key]) {
     return _currentNode.selfOrAncestorDataValue<D>(key: key);
   }
 

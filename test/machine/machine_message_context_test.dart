@@ -16,7 +16,7 @@ void main() {
         final dataByKey = <StateKey, dynamic>{};
         final buildTree = treeBuilder(
           createMessageHandler: (key) => (ctx) {
-            dataByKey[key] = ctx.data<dynamic>(key)!.value;
+            dataByKey[key] = key is DataStateKey<dynamic> ? ctx.data<dynamic>(key)!.value : null;
             return ctx.unhandled();
           },
         );
@@ -191,7 +191,7 @@ void main() {
       test('should throw if provider for key cannot be found', () async {
         final buildTree = treeBuilder(messageHandlers: {
           r_a_a_1_key: (ctx) {
-            ctx.updateOrThrow<ImmutableData>((current) => current, key: r_a_a_2_key);
+            ctx.updateOrThrow<LeafData2>((current) => current, key: r_a_a_2_key);
             return ctx.stay();
           }
         });

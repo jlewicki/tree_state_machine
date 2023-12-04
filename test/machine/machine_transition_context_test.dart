@@ -40,10 +40,11 @@ void main() {
         final dataByKey = <StateKey, Object?>{};
         final buildTree = treeBuilder(
             createEntryHandler: (key) => (ctx) {
-                  dataByKey[key] = ctx.data<dynamic>(key)?.value;
+                  dataByKey[key] =
+                      key is DataStateKey<dynamic> ? ctx.data<dynamic>(key)?.value : null;
                 },
             createExitHandler: (key) => (ctx) {
-                  dataByKey[key] = ctx.data<dynamic>(key)?.value;
+                  key is DataStateKey<dynamic> ? ctx.data<dynamic>(key)?.value : null;
                 },
             messageHandlers: {
               r_b_1_key: (ctx) => ctx.goTo(r_a_a_2_key),

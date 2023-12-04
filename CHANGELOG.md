@@ -4,7 +4,12 @@
 - [StateTreeDefinitionError] is thrown when validating a `StateTreeBuilder`, instead of [StateError].
 - Remove `TreeStateMachine.startWith` and add optional named params to `TreeStateMachine.start`. Having two `start` type
   methods might be confusing. 
-- Adjust parameter of `TreeStateMachine.dataStream` to be `DataStateKey`, not `StateKey`.
+- Adjust parameters of the following to be `DataStateKey`, not `StateKey`.
+   * `TreeStateMachine.dataStream`
+   * `CurrenttState.data`
+   * `CurrentState.dataValue`
+   * `MessageContext.data`
+   * `TransitionContext.data`
 
 ## 3.0.0-dev.1
 - Upgrade to Dart3 SDK

@@ -119,11 +119,17 @@ extension TreeNodeNavigationExtensions on TreeNode {
     return lca!;
   }
 
-  DataValue<D>? selfOrAncestorDataValue<D>({StateKey? key, bool throwIfNotFound = false}) {
+  DataValue<D>? selfOrAncestorDataValue<D>({DataStateKey<D>? key, bool throwIfNotFound = false}) {
+    // We cant search
+    if (isTypeOfExact<void, D>()) return null;
+
     var typeofDIsObjectOrDynamic = isTypeOfExact<Object, D>() || isTypeOfExact<dynamic, D>();
     // If requested type was Object, then we can't meaningfully search by type. So we can only
     // search by key, and if no key was specified, then we assume the current leaf.
-    key = key ?? (typeofDIsObjectOrDynamic ? this.key : null);
+    key = key ??
+        (typeofDIsObjectOrDynamic
+            ? (switch (this.key) { DataStateKey<D>() => this.key as DataStateKey<D>, _ => null })
+            : null);
     var node = key != null ? selfOrAncestorWithKey(key) : selfOrAncestorWithData<D>();
     var dataValue = node?.data;
     if (dataValue != null) {
