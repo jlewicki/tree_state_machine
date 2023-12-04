@@ -367,6 +367,17 @@ class StateTreeBuilder {
     _addState(builder);
   }
 
+  /// Returns a [StateExtensionBuilder] that can be used to add additional metadata to the state
+  /// identified by [stateKey].
+  ///
+  /// Throws [StateError] if a state with [stateKey] has not already been defined.
+  StateExtensionBuilder extendState(StateKey stateKey) {
+    var stateBuilder = _stateBuilders[stateKey];
+    return stateBuilder != null
+        ? StateExtensionBuilder._(stateBuilder)
+        : throw StateError('State $stateKey has not been defined with this $runtimeType');
+  }
+
   /// Writes a textual description of the state stree to the [sink]. The specific output format is
   /// controlled by the type of the [formatter].
   ///

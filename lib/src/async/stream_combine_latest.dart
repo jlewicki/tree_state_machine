@@ -4,7 +4,7 @@ import 'dart:async';
 ///
 /// Each time one of the input streams emits a value, this stream will emit a list containing the
 /// most recently emitted value values from each input stream. The emitted lists have the same
-/// ordering as the iterable passed to [StreamCombineLatest].
+/// ordering as the iterable passed to [StreamCombineLatest.new].
 ///
 /// Note that the combined stream will not emit a value until all of the input streams have emitted
 /// at least one value.

@@ -1,4 +1,4 @@
-part of tree_builders;
+part of '../../tree_builders.dart';
 
 class StateBuilderExtensionInfo {
   StateBuilderExtensionInfo(this.key, this.metadata, this.filters);
@@ -15,7 +15,7 @@ class StateExtensionBuilder {
 
   StateExtensionBuilder metadata(Map<String, Object> metadata) {
     for (var pair in metadata.entries) {
-      if (extensionInfo.metadata.containsKey([pair.key])) {
+      if (extensionInfo.metadata.containsKey(pair.key)) {
         throw StateError(
             'State "${extensionInfo.key}" already has metadata with key "${pair.key}"');
       }
