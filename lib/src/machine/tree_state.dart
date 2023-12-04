@@ -393,7 +393,7 @@ abstract class MessageContext {
 
   /// Returns a [MessageResult] indicating that a transition to the specified state should occur.
   ///
-  /// A `transitionAction` may optionally be specified. This function that will be called during the
+  /// A [transitionAction] may optionally be specified. This function that will be called during the
   /// transition between states, after all states are exited, but before entering any new states.
   ///
   /// A `payload` may be optionally specified. This payload will be made available by
@@ -401,7 +401,7 @@ abstract class MessageContext {
   /// transition, and can be used to provide additional application specific context describing
   /// the transition.
   ///
-  /// A `reenterTarget` flag may be optionally specified. If `true`, and the target state is an
+  /// A [reenterTarget] flag may be optionally specified. If `true`, and the target state is an
   /// active state, then the target state will be exited and entered, calling [TreeState.onExit] and
   /// [TreeState.onEnter], during the transition.
   MessageResult goTo(

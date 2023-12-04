@@ -194,7 +194,7 @@ void main() {
         var currentState = await sm.start(at: data_tree.r_a_a_2_key);
 
         LeafData2? nextValue;
-        currentState.data<LeafData2>()!.listen((value) => nextValue = value);
+        currentState.dataStream<LeafData2>()!.listen((value) => nextValue = value);
         await currentState.post(Object());
 
         expect(nextValue, isNotNull);
@@ -212,16 +212,16 @@ void main() {
 
         var isDone_r_a_a_2 = false;
         var subscription_r_a_a_2 =
-            currentState.data<LeafData2>()!.listen(null, onDone: () => isDone_r_a_a_2 = true);
+            currentState.dataStream<LeafData2>()!.listen(null, onDone: () => isDone_r_a_a_2 = true);
 
         var isDone_r_a_a = false;
         var subscription_r_a_a = currentState
-            .data<LeafDataBase>(data_tree.r_a_a_key)!
+            .dataStream<LeafDataBase>(data_tree.r_a_a_key)!
             .listen(null, onDone: () => isDone_r_a_a = true);
 
         var isDone_r_a = false;
         var subscription_r_a = currentState
-            .data<ImmutableData>(data_tree.r_a_key)!
+            .dataStream<ImmutableData>(data_tree.r_a_key)!
             .listen(null, onDone: () => isDone_r_a = true);
 
         expect(subscription_r_a_a_2, isNotNull);
@@ -244,7 +244,7 @@ void main() {
         ));
         var currentState = await sm.start(at: data_tree.r_a_a_2_key);
 
-        var subscription = currentState.data<String>()?.listen(null);
+        var subscription = currentState.dataStream<String>()?.listen(null);
 
         expect(subscription, isNull);
       });
@@ -253,11 +253,11 @@ void main() {
         final sm = TreeStateMachine(data_tree.treeBuilder());
         var currentState = await sm.start(at: data_tree.r_b_2_key);
 
-        var r_b_2_data = currentState.data<int>();
+        var r_b_2_data = currentState.dataStream<int>();
         expect(r_b_2_data, isNotNull);
         expect(r_b_2_data!.value, equals(2));
 
-        var r_b_data = currentState.data<void>();
+        var r_b_data = currentState.dataStream<void>();
         expect(r_b_data, isNull);
       });
     });

@@ -20,8 +20,8 @@ import 'package:tree_state_machine/tree_state_machine.dart';
 /// class MyData {
 ///   int counter;
 /// }
-/// class Increment {
-/// }
+///
+/// class Increment { }
 ///
 /// var state1 = StateKey('state1');
 /// var treeBuilder = StateTreeBuilder(initialChild: state1);

@@ -24,7 +24,7 @@ abstract class ValueStream<T> implements Stream<T> {
 
   /// The last emitted error,
   ///
-  /// A [StateError] is thrown if a value has not been emitted (that is, if [hasError] returns
+  /// A [StateError] is thrown if a error has not been emitted (that is, if [hasError] returns
   /// false).
   AsyncError get error;
 }

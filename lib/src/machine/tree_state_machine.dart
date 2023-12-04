@@ -498,19 +498,21 @@ class CurrentState {
   /// The [StateKey] identifying the current leaf state.
   StateKey get key => stateMachine._machine.currentLeaf!.key;
 
-  /// Returns the value stream of a given type associated with an active state.
+  /// Returns the value stream of state data type [D] associated with an active data state.
   ///
   /// Starting with the current leaf state, each active state is visited. If a state has a state
-  /// data value that matches `D`, then that value stream for that state is returned. If [key] is
-  /// provided, then the value is only returned if the key matches the active state.
+  /// data value that matches [D], then the value stream for that state is returned. If [key] is
+  /// provided, then the value is only returned if the key matches an active state.
   ///
   /// If [D] is `dynamic`, then the data for the current leaf state is returned, or `null` if the
   /// current leaf state is not a data state.
   ///
   /// If [D] is `void`, `null` is returned.
   ///
-  /// The retured stream completes when the state to which it corresponds is no longer active.
-  ValueStream<D>? data<D>([DataStateKey<D>? key]) {
+  /// The retured stream completes when the state to which it corresponds is no longer active. If a
+  /// long lived stream is needed that remains valid as the state becomes inactive then active
+  /// again, then [TreeStateMachine.dataStream] can be used.
+  ValueStream<D>? dataStream<D>([DataStateKey<D>? key]) {
     if (isTypeOfExact<void, D>()) return null;
     var node = stateMachine._machine.currentLeaf!;
     return node.selfOrAncestorDataValue<D>(key: key);
@@ -544,7 +546,7 @@ class CurrentState {
   ///   currentState.dataValue();         // Returns data from S5
   ///   currentState.dataValue<void>();   // Returns null
   /// ```
-  D? dataValue<D>([DataStateKey<D>? key]) => data<D>(key)?.value;
+  D? dataValue<D>([DataStateKey<D>? key]) => dataStream<D>(key)?.value;
 
   /// Returns `true` if the specified state is an active state in the state machine.
   ///
