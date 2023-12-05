@@ -9,11 +9,6 @@
 * Declarative state definitions with automated generation of state diagrams in DOT format 
 * Nested state machines
 
-## Overview
-The `tree_state_machine` library provides APIs for both defining a hierarchcal tree of states, and creating state 
-machines that can instantiate one of those state trees and managing the current state. The state machine can be used to
-dispatch messages to the current state for processing, and receiving notifications as  state transitions occur.
-
 
 ## Getting Started
 The primary API for the working with a tree state machine is provided by the `tree_state_machine` library. The API for 
@@ -24,6 +19,35 @@ import 'package:tree_state_machine/tree_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 ```
 
+## Overview
+The `tree_state_machine` library provides APIs for both defining a hierarchcal tree of states, and creating state 
+machines that can instantiate one of those state trees and managing the current state. The state machine can be used to
+dispatch messages to the current state for processing, and receiving notifications as state transitions occur.
+
+The typical usage pattern is simular to the following:
+```dart
+// Define state keys that identify the states in the state tree
+sealed class States {
+   static const state1 = StateKey('state1');
+   static const state1 = StateKey('state2');
+}
+
+// Define the state tree
+var treeBuilder = StateTreeBuilder(initialChild: States.state1);
+treeBuilder.state(States.state1, (state) {
+   state.onMessage<AMessage>((handler) => handler.goTo(States.state2));
+});
+treeBuilder.state(States.state2, emptyState);
+
+// Create and start a state machine for the state tree
+var machine = TreeStateMachine(treeBuilder);
+var currentState = await machine.start();
+
+// Send a message to be processed by the current state, which may potentially
+// cause a transition to a different state
+await currentState.post(AMessage());
+
+```
 
 
 ## State Trees

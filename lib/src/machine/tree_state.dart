@@ -800,6 +800,8 @@ typedef TransitionFilter = Future<void> Function(
   Future<void> Function() next,
 );
 
+/// A set of filter methods that can be associated with one or more states in a state tree, to
+/// intercept and potentianlly extend the message and transition handlers of the states.
 class TreeStateFilter {
   TreeStateFilter({
     this.name,
@@ -807,8 +809,19 @@ class TreeStateFilter {
     this.onEnter,
     this.onExit,
   });
+
+  /// Optional user-friendly name of this filter
   final String? name;
+
+  /// The [MessageFilter] that is called to intercept the message handler of the state being
+  /// filtered.
   final MessageFilter? onMessage;
+
+  /// The [TransitionFilter] that is called to intercept the onEnter handler of the state being
+  /// filtered.
   final TransitionFilter? onEnter;
+
+  /// The [TransitionFilter] that is called to intercept the onExit handler of the state being
+  /// filtered.
   final TransitionFilter? onExit;
 }
