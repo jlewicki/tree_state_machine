@@ -100,9 +100,11 @@ class StateTreeBuilder {
     InitialChild initialChild, {
     String? label,
     String? logName,
+    void Function(StateExtensionBuilder)? extensions,
   }) {
     var b = StateTreeBuilder._(rootState, label, logName);
-    b.state(rootState, build, initialChild: initialChild);
+    var extensionBuilder = b.state(rootState, build, initialChild: initialChild);
+    extensions?.call(extensionBuilder);
     return b;
   }
 
@@ -160,7 +162,7 @@ class StateTreeBuilder {
   /// parent state. If the state is itself a parent state (that is, other states refer to it as a
   /// parent), then [initialChild] must be provided, indicating which child state should be entered
   /// when this state is entered.
-  void state(
+  StateExtensionBuilder state(
     StateKey stateKey,
     void Function(StateBuilder<void> builder) build, {
     StateKey? parent,
@@ -176,6 +178,7 @@ class StateTreeBuilder {
     );
     build(builder);
     _addState(builder);
+    return StateExtensionBuilder._(builder);
   }
 
   /// Adds to the state tree a description of a final state, identified by [stateKey]. The behavior
@@ -233,13 +236,13 @@ class StateTreeBuilder {
   /// parent state. If the state is itself a parent state (that is, other states refer to it as a
   /// parent), then [initialChild] must be provided, indicating which child state should be entered
   /// when this state is entered.
-  void dataState<D>(
+  StateExtensionBuilder dataState<D>(
     DataStateKey<D> stateKey,
     InitialData<D> initialData,
     void Function(StateBuilder<D> builder) build, {
     StateKey? parent,
     InitialChild? initialChild,
-    StateDataCodec<D>? codec,
+    StateDataCodec<dynamic>? codec,
   }) {
     var builder = StateBuilder<D>._(
       stateKey,
@@ -252,6 +255,7 @@ class StateTreeBuilder {
     );
     build(builder);
     _addState(builder);
+    return StateExtensionBuilder._(builder);
   }
 
   /// Adds to the state tree a description of a final data state, identified by [stateKey] and
@@ -363,6 +367,29 @@ class StateTreeBuilder {
     _addState(builder);
   }
 
+  /// Returns a [StateExtensionBuilder] that can be used to extend the state identified by
+  /// [stateKey] with additional metadata and filters.
+  ///
+  /// Throws [StateError] if a state with [stateKey] has not already been defined.
+  StateExtensionBuilder extendState(StateKey stateKey) {
+    var stateBuilder = _stateBuilders[stateKey];
+    return stateBuilder != null
+        ? StateExtensionBuilder._(stateBuilder)
+        : throw StateError('State $stateKey has not been defined with this $runtimeType');
+  }
+
+  /// Calls the [extend] function for each state that has been defined, allowing the states to be
+  /// extended with additional metadata and filters.
+  ///
+  /// The [extend] function is provided with a state key identifying the state to extemd, and a
+  /// [StateExtensionBuilder] that can be used to define the extensions.
+  StateTreeBuilder extendStates(void Function(StateKey, StateExtensionBuilder) extend) {
+    for (var entry in _stateBuilders.entries) {
+      extend(entry.key, StateExtensionBuilder._(entry.value));
+    }
+    return this;
+  }
+
   /// Writes a textual description of the state stree to the [sink]. The specific output format is
   /// controlled by the type of the [formatter].
   ///
@@ -401,16 +428,6 @@ class StateTreeBuilder {
 
   void _validate() {
     _ensureChildren();
-
-    // // If an implicit root is used, make sure the initialChild for the root has no parent specified
-    // // This would be deyec
-    // if (_rootKey == defaultRootKey) {
-    //   var initialChildKey = _stateBuilders[_rootKey]?._initialChild?._initialChildKey;
-    //   if (initialChildKey != null) {
-    //     var parentKey = _stateBuilders[initialChildKey]?._parent;
-    //     if (parentKey != null) {}
-    //   }
-    // }
 
     // Make sure parent/child relationships are consistent.
     for (var entry in _stateBuilders.entries

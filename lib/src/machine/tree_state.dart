@@ -172,7 +172,7 @@ class DelegatingTreeState implements TreeState {
   void dispose() => _onDispose();
 }
 
-/// A tree state with an associated data value of type `D`.
+/// A tree state with an associated data value of type [D].
 ///
 /// The [data] property provides access to a [DataValue] that encapsulates to the current state
 /// data, as well as providing change notifications in the form of a [Stream]. This [DataValue]
@@ -384,19 +384,31 @@ abstract class MessageContext {
   /// The message that is being processed by the state machine.
   Object get message;
 
+  /// Identifies the currently active leaf state.
+  StateKey get leafState;
+
+  /// Identifies the active state that is currently processing a message.
+  ///
+  /// This may be an ancestor of [leafState], if the leaf state did not handle the message.
+  StateKey get handlingState;
+
+  /// The states that are currently active, starting at the active leaf state and ending at the
+  /// root.
+  Iterable<StateKey> get activeStates;
+
   /// A map for storing application data.
   ///
   /// This map may be useful for storing application-specific values that might need to shared across
   /// various message handlers as a message is processed. This map will never be read or modified by
   /// the state machine.
-  Map<String, Object> get appData;
+  Map<String, Object> get metadata;
 
   /// Returns a [MessageResult] indicating that a transition to the specified state should occur.
   ///
   /// A [transitionAction] may optionally be specified. This function that will be called during the
   /// transition between states, after all states are exited, but before entering any new states.
   ///
-  /// A `payload` may be optionally specified. This payload will be made available by
+  /// A [payload] may be optionally specified. This payload will be made available by
   /// [TransitionContext.payload] to the states that are exited and entered during the state
   /// transition, and can be used to provide additional application specific context describing
   /// the transition.
@@ -529,6 +541,9 @@ class StopResult extends MessageResult {
 /// A [MessageResult] indicating that a state did not recognize or handle a message.
 class UnhandledResult extends MessageResult {
   UnhandledResult._() : super._();
+  factory UnhandledResult() {
+    return value;
+  }
   static final UnhandledResult value = UnhandledResult._();
 
   @override
@@ -563,6 +578,9 @@ abstract class TransitionContext {
   /// Because this transition may not yet be complete, there may be additional states that will be
   /// entered.
   Iterable<StateKey> get exited;
+
+  /// Identifies the active state that is currently handling the transition.
+  StateKey get handlingState;
 
   /// The least common ancestor (LCA) state of the transition.
   ///
@@ -735,4 +753,62 @@ class StateDataCodec<D> {
   Object? serialize(D? stateData) => _encode(stateData);
 
   D? deserialize(Object? serialized) => _decode(serialized);
+}
+
+//==================================================================================================
+//
+// Filters
+//
+
+/// A function that is called to intercept the message handler of a state in a state tree.
+///
+/// If a state has an associated message filter, that filter will be called in lieu of the message
+/// handler for the state. In addition to the message context, the filter is passed a [next]
+/// function, that when called will call any remaining message filters for the state, followed by
+/// calling the message handler for the state itself.
+///
+/// ```dart
+/// var log = Logger();
+/// MessageFilter loggingFilter = (msgCtx, next) async {
+///   log.info('Calling the message handler for state ${msgCtx.handlingState}');
+///   var result = await next();
+///   log.info('Called the message handler for state ${msgCtx.handlingState}');
+/// }
+/// ```
+typedef MessageFilter = Future<MessageResult> Function(
+  MessageContext msgCtx,
+  Future<MessageResult> Function() next,
+);
+
+/// A function that is called to intercept a transition handler of a state in a state tree.
+///
+/// If a state has an associated onEntry or onExit transition filter, that filter will be called in
+/// lieu of the transition handler for the state. In addition to the transition context, the filter
+/// is passed a [next] function, that when called will call any remaining transition filters for the
+/// state, followed by calling the transition handler for the state itself.
+///
+///  ```dart
+/// var log = Logger();
+/// TransitionFilter loggingOnEntryFilter = (transCtx, next) async {
+///   log.info('Calling the onEnter handler for state ${transCtx.handlingState}');
+///   var result = await next();
+///   log.info('Called the onEnter handler for state ${transCtx.handlingState}');
+/// }
+/// ```
+typedef TransitionFilter = Future<void> Function(
+  TransitionContext ctx,
+  Future<void> Function() next,
+);
+
+class TreeStateFilter {
+  TreeStateFilter({
+    this.name,
+    this.onMessage,
+    this.onEnter,
+    this.onExit,
+  });
+  final String? name;
+  final MessageFilter? onMessage;
+  final TransitionFilter? onEnter;
+  final TransitionFilter? onExit;
 }

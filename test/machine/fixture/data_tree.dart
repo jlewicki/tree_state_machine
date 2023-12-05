@@ -28,6 +28,7 @@ StateTreeBuilder treeBuilder({
   Map<StateKey, TransitionHandler>? entryHandlers,
   Map<StateKey, MessageHandler>? messageHandlers,
   Map<StateKey, TransitionHandler>? exitHandlers,
+  Map<StateKey, List<TreeStateFilter>>? filters,
   Map<StateKey, Object Function()>? initialDataValues,
 }) {
   final createEntryHandler_ = createEntryHandler ?? (_) => emptyTransitionHandler;
@@ -37,6 +38,7 @@ StateTreeBuilder treeBuilder({
   final messageHandlers_ = messageHandlers ?? {};
   final exitHandlers_ = exitHandlers ?? {};
   final initialDataValueCreators = initialDataValues ?? {};
+  final filters_ = filters ?? {};
 
   void Function(StateBuilder<void>) buildState(StateKey key) {
     return (b) {
@@ -76,7 +78,7 @@ StateTreeBuilder treeBuilder({
     };
   }
 
-  var b = StateTreeBuilder.withDataRoot<SpecialDataD>(
+  var builder = StateTreeBuilder.withDataRoot<SpecialDataD>(
     r_key,
     InitialData(buildInitialDataValue(
         r_key,
@@ -88,84 +90,119 @@ StateTreeBuilder treeBuilder({
     codec: SpecialDataD.codec,
   );
 
-  b.finalState(r_X_key, buildFinalState(r_X_key));
+  builder.finalState(r_X_key, buildFinalState(r_X_key));
 
-  b.finalDataState<FinalData>(
+  builder.finalDataState<FinalData>(
     r_XD_key,
     InitialData(buildInitialDataValue(r_XD_key, FinalData()..counter = 1)),
     buildFinalDataState(r_XD_key),
   );
 
-  b.dataState<ImmutableData>(
-    r_a_key,
-    InitialData(buildInitialDataValue(r_a_key, ImmutableData(name: 'r_a', price: 20))),
-    buildDataState<ImmutableData>(r_a_key),
-    parent: r_key,
-    initialChild: InitialChild(r_a_a_key),
-    codec: ImmutableData.codec,
-  );
+  builder
+      .dataState<ImmutableData>(
+        r_a_key,
+        InitialData(buildInitialDataValue(r_a_key, ImmutableData(name: 'r_a', price: 20))),
+        buildDataState<ImmutableData>(r_a_key),
+        parent: r_key,
+        initialChild: InitialChild(r_a_a_key),
+        codec: ImmutableData.codec,
+      )
+      .filters(filters_[r_a_key] ?? []);
 
-  b.dataState<LeafDataBase>(
-    r_a_a_key,
-    InitialData(buildInitialDataValue(r_a_a_key, LeafDataBase()..name = 'leaf data base')),
-    buildDataState<LeafDataBase>(r_a_a_key),
-    parent: r_a_key,
-    initialChild: InitialChild(r_a_a_2_key),
-    codec: LeafDataBase.codec,
-  );
+  builder
+      .dataState<LeafDataBase>(
+        r_a_a_key,
+        InitialData(buildInitialDataValue(r_a_a_key, LeafDataBase()..name = 'leaf data base')),
+        buildDataState<LeafDataBase>(r_a_a_key),
+        parent: r_a_key,
+        initialChild: InitialChild(r_a_a_2_key),
+        codec: LeafDataBase.codec,
+      )
+      .filters(filters_[r_a_a_key] ?? []);
 
-  b.dataState<LeafData1>(
-    r_a_a_1_key,
-    InitialData(buildInitialDataValue(r_a_a_1_key, LeafData1()..counter = 1)),
-    buildDataState<LeafData1>(r_a_a_1_key),
-    parent: r_a_a_key,
-    codec: LeafData1.codec,
-  );
+  builder
+      .dataState<LeafData1>(
+        r_a_a_1_key,
+        InitialData(buildInitialDataValue(r_a_a_1_key, LeafData1()..counter = 1)),
+        buildDataState<LeafData1>(r_a_a_1_key),
+        parent: r_a_a_key,
+        codec: LeafData1.codec,
+      )
+      .filters(filters_[r_a_a_1_key] ?? []);
 
-  b.dataState<LeafData2>(
-    r_a_a_2_key,
-    InitialData(buildInitialDataValue(r_a_a_2_key, LeafData2()..label = 'leaf data')),
-    buildDataState<LeafData2>(r_a_a_2_key),
-    parent: r_a_a_key,
-    codec: LeafData2.codec,
-  );
+  builder
+      .dataState<LeafData2>(
+        r_a_a_2_key,
+        InitialData(buildInitialDataValue(r_a_a_2_key, LeafData2()..label = 'leaf data')),
+        buildDataState<LeafData2>(r_a_a_2_key),
+        parent: r_a_a_key,
+        codec: LeafData2.codec,
+      )
+      .filters(filters_[r_a_a_2_key] ?? []);
 
-  b.dataState<ImmutableData>(
-    r_a_1_key,
-    InitialData(buildInitialDataValue(r_a_1_key, ImmutableData(name: 'r_a_1', price: 10))),
-    buildDataState<ImmutableData>(r_a_1_key),
-    parent: r_a_key,
-    codec: ImmutableData.codec,
-  );
+  builder
+      .dataState<ImmutableData>(
+        r_a_1_key,
+        InitialData(buildInitialDataValue(r_a_1_key, ImmutableData(name: 'r_a_1', price: 10))),
+        buildDataState<ImmutableData>(r_a_1_key),
+        parent: r_a_key,
+        codec: ImmutableData.codec,
+      )
+      .filters(filters_[r_a_1_key] ?? []);
 
-  b.state(r_b_key, buildState(r_b_key), parent: r_key, initialChild: InitialChild(r_b_1_key));
-  b.state(r_b_1_key, buildState(r_b_1_key), parent: r_b_key);
-  b.dataState<int>(
-    r_b_2_key,
-    InitialData(buildInitialDataValue(r_b_2_key, 2)),
-    buildState(r_b_2_key),
-    parent: r_b_key,
-  );
+  builder
+      .state(
+        r_b_key,
+        buildState(r_b_key),
+        parent: r_key,
+        initialChild: InitialChild(r_b_1_key),
+      )
+      .filters(filters_[r_b_key] ?? []);
+  builder
+      .state(
+        r_b_1_key,
+        buildState(r_b_1_key),
+        parent: r_b_key,
+      )
+      .filters(filters_[r_b_1_key] ?? []);
+  builder
+      .dataState<int>(
+        r_b_2_key,
+        InitialData(buildInitialDataValue(r_b_2_key, 2)),
+        buildState(r_b_2_key),
+        parent: r_b_key,
+      )
+      .filters(filters_[r_b_2_key] ?? []);
 
-  b.dataState<ReadOnlyData>(
-    r_c_key,
-    InitialData(buildInitialDataValue(r_c_key, ReadOnlyData('r_c', 1))),
-    buildDataState<ReadOnlyData>(r_c_key),
-    parent: r_key,
-    initialChild: InitialChild(r_c_a_key),
-    codec: ReadOnlyData.codec,
-  );
+  builder
+      .dataState<ReadOnlyData>(
+        r_c_key,
+        InitialData(buildInitialDataValue(r_c_key, ReadOnlyData('r_c', 1))),
+        buildDataState<ReadOnlyData>(r_c_key),
+        parent: r_key,
+        initialChild: InitialChild(r_c_a_key),
+        codec: ReadOnlyData.codec,
+      )
+      .filters(filters_[r_c_key] ?? []);
 
-  b.dataState<ReadOnlyData>(
-    r_c_a_key,
-    InitialData(buildInitialDataValue(r_c_a_key, ReadOnlyData('r_c_a', 2))),
-    buildDataState<ReadOnlyData>(r_c_a_key),
-    parent: r_c_key,
-    initialChild: InitialChild(r_c_a_1_key),
-    codec: ReadOnlyData.codec,
-  );
+  builder
+      .dataState<ReadOnlyData>(
+        r_c_a_key,
+        InitialData(buildInitialDataValue(r_c_a_key, ReadOnlyData('r_c_a', 2))),
+        buildDataState<ReadOnlyData>(r_c_a_key),
+        parent: r_c_key,
+        initialChild: InitialChild(r_c_a_1_key),
+        codec: ReadOnlyData.codec,
+      )
+      .filters(filters_[r_c_a_key] ?? []);
 
-  b.state(r_c_a_1_key, buildState(r_c_a_1_key), parent: r_c_a_key);
+  builder
+      .state(
+        r_c_a_1_key,
+        buildState(r_c_a_1_key),
+        parent: r_c_a_key,
+      )
+      .filters(filters_[r_c_a_1_key] ?? []);
 
-  return b;
+  return builder;
 }

@@ -51,31 +51,27 @@ class Machine {
   /// entered. The initial leaf state is determined by following the initial child path starting at
   /// the root state, or the state identified by [initialState].
   ///
-  /// Additionally, if [initialData] contains data values for any data states that are entered,
-  /// those values are used when realizing the initial data values for those states. The initial
-  /// data functions associated with those state will *not* be called.
-  ///
   /// Returns a future yielding a [MachineTransitionContext] that describes the states that were
   /// entered.
-  Future<Transition> enterInitialState([StateKey? initialStateKey, InitialStateData? initialData]) {
-    final initialNode = initialStateKey != null ? nodes[initialStateKey] : rootNode;
+  Future<Transition> enterInitialState(
+      [StateKey? initialState, InitialStateData? initialData, Object? payload]) {
+    final initialNode = initialState != null ? nodes[initialState] : rootNode;
     if (initialNode == null) {
       throw ArgumentError.value(
-        initialStateKey.toString(),
+        initialState,
         'initalStateKey',
         'This TreeStateMachine does not contain the specified initial state.',
       );
     }
     final path = MachineTransition.enterFromRoot(rootNode.treeNode, to: initialNode.treeNode);
-    return _doTransition(path, initialStateData: initialData);
+    return _doTransition(path, initialStateData: initialData, payload: payload);
   }
 
-  Future<ProcessedMessage> processMessage(Object message, [StateKey? initialStateKey]) async {
+  Future<ProcessedMessage> processMessage(Object message, [StateKey? initialState]) async {
     _log.fine('Processing message $message');
 
     if (_currentLeafNode == null) {
-      final initialStateKey_ = initialStateKey ?? rootNode.treeNode.key;
-      await enterInitialState(initialStateKey_);
+      await enterInitialState(initialState);
     }
 
     // If the state machine is in a final state, do not dispatch the message for processing,
@@ -364,8 +360,15 @@ class Machine {
   }
 
   static void _addStoppedNode(TreeNode rootNode, Map<StateKey, TreeNode> nodesByKey) {
-    var stoppedNode =
-        TreeNode(NodeType.finalLeafNode, stoppedStateKey, rootNode, (_) => _stoppedState, null);
+    var stoppedNode = TreeNode(
+      NodeType.finalLeafNode,
+      stoppedStateKey,
+      rootNode,
+      (_) => _stoppedState,
+      null,
+      [],
+      null,
+    );
     nodesByKey[stoppedStateKey] = stoppedNode;
     rootNode.children.add(stoppedNode);
   }
@@ -393,11 +396,20 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
     return notifiedNodes.last.selfOrAncestorDataValue<D>(key: key);
   }
 
+  StateKey get handlingState {
+    var handlingNode = notifiedNodes.lastOrNull ?? receivingLeafNode;
+    return handlingNode.key;
+  }
+
+  StateKey get leafState => receivingLeafNode.key;
+
+  Iterable<StateKey> get activeStates => notifiedNodes.map((n) => n.key);
+
   @override
   final Object message;
 
   @override
-  final Map<String, Object> appData = {};
+  final Map<String, Object> metadata = {};
 
   @override
   MessageResult goTo(
@@ -451,6 +463,29 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
 
   FutureOr<MessageResult> onMessage(TreeNode node) {
     notifiedNodes.add(node);
+    return _runMessageHandlers(node);
+  }
+
+  FutureOr<MessageResult> _runMessageHandlers(TreeNode node) {
+    if (node.filters.isNotEmpty) {
+      var filters = node.filters;
+      var currentFilterIndex = 0;
+      // Note that for the sake of convenience to filter authors, message filters return a
+      // Future, not a FutureOr
+      Future<MessageResult> run() {
+        if (currentFilterIndex >= filters.length) {
+          // No filters left, let the state handle the message
+          var result = node.state.onMessage(this);
+          return result is Future<MessageResult> ? result : Future<MessageResult>.value(result);
+        }
+
+        var msgFilter = filters[currentFilterIndex++].onMessage;
+        return msgFilter != null ? msgFilter.call(this, run) : run();
+      }
+
+      return run();
+    }
+
     return node.state.onMessage(this);
   }
 }
@@ -473,6 +508,10 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
 
   @override
   Object? get payload => _payload;
+
+  @override
+  StateKey get handlingState =>
+      _enteredNodes.isNotEmpty ? _enteredNodes.last.key : _exitedNodes.last.key;
 
   @override
   Transition get requestedTransition => _requestedTransition;
@@ -529,7 +568,11 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
     _currentNode = node;
     _enteredNodes.add(node);
     _machine._log.fine("Entering state '${node.key}'");
-    return node.state.onEnter(this);
+    return _runTransitionHandlers(
+      node,
+      (filter) => filter.onEnter,
+      (state) => state.onEnter,
+    );
   }
 
   FutureOr<void> onExit(TreeNode node) {
@@ -537,7 +580,38 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
     _exitedNodes.add(node);
     _machine._node(node.key).cancelTimers();
     _machine._log.fine("Exiting state '${node.key}'");
-    return node.state.onExit(this);
+    return _runTransitionHandlers(
+      node,
+      (filter) => filter.onExit,
+      (state) => state.onExit,
+    );
+  }
+
+  FutureOr<void> _runTransitionHandlers(
+    TreeNode node,
+    TransitionFilter? Function(TreeStateFilter) getFilter,
+    TransitionHandler Function(TreeState) getHandler,
+  ) {
+    var handler = getHandler(node.state);
+    if (node.filters.isNotEmpty) {
+      var filters = node.filters;
+      var currentFilterIndex = 0;
+      // Note that for the sake of convenience to filter authors, transition filters return a
+      // Future, not a FutureOr
+      Future<void> run() {
+        if (currentFilterIndex >= filters.length) {
+          // No filters left, let the state handle the transition
+          var result = handler.call(this);
+          return result is Future<void> ? result : Future<void>.value();
+        }
+        var transFilter = getFilter(filters[currentFilterIndex++]);
+        return transFilter != null ? transFilter.call(this, run) : run();
+      }
+
+      return run();
+    }
+
+    return handler(this);
   }
 }
 

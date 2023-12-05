@@ -33,6 +33,7 @@ part 'src/builders/tree_builder.dart';
 part 'src/builders/tree_build_context.dart';
 part 'src/builders/tree_formatters.dart';
 part 'src/builders/state_builder.dart';
+part 'src/builders/state_builder_extensions.dart';
 part 'src/builders/message_action_builder.dart';
 part 'src/builders/message_handler_builder.dart';
 part 'src/builders/transition_handler_builder.dart';

@@ -11,12 +11,12 @@ class TypeLiteral<T> {
   Type get type => T;
 }
 
-bool isTypeOf<ThisType, OfType>() => _Instance<ThisType>() is _Instance<OfType>;
+bool isTypeOf<ThisType, OfType>() => _Phantom<ThisType>() is _Phantom<OfType>;
 
 bool isTypeOfExact<ThisType, OfType>() =>
     TypeLiteral<ThisType>().type == TypeLiteral<OfType>().type;
 
-class _Instance<T> {}
+class _Phantom<T> {}
 
 /// Returns `true` if [value] is a member of an enumeration.
 bool isEnumValue(Object value) {
