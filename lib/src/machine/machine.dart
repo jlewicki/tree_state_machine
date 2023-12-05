@@ -396,13 +396,16 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
     return notifiedNodes.last.selfOrAncestorDataValue<D>(key: key);
   }
 
+  @override
   StateKey get handlingState {
     var handlingNode = notifiedNodes.lastOrNull ?? receivingLeafNode;
     return handlingNode.key;
   }
 
+  @override
   StateKey get leafState => receivingLeafNode.key;
 
+  @override
   Iterable<StateKey> get activeStates => notifiedNodes.map((n) => n.key);
 
   @override
