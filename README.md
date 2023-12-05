@@ -48,6 +48,7 @@ var currentState = await machine.start();
 await currentState.post(AMessage());
 
 ```
+The following sections describe these steps in more detail.
 
 
 ## State Trees
