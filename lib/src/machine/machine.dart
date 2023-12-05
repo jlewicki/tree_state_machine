@@ -470,10 +470,13 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
     if (node.filters.isNotEmpty) {
       var filters = node.filters;
       var currentFilterIndex = 0;
-      FutureOr<MessageResult> run() {
+      // Note that for the sake of convenience to filter authors, message filters return a
+      // Future, not a FutureOr
+      Future<MessageResult> run() {
         if (currentFilterIndex >= filters.length) {
           // No filters left, let the state handle the message
-          return node.state.onMessage(this);
+          var result = node.state.onMessage(this);
+          return result is Future<MessageResult> ? result : Future<MessageResult>.value(result);
         }
 
         var msgFilter = filters[currentFilterIndex++].onMessage;
@@ -505,6 +508,10 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
 
   @override
   Object? get payload => _payload;
+
+  @override
+  StateKey get handlingState =>
+      _enteredNodes.isNotEmpty ? _enteredNodes.last.key : _exitedNodes.last.key;
 
   @override
   Transition get requestedTransition => _requestedTransition;
@@ -589,10 +596,13 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
     if (node.filters.isNotEmpty) {
       var filters = node.filters;
       var currentFilterIndex = 0;
-      FutureOr<void> run() {
+      // Note that for the sake of convenience to filter authors, transition filters return a
+      // Future, not a FutureOr
+      Future<void> run() {
         if (currentFilterIndex >= filters.length) {
           // No filters left, let the state handle the transition
-          return handler.call(this);
+          var result = handler.call(this);
+          return result is Future<void> ? result : Future<void>.value();
         }
         var transFilter = getFilter(filters[currentFilterIndex++]);
         return transFilter != null ? transFilter.call(this, run) : run();

@@ -579,6 +579,9 @@ abstract class TransitionContext {
   /// entered.
   Iterable<StateKey> get exited;
 
+  /// Identifies the active state that is currently handling the transition.
+  StateKey get handlingState;
+
   /// The least common ancestor (LCA) state of the transition.
   ///
   /// The LCA state is the parent state of the last state exited and the first state entered during
@@ -763,9 +766,18 @@ class StateDataCodec<D> {
 /// handler for the state. In addition to the message context, the filter is passed a [next]
 /// function, that when called will call any remaining message filters for the state, followed by
 /// calling the message handler for the state itself.
-typedef MessageFilter = FutureOr<MessageResult> Function(
+///
+/// ```dart
+/// var log = Logger();
+/// MessageFilter loggingFilter = (msgCtx, next) async {
+///   log.info('Calling the message handler for state ${msgCtx.handlingState}');
+///   var result = await next();
+///   log.info('Called the message handler for state ${msgCtx.handlingState}');
+/// }
+/// ```
+typedef MessageFilter = Future<MessageResult> Function(
   MessageContext msgCtx,
-  FutureOr<MessageResult> Function() next,
+  Future<MessageResult> Function() next,
 );
 
 /// A function that is called to intercept a transition handler of a state in a state tree.
@@ -774,9 +786,18 @@ typedef MessageFilter = FutureOr<MessageResult> Function(
 /// lieu of the transition handler for the state. In addition to the transition context, the filter
 /// is passed a [next] function, that when called will call any remaining transition filters for the
 /// state, followed by calling the transition handler for the state itself.
-typedef TransitionFilter = FutureOr<void> Function(
+///
+///  ```dart
+/// var log = Logger();
+/// TransitionFilter loggingOnEntryFilter = (transCtx, next) async {
+///   log.info('Calling the onEnter handler for state ${transCtx.handlingState}');
+///   var result = await next();
+///   log.info('Called the onEnter handler for state ${transCtx.handlingState}');
+/// }
+/// ```
+typedef TransitionFilter = Future<void> Function(
   TransitionContext ctx,
-  FutureOr<void> Function() next,
+  Future<void> Function() next,
 );
 
 class TreeStateFilter {
