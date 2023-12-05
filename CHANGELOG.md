@@ -6,11 +6,11 @@
   methods might be confusing. 
 - Adjust parameters of the following to be `DataStateKey`, not `StateKey`:
    * `TreeStateMachine.dataStream` 
-   * `CurrenttState.data` 
+   * `CurrentState.data` 
    * `CurrentState.dataValue` 
    * `MessageContext.data`  
    * `TransitionContext.data` 
-- Rename `CurrenttState.data` -> `CurrenttState.dataStream`.
+- Rename `CurrentState.data` -> `CurrentState.dataStream`.
 - Add `TreeStateFilter`.
 - Add `leafState`, `handlingState`, and `activeStates` to `MessageContext`.
 - Add `handlingState` to `TransitionContext`

@@ -367,8 +367,8 @@ class StateTreeBuilder {
     _addState(builder);
   }
 
-  /// Returns a [StateExtensionBuilder] that can be used to add additional metadata to the state
-  /// identified by [stateKey].
+  /// Returns a [StateExtensionBuilder] that can be used to extend the state identified by
+  /// [stateKey] with additional metadata and filters.
   ///
   /// Throws [StateError] if a state with [stateKey] has not already been defined.
   StateExtensionBuilder extendState(StateKey stateKey) {
@@ -378,6 +378,11 @@ class StateTreeBuilder {
         : throw StateError('State $stateKey has not been defined with this $runtimeType');
   }
 
+  /// Calls the [extend] function for each state that has been defined, allowing the states to be
+  /// extended with additional metadata and filters.
+  ///
+  /// The [extend] function is provided with a state key identifying the state to extemd, and a
+  /// [StateExtensionBuilder] that can be used to define the extensions.
   StateTreeBuilder extendStates(void Function(StateKey, StateExtensionBuilder) extend) {
     for (var entry in _stateBuilders.entries) {
       extend(entry.key, StateExtensionBuilder._(entry.value));
