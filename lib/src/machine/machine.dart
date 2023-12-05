@@ -409,7 +409,7 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
   final Object message;
 
   @override
-  final Map<String, Object> meta = {};
+  final Map<String, Object> metadata = {};
 
   @override
   MessageResult goTo(
