@@ -401,7 +401,7 @@ abstract class MessageContext {
   /// This map may be useful for storing application-specific values that might need to shared across
   /// various message handlers as a message is processed. This map will never be read or modified by
   /// the state machine.
-  Map<String, Object> get appData;
+  Map<String, Object> get meta;
 
   /// Returns a [MessageResult] indicating that a transition to the specified state should occur.
   ///

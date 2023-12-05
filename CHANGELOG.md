@@ -13,7 +13,8 @@
 - Rename `CurrentState.data` -> `CurrentState.dataStream`.
 - Add `TreeStateFilter`.
 - Add `leafState`, `handlingState`, and `activeStates` to `MessageContext`.
-- Add `handlingState` to `TransitionContext`
+- Add `handlingState` to `TransitionContext`.
+- Rename `MessageContext.appData` -> - `MessageContext.meta`.
 
 ## 3.0.0-dev.1
 - Upgrade to Dart3 SDK
