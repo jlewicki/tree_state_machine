@@ -106,9 +106,19 @@ void main() async {
     (req) async => Result.error('nope'),
   );
 
-  var treeBuilder = appStateTree(authService);
+  var logger = Logger('LogFilter');
+  var loggingFilter = TreeStateFilter(
+    name: 'loggingFilter',
+    onMessage: (msgCtx, next) {
+      logger.info('State ${msgCtx.handlingState} is handling message ${msgCtx.message}');
+      return next();
+    },
+  );
 
+  var treeBuilder = appStateTree(authService);
+  treeBuilder.extendStates((_, b) => b.filter(loggingFilter));
   var stateMachine = TreeStateMachine(treeBuilder);
+
   var currentState = await stateMachine.start();
   assert(currentState.key == States.splash);
 

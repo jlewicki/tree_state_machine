@@ -25,7 +25,12 @@ class StateExtensionBuilder {
     return this;
   }
 
-  StateExtensionBuilder filters(List<TreeStateFilter> filters) {
+  StateExtensionBuilder filter(TreeStateFilter filters) {
+    extensionInfo.filters.add(filters);
+    return this;
+  }
+
+  StateExtensionBuilder filters(Iterable<TreeStateFilter> filters) {
     extensionInfo.filters.addAll(filters);
     return this;
   }

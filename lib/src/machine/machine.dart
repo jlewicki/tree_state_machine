@@ -396,6 +396,15 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
     return notifiedNodes.last.selfOrAncestorDataValue<D>(key: key);
   }
 
+  StateKey get handlingState {
+    var handlingNode = notifiedNodes.lastOrNull ?? receivingLeafNode;
+    return handlingNode.key;
+  }
+
+  StateKey get leafState => receivingLeafNode.key;
+
+  Iterable<StateKey> get activeStates => notifiedNodes.map((n) => n.key);
+
   @override
   final Object message;
 
@@ -462,11 +471,13 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
       var filters = node.filters;
       var currentFilterIndex = 0;
       FutureOr<MessageResult> run() {
-        if (currentFilterIndex < filters.length) {
-          return filters[currentFilterIndex++].onMessage(this, run);
-        } else {
+        if (currentFilterIndex >= filters.length) {
+          // No filters left, let the state handle the message
           return node.state.onMessage(this);
         }
+
+        var msgFilter = filters[currentFilterIndex++].onMessage;
+        return msgFilter != null ? msgFilter.call(this, run) : run();
       }
 
       return run();
@@ -550,7 +561,11 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
     _currentNode = node;
     _enteredNodes.add(node);
     _machine._log.fine("Entering state '${node.key}'");
-    return node.state.onEnter(this);
+    return _runTransitionHandlers(
+      node,
+      (filter) => filter.onEnter,
+      (state) => state.onEnter,
+    );
   }
 
   FutureOr<void> onExit(TreeNode node) {
@@ -558,7 +573,35 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
     _exitedNodes.add(node);
     _machine._node(node.key).cancelTimers();
     _machine._log.fine("Exiting state '${node.key}'");
-    return node.state.onExit(this);
+    return _runTransitionHandlers(
+      node,
+      (filter) => filter.onExit,
+      (state) => state.onExit,
+    );
+  }
+
+  FutureOr<void> _runTransitionHandlers(
+    TreeNode node,
+    TransitionFilter? Function(TreeStateFilter) getFilter,
+    TransitionHandler Function(TreeState) getHandler,
+  ) {
+    var handler = getHandler(node.state);
+    if (node.filters.isNotEmpty) {
+      var filters = node.filters;
+      var currentFilterIndex = 0;
+      FutureOr<void> run() {
+        if (currentFilterIndex >= filters.length) {
+          // No filters left, let the state handle the transition
+          return handler.call(this);
+        }
+        var transFilter = getFilter(filters[currentFilterIndex++]);
+        return transFilter != null ? transFilter.call(this, run) : run();
+      }
+
+      return run();
+    }
+
+    return handler(this);
   }
 }
 

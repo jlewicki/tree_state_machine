@@ -1,7 +1,6 @@
 // ignore_for_file: non_constant_identifier_names
 
 import 'dart:async';
-
 import 'package:collection/collection.dart';
 import 'package:test/test.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
@@ -392,7 +391,7 @@ void main() {
       });
     });
 
-    test('should run state filters in order', () async {
+    test('should run message filters in order', () async {
       var filtersExecutedBefore = <int>[];
       var filtersExecutedAfter = <int>[];
       var wasTreeStateHandlerRun = false;

@@ -378,6 +378,13 @@ class StateTreeBuilder {
         : throw StateError('State $stateKey has not been defined with this $runtimeType');
   }
 
+  StateTreeBuilder extendStates(void Function(StateKey, StateExtensionBuilder) extend) {
+    for (var entry in _stateBuilders.entries) {
+      extend(entry.key, StateExtensionBuilder._(entry.value));
+    }
+    return this;
+  }
+
   /// Writes a textual description of the state stree to the [sink]. The specific output format is
   /// controlled by the type of the [formatter].
   ///
@@ -416,16 +423,6 @@ class StateTreeBuilder {
 
   void _validate() {
     _ensureChildren();
-
-    // // If an implicit root is used, make sure the initialChild for the root has no parent specified
-    // // This would be deyec
-    // if (_rootKey == defaultRootKey) {
-    //   var initialChildKey = _stateBuilders[_rootKey]?._initialChild?._initialChildKey;
-    //   if (initialChildKey != null) {
-    //     var parentKey = _stateBuilders[initialChildKey]?._parent;
-    //     if (parentKey != null) {}
-    //   }
-    // }
 
     // Make sure parent/child relationships are consistent.
     for (var entry in _stateBuilders.entries
