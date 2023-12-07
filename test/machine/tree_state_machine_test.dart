@@ -423,7 +423,7 @@ void main() {
     });
 
     group('start', () {
-      test('shoud start in initial state', () async {
+      test('should start in initial state', () async {
         var treeBuilder = StateTreeBuilder(initialChild: tree.r_b_key)
           ..state(tree.r_a_key, emptyState, initialChild: InitialChild(tree.r_a_1_key))
           ..state(tree.r_a_1_key, emptyState, parent: tree.r_a_key)
@@ -431,6 +431,16 @@ void main() {
         var sm = TreeStateMachine(treeBuilder);
         var cur = await sm.start();
         expect(cur.key, equals(tree.r_b_key));
+      });
+
+      test('should cause isStarting to return true before future completes', () async {
+        var treeBuilder = StateTreeBuilder(initialChild: tree.r_a_key)
+          ..state(tree.r_a_key, emptyState);
+        var sm = TreeStateMachine(treeBuilder);
+        var future = sm.start();
+        expect(sm.isStarting, isTrue);
+        await future;
+        expect(sm.isStarting, isFalse);
       });
     });
 

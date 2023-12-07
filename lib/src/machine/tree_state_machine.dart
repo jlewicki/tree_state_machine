@@ -132,7 +132,10 @@ class TreeStateMachine {
   /// An optional descriptive label for this state machine, for diagnostic purposes.
   final String? label;
 
-  /// Returns `true` if the future returned by [start] has completed..
+  /// Returns `true` if [start] has been called, but the returned future has not yet completed.
+  bool get isStarting => _lifecycle.state == LifecycleState.starting;
+
+  /// Returns `true` if the future returned by [start] has completed.
   bool get isStarted => _lifecycle.state == LifecycleState.started;
 
   /// Returns `true` if the state machine has ended.

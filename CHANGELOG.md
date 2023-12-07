@@ -1,3 +1,6 @@
+# 3.0.0-dev.3
+- Add `TreeStateMachine.isStarting`.
+
 ## 3.0.0-dev.2
 - The `initialState` parameter of the `StateTreeBuilder` constructor was renamed to `initialChild` to reduce developer
   confusion, and the error message was improved when this parameter refers to an invalid state.
