@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:html_common';
 
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/async.dart';
@@ -193,6 +194,7 @@ class TreeStateMachine {
   /// The [TreeNodeInfo] of the root node of this state machine.
   ///
   /// Each node in the state tree is accessible from this node and its [TreeNodeInfo.getChildren].
+  @Experimental()
   TreeNodeInfo get rootNode => _machine.rootNode.treeNode;
 
   /// Starts the state machine, transitioning the current state to the initial state of the state
