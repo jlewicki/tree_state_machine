@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:html_common';
 
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/async.dart';
