@@ -6,6 +6,7 @@ import 'package:tree_state_machine/src/machine/utility.dart';
 
 enum NodeType { rootNode, interiorNode, leafNode, finalLeafNode }
 
+/// Describes the positioning of a tree state within a state tree.
 abstract class TreeNodeInfo {
   /// The type of this tree node.
   NodeType get nodeType;
@@ -16,7 +17,13 @@ abstract class TreeNodeInfo {
   /// The parent node of this true node. Returns `null` if this is a root node.
   TreeNodeInfo? get parent;
 
+  /// Application provided metadata associated with the state.
   Map<String, Object> get metadata;
+
+  /// The child nodes of this node. The list is empty for leaf nodes.
+  ///
+  /// This list is unmodifiable.
+  List<TreeNodeInfo> getChildren();
 }
 
 /// A node within a state tree.
@@ -52,6 +59,8 @@ class TreeNode implements TreeNodeInfo {
   /// Lazily computed tree state for this node
   final Lazy<TreeState> _lazyState;
 
+  /// Filters for this node. When available, these filters are invoked, in the order represented by
+  /// this list, in lieu of node handlers.
   final List<TreeStateFilter> filters;
 
   @override
@@ -67,8 +76,8 @@ class TreeNode implements TreeNodeInfo {
     Map<String, Object>? metadata, [
     this.getInitialChild,
   ])  : _lazyState = Lazy<TreeState>(() => createState(key)),
-        filters = filters?.toList() ?? List.empty(),
-        metadata = metadata != null ? Map.from(metadata) : Map.unmodifiable({});
+        filters = List.unmodifiable(filters ?? List.empty()),
+        metadata = Map.unmodifiable(metadata ?? {});
 
   bool get isRoot => nodeType == NodeType.rootNode;
   bool get isLeaf => nodeType == NodeType.leafNode || nodeType == NodeType.finalLeafNode;
@@ -84,6 +93,9 @@ class TreeNode implements TreeNodeInfo {
     var s = state;
     return s is DataTreeState ? s.data : null;
   }
+
+  @override
+  List<TreeNodeInfo> getChildren() => UnmodifiableListView(children);
 
   /// Lazily-compute the self-and-ancestor nodes of this node.
   ///

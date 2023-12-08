@@ -190,6 +190,11 @@ class TreeStateMachine {
   Stream<FailedMessage> get failedMessages =>
       Stream.castFrom(processedMessages.where((mp) => mp is FailedMessage));
 
+  /// The [TreeNodeInfo] of the root node of this state machine.
+  ///
+  /// Each node in the state tree is accessible from this node and its [TreeNodeInfo.getChildren].
+  TreeNodeInfo get rootNode => _machine.rootNode.treeNode;
+
   /// Starts the state machine, transitioning the current state to the initial state of the state
   /// tree. Returns a [CurrentState] that can be used to send messages for processing.
   ///

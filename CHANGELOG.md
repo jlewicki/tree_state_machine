@@ -1,5 +1,6 @@
 # 3.0.0-dev.3
 - Add `TreeStateMachine.isStarting`.
+- Experimental: Add `TreeStateMachine.rootNode`.
 
 ## 3.0.0-dev.2
 - The `initialState` parameter of the `StateTreeBuilder` constructor was renamed to `initialChild` to reduce developer
