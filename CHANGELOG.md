@@ -1,4 +1,7 @@
-# 3.0.0-dev.3
+## 3.0.0-dev.4
+- Add `TreeStateMachine.currentState`.
+
+## 3.0.0-dev.3
 - Add `TreeStateMachine.isStarting`.
 - Add `TreeNodeInfo.getChildren`.
 - Experimental: Add `TreeStateMachine.rootNode`.

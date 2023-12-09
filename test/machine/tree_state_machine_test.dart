@@ -442,6 +442,16 @@ void main() {
         await future;
         expect(sm.isStarting, isFalse);
       });
+
+      test('should cause currentState have value when started', () async {
+        var treeBuilder = StateTreeBuilder(initialChild: tree.r_a_key)
+          ..state(tree.r_a_key, emptyState);
+        var sm = TreeStateMachine(treeBuilder);
+        var future = sm.start();
+        expect(sm.currentState, isNull);
+        await future;
+        expect(sm.isStarting, isNotNull);
+      });
     });
 
     group('stop', () {
@@ -562,7 +572,7 @@ void main() {
       });
     });
 
-    group('disposed', () {
+    group('dispose', () {
       test('should complete when disposed', () async {
         final sm = TreeStateMachine(tree.treeBuilder());
         await sm.start();
@@ -586,6 +596,14 @@ void main() {
         expect(sm.isDisposed, isTrue);
         expect(sm.isStarted, isFalse);
         expect(sm.isDone, isFalse);
+      });
+
+      test('should cause currentState to be null when disposed', () async {
+        final sm = TreeStateMachine(tree.treeBuilder());
+        await sm.start();
+        expect(sm.currentState, isNotNull);
+        sm.dispose();
+        expect(sm.currentState, isNull);
       });
     });
 

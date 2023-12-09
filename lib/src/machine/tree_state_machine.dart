@@ -132,6 +132,11 @@ class TreeStateMachine {
   /// An optional descriptive label for this state machine, for diagnostic purposes.
   final String? label;
 
+  /// The current state of this state machine.
+  ///
+  /// Returns `null` if the state machine has not been started, or if it is disposed.
+  CurrentState? get currentState => _currentState;
+
   /// Returns `true` if [start] has been called, but the returned future has not yet completed.
   bool get isStarting => _lifecycle.state == LifecycleState.starting;
 
@@ -271,6 +276,7 @@ class TreeStateMachine {
       _transitions.close();
       _processedMessages.close();
       _messageQueue.close();
+      _currentState = null;
       for (var node in _machine.nodes.values) {
         node.dispose();
       }
