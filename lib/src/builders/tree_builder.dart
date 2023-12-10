@@ -97,6 +97,7 @@ class StateTreeBuilder {
   factory StateTreeBuilder.withRoot(
     StateKey rootState,
     void Function(StateBuilder<void> builder) build,
+    // TODO: for v3, move this before build param
     InitialChild initialChild, {
     String? label,
     String? logName,
@@ -122,6 +123,7 @@ class StateTreeBuilder {
     DataStateKey<D> rootState,
     InitialData<D> initialData,
     void Function(StateBuilder<D> builder) build,
+    // TODO: for v3, move this before build param
     InitialChild initialChild, {
     StateDataCodec<D>? codec,
     String? label,
