@@ -792,7 +792,6 @@ class StateDataCodec<D> {
 ///   log.info('Called the message handler for state ${msgCtx.handlingState}');
 /// }
 /// ```
-// TODO: what is the current state when the filter executes???
 typedef MessageFilter = Future<MessageResult> Function(
   MessageContext msgCtx,
   Future<MessageResult> Function() next,

@@ -1,11 +1,11 @@
 ## 3.0.0
+- Adjust parameter order of `StateTreeBuilder.withRoot` and `StateTreeBuilder.withDataRoot`
 - Add `ValueSubject.mapValueStream`.
 - Change return type of `TreeStateMachine.lifecycle` to `ValueStream`, and remove redundant getters for specific 
   lifecycle states.
 - Change return type of `TreeStateMachine.loadFrom` to `Future<CurrentState>`.
 - Add `metadata` to `TransistionContext` and `MessageContext.goTo`.
 - Add `TreeStateMachine.currentState`.
-- Add `TreeStateMachine.isStarting`.
 - Add `TreeNodeInfo.getChildren`.
 - Add `TreeStateMachine.rootNode`.
 - The `initialState` parameter of the `StateTreeBuilder` constructor was renamed to `initialChild` to reduce developer
