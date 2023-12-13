@@ -1,5 +1,8 @@
 ## 3.0.0-dev.5
 - Add `ValueSubject.mapValueStream`.
+- Change return type of `TreeStateMachine.lifecycle` to `ValueStream`, and remove redundant getters for specific 
+  lifecycle states.
+- Change return type of `TreeStateMachine.loadFrom` to `Future<CurrentState>`.
 
 ## 3.0.0-dev.4
 - Add `TreeStateMachine.currentState`.

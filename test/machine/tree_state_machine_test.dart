@@ -5,6 +5,7 @@ import 'dart:convert';
 
 import 'package:async/async.dart';
 import 'package:test/test.dart';
+import 'package:tree_state_machine/src/machine/extensions.dart';
 import 'package:tree_state_machine/src/machine/lifecycle.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/tree_state_machine.dart';
@@ -305,7 +306,7 @@ void main() {
 
         await sm.loadFrom(Stream.fromIterable(encoded));
 
-        expect(sm.isStarted, isTrue);
+        expect(sm.lifecycle.isStarted, isTrue);
         expect(currentState, isNotNull);
         expect(currentState.key, tree.r_b_1_key);
       });
@@ -329,7 +330,7 @@ void main() {
         sm = TreeStateMachine(data_tree.treeBuilder());
 
         await sm.loadFrom(Stream.fromIterable(encoded));
-        expect(sm.isStarted, isTrue);
+        expect(sm.lifecycle.isStarted, isTrue);
         expect(currentState.key, data_tree.r_a_a_1_key);
 
         final r_a_a_1_data = currentState.dataValue<LeafData1>();
@@ -438,9 +439,10 @@ void main() {
           ..state(tree.r_a_key, emptyState);
         var sm = TreeStateMachine(treeBuilder);
         var future = sm.start();
-        expect(sm.isStarting, isTrue);
+        expect(sm.lifecycle.isStarting, isTrue);
         await future;
-        expect(sm.isStarting, isFalse);
+        expect(sm.lifecycle.isStarting, isFalse);
+        expect(sm.lifecycle.isStarted, isTrue);
       });
 
       test('should cause currentState have value when started', () async {
@@ -450,7 +452,7 @@ void main() {
         var future = sm.start();
         expect(sm.currentState, isNull);
         await future;
-        expect(sm.isStarting, isNotNull);
+        expect(sm.currentState, isNotNull);
       });
     });
 
@@ -484,8 +486,8 @@ void main() {
 
         sm.dispose();
 
-        expect(sm.isDisposed, isTrue);
-        expect(sm.isStarted, isFalse);
+        expect(sm.lifecycle.isDisposed, isTrue);
+        expect(sm.lifecycle.isStarted, isFalse);
         expect(sm.isDone, isFalse);
       });
 
@@ -568,7 +570,7 @@ void main() {
 
         sm.dispose();
 
-        expect(sm.isDisposed, isTrue);
+        expect(sm.lifecycle.isDisposed, isTrue);
       });
     });
 
@@ -577,12 +579,12 @@ void main() {
         final sm = TreeStateMachine(tree.treeBuilder());
         await sm.start();
 
-        var disposed = sm.lifecycle.firstWhere((s) => s == LifecycleState.disposed);
+        var disposedFuture = sm.lifecycle.firstWhere((s) => s == LifecycleState.disposed);
         sm.dispose();
-        await disposed;
+        await disposedFuture;
 
-        expect(sm.isDisposed, isTrue);
-        expect(sm.isStarted, isFalse);
+        expect(sm.lifecycle.isDisposed, isTrue);
+        expect(sm.lifecycle.isStarted, isFalse);
         expect(sm.isDone, isFalse);
       });
 
@@ -590,11 +592,12 @@ void main() {
         final sm = TreeStateMachine(tree.treeBuilder());
         await sm.start();
 
+        var disposedFuture = sm.lifecycle.firstWhere((s) => s == LifecycleState.disposed);
         sm.dispose();
-        await sm.lifecycle.firstWhere((s) => s == LifecycleState.disposed);
+        await disposedFuture;
 
-        expect(sm.isDisposed, isTrue);
-        expect(sm.isStarted, isFalse);
+        expect(sm.lifecycle.isDisposed, isTrue);
+        expect(sm.lifecycle.isStarted, isFalse);
         expect(sm.isDone, isFalse);
       });
 
@@ -793,6 +796,28 @@ void main() {
         var builderName = 'builder';
         final sm = TreeStateMachine(tree.treeBuilder(name: builderName));
         expect(sm.label, equals(builderName));
+      });
+    });
+
+    group('lifecycle', () {
+      test('runthrough', () async {
+        final sm = TreeStateMachine(tree.treeBuilder());
+        expect(sm.lifecycle.isConstructed, isTrue);
+
+        var startFuture = sm.start();
+        expect(sm.lifecycle.isStarting, isTrue);
+
+        await startFuture;
+        expect(sm.lifecycle.isStarted, isTrue);
+
+        var stopFuture = sm.stop();
+        expect(sm.lifecycle.isStopping, isTrue);
+
+        await stopFuture;
+        expect(sm.lifecycle.isStopped, isTrue);
+
+        sm.dispose();
+        expect(sm.lifecycle.isDisposed, isTrue);
       });
     });
   });

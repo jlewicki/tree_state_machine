@@ -1,3 +1,4 @@
+import 'package:tree_state_machine/async.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
 
@@ -70,4 +71,24 @@ extension MessageContextExtensions on MessageContext {
     data.update(update);
     return data.value;
   }
+}
+
+extension LifecycleStreamExtensions on ValueStream<LifecycleState> {
+  /// Indicates if the current value is [LifecycleState.constructed].
+  bool get isConstructed => value == LifecycleState.constructed;
+
+  /// Indicates if the current value is [LifecycleState.starting].
+  bool get isStarting => value == LifecycleState.starting;
+
+  /// Indicates if the current value is [LifecycleState.started].
+  bool get isStarted => value == LifecycleState.started;
+
+  /// Indicates if the current value is [LifecycleState.stopping].
+  bool get isStopping => value == LifecycleState.stopping;
+
+  /// Indicates if the current value is [LifecycleState.stopped].
+  bool get isStopped => value == LifecycleState.stopped;
+
+  /// Indicates if the current value is [LifecycleState.disposed].
+  bool get isDisposed => value == LifecycleState.disposed;
 }

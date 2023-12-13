@@ -142,8 +142,8 @@ class ValueSubject<T> extends StreamView<T> implements Subject<T>, ValueStream<T
   ///
   /// If [hasValue] is true for this subject, the [ValueStream.value] of the returned stream will
   /// synchronously return the mapped value.
-  ValueStream<R> mapValueStream<R>(R Function(T value) convert) {
-    var mappedSubject = ValueSubject<R>();
+  ValueStream<R> mapValueStream<R>(R Function(T value) convert, {bool sync = false}) {
+    var mappedSubject = ValueSubject<R>(sync: sync);
     _listen(
       (value) {
         try {

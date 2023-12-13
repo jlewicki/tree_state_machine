@@ -30,10 +30,12 @@ enum LifecycleState {
 ///
 /// It's the state machine for the state machine.
 class Lifecycle {
-  final _stateSubject = ValueSubject<_LifecycleState>.initialValue(_Constructed());
+  // This is sync stream so that [states] will map the latest value as soon as it arrives on this
+  // subject.
+  final _stateSubject = ValueSubject<_LifecycleState>.initialValue(_Constructed(), sync: true);
 
-  /// A broadcast stream of the state changes of this lifecycle.
-  Stream<LifecycleState> get states => _stateSubject.map((s) => s.status);
+  /// A broadcast [ValueStream] of the state changes of this lifecycle.
+  late final ValueStream<LifecycleState> states = _stateSubject.mapValueStream((s) => s.status);
 
   /// The current state of this lifecycle.
   LifecycleState get state => _stateSubject.value.status;
@@ -68,11 +70,14 @@ class Lifecycle {
 
   /// Disposes the lifecycle, moving it to the Disposed state.
   ///
-  /// This is irrevocable, and the liefecycle is permanently disposed.
+  /// This is irrevocable, and the lifeecycle is permanently disposed.
   void dispose(void Function() doDispose) {
     var next = _stateSubject.value.dispose(doDispose);
     if (next != _stateSubject.value) {
       _stateSubject.add(next);
+      // Close the subject so Done notifications will be sent to listeners.  We have to do this
+      // in a microtask, otherwise close() will interfere with the add() in the previous line.
+      scheduleMicrotask(_stateSubject.close);
     }
   }
 

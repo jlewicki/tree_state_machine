@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/async.dart';
 import 'package:tree_state_machine/src/machine/data_value.dart';
+import 'package:tree_state_machine/src/machine/extensions.dart';
 import 'package:tree_state_machine/src/machine/initial_state_data.dart';
 import 'package:tree_state_machine/src/machine/machine.dart';
 import 'package:tree_state_machine/src/machine/tree_node.dart';
@@ -137,27 +138,18 @@ class TreeStateMachine {
   /// Returns `null` if the state machine has not been started, or if it is disposed.
   CurrentState? get currentState => _currentState;
 
-  /// Returns `true` if [start] has been called, but the returned future has not yet completed.
-  bool get isStarting => _lifecycle.state == LifecycleState.starting;
-
-  /// Returns `true` if the future returned by [start] has completed.
-  bool get isStarted => _lifecycle.state == LifecycleState.started;
-
   /// Returns `true` if the state machine has ended.
   ///
   /// A state machine is done when a final state is entered. This may have occurred because transition
   /// to a final state has occurred as result of processing a message, or because [stop] was called.
   bool get isDone => _machine.currentLeaf?.isFinalLeaf ?? false;
 
-  /// Returns `true` if [dispose] has been called.
-  bool get isDisposed => _lifecycle.state == LifecycleState.disposed;
-
-  /// A broadcast stream of [LifecycleState] events.
+  /// A broadcast [ValueStream] of [LifecycleState] events.
   ///
   /// An event is emitted on this stream as the state machine moves through its lifecycle. For
   /// example, [LifecycleState.started] will be emitted when [start] is called, and the returned
   /// future completes.
-  Stream<LifecycleState> get lifecycle => _lifecycle.states;
+  ValueStream<LifecycleState> get lifecycle => _lifecycle.states;
 
   /// A broadcast stream of [Transition] events.
   ///
@@ -339,7 +331,7 @@ class TreeStateMachine {
   Future<void> saveTo(StreamSink<List<int>> sink) {
     ArgumentError.checkNotNull(sink, 'sink');
     _lifecycle.throwIfDisposed();
-    if (!isStarted) {
+    if (!lifecycle.isStarted) {
       throw StateError('This TreeStateMachine must be started before saving the tree.');
     }
 
@@ -368,9 +360,9 @@ class TreeStateMachine {
   /// Note that this method can only be called on a state machine that has not been started. When
   /// the returned future completes, the state machine will have been started, with the current state
   /// matching the current state recorded in the stream.
-  Future<void> loadFrom(Stream<List<int>> stream) async {
+  Future<CurrentState> loadFrom(Stream<List<int>> stream) async {
     _lifecycle.throwIfDisposed();
-    if (isStarted) {
+    if (lifecycle.isStarted) {
       throw StateError('This TreeStateMachine must not be started before loading the tree.');
     }
     final objectList = await stream.transform(json.fuse(utf8).decoder).toList();
@@ -418,7 +410,7 @@ class TreeStateMachine {
     }
 
     // Start state machine so that the active nodes matches that in the encoded data.
-    await start(
+    return start(
       at: activeNodes[0].key,
       withData: (b) {
         for (var i = 0; i < activeNodes.length; ++i) {
