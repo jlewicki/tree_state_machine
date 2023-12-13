@@ -96,9 +96,8 @@ class StateTreeBuilder {
   /// identifies the builder in log output. If [logName] is unspecifed, [label] will be used instead.
   factory StateTreeBuilder.withRoot(
     StateKey rootState,
-    void Function(StateBuilder<void> builder) build,
-    // TODO: for v3, move this before build param
-    InitialChild initialChild, {
+    InitialChild initialChild,
+    void Function(StateBuilder<void> builder) build, {
     String? label,
     String? logName,
     void Function(StateExtensionBuilder)? extensions,
@@ -123,7 +122,6 @@ class StateTreeBuilder {
     DataStateKey<D> rootState,
     InitialData<D> initialData,
     void Function(StateBuilder<D> builder) build,
-    // TODO: for v3, move this before build param
     InitialChild initialChild, {
     StateDataCodec<D>? codec,
     String? label,

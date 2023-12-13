@@ -1,19 +1,13 @@
-## 3.0.0-dev.5
+## 3.0.0
 - Add `ValueSubject.mapValueStream`.
 - Change return type of `TreeStateMachine.lifecycle` to `ValueStream`, and remove redundant getters for specific 
   lifecycle states.
 - Change return type of `TreeStateMachine.loadFrom` to `Future<CurrentState>`.
 - Add `metadata` to `TransistionContext` and `MessageContext.goTo`.
-
-## 3.0.0-dev.4
 - Add `TreeStateMachine.currentState`.
-
-## 3.0.0-dev.3
 - Add `TreeStateMachine.isStarting`.
 - Add `TreeNodeInfo.getChildren`.
-- Experimental: Add `TreeStateMachine.rootNode`.
-
-## 3.0.0-dev.2
+- Add `TreeStateMachine.rootNode`.
 - The `initialState` parameter of the `StateTreeBuilder` constructor was renamed to `initialChild` to reduce developer
   confusion, and the error message was improved when this parameter refers to an invalid state.
 - `StateTreeDefinitionError` is thrown when validating a `StateTreeBuilder`, instead of [StateError].
@@ -30,8 +24,6 @@
 - Add `leafState`, `handlingState`, and `activeStates` to `MessageContext`.
 - Add `handlingState` to `TransitionContext`.
 - Rename `MessageContext.appData` -> - `MessageContext.metadata`.
-
-## 3.0.0-dev.1
 - Upgrade to Dart3 SDK
 - Add `DataStateKey` to emphasize association between a data state and its state data type.
 - Add `TreeStateMachine.startWith` to enable starting a state machine with specific initial values.

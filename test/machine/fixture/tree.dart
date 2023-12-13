@@ -55,13 +55,13 @@ StateTreeBuilder treeBuilder({
 
   var b = StateTreeBuilder.withRoot(
     r_key,
-    buildState(r_key),
     InitialChild.run(
       (ctx) {
         initialChildCallback(r_key)(ctx);
         return r_a_key;
       },
     ),
+    buildState(r_key),
     label: name,
   );
 

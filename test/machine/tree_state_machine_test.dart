@@ -381,8 +381,8 @@ void main() {
         // Define another tree that shares keys but has a different shape
         var otherTreeBuilder = StateTreeBuilder.withRoot(
           tree.r_b_key,
-          emptyState,
           InitialChild(tree.r_key),
+          emptyState,
         );
         otherTreeBuilder.state(
           tree.r_key,
@@ -409,8 +409,8 @@ void main() {
         // Define another tree that shares keys but has a different shape
         var otherTreeBuilder = StateTreeBuilder.withRoot(
           tree.r_b_key,
-          emptyState,
           InitialChild(tree.r_b_1_key),
+          emptyState,
         );
         otherTreeBuilder.state(
           tree.r_b_1_key,

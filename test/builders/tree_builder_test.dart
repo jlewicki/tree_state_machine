@@ -28,7 +28,7 @@ void main() {
 
     group('factory.withRoot', () {
       test('should create explicit root state', () {
-        var sb = StateTreeBuilder.withRoot(rootState, emptyState, InitialChild(state1));
+        var sb = StateTreeBuilder.withRoot(rootState, InitialChild(state1), emptyState);
         sb.state(state1, emptyState);
         var rootNode = sb();
         expect(rootState, rootNode.key);
@@ -71,7 +71,7 @@ void main() {
       });
 
       test('should create a leaf state (rooted)', () {
-        var sb = StateTreeBuilder.withRoot(rootState, emptyState, InitialChild(state1));
+        var sb = StateTreeBuilder.withRoot(rootState, InitialChild(state1), emptyState);
         sb.state(state1, emptyState, initialChild: null);
         var rootNode = sb();
         var state1Node = rootNode.children.first;
@@ -95,7 +95,7 @@ void main() {
       });
 
       test('should create an interior state (rooted)', () {
-        var sb = StateTreeBuilder.withRoot(rootState, emptyState, InitialChild(state1));
+        var sb = StateTreeBuilder.withRoot(rootState, InitialChild(state1), emptyState);
         sb.state(state1, emptyState, initialChild: InitialChild(state2));
         sb.state(state2, emptyState, parent: state1);
         var rootNode = sb();
@@ -130,7 +130,7 @@ void main() {
 
       test('should create a leaf state (rooted)', () {
         final state1 = DataStateKey<int>('state1');
-        var sb = StateTreeBuilder.withRoot(rootState, emptyState, InitialChild(state1));
+        var sb = StateTreeBuilder.withRoot(rootState, InitialChild(state1), emptyState);
         sb.dataState<int>(state1, InitialData(() => 1), emptyState, initialChild: null);
         var rootNode = sb();
         var state1Node = rootNode.children.first;

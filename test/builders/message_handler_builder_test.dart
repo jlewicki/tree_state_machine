@@ -67,7 +67,7 @@ void main() {
         var wasRun1 = false;
         var wasRun2 = false;
 
-        var b = StateTreeBuilder.withRoot(rootState, emptyState, InitialChild(state1));
+        var b = StateTreeBuilder.withRoot(rootState, InitialChild(state1), emptyState);
         b.state(
           state1,
           (b) {
@@ -99,7 +99,7 @@ void main() {
         var wasRun1 = false;
         var wasRun2 = false;
 
-        var b = StateTreeBuilder.withRoot(rootState, emptyState, InitialChild(state1));
+        var b = StateTreeBuilder.withRoot(rootState, InitialChild(state1), emptyState);
         b.state(
           state1,
           (b) {
