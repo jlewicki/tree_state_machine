@@ -53,7 +53,7 @@ class MessageActionBuilder<M, D, C> {
   /// state data value.
   /// ```dart
   /// enum Messages { increment  }
-  /// var countingState = StateKey('counting');
+  /// var countingState = DataStateKey<int>('counting');
   /// var builder = new StateTreeBuilder(initialChild: countingState);
   ///
   /// builder.dataState<int>(

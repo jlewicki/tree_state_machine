@@ -550,7 +550,7 @@ class InitialData<D> {
   ///
   /// ```dart
   /// var s1 = StateKey('state1');
-  /// var s2 = StateKey('state2');
+  /// var s2 = DataStateKey<S2Data>('state2');
   /// var s2Channel = Channel<String>(s2);
   /// class S2Data {
   ///   String value = '';
@@ -591,8 +591,8 @@ class InitialData<D> {
   ///   String value = '';
   ///   ParentData(this.value);
   /// }
-  /// var parentState = StateKey('parent');
-  /// var childState = StateKey('child');
+  /// var parentState = DataStateKey<ParentData>('parent');
+  /// var childState = DataStateKey<int>('child');
   /// var builder = StateTreeBuilder(initialChild: parentState);
   ///
   /// builder.dataState<ParentData>(

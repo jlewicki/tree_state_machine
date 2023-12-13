@@ -137,7 +137,7 @@ class TransitionHandlerBuilder<D, C> {
   ///   int value;
   /// }
   ///
-  /// var state1 = StateKey('s1');
+  /// var state1 = DataStateKey<MyStateData>('s1');
   /// var builder = StateTreeBuilder(initialChild: state1);
   ///
   /// builder.dataState<MyStateData>(
@@ -165,7 +165,7 @@ class TransitionHandlerBuilder<D, C> {
   ///   int value;
   /// }
   ///
-  /// var state1 = StateKey('s1');
+  /// var state1 = DataStateKey<MyStateData>('s1');
   /// var state2 = StateKey('s2');
   /// var builder = StateTreeBuilder(initialChild: state1);
   ///
@@ -188,7 +188,7 @@ class TransitionHandlerBuilder<D, C> {
   /// This action can be labeled when formatting a state tree by providing a [label].
   void updateData<D2>(
     D2 Function(TransitionHandlerContext<D2, C> ctx) update, {
-    StateKey? stateToUpdate,
+    DataStateKey<D2>? stateToUpdate,
     String? label,
   }) {
     _descriptor = makeUpdateDataDescriptor(update, _makeContext, _forState, _log, label);
@@ -210,7 +210,7 @@ class TransitionHandlerBuilder<D, C> {
   ///   string op = '';
   /// }
   ///
-  /// var state1 = StateKey('s1');
+  /// var state1 = DataStateKey<MyStateData>('s1');
   /// var payloadChannel = Channel<Payload>(state1);
   /// var builder = StateTreeBuilder(initialChild: state1);
   ///
