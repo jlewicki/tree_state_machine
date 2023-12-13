@@ -173,11 +173,70 @@ void main() {
       });
 
       test('should update current error for stream', () {
-        var subject = ValueSubject<int>.initialValue(2);
+        var subject = ValueSubject.initialValue(2);
         var e = 'oops';
         subject.addError(e);
-        expect(subject.hasError, true);
-        expect(subject.error.error, e);
+        expect(subject.hasError, isTrue);
+        expect(subject.error.error, equals(e));
+      });
+    });
+
+    group('mapValueStream', () {
+      test('should produce mapped value synchronously', () {
+        var subject = ValueSubject.initialValue(2);
+        var mapped = subject.mapValueStream((value) => value * 2);
+        expect(mapped.hasValue, isTrue);
+        expect(mapped.value, equals(4));
+      });
+
+      test('should notify listeners of values async', () async {
+        var subject = ValueSubject.initialValue(2);
+        var mapped = subject.mapValueStream((value) => value * 2);
+
+        // Because the subject will notify listeners (i.e. the mapped subject) asynchronously,
+        // these values will not be mapped until an await occurs
+        subject.add(3);
+        subject.add(4);
+        subject.add(5);
+
+        // values added in lines above is not mapped until the thread yields
+        expect(mapped.value, equals(4));
+
+        var [items1, items2] = await Future.wait([
+          StreamQueue(mapped).lookAhead(4),
+          StreamQueue(mapped).lookAhead(4),
+        ]);
+        expect(items1, equals([4, 6, 8, 10]));
+        expect(items2, equals([4, 6, 8, 10]));
+      });
+
+      test('should notify listeners of values sync', () async {
+        var subject = ValueSubject.initialValue(2, sync: true);
+        var mapped = subject.mapValueStream((value) => value * 2);
+
+        // Because the subject will notify listeners (i.e. the mapped subject) synchronously,
+        // these values will be mapped immediately
+        subject.add(3);
+        subject.add(4);
+        subject.add(5);
+
+        // values added in line above are mapped immediately, so the last one wins
+        expect(mapped.value, equals(10));
+
+        var [items1, items2] = await Future.wait([
+          StreamQueue(mapped).lookAhead(1),
+          StreamQueue(mapped).lookAhead(1),
+        ]);
+        expect(items1, equals([10]));
+        expect(items2, equals([10]));
+      });
+
+      test('should convert errors in mapping function to error notifications ', () {
+        var subject = ValueSubject.initialValue(2);
+        var error = ArgumentError("oops");
+        var mapped = subject.mapValueStream((value) => throw error);
+        expect(mapped.hasError, isTrue);
+        expect(mapped.error.error, equals(error));
       });
     });
   });

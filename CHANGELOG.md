@@ -1,3 +1,6 @@
+## 3.0.0-dev.5
+- Add `ValueSubject.mapValueStream`.
+
 ## 3.0.0-dev.4
 - Add `TreeStateMachine.currentState`.
 

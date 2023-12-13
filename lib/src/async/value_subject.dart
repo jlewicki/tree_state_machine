@@ -71,7 +71,7 @@ class ValueSubject<T> extends StreamView<T> implements Subject<T>, ValueStream<T
   ///
   /// Note that if [add] is called before [value] is read, then [initialValue] will never be called.
   factory ValueSubject.lazy(T Function() initialValue, {bool sync = false}) {
-    var controller = StreamController<T>.broadcast();
+    var controller = StreamController<T>.broadcast(sync: sync);
     var currentValue = _CurrentValue<T>(_LazyValue<T>(initialValue));
     return ValueSubject._(controller, currentValue, sync);
   }
@@ -128,6 +128,51 @@ class ValueSubject<T> extends StreamView<T> implements Subject<T>, ValueStream<T
     void Function()? onDone,
     bool? cancelOnError,
   }) {
+    return _listen(onData, onError: onError, onDone: onDone, cancelOnError: cancelOnError);
+  }
+
+  /// Returns a [ValueStream] that converts each element of this stream to a new value using the
+  /// [convert] function, and emits the result.
+  ///
+  /// For each data event, `o`, in this stream, the returned stream provides a data event with the
+  /// value `convert(o)`. If [convert] throws, the returned stream reports it as an error event
+  /// instead.
+  ///
+  /// Error and done events are passed through unchanged to the returned stream.
+  ///
+  /// If [hasValue] is true for this subject, the [ValueStream.value] of the returned stream will
+  /// synchronously return the mapped value.
+  ValueStream<R> mapValueStream<R>(R Function(T value) convert) {
+    var mappedSubject = ValueSubject<R>();
+    _listen(
+      (value) {
+        try {
+          mappedSubject.add(convert(value));
+        } catch (e, st) {
+          mappedSubject.addError(e, st);
+        }
+      },
+      onError: (Object error, StackTrace? st) {
+        mappedSubject.addError(error, st);
+      },
+      onDone: () {
+        mappedSubject.close();
+      },
+      syncNotifyInitalValue: true,
+    );
+    return mappedSubject;
+  }
+
+  @override
+  Future<void> close() => _controller.close();
+
+  StreamSubscription<T> _listen(
+    void Function(T value)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+    bool syncNotifyInitalValue = false,
+  }) {
     var subscription = _controller.stream.listen(
       onData,
       onError: onError,
@@ -140,22 +185,19 @@ class ValueSubject<T> extends StreamView<T> implements Subject<T>, ValueStream<T
       _callOrSchedule((() {
         var val = _currentValue.value;
         return () => onData(val);
-      })());
+      })(), forceSync: syncNotifyInitalValue);
     } else if (onError != null && _currentValue.hasError) {
       _callOrSchedule((() {
         var error = _currentValue.error.error;
         var stackTrace = _currentValue.error.stackTrace;
         return () => onError(error, stackTrace);
-      })());
+      })(), forceSync: syncNotifyInitalValue);
     }
     return subscription;
   }
 
-  @override
-  Future<void> close() => _controller.close();
-
-  void _callOrSchedule(void Function() action) {
-    if (_sync) {
+  void _callOrSchedule(void Function() action, {bool forceSync = false}) {
+    if (forceSync || _sync) {
       action();
     } else {
       scheduleMicrotask(action);
