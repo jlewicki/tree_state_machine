@@ -28,6 +28,7 @@ MessageHandlerDescriptor<C> makeWhenResultMessageDescriptor<M, D, C, T>(
     conditions,
     messageName,
     label,
+    {},
   );
 
   return MessageHandlerDescriptor<C>(

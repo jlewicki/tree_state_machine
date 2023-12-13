@@ -20,7 +20,15 @@ MessageHandlerDescriptor<C> makeWhenMessageDescriptor<M, D, C>(
   // Note lazy evaluation is deliberate here, since conditions can be added to the list after this
   // methos is called.
   var conditionInfos = conditions.map((e) => e.info);
-  var info = MessageHandlerInfo(MessageHandlerType.when, M, [], conditionInfos, messageName, label);
+  var info = MessageHandlerInfo(
+    MessageHandlerType.when,
+    M,
+    [],
+    conditionInfos,
+    messageName,
+    label,
+    {},
+  );
   return MessageHandlerDescriptor<C>(
     info,
     makeContext,
@@ -44,7 +52,15 @@ MessageHandlerDescriptor<C> makeWhenWithContextMessageDescriptor<M, D, C, C2>(
   // Note lazy evaluation is deliberate here, since conditions can be added to the list after this
   // methos is called.
   var conditionInfos = conditions.map((e) => e.info);
-  var info = MessageHandlerInfo(MessageHandlerType.when, M, [], conditionInfos, messageName, label);
+  var info = MessageHandlerInfo(
+    MessageHandlerType.when,
+    M,
+    [],
+    conditionInfos,
+    messageName,
+    label,
+    {},
+  );
   return MessageHandlerDescriptor<C>(
     info,
     makeContext,

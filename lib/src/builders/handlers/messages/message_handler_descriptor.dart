@@ -24,6 +24,7 @@ class MessageHandlerInfo {
   final String? _messageName;
   final String? label;
   final StateKey? goToTarget;
+  final Map<String, Object>? metadata;
 
   MessageHandlerInfo(
     this.handlerType,
@@ -31,7 +32,8 @@ class MessageHandlerInfo {
     this.actions,
     this.conditions,
     this._messageName,
-    this.label, [
+    this.label,
+    this.metadata, [
     this.goToTarget,
   ]);
 

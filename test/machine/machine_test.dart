@@ -268,6 +268,32 @@ void main() {
           }
         });
 
+        test('should pass metadata to transition context', () async {
+          final entry = MapEntry<String, Object>('mykey', 'myvalue');
+          final metadata = Map.fromEntries([entry]);
+          final metdataMap = <StateKey, Map<String, Object>>{};
+          final buildTree = treeBuilder(
+            messageHandlers: {
+              r_a_a_1_key: (msgCtx) => msgCtx.goTo(r_b_1_key, metadata: metadata),
+            },
+            createExitHandler: (key) => (ctx) => metdataMap[key] = ctx.metadata,
+            createEntryHandler: (key) => (ctx) => metdataMap[key] = ctx.metadata,
+          );
+          final machine = createMachine(buildTree);
+          final msg = Object();
+
+          await machine.processMessage(msg, r_a_a_1_key);
+
+          final exited = [r_a_a_1_key, r_a_a_key, r_a_key];
+          final entered = [r_b_key, r_b_1_key];
+          for (var key in exited.followedBy(entered)) {
+            var actualMetadata = metdataMap[key];
+            expect(actualMetadata, isNotNull);
+            expect(actualMetadata!.length, equals(1));
+            expect(actualMetadata['mykey'], equals('myvalue'));
+          }
+        });
+
         test('should re-enter intial children if going to ancestor state', () async {
           var counter = 1;
           var entryCounters = <StateKey, int>{};

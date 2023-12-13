@@ -4,6 +4,9 @@ part of '../../../../tree_builders.dart';
 /// [message] of type [M] being processed, the state [data] of type [D], and a context value of type
 /// [C].
 class MessageHandlerContext<M, D, C> {
+  /// Constructs a [MessageHandlerContext].
+  MessageHandlerContext(this.messageContext, this.message, this.data, this.context);
+
   /// The [MessageContext] that describes the message being processed.
   final MessageContext messageContext;
 
@@ -17,5 +20,4 @@ class MessageHandlerContext<M, D, C> {
   /// An extra contextual value for the handler, whose value depends on the builder method used to
   /// define the message handler.
   final C context;
-  MessageHandlerContext(this.messageContext, this.message, this.data, this.context);
 }

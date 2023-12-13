@@ -22,6 +22,28 @@ void main() {
         await currentState.post(msg);
         expect(currentState.key, equals(state2));
       });
+
+      test('should pass metadata to transition context', () async {
+        var b = StateTreeBuilder(initialChild: state1);
+        var actualMetadata = <String, Object>{};
+
+        b.state(state1, (b) {
+          b.onMessage<Message>((b) => b.goTo(state2, metadata: {'mykey': 'myvalue'}));
+        });
+        b.state(
+          state2,
+          (b) => b.onEnter((b) {
+            b.run((ctx) => actualMetadata = ctx.transitionContext.metadata);
+          }),
+        );
+
+        var stateMachine = TreeStateMachine(b);
+        var currentState = await stateMachine.start();
+        var msg = Message();
+        await currentState.post(msg);
+        expect(actualMetadata, isNotNull);
+        expect(actualMetadata['mykey'], equals('myvalue'));
+      });
     });
 
     group('action', () {

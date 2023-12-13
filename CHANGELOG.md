@@ -3,6 +3,7 @@
 - Change return type of `TreeStateMachine.lifecycle` to `ValueStream`, and remove redundant getters for specific 
   lifecycle states.
 - Change return type of `TreeStateMachine.loadFrom` to `Future<CurrentState>`.
+- Add `metadata` to `TransistionContext` and `MessageContext.goTo`.
 
 ## 3.0.0-dev.4
 - Add `TreeStateMachine.currentState`.

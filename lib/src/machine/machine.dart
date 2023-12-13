@@ -147,6 +147,7 @@ class Machine {
       requestedTransition,
       transitionAction: result.transitionAction,
       payload: result.payload,
+      initialMetdadata: result.metadata,
     );
     return HandledMessage(
       msgCtx.message,
@@ -224,8 +225,14 @@ class Machine {
     TransitionHandler? transitionAction,
     Object? payload,
     InitialStateData? initialStateData,
+    Map<String, Object> initialMetdadata = const {},
   }) async {
-    var transCtx = MachineTransitionContext(this, path, payload);
+    var transCtx = MachineTransitionContext(
+      this,
+      path,
+      payload,
+      metadata: Map.from(initialMetdadata),
+    );
 
     var exitHandlers = path.exitingNodes.map((n) {
       return () => transCtx.onExit(n);
@@ -420,9 +427,14 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
     TransitionHandler? transitionAction,
     Object? payload,
     bool reenterTarget = false,
+    Map<String, Object> metadata = const {},
   }) {
     _throwIfDisposed();
-    return GoToResult(targetStateKey, transitionAction, payload, reenterTarget);
+    return GoToResult(targetStateKey,
+        transitionAction: transitionAction,
+        payload: payload,
+        reenterTarget: reenterTarget,
+        metadata: metadata);
   }
 
   @override
@@ -496,13 +508,16 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
 class MachineTransitionContext with DisposableMixin implements TransitionContext {
   final Machine _machine;
   final MachineTransition _requestedTransition;
-  final Object? _payload;
   final List<TreeNode> _enteredNodes = [];
   final List<TreeNode> _exitedNodes = [];
   TreeNode _currentNode;
 
-  MachineTransitionContext(this._machine, this._requestedTransition, this._payload)
-      : _currentNode = _requestedTransition.fromNode,
+  MachineTransitionContext(
+    this._machine,
+    this._requestedTransition,
+    this.payload, {
+    this.metadata = const {},
+  })  : _currentNode = _requestedTransition.fromNode,
         // In general we always start a transition at a leaf node. However, when the state machine
         // starts, there is a transition from the root node to the initial starting state for the
         // machine.
@@ -510,7 +525,7 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
             'Transition did not start at a leaf or root node.');
 
   @override
-  Object? get payload => _payload;
+  final Object? payload;
 
   @override
   StateKey get handlingState =>
@@ -532,6 +547,9 @@ class MachineTransitionContext with DisposableMixin implements TransitionContext
   DataValue<D>? data<D>([DataStateKey<D>? key]) {
     return _currentNode.selfOrAncestorDataValue<D>(key: key);
   }
+
+  @override
+  final Map<String, Object> metadata;
 
   TreeNode get currentNode => _currentNode;
 

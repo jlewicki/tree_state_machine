@@ -396,7 +396,7 @@ abstract class MessageContext {
   /// root.
   Iterable<StateKey> get activeStates;
 
-  /// A map for storing application data.
+  /// A map for storing application metadata.
   ///
   /// This map may be useful for storing application-specific values that might need to shared across
   /// various message handlers as a message is processed. This map will never be read or modified by
@@ -416,11 +416,16 @@ abstract class MessageContext {
   /// A [reenterTarget] flag may be optionally specified. If `true`, and the target state is an
   /// active state, then the target state will be exited and entered, calling [TreeState.onExit] and
   /// [TreeState.onEnter], during the transition.
+  ///
+  /// Application-specific [metadata] can be provided, which will be used to populate
+  /// [TransitionContext.metadata] for the transition. This metadata is not consumed by the
+  /// framework, but might prove useful in at the application level.
   MessageResult goTo(
     StateKey targetStateKey, {
     TransitionHandler? transitionAction,
     Object? payload,
     bool reenterTarget = false,
+    Map<String, Object> metadata = const {},
   });
 
   /// Returns a [MessageResult] indicating that an internal transition should occur.
@@ -497,9 +502,14 @@ class GoToResult extends MessageResult {
   final TransitionAction? transitionAction;
   final Object? payload;
   final bool reenterTarget;
-  GoToResult(this.targetStateKey,
-      [this.transitionAction = emptyTransitionAction, this.payload, this.reenterTarget = false])
-      : super._();
+  final Map<String, Object> metadata;
+  GoToResult(
+    this.targetStateKey, {
+    this.transitionAction = emptyTransitionAction,
+    this.payload,
+    this.reenterTarget = false,
+    this.metadata = const {},
+  }) : super._();
 
   @override
   String toString() {
@@ -595,6 +605,13 @@ abstract class TransitionContext {
   /// optional payload value that provides further context for the transition to the target state.
   /// This property makes this payload accessible during the transition.
   Object? get payload;
+
+  /// A map for storing application metadata.
+  ///
+  /// This map may be useful for storing application-specific values that might need to shared across
+  /// various transition handlers as a transition is processed. This map will never be read or
+  /// modified by the state machine.
+  Map<String, Object> get metadata;
 
   DataValue<D>? data<D>([DataStateKey<D>? key]);
 

@@ -18,7 +18,9 @@ MessageHandlerDescriptor<C> makeGoToDescriptor<M, D, C>(
   MessageActionDescriptor<M, D, C>? action,
   String? label,
   String? messageName,
+  Map<String, Object> metadata,
 ) {
+  metadata = Map.from(metadata);
   var actions = [if (action != null) action.info];
   var info = MessageHandlerInfo(
     MessageHandlerType.goto,
@@ -27,6 +29,7 @@ MessageHandlerDescriptor<C> makeGoToDescriptor<M, D, C>(
     [],
     messageName,
     label,
+    Map.from(metadata),
     targetState,
   );
   return MessageHandlerDescriptor<C>(
@@ -45,14 +48,8 @@ MessageHandlerDescriptor<C> makeGoToDescriptor<M, D, C>(
                     payload: p,
                     transitionAction: transitionAction,
                     reenterTarget: reenterTarget,
+                    metadata: Map.from(info.metadata ?? const {}),
                   );
                 }));
           });
 }
-
-// FutureOr<Object?> emptyPayload<M>(MessageContext mc, M m) => null;
-// FutureOr<Object?> emptyDataPayload<M, D>(MessageContext mc, M m, D data) => null;
-// FutureOr<Object?> emptyContinuationPayload<M, T>(MessageContext mc, M m, T ctx) => null;
-// FutureOr<Object?> emptyContinuationWithDataPayload<M, D, T>(MessageContext mc, M m, D d, T c) {
-//   return null;
-// }

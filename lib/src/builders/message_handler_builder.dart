@@ -64,6 +64,7 @@ mixin _GoToHandlerBuilderMixin<M, D, C> on _MessageHandlerBuilder<M, D, C> {
     MessageActionDescriptor<M, D, C>? action,
     bool reenterTarget = false,
     String? label,
+    Map<String, Object> metadata = const {},
   }) {
     descriptor = makeGoToDescriptor<M, D, C>(
       _makeContext,
@@ -76,6 +77,7 @@ mixin _GoToHandlerBuilderMixin<M, D, C> on _MessageHandlerBuilder<M, D, C> {
       action,
       label,
       _messageName,
+      metadata,
     );
   }
 
@@ -95,8 +97,15 @@ mixin _GoToHandlerBuilderMixin<M, D, C> on _MessageHandlerBuilder<M, D, C> {
     FutureOr<P> Function(MessageHandlerContext<M, D, C>) payload, {
     MessageActionDescriptor<M, D, C>? action,
     bool reenterTarget = false,
+    Map<String, Object> metadata = const {},
   }) {
-    goTo(channel.to, payload: payload, reenterTarget: reenterTarget, action: action);
+    goTo(
+      channel.to,
+      payload: payload,
+      reenterTarget: reenterTarget,
+      action: action,
+      metadata: metadata,
+    );
   }
 }
 

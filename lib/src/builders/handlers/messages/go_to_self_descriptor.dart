@@ -16,7 +16,7 @@ MessageHandlerDescriptor<C> makeGoToSelfDescriptor<M, D, C>(
   String? messageName,
 ) {
   var actions = [if (action != null) action.info];
-  var info = MessageHandlerInfo(MessageHandlerType.goto, M, actions, [], messageName, label);
+  var info = MessageHandlerInfo(MessageHandlerType.goto, M, actions, [], messageName, label, {});
   return MessageHandlerDescriptor<C>(
       info,
       makeContext,
