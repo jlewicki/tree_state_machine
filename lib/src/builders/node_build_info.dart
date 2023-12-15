@@ -17,7 +17,7 @@ class TreeNodeBuildInfo {
 
   /// A factory function that can create the [TreeState] that defines the behavior of the node.
   final StateCreator createState;
-  final Iterable<TreeNodeBuilder> childBuilders;
+  final List<TreeNodeBuilder> childBuilders;
 
   /// A function that can select the initial child state to
   final GetInitialChild? initialChild;

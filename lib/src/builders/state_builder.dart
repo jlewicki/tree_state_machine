@@ -100,7 +100,7 @@ abstract class _StateBuilder {
       key,
       (_) => _createState(),
       initialChild: _initialChild?.call,
-      childBuilders: _children.map(getChildNodeBuilder),
+      childBuilders: _children.map(getChildNodeBuilder).toList(),
       isFinalState: _isFinal,
       dataCodec: _codec,
       filters: _filters,
