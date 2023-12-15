@@ -1,5 +1,5 @@
 import 'package:tree_state_machine/tree_state_machine.dart';
-import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/declarative_builders.dart';
 
 enum Messages {
   insertCoin,
@@ -23,8 +23,8 @@ DeclarativeStateTreeBuilder turnstileStateTree() {
 }
 
 Future<void> main() async {
-  var treeBuilder = turnstileStateTree();
-  var stateMachine = TreeStateMachine(treeBuilder);
+  var declBuilder = turnstileStateTree();
+  var stateMachine = TreeStateMachine(declBuilder.toTreeBuilder());
 
   var currentState = await stateMachine.start();
   assert(currentState.key == States.locked);
@@ -36,6 +36,6 @@ Future<void> main() async {
   assert(currentState.key == States.locked);
 
   var sb = StringBuffer();
-  treeBuilder.format(sb, DotFormatter());
+  declBuilder.format(sb, DotFormatter());
   print(sb.toString());
 }

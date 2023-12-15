@@ -37,7 +37,7 @@ part of '../../declarative_builders.dart';
 ///
 /// A textual description of the state tree can be produced by calling [format] method, passing a
 /// [StateTreeFormatter] (for example a [DotFormatter]) representing the desired output format.
-class DeclarativeStateTreeBuilder implements StateTreeBuilder {
+class DeclarativeStateTreeBuilder implements StateTreeBuildProvider {
   final StateKey _rootKey;
   final Map<StateKey, _StateBuilder> _stateBuilders = {};
   late final Logger _log = Logger(
@@ -52,7 +52,6 @@ class DeclarativeStateTreeBuilder implements StateTreeBuilder {
   static const StateKey defaultRootKey = StateKey('<_RootState_>');
 
   /// An optional descriptive label for this state tree, for diagnostic purposes.
-  @override
   final String? label;
 
   /// An optional name for this state tree that will be used as the suffix of the logger name used
@@ -60,7 +59,6 @@ class DeclarativeStateTreeBuilder implements StateTreeBuilder {
   ///
   /// This can be used to correlate log messages with specific state trees when examining the log
   /// output.
-  @override
   final String? logName;
 
   /// The key indentifying the root state of the state tree.
@@ -80,11 +78,17 @@ class DeclarativeStateTreeBuilder implements StateTreeBuilder {
   ///
   /// The builder can optionally be given a [label] for diagnostic purposes, and a [logName] which
   /// identifies the builder in log output. If [logName] is unspecifed, [label] will be used instead.
-  factory DeclarativeStateTreeBuilder(
-      {required StateKey initialChild, String? label, String? logName}) {
+  factory DeclarativeStateTreeBuilder({
+    required StateKey initialChild,
+    String? label,
+    String? logName,
+  }) {
     var b = DeclarativeStateTreeBuilder._(defaultRootKey, label, logName);
-    b.state(defaultRootKey, emptyState,
-        initialChild: InitialChild(initialChild));
+    b.state(
+      defaultRootKey,
+      emptyState,
+      initialChild: InitialChild(initialChild),
+    );
     return b;
   }
 
@@ -108,18 +112,32 @@ class DeclarativeStateTreeBuilder implements StateTreeBuilder {
     void Function(StateExtensionBuilder)? extensions,
   }) {
     var b = DeclarativeStateTreeBuilder._(rootState, label, logName);
-    var extensionBuilder =
-        b.state(rootState, build, initialChild: initialChild);
+    var extensionBuilder = b.state(
+      rootState,
+      build,
+      initialChild: initialChild,
+    );
     extensions?.call(extensionBuilder);
     return b;
   }
 
-  /// Builds the state tree described by this builder, and returns the root node of the tree.
   @override
-  RootTreeNode build(TreeBuildContext buildContext) {
+  RootNodeBuildInfo createRootNodeBuildInfo() {
     _validate();
-    var rootBuilder = _getStateBuilder(_rootKey);
-    return _buildNode(buildContext, rootBuilder) as RootTreeNode;
+    var rootStateBuilder = _getStateBuilder(_rootKey);
+    var rootBuildInfo =
+        rootStateBuilder.toTreeNodeBuildInfo(_makeChildNodeBuilder);
+    return rootBuildInfo as RootNodeBuildInfo;
+  }
+
+  StateTreeBuilder toTreeBuilder() {
+    return StateTreeBuilder(this, label: label, logName: logName);
+  }
+
+  // /// Creates the root node of the state tree.
+  RootTreeNode call([TreeBuildContext? context]) {
+    var treeBuilder = StateTreeBuilder(this);
+    return treeBuilder.build(context ?? TreeBuildContext());
   }
 
   /// Creates a [DeclarativeStateTreeBuilder] with a root state carrying a value of type [D].
@@ -151,10 +169,6 @@ class DeclarativeStateTreeBuilder implements StateTreeBuilder {
     );
     return b;
   }
-
-  /// Creates the root node of the state tree.
-  // RootTreeNode call([TreeBuildContext? context]) =>
-  //     build(context ?? TreeBuildContext());
 
   /// Adds to the state tree a description of a state, identified by [stateKey].
   ///
@@ -720,8 +734,8 @@ class InitialMachine implements NestedMachine {
   /// Constructs an [InitialMachine] that will use the state machine produced by the [create]
   /// function as the nested state machine.
   ///
-  /// If [disposeOnExit] is true (the default), then the nested state machine will be disposed when the
-  /// [DeclarativeStateTreeBuilder.machineState] is exited.
+  /// If [disposeOnExit] is true (the default), then the nested state machine will be disposed when
+  /// the [DeclarativeStateTreeBuilder.machineState] is exited.
   ///
   /// If [forwardMessages] is true (the default), then the [DeclarativeStateTreeBuilder.machineState] will
   /// forward any messages that are dispatched to it to the nested state machine.
@@ -734,11 +748,10 @@ class InitialMachine implements NestedMachine {
     return InitialMachine._(create, disposeOnExit, forwardMessages, label);
   }
 
-  /// Constructs an [InitialMachine] that will create and start a nested state machine using
-  /// the [DeclarativeStateTreeBuilder] produced by the [create] function.
+  /// Constructs an [InitialMachine] that will create and start a nested state machine using the
+  /// [StateTreeBuilder] produced by the [create] function.
   factory InitialMachine.fromTree(
-    FutureOr<DeclarativeStateTreeBuilder> Function(TransitionContext transCtx)
-        create, {
+    FutureOr<StateTreeBuilder> Function(TransitionContext transCtx) create, {
     String? label,
     String? logName,
   }) {

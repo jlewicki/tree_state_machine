@@ -1,7 +1,8 @@
 // ignore_for_file: constant_identifier_names
 
 import 'package:tree_state_machine/src/machine/tree_state.dart';
-import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/declarative_builders.dart';
+import 'package:tree_state_machine/tree_build.dart';
 
 const r_key = StateKey('r');
 const r_a_key = StateKey('r_a');
@@ -16,7 +17,7 @@ const r_X_key = StateKey('r_X');
 
 final initialStateKey = r_a_a_2_key;
 
-DeclarativeStateTreeBuilder treeBuilder({
+StateTreeBuilder treeBuilder({
   String? name,
   TransitionHandler Function(StateKey key)? createEntryHandler,
   TransitionHandler Function(StateKey key)? createExitHandler,
@@ -108,5 +109,5 @@ DeclarativeStateTreeBuilder treeBuilder({
   b.state(r_b_1_key, buildState(r_b_1_key), parent: r_b_key);
   b.state(r_b_2_key, buildState(r_b_2_key), parent: r_b_key);
 
-  return b;
+  return b.toTreeBuilder();
 }

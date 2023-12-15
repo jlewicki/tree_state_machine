@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/declarative_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 import 'fixture/fixture_data.dart';
@@ -27,7 +27,7 @@ void main() {
           },
         );
 
-        var stateMachine = TreeStateMachine(b);
+        var stateMachine = TreeStateMachine(b.toTreeBuilder());
         var currentState = await stateMachine.start();
         await currentState.post(Message());
 
@@ -61,7 +61,7 @@ void main() {
           parent: state2,
         );
 
-        var stateMachine = TreeStateMachine(b);
+        var stateMachine = TreeStateMachine(b.toTreeBuilder());
         var currentState = await stateMachine.start();
         await currentState.post(Message());
 
@@ -100,7 +100,7 @@ void main() {
           parent: state2,
         );
 
-        var stateMachine = TreeStateMachine(b);
+        var stateMachine = TreeStateMachine(b.toTreeBuilder());
         var currentState = await stateMachine.start();
         await currentState.post(Message());
 

@@ -53,12 +53,15 @@ void main() {
         final msg3 = Object();
         final sm = TreeStateMachine(tree.treeBuilder(
           messageHandlers: {
-            tree.r_a_a_2_key: (msgCtx) =>
-                msgCtx.message == msg1 ? msgCtx.goTo(tree.r_a_a_1_key) : msgCtx.unhandled(),
-            tree.r_a_a_1_key: (msgCtx) =>
-                msgCtx.message == msg2 ? msgCtx.goTo(tree.r_b_1_key) : msgCtx.unhandled(),
-            tree.r_b_1_key: (msgCtx) =>
-                msgCtx.message == msg3 ? msgCtx.goTo(tree.r_b_2_key) : msgCtx.unhandled(),
+            tree.r_a_a_2_key: (msgCtx) => msgCtx.message == msg1
+                ? msgCtx.goTo(tree.r_a_a_1_key)
+                : msgCtx.unhandled(),
+            tree.r_a_a_1_key: (msgCtx) => msgCtx.message == msg2
+                ? msgCtx.goTo(tree.r_b_1_key)
+                : msgCtx.unhandled(),
+            tree.r_b_1_key: (msgCtx) => msgCtx.message == msg3
+                ? msgCtx.goTo(tree.r_b_2_key)
+                : msgCtx.unhandled(),
           },
         ));
         var currentState = await sm.start();
@@ -118,7 +121,9 @@ void main() {
     group('dataValue', () {
       test('should return data for current state by type', () async {
         final sm = TreeStateMachine(data_tree.treeBuilder(
-          initialDataValues: {data_tree.r_a_a_2_key: () => LeafData2()..label = 'cool'},
+          initialDataValues: {
+            data_tree.r_a_a_2_key: () => LeafData2()..label = 'cool'
+          },
         ));
         var currentState = await sm.start(at: data_tree.r_a_a_2_key);
 
@@ -157,9 +162,12 @@ void main() {
         expect(data!.name, equals('r_c_key'));
       });
 
-      test('should return leaf data value if data type is unspecified', () async {
+      test('should return leaf data value if data type is unspecified',
+          () async {
         final sm = TreeStateMachine(data_tree.treeBuilder(
-          initialDataValues: {data_tree.r_a_a_2_key: () => LeafData2()..label = 'cool'},
+          initialDataValues: {
+            data_tree.r_a_a_2_key: () => LeafData2()..label = 'cool'
+          },
         ));
         var currentState = await sm.start(at: data_tree.r_a_a_2_key);
         var data = currentState.dataValue<dynamic>();
@@ -167,7 +175,9 @@ void main() {
         expect(data!.label, equals('cool'));
       });
 
-      test('should return null if data type is unspecified and leaf has no state data', () async {
+      test(
+          'should return null if data type is unspecified and leaf has no state data',
+          () async {
         final sm = TreeStateMachine(data_tree.treeBuilder());
         var currentState = await sm.start(at: data_tree.r_b_1_key);
         var data = currentState.dataValue<dynamic>();
@@ -183,7 +193,9 @@ void main() {
     group('data', () {
       test('should notify listeners when data is updated', () async {
         final sm = TreeStateMachine(data_tree.treeBuilder(
-          initialDataValues: {data_tree.r_a_a_2_key: () => LeafData2()..label = 'cool'},
+          initialDataValues: {
+            data_tree.r_a_a_2_key: () => LeafData2()..label = 'cool'
+          },
           messageHandlers: {
             data_tree.r_a_a_2_key: (msgCtx) {
               msgCtx
@@ -196,7 +208,9 @@ void main() {
         var currentState = await sm.start(at: data_tree.r_a_a_2_key);
 
         LeafData2? nextValue;
-        currentState.dataStream<LeafData2>()!.listen((value) => nextValue = value);
+        currentState
+            .dataStream<LeafData2>()!
+            .listen((value) => nextValue = value);
         await currentState.post(Object());
 
         expect(nextValue, isNotNull);
@@ -205,7 +219,9 @@ void main() {
 
       test('should complete subscription when state is exited', () async {
         final sm = TreeStateMachine(data_tree.treeBuilder(
-          initialDataValues: {data_tree.r_a_a_2_key: () => LeafData2()..label = 'cool'},
+          initialDataValues: {
+            data_tree.r_a_a_2_key: () => LeafData2()..label = 'cool'
+          },
           messageHandlers: {
             data_tree.r_a_a_2_key: (msgCtx) => msgCtx.goTo(data_tree.r_b_2_key),
           },
@@ -213,8 +229,9 @@ void main() {
         var currentState = await sm.start(at: data_tree.r_a_a_2_key);
 
         var isDone_r_a_a_2 = false;
-        var subscription_r_a_a_2 =
-            currentState.dataStream<LeafData2>()!.listen(null, onDone: () => isDone_r_a_a_2 = true);
+        var subscription_r_a_a_2 = currentState
+            .dataStream<LeafData2>()!
+            .listen(null, onDone: () => isDone_r_a_a_2 = true);
 
         var isDone_r_a_a = false;
         var subscription_r_a_a = currentState
@@ -237,11 +254,15 @@ void main() {
         expect(isDone_r_a, isTrue);
       });
 
-      test('should return null if requested state data is not active', () async {
+      test('should return null if requested state data is not active',
+          () async {
         final sm = TreeStateMachine(data_tree.treeBuilder(
-          initialDataValues: {data_tree.r_a_a_2_key: () => LeafData2()..label = 'cool'},
+          initialDataValues: {
+            data_tree.r_a_a_2_key: () => LeafData2()..label = 'cool'
+          },
           messageHandlers: {
-            data_tree.r_a_a_1_key: (msgCtx) => msgCtx.goTo(data_tree.r_a_a_2_key),
+            data_tree.r_a_a_1_key: (msgCtx) =>
+                msgCtx.goTo(data_tree.r_a_a_2_key),
           },
         ));
         var currentState = await sm.start(at: data_tree.r_a_a_2_key);

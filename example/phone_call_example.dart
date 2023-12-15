@@ -1,5 +1,5 @@
 import 'package:tree_state_machine/tree_state_machine.dart';
-import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/declarative_builders.dart';
 
 //
 // State keys
@@ -119,8 +119,8 @@ void onSetVolume(MessageHandlerContext<SetVolume, void, void> ctx) {
 }
 
 Future<void> main() async {
-  var treeBuilder = phoneCallStateTree();
-  var stateMachine = TreeStateMachine(treeBuilder);
+  var declBuilder = phoneCallStateTree();
+  var stateMachine = TreeStateMachine(declBuilder.toTreeBuilder());
   var currentState = await stateMachine.start();
 
   await currentState.post(Dial('Carolyn'));
@@ -143,6 +143,6 @@ Future<void> main() async {
   assert(currentState.key == States.offHook);
 
   var sb = StringBuffer();
-  treeBuilder.format(sb, DotFormatter());
+  declBuilder.format(sb, DotFormatter());
   print(sb.toString());
 }

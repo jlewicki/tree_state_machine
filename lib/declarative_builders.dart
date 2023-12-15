@@ -10,7 +10,7 @@ import 'package:async/async.dart';
 import 'package:collection/collection.dart';
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
-import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/tree_build.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'package:tree_state_machine/src/machine/tree_node.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
@@ -30,7 +30,7 @@ import 'src/declarative_builders/handlers/transitions/run_descriptor.dart';
 import 'src/declarative_builders/handlers/transitions/post_descriptor.dart';
 import 'src/declarative_builders/handlers/transitions/schedule_descriptor.dart';
 
-part 'src/declarative_builders/declarative_tree_builder.dart';
+part 'src/declarative_builders/tree_builder.dart';
 part 'src/declarative_builders/tree_formatters.dart';
 part 'src/declarative_builders/state_builder.dart';
 part 'src/declarative_builders/state_builder_extensions.dart';

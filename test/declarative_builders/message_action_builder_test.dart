@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/declarative_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 import 'fixture/fixture_data.dart';
@@ -18,7 +18,7 @@ void main() {
         });
         b.state(state2, emptyState);
 
-        var stateMachine = TreeStateMachine(b);
+        var stateMachine = TreeStateMachine(b.toTreeBuilder());
         var currentState = await stateMachine.start();
         var msg = Message();
         await currentState.post(msg);
@@ -34,7 +34,7 @@ void main() {
               b.stay(action: b.act.updateOwnData((ctx) => ctx.data + 1)));
         });
 
-        var stateMachine = TreeStateMachine(b);
+        var stateMachine = TreeStateMachine(b.toTreeBuilder());
         var currentState = await stateMachine.start();
         await currentState.post(Message());
         expect(currentState.dataValue<int>(), equals(2));
@@ -51,7 +51,7 @@ void main() {
         });
         b.state(state2, emptyState);
 
-        var stateMachine = TreeStateMachine(b);
+        var stateMachine = TreeStateMachine(b.toTreeBuilder());
         var currentState = await stateMachine.start();
         await currentState.post(Message());
         expect(currentState.key, equals(state2));
@@ -69,7 +69,7 @@ void main() {
         });
         b.state(state2, emptyState);
 
-        var stateMachine = TreeStateMachine(b);
+        var stateMachine = TreeStateMachine(b.toTreeBuilder());
         var currentState = await stateMachine.start();
         await currentState.post(Message());
         expect(currentState.key, equals(state1));
@@ -95,7 +95,7 @@ void main() {
         });
         b.state(state2, emptyState);
 
-        var stateMachine = TreeStateMachine(b);
+        var stateMachine = TreeStateMachine(b.toTreeBuilder());
         var currentState = await stateMachine.start();
         var msg = Message();
         await currentState.post(msg);
@@ -112,7 +112,7 @@ void main() {
               b.stay(action: b.act.updateOwnData((ctx) => ctx.data + 1)));
         });
 
-        var stateMachine = TreeStateMachine(b);
+        var stateMachine = TreeStateMachine(b.toTreeBuilder());
         var currentState = await stateMachine.start();
         await currentState.post(Message());
         currentState.dataValue<int>();
@@ -137,7 +137,7 @@ void main() {
         });
         b.state(state2, emptyState);
 
-        var stateMachine = TreeStateMachine(b);
+        var stateMachine = TreeStateMachine(b.toTreeBuilder());
         var currentState = await stateMachine.start();
         var msg = Message();
         await currentState.post(msg);
@@ -167,7 +167,7 @@ void main() {
         });
         b.state(state2, emptyState);
 
-        var stateMachine = TreeStateMachine(b);
+        var stateMachine = TreeStateMachine(b.toTreeBuilder());
         var currentState = await stateMachine.start();
         var msg = Message();
         await currentState.post(msg);

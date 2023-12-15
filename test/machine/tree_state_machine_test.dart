@@ -9,7 +9,7 @@ import 'package:tree_state_machine/src/machine/extensions.dart';
 import 'package:tree_state_machine/src/machine/lifecycle.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/tree_state_machine.dart';
-import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/declarative_builders.dart';
 import 'fixture/state_data.dart';
 import 'fixture/tree.dart' as tree;
 import 'fixture/data_tree.dart' as data_tree;
@@ -417,7 +417,7 @@ void main() {
           parent: tree.r_key,
         );
 
-        sm = TreeStateMachine(otherTreeBuilder);
+        sm = TreeStateMachine(otherTreeBuilder.toTreeBuilder());
 
         expect(() async => await sm.loadFrom(Stream.fromIterable(encoded)),
             throwsStateError);
@@ -441,7 +441,7 @@ void main() {
           parent: tree.r_b_key,
         );
 
-        sm = TreeStateMachine(otherTreeBuilder);
+        sm = TreeStateMachine(otherTreeBuilder.toTreeBuilder());
         expect(() async => await sm.loadFrom(Stream.fromIterable(encoded)),
             throwsStateError);
       });
@@ -455,7 +455,7 @@ void main() {
                   initialChild: InitialChild(tree.r_a_1_key))
               ..state(tree.r_a_1_key, emptyState, parent: tree.r_a_key)
               ..state(tree.r_b_key, emptyState);
-        var sm = TreeStateMachine(treeBuilder);
+        var sm = TreeStateMachine(treeBuilder.toTreeBuilder());
         var cur = await sm.start();
         expect(cur.key, equals(tree.r_b_key));
       });
@@ -465,7 +465,7 @@ void main() {
         var treeBuilder =
             DeclarativeStateTreeBuilder(initialChild: tree.r_a_key)
               ..state(tree.r_a_key, emptyState);
-        var sm = TreeStateMachine(treeBuilder);
+        var sm = TreeStateMachine(treeBuilder.toTreeBuilder());
         var future = sm.start();
         expect(sm.lifecycle.isStarting, isTrue);
         await future;
@@ -477,7 +477,7 @@ void main() {
         var treeBuilder =
             DeclarativeStateTreeBuilder(initialChild: tree.r_a_key)
               ..state(tree.r_a_key, emptyState);
-        var sm = TreeStateMachine(treeBuilder);
+        var sm = TreeStateMachine(treeBuilder.toTreeBuilder());
         var future = sm.start();
         expect(sm.currentState, isNull);
         await future;
@@ -572,7 +572,7 @@ void main() {
       });
 
       test('should close DataValues for data states', () async {
-        var sm = TestableTreeStateMachine(data_tree.treeBuilder().call);
+        var sm = TestableTreeStateMachine(data_tree.treeBuilder());
         var doneByKey = <StateKey, bool>{};
         await sm.start();
         for (var mn in sm.machine.nodes.values) {

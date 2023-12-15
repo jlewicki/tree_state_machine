@@ -1,26 +1,24 @@
-part of '../../tree_builders.dart';
+import 'dart:collection';
+
+import 'package:tree_state_machine/src/machine/tree_node.dart';
+import 'package:tree_state_machine/src/machine/tree_state.dart';
+import 'package:tree_state_machine/tree_build.dart';
 
 /// Type of functions that can create a [TreeNode].
 typedef TreeNodeBuilder = TreeNode Function(TreeBuildContext context);
-
-abstract class StateTreeBuilder {
-  String? get label;
-  String? get logName;
-  RootTreeNode build(TreeBuildContext buildContext);
-}
 
 /// Provides contextual information while a state tree is being constructed, and factory methods for
 /// creating tree nodes.
 ///
 /// This interface is infrastructure, and is not intended to be called by application code.
 class TreeBuildContext {
-  TreeBuildContext._(this.parentNode, this.nodes);
+  TreeBuildContext._(this._parentNode, this.nodes);
 
   /// Constructs a [TreeBuildContext].
   factory TreeBuildContext() => TreeBuildContext._(null, {});
 
   /// The current parent node for nodes that will be built.
-  final TreeNode? parentNode;
+  final TreeNode? _parentNode;
 
   /// Map of nodes that have been built.
   final Map<StateKey, TreeNode> nodes;
@@ -54,15 +52,15 @@ class TreeBuildContext {
 
   /// Creates an interior [TreeNode] that is fully populated with its descendant nodes.
   TreeNode buildInterior(InteriorNodeBuildInfo nodeBuildInfo) {
-    assert(parentNode != null);
-    assert(parentNode is CompositeTreeNode);
+    assert(_parentNode != null);
+    assert(_parentNode is CompositeTreeNode);
     assert(nodeBuildInfo.childBuilders.isNotEmpty);
 
     var children = <TreeNode>[];
     var node = InteriorTreeNode(
       nodeBuildInfo.key,
       nodeBuildInfo.createState,
-      parent: parentNode as CompositeTreeNode,
+      parent: _parentNode as CompositeTreeNode,
       getInitialChild: nodeBuildInfo.initialChild,
       children: UnmodifiableListView(children),
       dataCodec: nodeBuildInfo.dataCodec,
@@ -80,13 +78,13 @@ class TreeBuildContext {
 
   /// Creates a leaf [TreeNode].
   TreeNode buildLeaf(LeafNodeBuildInfo nodeBuildInfo) {
-    assert(parentNode != null);
-    assert(parentNode is CompositeTreeNode);
+    assert(_parentNode != null);
+    assert(_parentNode is CompositeTreeNode);
 
     var node = LeafTreeNode(
       nodeBuildInfo.key,
       nodeBuildInfo.createState,
-      parent: parentNode as CompositeTreeNode,
+      parent: _parentNode as CompositeTreeNode,
       isFinalState: nodeBuildInfo.isFinalState,
       dataCodec: nodeBuildInfo.dataCodec,
       filters: nodeBuildInfo.filters,

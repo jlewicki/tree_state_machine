@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
-import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/declarative_builders.dart';
 import '../utility.dart';
 import 'fixture/fixture_data.dart';
 
@@ -252,7 +252,7 @@ void main() {
         var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.machineState(
           state1,
-          InitialMachine.fromTree((_) => nestedSb),
+          InitialMachine.fromTree((_) => nestedSb.toTreeBuilder()),
           (b) {
             b.onMachineDone((b) => b.goTo(
                   state2,
@@ -266,7 +266,7 @@ void main() {
         );
         sb.state(state2, emptyState);
 
-        var stateMachine = TreeStateMachine(sb);
+        var stateMachine = TreeStateMachine(sb.toTreeBuilder());
         var currentState = await stateMachine.start();
         var toState2Future =
             stateMachine.transitions.firstWhere((t) => t.to == state2);
@@ -280,7 +280,7 @@ void main() {
 
       test('should create a machine state from machine', () async {
         var nestedSb = createNestedBuilder();
-        var nestedSm = TreeStateMachine(nestedSb);
+        var nestedSm = TreeStateMachine(nestedSb.toTreeBuilder());
         await nestedSm.start();
 
         StateData? finalNestedData;
@@ -300,7 +300,7 @@ void main() {
         );
         sb.state(state2, emptyState);
 
-        var stateMachine = TreeStateMachine(sb);
+        var stateMachine = TreeStateMachine(sb.toTreeBuilder());
         var currentState = await stateMachine.start();
         var toState2Future =
             stateMachine.transitions.firstWhere((t) => t.to == state2);
@@ -315,7 +315,7 @@ void main() {
       test('should create a nested machine that can complete out of band',
           () async {
         var nestedSb = createNestedBuilder();
-        var nestedSm = TreeStateMachine(nestedSb);
+        var nestedSm = TreeStateMachine(nestedSb.toTreeBuilder());
         var nestedCurrentState = await nestedSm.start();
 
         StateData? finalNestedData;
@@ -335,7 +335,7 @@ void main() {
         );
         sb.state(state2, emptyState);
 
-        var stateMachine = TreeStateMachine(sb);
+        var stateMachine = TreeStateMachine(sb.toTreeBuilder());
         var currentState = await stateMachine.start();
 
         var toState2Future =
@@ -351,7 +351,7 @@ void main() {
       test('should create a nested machine that can dispose out of band',
           () async {
         var nestedSb = createNestedBuilder();
-        var nestedSm = TreeStateMachine(nestedSb);
+        var nestedSm = TreeStateMachine(nestedSb.toTreeBuilder());
         await nestedSm.start();
 
         StateData? finalNestedData;
@@ -372,7 +372,7 @@ void main() {
         );
         sb.state(state2, emptyState);
 
-        var stateMachine = TreeStateMachine(sb);
+        var stateMachine = TreeStateMachine(sb.toTreeBuilder());
         var currentState = await stateMachine.start();
 
         var toState2Future = stateMachine.transitions
@@ -386,7 +386,7 @@ void main() {
 
       test('should ignore messages if forwardMessages is false', () async {
         var nestedSb = createNestedBuilder();
-        var nestedSm = TreeStateMachine(nestedSb);
+        var nestedSm = TreeStateMachine(nestedSb.toTreeBuilder());
         await nestedSm.start();
 
         var sb = DeclarativeStateTreeBuilder(initialChild: state1);
@@ -400,7 +400,7 @@ void main() {
         );
         sb.state(state2, emptyState);
 
-        var stateMachine = TreeStateMachine(sb);
+        var stateMachine = TreeStateMachine(sb.toTreeBuilder());
         var currentState = await stateMachine.start();
         var msgResult = await currentState.post('state3');
         expect(msgResult, isA<HandledMessage>());
@@ -409,7 +409,7 @@ void main() {
 
       test('should use isDone to determine completion', () async {
         var nestedSb = createNestedBuilder();
-        var nestedSm = TreeStateMachine(nestedSb);
+        var nestedSm = TreeStateMachine(nestedSb.toTreeBuilder());
         await nestedSm.start();
 
         var sb = DeclarativeStateTreeBuilder(initialChild: state1);
@@ -423,7 +423,7 @@ void main() {
         );
         sb.state(state2, emptyState);
 
-        var stateMachine = TreeStateMachine(sb);
+        var stateMachine = TreeStateMachine(sb.toTreeBuilder());
         var currentState = await stateMachine.start();
         var toState2Future =
             stateMachine.transitions.firstWhere((t) => t.to == state2);
@@ -439,7 +439,7 @@ void main() {
         var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.machineState(
           state1,
-          InitialMachine.fromTree((_) => nestedSb),
+          InitialMachine.fromTree((_) => nestedSb.toTreeBuilder()),
           (b) {
             b.onMachineDone((b) => b.goTo(state3));
           },
@@ -447,7 +447,10 @@ void main() {
         sb.state(state2, emptyState, parent: state1);
         sb.state(state3, emptyState);
 
-        expect(() => TreeStateMachine(sb), throwsStateTreeDefinitionError);
+        expect(
+          () => TreeStateMachine(sb.toTreeBuilder()),
+          throwsStateTreeDefinitionError,
+        );
       });
     });
 

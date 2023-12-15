@@ -1,6 +1,6 @@
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
-import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/declarative_builders.dart';
 
 // A simple stoplight that transitions between green/yellow/red when it is
 //in the running state.
@@ -59,8 +59,8 @@ DeclarativeStateTreeBuilder stoplightStateTree() {
 Future<void> main() async {
   initLogging();
 
-  var treeBuilder = stoplightStateTree();
-  var stateMachine = TreeStateMachine(treeBuilder);
+  var declBuilder = stoplightStateTree();
+  var stateMachine = TreeStateMachine(declBuilder.toTreeBuilder());
   var currentState = await stateMachine.start();
 
   await currentState.post(Messages.start);
@@ -72,7 +72,7 @@ Future<void> main() async {
   assert(currentState.key == States.stopped);
 
   var sb = StringBuffer();
-  treeBuilder.format(sb, DotFormatter());
+  declBuilder.format(sb, DotFormatter());
   print(sb.toString());
 }
 

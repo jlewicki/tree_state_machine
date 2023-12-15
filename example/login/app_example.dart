@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:async/async.dart';
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
-import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/declarative_builders.dart';
 import 'authenticate_state_tree.dart' as auth;
 
 typedef AuthService = auth.AuthService;
@@ -64,10 +64,12 @@ DeclarativeStateTreeBuilder appStateTree(AuthService authService) {
   b.machineState(
     States.authenticate,
     InitialMachine.fromTree(
-        (transCtx) => auth.authenticateStateTree(
+        (transCtx) => auth
+            .authenticateStateTree(
               authService,
               initialState: transCtx.payload as StateKey,
-            ),
+            )
+            .toTreeBuilder(),
         label: 'Authenticate Machine'),
     (b) {
       b.onMachineDone((b) => b.enterChannel(
@@ -122,9 +124,9 @@ void main() async {
     },
   );
 
-  var treeBuilder = appStateTree(authService);
-  treeBuilder.extendStates((_, b) => b.filter(loggingFilter));
-  var stateMachine = TreeStateMachine(treeBuilder);
+  var declBuilder = appStateTree(authService);
+  declBuilder.extendStates((_, b) => b.filter(loggingFilter));
+  var stateMachine = TreeStateMachine(declBuilder.toTreeBuilder());
 
   var currentState = await stateMachine.start();
   assert(currentState.key == States.splash);
@@ -167,7 +169,7 @@ void main() async {
   assert(nestedState.key == auth.States.demographicsRegistration);
 
   var sb = StringBuffer();
-  treeBuilder.format(sb, DotFormatter());
+  declBuilder.format(sb, DotFormatter());
   print(sb.toString());
 
   // await currentState.post(SubmitDemographics('Phoebe', 'Buffay'));

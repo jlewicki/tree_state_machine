@@ -8,7 +8,8 @@ import 'package:tree_state_machine/src/machine/extensions.dart';
 import 'package:tree_state_machine/src/machine/initial_state_data.dart';
 import 'package:tree_state_machine/src/machine/machine.dart';
 import 'package:tree_state_machine/src/machine/tree_node.dart';
-import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/declarative_builders.dart';
+import 'package:tree_state_machine/tree_build.dart';
 
 import 'lifecycle.dart';
 import 'tree_state.dart';
@@ -678,17 +679,22 @@ typedef _DataStreamKey = (DataStateKey<dynamic>? key, Type);
 
 class TestableTreeStateMachine extends TreeStateMachine {
   TestableTreeStateMachine._(
-      super.machine, super.failedMessagePolicy, super.log, super.name)
-      : super._();
+    super.machine,
+    super.failedMessagePolicy,
+    super.log,
+    super.name,
+  ) : super._();
+
   factory TestableTreeStateMachine(
-    TreeNode Function(TreeBuildContext) buildRoot, {
+    // RootTreeNode Function(TreeBuildContext) buildRoot, {
+    StateTreeBuilder treeBuilder, {
     PostMessageErrorPolicy failedMessagePolicy =
         PostMessageErrorPolicy.convertToFailedMessage,
     String? name,
   }) {
     TreeStateMachine? treeMachine;
     var buildCtx = TreeBuildContext();
-    var rootNode = buildRoot(buildCtx);
+    var rootNode = treeBuilder.build(buildCtx);
     var machine = Machine(
       rootNode,
       buildCtx.nodes,

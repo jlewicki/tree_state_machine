@@ -1,5 +1,8 @@
-part of '../../tree_builders.dart';
+import 'package:tree_state_machine/src/machine/tree_state.dart';
+import 'package:tree_state_machine/src/machine/tree_node.dart';
+import 'package:tree_state_machine/tree_build.dart';
 
+/// Provides information about how a tree node should be built.
 sealed class TreeNodeBuildInfo {
   TreeNodeBuildInfo(
     this.key,
@@ -69,7 +72,7 @@ final class InteriorNodeBuildInfo extends CompositeNodeBuildInfo {
   final StateKey parent;
 }
 
-/// Provides a description of how an leaf [TreeNode] of a state tree should be built.
+/// Provides a description of how a leaf [TreeNode] of a state tree should be built.
 final class LeafNodeBuildInfo extends TreeNodeBuildInfo {
   LeafNodeBuildInfo(
     super.key,

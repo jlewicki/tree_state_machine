@@ -1,12 +1,13 @@
 // ignore_for_file: constant_identifier_names
 
 import 'package:tree_state_machine/src/machine/tree_state.dart';
-import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/declarative_builders.dart';
+import 'package:tree_state_machine/tree_build.dart';
 
 const r_1_key = StateKey('leaf1');
 const r_2_key = StateKey('leaf2');
 
-DeclarativeStateTreeBuilder treeBuilder({
+StateTreeBuilder treeBuilder({
   MessageHandler? state1Handler,
   MessageHandler? state2Handler,
 }) {
@@ -17,5 +18,5 @@ DeclarativeStateTreeBuilder treeBuilder({
   b.state(r_2_key, (b) {
     if (state2Handler != null) b.handleOnMessage(state2Handler);
   });
-  return b;
+  return b.toTreeBuilder();
 }

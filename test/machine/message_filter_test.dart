@@ -6,7 +6,9 @@ import 'fixture/data_tree.dart';
 
 void main() {
   group('MachineMessageContext', () {
-    test('should run message filters with handling state the same as filtered state', () async {
+    test(
+        'should run message filters with handling state the same as filtered state',
+        () async {
       var handlingStates = <StateKey>[];
       final buildTree = treeBuilder(filters: {
         r_a_a_2_key: [
@@ -86,8 +88,10 @@ void main() {
       await machine.enterInitialState();
       var result = await machine.processMessage(Object());
 
-      expect(ListEquality<int>().equals([1, 2, 3], filtersExecutedBefore), isTrue);
-      expect(ListEquality<int>().equals([3, 2, 1], filtersExecutedAfter), isTrue);
+      expect(
+          ListEquality<int>().equals([1, 2, 3], filtersExecutedBefore), isTrue);
+      expect(
+          ListEquality<int>().equals([3, 2, 1], filtersExecutedAfter), isTrue);
       expect(result, isA<HandledMessage>());
       expect(wasTreeStateHandlerRun, isTrue);
     });

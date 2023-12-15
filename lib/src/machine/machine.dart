@@ -23,14 +23,12 @@ class Machine {
   Machine._(this.rootNode, this.nodes, this._queueMessage, this._log);
 
   factory Machine(
-    TreeNode rootNode,
+    RootTreeNode rootNode,
+    // TODO: remove this arg. It can built by traversing the rootNode
     Map<StateKey, TreeNode> nodesByKey,
     void Function(Object message) queueMessage, {
     String? logName,
   }) {
-    // Add an extra node to represent externally stopped state
-    //_addStoppedNode(rootNode, nodesByKey);
-
     var log = Logger(
         'tree_state_machine.Machine${logName != null ? '.$logName' : ''}');
     var machineRoot = MachineNode(rootNode, log);
