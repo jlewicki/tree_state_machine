@@ -93,60 +93,78 @@ abstract class _StateBuilder {
     return _StateType.interior;
   }
 
+  TreeNodeBuildInfo toTreeNodeBuildInfo(
+    TreeNodeBuilder Function(StateKey childState) getChildNodeBuilder,
+  ) {
+    return TreeNodeBuildInfo(
+      key,
+      (_) => _createState(),
+      initialChild: _initialChild?.call,
+      childBuilders: _children.map(getChildNodeBuilder),
+      isFinalState: _isFinal,
+      dataCodec: _codec,
+      filters: _filters,
+      metadata: _metadata,
+    );
+  }
+
   bool get _hasStateData => _dataType != null;
 
   StateBuilderExtensionInfo _getExtensionInfo() =>
       StateBuilderExtensionInfo(key, _metadata, _filters);
 
-  Iterable<MessageHandlerInfo> _getHandlerInfos() => _messageHandlerMap.values.map((e) => e.info);
+  Iterable<MessageHandlerInfo> _getHandlerInfos() =>
+      _messageHandlerMap.values.map((e) => e.info);
 
   void _addChild(_StateBuilder child) {
     child._parent = key;
     _children.add(child.key);
   }
 
-  TreeNode _toNode(TreeBuildContext context, Map<StateKey, _StateBuilder> builderMap) {
-    switch (_nodeType()) {
-      case NodeType.rootNode:
-        return context.buildRoot(
-          key,
-          (_) => _createState(),
-          _children.map((e) {
-            var childBuilder = builderMap[e]!;
-            return (childCtx) => childBuilder._toNode(childCtx, builderMap);
-          }),
-          _initialChild!.call,
-          _codec,
-          _filters,
-          _metadata,
-        );
-      case NodeType.interiorNode:
-        return context.buildInterior(
-          key,
-          (_) => _createState(),
-          _children.map((e) {
-            var childBuilder = builderMap[e]!;
-            return (childCtx) => childBuilder._toNode(childCtx, builderMap);
-          }),
-          _initialChild!.call,
-          _codec,
-          _filters,
-          _metadata,
-        );
-      case NodeType.leafNode:
-        return context.buildLeaf(
-          key,
-          (_) => _createState(),
-          _codec,
-          filters: _filters,
-          metadata: _metadata,
-        );
-      case NodeType.finalLeafNode:
-        return context.buildLeaf(key, (_) => _createState(), _codec, isFinal: true);
-      default:
-        throw StateError('Unrecognized node type');
-    }
-  }
+  // TreeNode _toNode(
+  //     TreeBuildContext context, Map<StateKey, _StateBuilder> builderMap) {
+  //   switch (_nodeType()) {
+  //     case NodeType.rootNode:
+  //       return context.buildRoot(
+  //         key,
+  //         (_) => _createState(),
+  //         _children.map((e) {
+  //           var childBuilder = builderMap[e]!;
+  //           return (childCtx) => childBuilder._toNode(childCtx, builderMap);
+  //         }),
+  //         _initialChild!.call,
+  //         _codec,
+  //         _filters,
+  //         _metadata,
+  //       );
+  //     case NodeType.interiorNode:
+  //       return context.buildInterior(
+  //         key,
+  //         (_) => _createState(),
+  //         _children.map((e) {
+  //           var childBuilder = builderMap[e]!;
+  //           return (childCtx) => childBuilder._toNode(childCtx, builderMap);
+  //         }),
+  //         _initialChild!.call,
+  //         _codec,
+  //         _filters,
+  //         _metadata,
+  //       );
+  //     case NodeType.leafNode:
+  //       return context.buildLeaf(
+  //         key,
+  //         (_) => _createState(),
+  //         _codec,
+  //         filters: _filters,
+  //         metadata: _metadata,
+  //       );
+  //     case NodeType.finalLeafNode:
+  //       return context.buildLeaf(key, (_) => _createState(), _codec,
+  //           isFinal: true);
+  //     default:
+  //       throw StateError('Unrecognized node type');
+  //   }
+  // }
 
   NodeType _nodeType() {
     if (_parent == null) {
@@ -172,7 +190,8 @@ abstract class _StateBuilder {
     }
 
     final handlerMap = HashMap.fromEntries(
-      _messageHandlerMap.entries.map((e) => MapEntry(e.key, e.value.makeHandler())),
+      _messageHandlerMap.entries
+          .map((e) => MapEntry(e.key, e.value.makeHandler())),
     );
 
     return (MessageContext msgCtx) {
@@ -230,7 +249,8 @@ abstract class EnterStateBuilder<D> {
   ///
   /// The [build] function is called with a [TransitionHandlerBuilder] that can be used to
   /// describe the behavior of the exit transition.
-  void onEnterWithData<D2>(void Function(TransitionHandlerBuilder<D, D2>) build);
+  void onEnterWithData<D2>(
+      void Function(TransitionHandlerBuilder<D, D2>) build);
 
   /// Describes how transition to this state through [channel] should be handled.
   ///
@@ -273,7 +293,8 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
   void onEnter(
     void Function(TransitionHandlerBuilder<D, void>) build,
   ) {
-    var builder = TransitionHandlerBuilder<D, void>._(key, _log, _makeVoidTransitionContext);
+    var builder = TransitionHandlerBuilder<D, void>._(
+        key, _log, _makeVoidTransitionContext);
     build(builder);
     _onEnter = builder._descriptor;
   }
@@ -282,8 +303,8 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
   void onEnterWithData<D2>(
     void Function(TransitionHandlerBuilder<D, D2>) build,
   ) {
-    var builder =
-        TransitionHandlerBuilder<D, D2>._(key, _log, (transCtx) => transCtx.dataValueOrThrow<D2>());
+    var builder = TransitionHandlerBuilder<D, D2>._(
+        key, _log, (transCtx) => transCtx.dataValueOrThrow<D2>());
     build(builder);
     _onEnter = builder._descriptor;
   }
@@ -329,8 +350,10 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
   ///
   /// The [build] function is called with a [MessageHandlerBuilder] that can be used to describe
   /// the behavior of the message handler.
-  void onMessage<M>(void Function(MessageHandlerBuilder<M, D, void> b) build, {M? message}) {
-    var builder = MessageHandlerBuilder<M, D, void>(key, _makeVoidMessageContext, _log, null);
+  void onMessage<M>(void Function(MessageHandlerBuilder<M, D, void> b) build,
+      {M? message}) {
+    var builder = MessageHandlerBuilder<M, D, void>(
+        key, _makeVoidMessageContext, _log, null);
     build(builder);
     if (builder.descriptor != null) {
       var messageKey = message ?? M;
@@ -346,7 +369,8 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
   ///
   /// The [build] function is called with a [TransitionHandlerBuilder] that can be used to
   /// describe the behavior of the exit transition.
-  void onMessageWithData<M, D2>(void Function(MessageHandlerBuilder<M, D, D2> b) build) {
+  void onMessageWithData<M, D2>(
+      void Function(MessageHandlerBuilder<M, D, D2> b) build) {
     var builder = MessageHandlerBuilder<M, D, D2>(
       key,
       (msgCtx) => msgCtx.dataValueOrThrow<D2>(),
@@ -369,8 +393,8 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
     String? messageName,
   }) {
     messageName = _getMessageName(messageName, message as Object);
-    var builder =
-        MessageHandlerBuilder<M, D, void>(key, _makeVoidMessageContext, _log, messageName);
+    var builder = MessageHandlerBuilder<M, D, void>(
+        key, _makeVoidMessageContext, _log, messageName);
     build(builder);
     if (builder.descriptor != null) {
       _messageHandlerMap[message] = builder.descriptor!;
@@ -384,7 +408,8 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
   void onExit(
     void Function(TransitionHandlerBuilder<D, void>) build,
   ) {
-    var builder = TransitionHandlerBuilder<D, void>._(key, _log, _makeVoidTransitionContext);
+    var builder = TransitionHandlerBuilder<D, void>._(
+        key, _log, _makeVoidTransitionContext);
     build(builder);
     _onExit = builder._descriptor;
   }
@@ -399,8 +424,8 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
   void onExitWithData<D2>(
     void Function(TransitionHandlerBuilder<D, D2>) build,
   ) {
-    var builder =
-        TransitionHandlerBuilder<D, D2>._(key, _log, (transCtx) => transCtx.dataValueOrThrow<D2>());
+    var builder = TransitionHandlerBuilder<D, D2>._(
+        key, _log, (transCtx) => transCtx.dataValueOrThrow<D2>());
     build(builder);
     _onExit = builder._descriptor;
   }
@@ -488,10 +513,11 @@ class MachineStateBuilder extends _StateBuilder {
   }
 
   @override
-  Iterable<MessageHandlerInfo> _getHandlerInfos() => super._getHandlerInfos().followedBy([
-        _doneDescriptor?.info,
-        _disposedDescriptor?.info
-      ].where((i) => i != null).cast<MessageHandlerInfo>());
+  Iterable<MessageHandlerInfo> _getHandlerInfos() =>
+      super._getHandlerInfos().followedBy([
+            _doneDescriptor?.info,
+            _disposedDescriptor?.info
+          ].where((i) => i != null).cast<MessageHandlerInfo>());
 
   @override
   TreeState _createState() {

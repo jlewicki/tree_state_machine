@@ -44,7 +44,8 @@ class StateTreeBuilder {
     'tree_state_machine.StateTreeBuilder${logName != null ? '.${logName!}' : ''}',
   );
 
-  StateTreeBuilder._(this._rootKey, this.label, String? logName) : logName = logName ?? label;
+  StateTreeBuilder._(this._rootKey, this.label, String? logName)
+      : logName = logName ?? label;
 
   /// The key identifying the root state that is implicitly added to a state tree, if the
   /// [StateTreeBuilder.new] constructor is used.
@@ -77,9 +78,11 @@ class StateTreeBuilder {
   ///
   /// The builder can optionally be given a [label] for diagnostic purposes, and a [logName] which
   /// identifies the builder in log output. If [logName] is unspecifed, [label] will be used instead.
-  factory StateTreeBuilder({required StateKey initialChild, String? label, String? logName}) {
+  factory StateTreeBuilder(
+      {required StateKey initialChild, String? label, String? logName}) {
     var b = StateTreeBuilder._(defaultRootKey, label, logName);
-    b.state(defaultRootKey, emptyState, initialChild: InitialChild(initialChild));
+    b.state(defaultRootKey, emptyState,
+        initialChild: InitialChild(initialChild));
     return b;
   }
 
@@ -103,7 +106,8 @@ class StateTreeBuilder {
     void Function(StateExtensionBuilder)? extensions,
   }) {
     var b = StateTreeBuilder._(rootState, label, logName);
-    var extensionBuilder = b.state(rootState, build, initialChild: initialChild);
+    var extensionBuilder =
+        b.state(rootState, build, initialChild: initialChild);
     extensions?.call(extensionBuilder);
     return b;
   }
@@ -139,7 +143,8 @@ class StateTreeBuilder {
   }
 
   /// Creates the root node of the state tree.
-  TreeNode call([TreeBuildContext? context]) => _build(context ?? TreeBuildContext());
+  TreeNode call([TreeBuildContext? context]) =>
+      build(context ?? TreeBuildContext());
 
   /// Adds to the state tree a description of a state, identified by [stateKey].
   ///
@@ -375,7 +380,8 @@ class StateTreeBuilder {
     var stateBuilder = _stateBuilders[stateKey];
     return stateBuilder != null
         ? StateExtensionBuilder._(stateBuilder)
-        : throw StateError('State $stateKey has not been defined with this $runtimeType');
+        : throw StateError(
+            'State $stateKey has not been defined with this $runtimeType');
   }
 
   /// Calls the [extend] function for each state that has been defined, allowing the states to be
@@ -383,7 +389,8 @@ class StateTreeBuilder {
   ///
   /// The [extend] function is provided with a state key identifying the state to extemd, and a
   /// [StateExtensionBuilder] that can be used to define the extensions.
-  StateTreeBuilder extendStates(void Function(StateKey, StateExtensionBuilder) extend) {
+  StateTreeBuilder extendStates(
+      void Function(StateKey, StateExtensionBuilder) extend) {
     for (var entry in _stateBuilders.entries) {
       extend(entry.key, StateExtensionBuilder._(entry.value));
     }
@@ -405,18 +412,52 @@ class StateTreeBuilder {
     formatter.formatTo(this, sink);
   }
 
-  TreeNode _build(TreeBuildContext context) {
+  // TreeNode _build(TreeBuildContext context) {
+  //   _validate();
+
+  //   var rootBuilders = _stateBuilders.values
+  //       .where((b) => b._stateType == _StateType.root)
+  //       .toList();
+  //   if (rootBuilders.isEmpty) {
+  //     throw StateError('No root builders available');
+  //   } else if (rootBuilders.length > 1) {
+  //     throw StateError('Found multiple root nodes.');
+  //   }
+
+  //   // If there is a single root, then we have a well formed state tree.
+  //   return rootBuilders.first._toNode(context, _stateBuilders);
+  // }
+
+  /// Builds the state tree described by this builder, and returns the root node of the tree.
+  TreeNode build(TreeBuildContext buildContext) {
     _validate();
+    var rootBuilder = _getStateBuilder(_rootKey);
+    return _buildTreeNode(buildContext, rootBuilder);
+  }
 
-    var rootBuilders = _stateBuilders.values.where((b) => b._stateType == _StateType.root).toList();
-    if (rootBuilders.isEmpty) {
-      throw StateError('No root builders available');
-    } else if (rootBuilders.length > 1) {
-      throw StateError('Found multiple root nodes.');
-    }
+  TreeNode _buildTreeNode(
+    TreeBuildContext context,
+    _StateBuilder stateBuilder,
+  ) {
+    var nodeBuildInfo = stateBuilder.toTreeNodeBuildInfo(_makeChildNodeBuilder);
+    return switch (stateBuilder._nodeType()) {
+      NodeType.rootNode => context.buildRoot(nodeBuildInfo),
+      NodeType.interiorNode => context.buildInterior(nodeBuildInfo),
+      NodeType.leafNode ||
+      NodeType.finalLeafNode =>
+        context.buildLeaf(nodeBuildInfo),
+    };
+  }
 
-    // If there is a single root, then we have a well formed state tree.
-    return rootBuilders.first._toNode(context, _stateBuilders);
+  TreeNodeBuilder _makeChildNodeBuilder(StateKey childStateKey) {
+    var childBuilder = _getStateBuilder(childStateKey);
+    return (childCtx) => _buildTreeNode(childCtx, childBuilder);
+  }
+
+  _StateBuilder _getStateBuilder(StateKey key) {
+    var stateBuilder = _stateBuilders[key];
+    assert(stateBuilder != null);
+    return stateBuilder!;
   }
 
   void _addState(_StateBuilder builder) {
@@ -430,8 +471,8 @@ class StateTreeBuilder {
     _ensureChildren();
 
     // Make sure parent/child relationships are consistent.
-    for (var entry in _stateBuilders.entries
-        .where((e) => e.value._initialChild != null || e.value._children.isNotEmpty)) {
+    for (var entry in _stateBuilders.entries.where(
+        (e) => e.value._initialChild != null || e.value._children.isNotEmpty)) {
       var initialChild = entry.value._initialChild;
       var children = entry.value._children;
       if (children.isNotEmpty && entry.value is MachineStateBuilder) {
@@ -457,7 +498,8 @@ class StateTreeBuilder {
         var initChildKey = initialChild._initialChildKey;
         // If an implicit root is used, make sure the initialChild for the root state has no parent specified
         // A more descriptive error message is used in this case.
-        if (entry.key == defaultRootKey && _stateBuilders[initChildKey]?._parent != null) {
+        if (entry.key == defaultRootKey &&
+            _stateBuilders[initChildKey]?._parent != null) {
           var parentKey = _stateBuilders[initChildKey]?._parent;
           throw StateTreeDefinitionError(
               'The initial chlld state $initChildKey specified for this implicit-root $runtimeType has '
@@ -475,7 +517,8 @@ class StateTreeBuilder {
       for (var handlerEntry in state._messageHandlerMap.entries) {
         var handlerInfo = handlerEntry.value;
         var targetStateKey = handlerInfo.info.goToTarget;
-        if (targetStateKey != null && !_stateBuilders.containsKey(targetStateKey)) {
+        if (targetStateKey != null &&
+            !_stateBuilders.containsKey(targetStateKey)) {
           throw StateTreeDefinitionError(
               'State ${state.key} has a transition to unknown state $targetStateKey');
         }
@@ -484,7 +527,8 @@ class StateTreeBuilder {
   }
 
   void _ensureChildren() {
-    for (var entry in _stateBuilders.entries.where((e) => e.value._parent != null)) {
+    for (var entry
+        in _stateBuilders.entries.where((e) => e.value._parent != null)) {
       var parentKey = entry.value._parent;
       var parentState = _stateBuilders[parentKey];
       if (parentState == null) {
@@ -509,8 +553,10 @@ class StateTreeBuilder {
     // If there are states other than the root that do not have a parent specified (as will happen
     // if the default StateTreeBuilder factory is used), make those states children of the root
     // state.
-    var withoutParents = _stateBuilders.values.where((sb) => sb._parent == null).toList();
-    for (var withoutParent in withoutParents.where((sb) => sb.key != _rootKey)) {
+    var withoutParents =
+        _stateBuilders.values.where((sb) => sb._parent == null).toList();
+    for (var withoutParent
+        in withoutParents.where((sb) => sb.key != _rootKey)) {
       rootState._addChild(withoutParent);
     }
   }
@@ -569,7 +615,8 @@ class InitialData<D> {
   ///     });
   ///   });
   /// ```
-  static InitialData<D> fromChannel<D, P>(Channel<P> channel, D Function(P payload) initialValue) {
+  static InitialData<D> fromChannel<D, P>(
+      Channel<P> channel, D Function(P payload) initialValue) {
     return InitialData._((transCtx) {
       try {
         return initialValue(transCtx.payloadOrThrow<P>());
@@ -608,8 +655,10 @@ class InitialData<D> {
   ///   parent: parentState
   /// );
   /// ```
-  static InitialData<D> fromAncestor<D, DAncestor>(D Function(DAncestor ancData) initialValue) {
-    return InitialData._((ctx) => initialValue(ctx.dataValueOrThrow<DAncestor>()));
+  static InitialData<D> fromAncestor<D, DAncestor>(
+      D Function(DAncestor ancData) initialValue) {
+    return InitialData._(
+        (ctx) => initialValue(ctx.dataValueOrThrow<DAncestor>()));
   }
 
   /// Creates an [InitialData] that produces its initial value by calling [initialValue] with
@@ -620,7 +669,8 @@ class InitialData<D> {
     D Function(DAncestor parentData, P payload) initialValue,
   ) {
     return InitialData._(
-      (ctx) => initialValue(ctx.dataValueOrThrow<DAncestor>(), ctx.payloadOrThrow<P>()),
+      (ctx) => initialValue(
+          ctx.dataValueOrThrow<DAncestor>(), ctx.payloadOrThrow<P>()),
     );
   }
 }
@@ -678,10 +728,12 @@ class InitialMachine implements NestedMachine {
   final String? label;
   final FutureOr<TreeStateMachine> Function(TransitionContext) _create;
 
-  InitialMachine._(this._create, this.disposeMachineOnExit, this.forwardMessages, this.label);
+  InitialMachine._(this._create, this.disposeMachineOnExit,
+      this.forwardMessages, this.label);
 
   @override
-  FutureOr<TreeStateMachine> call(TransitionContext transCtx) => _create(transCtx);
+  FutureOr<TreeStateMachine> call(TransitionContext transCtx) =>
+      _create(transCtx);
 
   /// Constructs an [InitialMachine] that will use the state machine produced by the [create]
   /// function as the nested state machine.

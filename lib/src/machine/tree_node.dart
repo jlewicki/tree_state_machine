@@ -23,7 +23,10 @@ abstract class TreeNodeInfo {
   /// The child nodes of this node. The list is empty for leaf nodes.
   ///
   /// This list is unmodifiable.
-  List<TreeNodeInfo> getChildren();
+  List<TreeNodeInfo> get children;
+
+  /// Indicates if the tree state of this node is a final state.
+  bool get isFinal;
 }
 
 /// A node within a state tree.
@@ -33,9 +36,29 @@ abstract class TreeNodeInfo {
 /// parent or child states). Instead, [TreeNode] composes together a tree state along with
 /// information about the location of the node with the tree.
 class TreeNode implements TreeNodeInfo {
+  TreeNode(
+    this.key, {
+    required StateCreator createState,
+    this.parent,
+    this.getInitialChild,
+    this.isFinal = false,
+    this.dataCodec,
+    List<TreeStateFilter> filters = const [],
+    Map<String, Object> metadata = const {},
+    List<TreeNode> children = const [],
+  })  : _children = children, // TODO make this lazy
+        _lazyState = Lazy<TreeState>(() => createState(key)),
+        filters = List.unmodifiable(List.of(filters)),
+        metadata = Map.unmodifiable(Map.of(metadata));
+
   /// The type of this tree node.
   @override
-  final NodeType nodeType;
+  NodeType get nodeType => switch (this) {
+        _ when parent == null => NodeType.rootNode,
+        _ when children.isNotEmpty => NodeType.interiorNode,
+        _ when isFinal => NodeType.finalLeafNode,
+        _ => NodeType.leafNode
+      };
 
   /// The key identifying this tree node.
   @override
@@ -46,7 +69,10 @@ class TreeNode implements TreeNodeInfo {
   final TreeNode? parent;
 
   /// The child nodes of this node. The list is empty for leaf nodes.
-  final List<TreeNode> children = [];
+  final List<TreeNode> _children;
+
+  @override
+  late final List<TreeNode> children = UnmodifiableListView(_children);
 
   /// Function to identify the child node that should be entered, if this node is entered. Returns
   /// `null` if this node does not have any children.
@@ -64,23 +90,14 @@ class TreeNode implements TreeNodeInfo {
   final List<TreeStateFilter> filters;
 
   @override
+  final bool isFinal;
+
+  @override
   final Map<String, Object> metadata;
 
-  TreeNode(
-    this.nodeType,
-    this.key,
-    this.parent,
-    StateCreator createState,
-    this.dataCodec,
-    List<TreeStateFilter>? filters,
-    Map<String, Object>? metadata, [
-    this.getInitialChild,
-  ])  : _lazyState = Lazy<TreeState>(() => createState(key)),
-        filters = List.unmodifiable(filters ?? List.empty()),
-        metadata = Map.unmodifiable(metadata ?? {});
-
   bool get isRoot => nodeType == NodeType.rootNode;
-  bool get isLeaf => nodeType == NodeType.leafNode || nodeType == NodeType.finalLeafNode;
+  bool get isLeaf =>
+      nodeType == NodeType.leafNode || nodeType == NodeType.finalLeafNode;
   bool get isInterior => nodeType == NodeType.interiorNode;
   bool get isFinalLeaf => nodeType == NodeType.finalLeafNode;
 
@@ -93,9 +110,6 @@ class TreeNode implements TreeNodeInfo {
     var s = state;
     return s is DataTreeState ? s.data : null;
   }
-
-  @override
-  List<TreeNodeInfo> getChildren() => UnmodifiableListView(children);
 
   /// Lazily-compute the self-and-ancestor nodes of this node.
   ///
@@ -135,11 +149,13 @@ extension TreeNodeNavigationExtensions on TreeNode {
   ///
   /// Returns `null` if there is no node that matches the data type.
   TreeNode? selfOrAncestorWithData<D>() {
-    return selfAndAncestors().firstWhereOrNull((n) => n.data is DataValue<D> ? true : false);
+    return selfAndAncestors()
+        .firstWhereOrNull((n) => n.data is DataValue<D> ? true : false);
   }
 
   /// Returns `true` if [stateKey] identifies this node, or one of its ancestor nodes.
-  bool isSelfOrAncestor(StateKey stateKey) => selfOrAncestorWithKey(stateKey) != null;
+  bool isSelfOrAncestor(StateKey stateKey) =>
+      selfOrAncestorWithKey(stateKey) != null;
 
   /// Finds the least common ancestor (LCA) between this and the [other] node.
   TreeNode lcaWith(TreeNode other) {
@@ -156,18 +172,24 @@ extension TreeNodeNavigationExtensions on TreeNode {
     return lca!;
   }
 
-  DataValue<D>? selfOrAncestorDataValue<D>({DataStateKey<D>? key, bool throwIfNotFound = false}) {
+  DataValue<D>? selfOrAncestorDataValue<D>(
+      {DataStateKey<D>? key, bool throwIfNotFound = false}) {
     // We cant search
     if (isTypeOfExact<void, D>()) return null;
 
-    var typeofDIsObjectOrDynamic = isTypeOfExact<Object, D>() || isTypeOfExact<dynamic, D>();
+    var typeofDIsObjectOrDynamic =
+        isTypeOfExact<Object, D>() || isTypeOfExact<dynamic, D>();
     // If requested type was Object, then we can't meaningfully search by type. So we can only
     // search by key, and if no key was specified, then we assume the current leaf.
     key = key ??
         (typeofDIsObjectOrDynamic
-            ? (switch (this.key) { DataStateKey<D>() => this.key as DataStateKey<D>, _ => null })
+            ? (switch (this.key) {
+                DataStateKey<D>() => this.key as DataStateKey<D>,
+                _ => null
+              })
             : null);
-    var node = key != null ? selfOrAncestorWithKey(key) : selfOrAncestorWithData<D>();
+    var node =
+        key != null ? selfOrAncestorWithKey(key) : selfOrAncestorWithData<D>();
     var dataValue = node?.data;
     if (dataValue != null) {
       if (typeofDIsObjectOrDynamic) {
