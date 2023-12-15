@@ -11,13 +11,14 @@ class States {
   static final unlocked = StateKey('unlocked');
 }
 
-StateTreeBuilder turnstileStateTree() {
-  return StateTreeBuilder(initialChild: States.locked)
+DeclarativeStateTreeBuilder turnstileStateTree() {
+  return DeclarativeStateTreeBuilder(initialChild: States.locked)
     ..state(States.locked, (b) {
       b.onMessageValue(Messages.insertCoin, (b) => b.goTo(States.unlocked));
     })
     ..state(States.unlocked, (b) {
-      b.onMessageValue(Messages.push, (b) => b.goTo(States.locked), messageName: 'push');
+      b.onMessageValue(Messages.push, (b) => b.goTo(States.locked),
+          messageName: 'push');
     });
 }
 

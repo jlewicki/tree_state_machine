@@ -16,21 +16,21 @@ void main() {
 
     group('factory', () {
       test('should create implicit root state', () {
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.state(state1, emptyState);
         var rootNode = sb();
-        expect(StateTreeBuilder.defaultRootKey, rootNode.key);
+        expect(DeclarativeStateTreeBuilder.defaultRootKey, rootNode.key);
         expect(1, rootNode.children.length);
         expect(state1, rootNode.children.first.key);
-        expect(StateTreeBuilder.defaultRootKey,
+        expect(DeclarativeStateTreeBuilder.defaultRootKey,
             rootNode.children.first.parent()!.key);
-        expect(sb.rootKey, StateTreeBuilder.defaultRootKey);
+        expect(sb.rootKey, DeclarativeStateTreeBuilder.defaultRootKey);
       });
     });
 
     group('factory.withRoot', () {
       test('should create explicit root state', () {
-        var sb = StateTreeBuilder.withRoot(
+        var sb = DeclarativeStateTreeBuilder.withRoot(
             rootState, InitialChild(state1), emptyState);
         sb.state(state1, emptyState);
         var rootNode = sb();
@@ -45,7 +45,7 @@ void main() {
     group('factory.withDataRoot', () {
       final rootState = DataStateKey<int>('root');
       test('should create explicit root state', () {
-        var sb = StateTreeBuilder.withDataRoot<int>(
+        var sb = DeclarativeStateTreeBuilder.withDataRoot<int>(
           rootState,
           InitialData(() => 1),
           emptyState,
@@ -63,7 +63,7 @@ void main() {
 
     group('state', () {
       test('should create a leaf state', () {
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.state(state1, emptyState, initialChild: null);
         var rootNode = sb();
         var state1Node = rootNode.children.first;
@@ -74,7 +74,7 @@ void main() {
       });
 
       test('should create a leaf state (rooted)', () {
-        var sb = StateTreeBuilder.withRoot(
+        var sb = DeclarativeStateTreeBuilder.withRoot(
             rootState, InitialChild(state1), emptyState);
         sb.state(state1, emptyState, initialChild: null);
         var rootNode = sb();
@@ -86,7 +86,7 @@ void main() {
       });
 
       test('should create an interior state', () {
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.state(state1, emptyState, initialChild: InitialChild(state2));
         sb.state(state2, emptyState, parent: state1);
         var rootNode = sb();
@@ -99,7 +99,7 @@ void main() {
       });
 
       test('should create an interior state (rooted)', () {
-        var sb = StateTreeBuilder.withRoot(
+        var sb = DeclarativeStateTreeBuilder.withRoot(
             rootState, InitialChild(state1), emptyState);
         sb.state(state1, emptyState, initialChild: InitialChild(state2));
         sb.state(state2, emptyState, parent: state1);
@@ -114,7 +114,7 @@ void main() {
 
       test('should throw if state is defined more than once', () {
         var state1 = StateKey('s1');
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.state(state1, emptyState, initialChild: null);
         expect(() => sb.state(state1, emptyState, initialChild: null),
             throwsStateError);
@@ -124,7 +124,7 @@ void main() {
     group('dataState', () {
       test('should create a leaf state', () {
         final state1 = DataStateKey<int>('state1');
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.dataState<int>(state1, InitialData(() => 1), emptyState,
             initialChild: null);
         var rootNode = sb();
@@ -137,7 +137,7 @@ void main() {
 
       test('should create a leaf state (rooted)', () {
         final state1 = DataStateKey<int>('state1');
-        var sb = StateTreeBuilder.withRoot(
+        var sb = DeclarativeStateTreeBuilder.withRoot(
             rootState, InitialChild(state1), emptyState);
         sb.dataState<int>(state1, InitialData(() => 1), emptyState,
             initialChild: null);
@@ -152,7 +152,7 @@ void main() {
       test('should create an interior state', () {
         final state1 = DataStateKey<String>('state1');
         final state2 = DataStateKey<String>('state2');
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.dataState<String>(state1, InitialData(() => ''), emptyState,
             initialChild: InitialChild(state2));
         sb.dataState<String>(state2, InitialData(() => ''), emptyState,
@@ -168,7 +168,7 @@ void main() {
 
       test('should throw if state is defined more than once', () {
         final state1 = DataStateKey<int>('state1');
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.dataState<int>(state1, InitialData(() => 1), emptyState,
             initialChild: null);
         expect(
@@ -181,7 +181,7 @@ void main() {
 
     group('finalState', () {
       test('should create a final leaf state', () {
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.finalState(state1, emptyFinalState);
         var rootNode = sb();
         var state1Node = rootNode.children.first;
@@ -192,7 +192,7 @@ void main() {
       });
 
       test('should throw if state is defined more than once', () {
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.finalState(state1, emptyFinalState);
         expect(() => sb.finalState(state1, emptyFinalState), throwsStateError);
       });
@@ -201,7 +201,7 @@ void main() {
     group('finalDataState', () {
       final state1 = DataStateKey<int>('state1');
       test('should create a final data leaf state', () {
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.finalDataState<int>(state1, InitialData(() => 1), emptyFinalState);
         var rootNode = sb();
         var state1Node = rootNode.children.first;
@@ -212,7 +212,7 @@ void main() {
       });
 
       test('should throw if state is defined more than once', () {
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.finalDataState<int>(state1, InitialData(() => 1), emptyFinalState);
         expect(
           () => sb.finalDataState<int>(
@@ -227,8 +227,9 @@ void main() {
       final nestedState2 = DataStateKey<StateData>('nestedState2');
       final nestedState3 = StateKey('nestedState3');
 
-      StateTreeBuilder createNestedBuilder() {
-        var treeBuilder = StateTreeBuilder(initialChild: nestedState1);
+      DeclarativeStateTreeBuilder createNestedBuilder() {
+        var treeBuilder =
+            DeclarativeStateTreeBuilder(initialChild: nestedState1);
 
         treeBuilder.state(nestedState1, (b) {
           b.onMessageValue('state2', (b) => b.goTo(nestedState2));
@@ -248,7 +249,7 @@ void main() {
         var nestedSb = createNestedBuilder();
 
         StateData? finalNestedData;
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.machineState(
           state1,
           InitialMachine.fromTree((_) => nestedSb),
@@ -283,7 +284,7 @@ void main() {
         await nestedSm.start();
 
         StateData? finalNestedData;
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.machineState(
           state1,
           InitialMachine.fromMachine((_) => nestedSm),
@@ -318,7 +319,7 @@ void main() {
         var nestedCurrentState = await nestedSm.start();
 
         StateData? finalNestedData;
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.machineState(
           state1,
           InitialMachine.fromMachine((_) => nestedSm),
@@ -354,7 +355,7 @@ void main() {
         await nestedSm.start();
 
         StateData? finalNestedData;
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.machineState(
           state1,
           InitialMachine.fromMachine((_) => nestedSm),
@@ -388,7 +389,7 @@ void main() {
         var nestedSm = TreeStateMachine(nestedSb);
         await nestedSm.start();
 
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.machineState(
           state1,
           InitialMachine.fromMachine((_) => nestedSm, forwardMessages: false),
@@ -411,7 +412,7 @@ void main() {
         var nestedSm = TreeStateMachine(nestedSb);
         await nestedSm.start();
 
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.machineState(
           state1,
           InitialMachine.fromMachine((_) => nestedSm),
@@ -435,7 +436,7 @@ void main() {
       test('should throw when not a leaf state', () async {
         var nestedSb = createNestedBuilder();
 
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.machineState(
           state1,
           InitialMachine.fromTree((_) => nestedSb),
@@ -452,21 +453,21 @@ void main() {
 
     group('build', () {
       test('should throw if a parent state is missing initial child', () {
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.state(state1, emptyState);
         sb.state(state2, emptyState, parent: state1);
         expect(() => sb(), throwsStateTreeDefinitionError);
       });
 
       test('should throw if initial child is not defined', () {
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.state(state1, emptyState, initialChild: InitialChild(state3));
         sb.state(state2, emptyState, parent: state1);
         expect(() => sb(), throwsStateTreeDefinitionError);
       });
 
       test('should throw if initial child has no parent', () {
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.state(state1, emptyState, initialChild: InitialChild(state3));
         sb.state(state2, emptyState, parent: state1);
         sb.state(state3, emptyState);
@@ -474,7 +475,7 @@ void main() {
       });
 
       test('should throw if initial child has wrong parent', () {
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.state(state1, emptyState, initialChild: InitialChild(state3));
         sb.state(state2, emptyState, parent: state1);
         sb.state(state3, emptyState, parent: state4);
@@ -483,7 +484,7 @@ void main() {
       });
 
       test('should throw if initial child of implicit root has a parent', () {
-        var sb = StateTreeBuilder(initialChild: state2);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state2);
         sb.state(state1, emptyState, initialChild: InitialChild(state3));
         sb.state(state2, emptyState, parent: state1);
         sb.state(state3, emptyState, parent: state4);
@@ -492,7 +493,7 @@ void main() {
       });
 
       test('should throw if there is a transition to an unknown state', () {
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.state(state1, (b) {
           b.onMessage<String>((b) => b.goTo(state3));
         });
@@ -500,21 +501,21 @@ void main() {
       });
 
       test('should throw if parent state is referenced but not defined', () {
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.state(state1, emptyState, initialChild: InitialChild(state2));
         sb.state(state2, emptyState, parent: state3);
         expect(() => sb(), throwsStateTreeDefinitionError);
       });
 
       test('should throw if initial state is referenced but not defined', () {
-        var sb = StateTreeBuilder(initialChild: state3);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state3);
         sb.state(state1, emptyState);
         sb.state(state2, emptyState);
         expect(() => sb(), throwsStateTreeDefinitionError);
       });
 
       test('should throw if circular parent-child references', () {
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.state(state1, emptyState, initialChild: InitialChild(state2));
         sb.state(state2, emptyState,
             parent: state1, initialChild: InitialChild(state3));
@@ -523,7 +524,7 @@ void main() {
       });
 
       test('should throw if a parent state is a final state', () {
-        var sb = StateTreeBuilder(initialChild: state1);
+        var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.finalState(state1, emptyFinalState);
         sb.state(state2, emptyState, parent: state1);
         expect(() => sb(), throwsStateTreeDefinitionError);

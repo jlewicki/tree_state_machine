@@ -1,18 +1,18 @@
 part of '../../tree_builders.dart';
 
 /// Defines methods for writing a textual description of the state tree represented by a
-/// [StateTreeBuilder].
+/// [DeclarativeStateTreeBuilder].
 abstract class StateTreeFormatter {
   /// Writes a textual description of the state tree represented by [treeBuilder] to the [sink].
   ///
   /// The specific output format depends on the particular [StateTreeFormatter] implementation.
   void formatTo(
-    StateTreeBuilder treeBuilder,
+    DeclarativeStateTreeBuilder treeBuilder,
     StringSink sink,
   );
 }
 
-/// Generates a description of a [StateTreeBuilder] in Graphviz DOT graph format.
+/// Generates a description of a [DeclarativeStateTreeBuilder] in Graphviz DOT graph format.
 class DotFormatter implements StateTreeFormatter {
   /// Optional name used to label the graph
   final String? graphName;
@@ -25,14 +25,14 @@ class DotFormatter implements StateTreeFormatter {
   DotFormatter({this.graphName, this.getStateName});
 
   @override
-  void formatTo(StateTreeBuilder treeBuilder, StringSink sink) {
+  void formatTo(DeclarativeStateTreeBuilder treeBuilder, StringSink sink) {
     var formatter = _DotFormatter(treeBuilder, sink, graphName, getStateName);
     formatter.format();
   }
 }
 
 class _DotFormatter {
-  final StateTreeBuilder treeBuilder;
+  final DeclarativeStateTreeBuilder treeBuilder;
   final StringSink sink;
   final String? graphName;
   final String Function(StateKey key)? getStateName;
@@ -350,7 +350,9 @@ class _DotFormatter {
 
   String _getStateName(_StateBuilder state) {
     var name = getStateName != null ? getStateName!(state.key) : '${state.key}';
-    return name == StateTreeBuilder.defaultRootKey.toString() ? 'Root' : name;
+    return name == DeclarativeStateTreeBuilder.defaultRootKey.toString()
+        ? 'Root'
+        : name;
   }
 
   _StateBuilder _findRootState() {

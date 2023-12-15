@@ -9,7 +9,7 @@ void main() {
   group('TransitionHandlerBuilder', () {
     group('run', () {
       test('should run handler on enter', () async {
-        var b = StateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: state1);
         var handlerCalled = false;
         b.state(state1, (b) {
           b.onMessage<Message>((b) => b.goTo(state2));
@@ -25,7 +25,7 @@ void main() {
       });
 
       test('should run handler on exit', () async {
-        var b = StateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: state1);
         var handlerCalled = false;
         b.state(state1, (b) {
           b.onMessage<Message>((b) => b.goTo(state2));
@@ -42,7 +42,7 @@ void main() {
 
     group('updateData', () {
       test('should update data', () async {
-        var b = StateTreeBuilder.withDataRoot<StateData>(
+        var b = DeclarativeStateTreeBuilder.withDataRoot<StateData>(
           rootState,
           InitialData(() => StateData()),
           emptyState,
@@ -52,7 +52,8 @@ void main() {
           b.onMessage<Message>((b) => b.goTo(state2));
         });
         b.state(state2, (b) {
-          b.onEnter((b) => b.updateData<StateData>((ctx) => ctx.data..val = '1'));
+          b.onEnter(
+              (b) => b.updateData<StateData>((ctx) => ctx.data..val = '1'));
         });
 
         var stateMachine = TreeStateMachine(b);
@@ -64,7 +65,7 @@ void main() {
 
     group('post', () {
       test('should post message', () async {
-        var b = StateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: state1);
         var msgToPost = Message2();
         dynamic postedMsg;
         b.state(state1, (b) {
@@ -72,8 +73,8 @@ void main() {
         });
         b.state(state2, (b) {
           b.onEnter((b) => b.post(message: msgToPost));
-          b.onMessage<Message2>(
-              (b) => b.goTo(state3, action: b.act.run((ctx) => postedMsg = ctx.message)));
+          b.onMessage<Message2>((b) => b.goTo(state3,
+              action: b.act.run((ctx) => postedMsg = ctx.message)));
         });
         b.state(state3, emptyState);
 
@@ -84,8 +85,9 @@ void main() {
         expect(postedMsg, equals(msgToPost));
       });
 
-      test('should post message to destination state when posted in onExit', () async {
-        var b = StateTreeBuilder(initialChild: state1);
+      test('should post message to destination state when posted in onExit',
+          () async {
+        var b = DeclarativeStateTreeBuilder(initialChild: state1);
         var msgToPost = Message();
         dynamic postedMsg;
 
@@ -109,7 +111,7 @@ void main() {
 
     group('when', () {
       test('should run true handler when condition is true', () async {
-        var b = StateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: state1);
         var trueHandlerCalled = false;
         var otherwiseHandlerCalled = false;
         b.state(state1, (b) {
@@ -132,8 +134,9 @@ void main() {
         expect(otherwiseHandlerCalled, isFalse);
       });
 
-      test('should run true handler for first condition that is true', () async {
-        var b = StateTreeBuilder(initialChild: state1);
+      test('should run true handler for first condition that is true',
+          () async {
+        var b = DeclarativeStateTreeBuilder(initialChild: state1);
         var trueHandlerCalled = false;
         var trueHandler2Called = false;
         var otherwiseHandlerCalled = false;
@@ -161,7 +164,7 @@ void main() {
       });
 
       test('should run otherwise handler when condition is not true', () async {
-        var b = StateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: state1);
         var trueHandlerCalled = false;
         var otherwiseHandlerCalled = false;
         b.state(state1, (b) {
@@ -190,7 +193,7 @@ void main() {
     final state2 = DataStateKey<StateData>('state2');
     group('when', () {
       test('should run true handler when condition is true', () async {
-        var b = StateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: state1);
         var initDataVal = StateData()..val = '2';
         var trueHandlerCalled = false;
         var otherwiseHandlerCalled = false;
@@ -221,7 +224,7 @@ void main() {
       });
 
       test('should run otherwise handler when condition is not true', () async {
-        var b = StateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: state1);
         var initDataVal = StateData()..val = '2';
         var trueHandlerCalled = false;
         var otherwiseHandlerCalled = false;
@@ -257,11 +260,12 @@ void main() {
     group('updateData', () {
       test('should update data from payload', () async {
         var s3Channel = Channel<String>(state3);
-        var b = StateTreeBuilder.withDataRoot<StateData>(
-            rootState, InitialData(() => StateData()), emptyState, InitialChild(state1));
+        var b = DeclarativeStateTreeBuilder.withDataRoot<StateData>(rootState,
+            InitialData(() => StateData()), emptyState, InitialChild(state1));
         b.state(state1, (b) {
           b.onMessage<Message>((b) {
-            b.enterChannel(s3Channel, (ctx) => ctx.message.val, reenterTarget: true);
+            b.enterChannel(s3Channel, (ctx) => ctx.message.val,
+                reenterTarget: true);
           });
         }, initialChild: InitialChild(state2));
         b.state(state2, emptyState, parent: state1);

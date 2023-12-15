@@ -112,11 +112,12 @@ class HomeData {
 // State tree
 //
 
-StateTreeBuilder authenticateStateTree(
+DeclarativeStateTreeBuilder authenticateStateTree(
   AuthService authService, {
   StateKey initialState = States.login,
 }) {
-  var b = StateTreeBuilder(initialChild: initialState, logName: 'auth');
+  var b =
+      DeclarativeStateTreeBuilder(initialChild: initialState, logName: 'auth');
 
   b.dataState<RegisterData>(
     States.registration,
@@ -181,7 +182,8 @@ StateTreeBuilder authenticateStateTree(
     });
     b.onMessage<AuthFuture>((b) {
       b.whenResult<AuthorizedUser>((ctx) => ctx.message.futureOr, (b) {
-        b.enterChannel<AuthorizedUser>(authenticatedChannel, (ctx) => ctx.context);
+        b.enterChannel<AuthorizedUser>(
+            authenticatedChannel, (ctx) => ctx.context);
       }).otherwise((b) {
         b.goTo(
           States.loginEntry,
@@ -243,7 +245,8 @@ class MockAuthService implements AuthService {
       doAuthenticate(request);
 
   @override
-  Future<Result<AuthorizedUser>> register(RegistrationRequest request) => doRegister(request);
+  Future<Result<AuthorizedUser>> register(RegistrationRequest request) =>
+      doRegister(request);
 }
 
 Future<void> main() async {

@@ -16,7 +16,7 @@ import 'utility.dart';
 
 /// A state machine that manages transitions among the states in a state tree.
 ///
-/// A [TreeStateMachine] is constructed with a [StateTreeBuilder] that will create the specific
+/// A [TreeStateMachine] is constructed with a [DeclarativeStateTreeBuilder] that will create the specific
 /// tree of states that the state machine manages. After the state machine is constructed, calling
 /// [start] will enter the initial state for the tree, and return a [CurrentState] that serves as
 /// a proxy for the current state of the state tree. [CurrentState.post] can be used to send
@@ -110,7 +110,7 @@ class TreeStateMachine {
   /// A [buildContext] can be provided in place of the default context. This is typically not needed,
   /// but may be useful in advanced scenarios requiring access to the state tree when as it is built.
   factory TreeStateMachine(
-    StateTreeBuilder treeBuilder, {
+    DeclarativeStateTreeBuilder treeBuilder, {
     String? label,
     String? logName,
     PostMessageErrorPolicy postMessageErrorPolicy =

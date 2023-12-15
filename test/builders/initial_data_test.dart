@@ -14,13 +14,14 @@ void main() {
         var channel = Channel<String>(state2);
         StateData? entryData;
 
-        var b = StateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: state1);
         b.state(state1, (b) {
           b.onMessage<Message>((b) => b.enterChannel(channel, (_) => 'hi'));
         });
         b.dataState<StateData>(
           state2,
-          InitialData.fromChannel(channel, (String payload) => StateData()..val = payload),
+          InitialData.fromChannel(
+              channel, (String payload) => StateData()..val = payload),
           (b) {
             b.onEnter((b) => b.run((ctx) => entryData = ctx.data));
           },
@@ -40,7 +41,7 @@ void main() {
       test('should initialize data from ancestor state data', () async {
         StateData2? entryData;
 
-        var b = StateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: state1);
         b.state(state1, (b) {
           b.onMessage<Message>((b) => b.goTo(state2));
         });
@@ -52,8 +53,8 @@ void main() {
         );
         b.dataState<StateData2>(
           state3,
-          InitialData.fromAncestor(
-              (StateData ancData) => StateData2()..val = int.parse(ancData.val)),
+          InitialData.fromAncestor((StateData ancData) =>
+              StateData2()..val = int.parse(ancData.val)),
           (b) {
             b.onEnter((b) => b.run((ctx) => entryData = ctx.data));
           },
@@ -71,11 +72,12 @@ void main() {
     });
 
     group('fromChannelAndAncestor', () {
-      test('should initialize data from channel payload ancestor state data', () async {
+      test('should initialize data from channel payload ancestor state data',
+          () async {
         StateData2? entryData;
         var channel = Channel<String>(state3);
 
-        var b = StateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: state1);
         b.state(state1, (b) {
           b.onMessage<Message>((b) => b.enterChannel(channel, (_) => '3'));
         });

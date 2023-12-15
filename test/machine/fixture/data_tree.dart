@@ -20,7 +20,7 @@ final r_c_a_1_key = StateKey('r_c_a_1');
 final r_X_key = StateKey('r_X');
 final r_XD_key = DataStateKey<FinalData>('r_XD');
 
-StateTreeBuilder treeBuilder({
+DeclarativeStateTreeBuilder treeBuilder({
   TransitionHandler Function(StateKey key)? createEntryHandler,
   TransitionHandler Function(StateKey key)? createExitHandler,
   MessageHandler Function(StateKey key)? createMessageHandler,
@@ -31,9 +31,11 @@ StateTreeBuilder treeBuilder({
   Map<StateKey, List<TreeStateFilter>>? filters,
   Map<StateKey, Object Function()>? initialDataValues,
 }) {
-  final createEntryHandler_ = createEntryHandler ?? (_) => emptyTransitionHandler;
+  final createEntryHandler_ =
+      createEntryHandler ?? (_) => emptyTransitionHandler;
   final createExitHandler_ = createExitHandler ?? (_) => emptyTransitionHandler;
-  final createMessageHandler_ = createMessageHandler ?? (_) => emptyMessageHandler;
+  final createMessageHandler_ =
+      createMessageHandler ?? (_) => emptyMessageHandler;
   final entryHandlers_ = entryHandlers ?? {};
   final messageHandlers_ = messageHandlers ?? {};
   final exitHandlers_ = exitHandlers ?? {};
@@ -70,7 +72,8 @@ StateTreeBuilder treeBuilder({
 
   D Function() buildInitialDataValue<D>(StateKey key, D defaultValue) {
     return () {
-      if (createInitialDataValues != null) return createInitialDataValues(key)() as D;
+      if (createInitialDataValues != null)
+        return createInitialDataValues(key)() as D;
       if (initialDataValueCreators[key] != null) {
         return initialDataValueCreators[key]!() as D;
       }
@@ -78,7 +81,7 @@ StateTreeBuilder treeBuilder({
     };
   }
 
-  var builder = StateTreeBuilder.withDataRoot<SpecialDataD>(
+  var builder = DeclarativeStateTreeBuilder.withDataRoot<SpecialDataD>(
     r_key,
     InitialData(buildInitialDataValue(
         r_key,
@@ -101,7 +104,8 @@ StateTreeBuilder treeBuilder({
   builder
       .dataState<ImmutableData>(
         r_a_key,
-        InitialData(buildInitialDataValue(r_a_key, ImmutableData(name: 'r_a', price: 20))),
+        InitialData(buildInitialDataValue(
+            r_a_key, ImmutableData(name: 'r_a', price: 20))),
         buildDataState<ImmutableData>(r_a_key),
         parent: r_key,
         initialChild: InitialChild(r_a_a_key),
@@ -112,7 +116,8 @@ StateTreeBuilder treeBuilder({
   builder
       .dataState<LeafDataBase>(
         r_a_a_key,
-        InitialData(buildInitialDataValue(r_a_a_key, LeafDataBase()..name = 'leaf data base')),
+        InitialData(buildInitialDataValue(
+            r_a_a_key, LeafDataBase()..name = 'leaf data base')),
         buildDataState<LeafDataBase>(r_a_a_key),
         parent: r_a_key,
         initialChild: InitialChild(r_a_a_2_key),
@@ -123,7 +128,8 @@ StateTreeBuilder treeBuilder({
   builder
       .dataState<LeafData1>(
         r_a_a_1_key,
-        InitialData(buildInitialDataValue(r_a_a_1_key, LeafData1()..counter = 1)),
+        InitialData(
+            buildInitialDataValue(r_a_a_1_key, LeafData1()..counter = 1)),
         buildDataState<LeafData1>(r_a_a_1_key),
         parent: r_a_a_key,
         codec: LeafData1.codec,
@@ -133,7 +139,8 @@ StateTreeBuilder treeBuilder({
   builder
       .dataState<LeafData2>(
         r_a_a_2_key,
-        InitialData(buildInitialDataValue(r_a_a_2_key, LeafData2()..label = 'leaf data')),
+        InitialData(buildInitialDataValue(
+            r_a_a_2_key, LeafData2()..label = 'leaf data')),
         buildDataState<LeafData2>(r_a_a_2_key),
         parent: r_a_a_key,
         codec: LeafData2.codec,
@@ -143,7 +150,8 @@ StateTreeBuilder treeBuilder({
   builder
       .dataState<ImmutableData>(
         r_a_1_key,
-        InitialData(buildInitialDataValue(r_a_1_key, ImmutableData(name: 'r_a_1', price: 10))),
+        InitialData(buildInitialDataValue(
+            r_a_1_key, ImmutableData(name: 'r_a_1', price: 10))),
         buildDataState<ImmutableData>(r_a_1_key),
         parent: r_a_key,
         codec: ImmutableData.codec,

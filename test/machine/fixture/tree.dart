@@ -16,20 +16,23 @@ const r_X_key = StateKey('r_X');
 
 final initialStateKey = r_a_a_2_key;
 
-StateTreeBuilder treeBuilder({
+DeclarativeStateTreeBuilder treeBuilder({
   String? name,
   TransitionHandler Function(StateKey key)? createEntryHandler,
   TransitionHandler Function(StateKey key)? createExitHandler,
   MessageHandler Function(StateKey key)? createMessageHandler,
-  void Function(TransitionContext) Function(StateKey key)? createInitialChildCallback,
+  void Function(TransitionContext) Function(StateKey key)?
+      createInitialChildCallback,
   Map<StateKey, TransitionHandler>? entryHandlers,
   Map<StateKey, MessageHandler>? messageHandlers,
   Map<StateKey, TransitionHandler>? exitHandlers,
   Map<StateKey, void Function(TransitionContext)>? initialChildCallbacks,
 }) {
-  final createEntryHandler_ = createEntryHandler ?? (_) => emptyTransitionHandler;
+  final createEntryHandler_ =
+      createEntryHandler ?? (_) => emptyTransitionHandler;
   final createExitHandler_ = createExitHandler ?? (_) => emptyTransitionHandler;
-  final createMessageHandler_ = createMessageHandler ?? (_) => emptyMessageHandler;
+  final createMessageHandler_ =
+      createMessageHandler ?? (_) => emptyMessageHandler;
   final entryHandlers_ = entryHandlers ?? {};
   final messageHandlers_ = messageHandlers ?? {};
   final exitHandlers_ = exitHandlers ?? {};
@@ -51,9 +54,11 @@ StateTreeBuilder treeBuilder({
 
   void Function(TransitionContext) initialChildCallback(StateKey key) =>
       initialChildCallbacks_[key] ??
-      (createInitialChildCallback != null ? createInitialChildCallback(key) : (_) {});
+      (createInitialChildCallback != null
+          ? createInitialChildCallback(key)
+          : (_) {});
 
-  var b = StateTreeBuilder.withRoot(
+  var b = DeclarativeStateTreeBuilder.withRoot(
     r_key,
     InitialChild.run(
       (ctx) {

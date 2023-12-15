@@ -29,12 +29,13 @@ class ToLowercase {
 /// A flat (non-hierarchial) state tree illustrating simple branching and passing data between
 /// states.
 class SimpleStateTree {
-  StateTreeBuilder treeBuilder() {
-    var b = StateTreeBuilder(initialChild: States.enterText, logName: 'simple');
+  DeclarativeStateTreeBuilder treeBuilder() {
+    var b = DeclarativeStateTreeBuilder(
+        initialChild: States.enterText, logName: 'simple');
 
     b.state(States.enterText, (b) {
-      b.onMessage<ToUppercase>(
-          (b) => b.goTo(States.showUppercase, payload: (ctx) => ctx.message.text));
+      b.onMessage<ToUppercase>((b) =>
+          b.goTo(States.showUppercase, payload: (ctx) => ctx.message.text));
     });
 
     b.dataState<String>(

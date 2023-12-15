@@ -10,11 +10,11 @@ void main() {
   group('MessageActionBuilder', () {
     group('run', () {
       test('should run action', () async {
-        var b = StateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: state1);
         Message? messageFromAction;
         b.state(state1, (b) {
-          b.onMessage<Message>(
-              (b) => b.goTo(state2, action: b.act.run((ctx) => messageFromAction = ctx.message)));
+          b.onMessage<Message>((b) => b.goTo(state2,
+              action: b.act.run((ctx) => messageFromAction = ctx.message)));
         });
         b.state(state2, emptyState);
 
@@ -28,9 +28,10 @@ void main() {
 
     group('updateData', () {
       test('should update data', () async {
-        var b = StateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: state1);
         b.dataState<int>(state1, InitialData(() => 1), (b) {
-          b.onMessage<Message>((b) => b.stay(action: b.act.updateOwnData((ctx) => ctx.data + 1)));
+          b.onMessage<Message>((b) =>
+              b.stay(action: b.act.updateOwnData((ctx) => ctx.data + 1)));
         });
 
         var stateMachine = TreeStateMachine(b);
@@ -42,9 +43,10 @@ void main() {
 
     group('post', () {
       test('should post message', () async {
-        var b = StateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: state1);
         b.state(state1, (b) {
-          b.onMessage<Message>((b) => b.stay(action: b.act.post(message: Message2())));
+          b.onMessage<Message>(
+              (b) => b.stay(action: b.act.post(message: Message2())));
           b.onMessage<Message2>((b) => b.goTo(state2));
         });
         b.state(state2, emptyState);
@@ -58,10 +60,11 @@ void main() {
 
     group('schedule', () {
       test('should schedule message', () async {
-        var b = StateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: state1);
         b.state(state1, (b) {
           b.onMessage<Message>((b) => b.stay(
-              action: b.act.schedule(message: Message2(), duration: Duration(milliseconds: 20))));
+              action: b.act.schedule(
+                  message: Message2(), duration: Duration(milliseconds: 20))));
           b.onMessage<Message2>((b) => b.goTo(state2));
         });
         b.state(state2, emptyState);
@@ -79,7 +82,7 @@ void main() {
   group('MessageActionBuilderWithData', () {
     group('run', () {
       test('should run action', () async {
-        var b = StateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: state1);
         Message? messageFromAction;
         int? dataFromAction;
         b.dataState<int>(state1, InitialData(() => 2), (b) {
@@ -103,9 +106,10 @@ void main() {
 
     group('updateData', () {
       test('should update data', () async {
-        var b = StateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: state1);
         b.dataState<int>(state1, InitialData(() => 1), (b) {
-          b.onMessage<Message>((b) => b.stay(action: b.act.updateOwnData((ctx) => ctx.data + 1)));
+          b.onMessage<Message>((b) =>
+              b.stay(action: b.act.updateOwnData((ctx) => ctx.data + 1)));
         });
 
         var stateMachine = TreeStateMachine(b);
@@ -118,7 +122,7 @@ void main() {
 
     group('post', () {
       test('should post message', () async {
-        var b = StateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: state1);
         Message? messageFromAction;
         int? dataFromAction;
         b.dataState<int>(state1, InitialData(() => 2), (b) {
@@ -145,7 +149,7 @@ void main() {
 
     group('schedule', () {
       test('should schedule message', () async {
-        var b = StateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: state1);
         Message? messageFromAction;
         int? dataFromAction;
         b.dataState<int>(state1, InitialData(() => 2), (b) {

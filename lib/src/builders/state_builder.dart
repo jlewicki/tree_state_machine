@@ -435,7 +435,7 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
   }
 }
 
-/// Provides methods for describing the transition from a [StateTreeBuilder.machineState] that
+/// Provides methods for describing the transition from a [DeclarativeStateTreeBuilder.machineState] that
 /// occurs when the nested state machine completes.
 class MachineStateBuilder extends _StateBuilder {
   final InitialMachine _initialMachine;

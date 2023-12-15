@@ -44,17 +44,20 @@ class HomeData {
 //
 // State tree
 //
-StateTreeBuilder appStateTree(AuthService authService) {
-  var b = StateTreeBuilder(initialChild: States.splash, logName: 'app');
+DeclarativeStateTreeBuilder appStateTree(AuthService authService) {
+  var b =
+      DeclarativeStateTreeBuilder(initialChild: States.splash, logName: 'app');
 
   b.state(States.splash, (b) {
     b.onMessageValue(
       Messages.goToLogin,
-      (b) => b.enterChannel<StateKey>(authenticateChannel, (_) => auth.States.login),
+      (b) => b.enterChannel<StateKey>(
+          authenticateChannel, (_) => auth.States.login),
     );
     b.onMessageValue(
       Messages.goToRegister,
-      (b) => b.enterChannel(authenticateChannel, (_) => auth.States.registration),
+      (b) =>
+          b.enterChannel(authenticateChannel, (_) => auth.States.registration),
     );
   });
 
@@ -86,16 +89,19 @@ StateTreeBuilder appStateTree(AuthService authService) {
 }
 
 class MockAuthService implements AuthService {
-  Future<Result<AuthorizedUser>> Function(auth.AuthenticationRequest) doAuthenticate;
+  Future<Result<AuthorizedUser>> Function(auth.AuthenticationRequest)
+      doAuthenticate;
   Future<Result<AuthorizedUser>> Function(auth.RegistrationRequest) doRegister;
   MockAuthService(this.doAuthenticate, this.doRegister);
 
   @override
-  Future<Result<AuthorizedUser>> authenticate(auth.AuthenticationRequest request) =>
+  Future<Result<AuthorizedUser>> authenticate(
+          auth.AuthenticationRequest request) =>
       doAuthenticate(request);
 
   @override
-  Future<Result<AuthorizedUser>> register(auth.RegistrationRequest request) => doRegister(request);
+  Future<Result<AuthorizedUser>> register(auth.RegistrationRequest request) =>
+      doRegister(request);
 }
 
 void main() async {
@@ -110,7 +116,8 @@ void main() async {
   var loggingFilter = TreeStateFilter(
     name: 'loggingFilter',
     onMessage: (msgCtx, next) {
-      logger.info('State ${msgCtx.handlingState} is handling message ${msgCtx.message}');
+      logger.info(
+          'State ${msgCtx.handlingState} is handling message ${msgCtx.message}');
       return next();
     },
   );
@@ -125,22 +132,26 @@ void main() async {
   await currentState.post(Messages.goToLogin);
   assert(currentState.key == States.authenticate);
 
-  var nestedState = currentState.dataValue<NestedMachineData>()!.nestedCurrentState;
+  var nestedState =
+      currentState.dataValue<NestedMachineData>()!.nestedCurrentState;
   assert(nestedState.isInState(auth.States.login));
   assert(nestedState.key == auth.States.loginEntry);
 
   authService.doAuthenticate = (req) async {
-    return Result.value(AuthorizedUser('Chandler', 'Bing', 'chandler.bing@hotmail.com'));
+    return Result.value(
+        AuthorizedUser('Chandler', 'Bing', 'chandler.bing@hotmail.com'));
   };
-  await currentState.post(auth.SubmitCredentials('chandler.bing@hotmail.com', 'friends123'));
+  await currentState
+      .post(auth.SubmitCredentials('chandler.bing@hotmail.com', 'friends123'));
 
   // Check that nested state machine finished
   assert(nestedState.key == auth.States.authenticated);
-  assert(
-      nestedState.dataValue<auth.AuthenticatedData>()!.user.email == 'chandler.bing@hotmail.com');
+  assert(nestedState.dataValue<auth.AuthenticatedData>()!.user.email ==
+      'chandler.bing@hotmail.com');
   assert(nestedState.stateMachine.isDone);
 
-  await stateMachine.transitions.firstWhere((t) => t.to == States.authenticated);
+  await stateMachine.transitions
+      .firstWhere((t) => t.to == States.authenticated);
   await currentState.post(Messages.logout);
   assert(currentState.key == States.splash);
 
@@ -151,7 +162,8 @@ void main() async {
   assert(nestedState.isInState(auth.States.registration));
   assert(nestedState.key == auth.States.credentialsRegistration);
 
-  await currentState.post(auth.SubmitCredentials('phoebes@smellycat.com', 'imnotursala'));
+  await currentState
+      .post(auth.SubmitCredentials('phoebes@smellycat.com', 'imnotursala'));
   assert(nestedState.key == auth.States.demographicsRegistration);
 
   var sb = StringBuffer();
@@ -175,6 +187,7 @@ void initLogging() {
   hierarchicalLoggingEnabled = true;
   Logger('tree_state_machine').level = Level.ALL;
   Logger.root.onRecord.listen((record) {
-    print('${record.level.name}: ${record.time}: ${record.loggerName}: ${record.message}');
+    print(
+        '${record.level.name}: ${record.time}: ${record.loggerName}: ${record.message}');
   });
 }

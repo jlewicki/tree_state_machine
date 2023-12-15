@@ -20,29 +20,32 @@ class States {
 
 enum Messages { timeout, stop, start }
 
-StateTreeBuilder stoplightStateTree() {
+DeclarativeStateTreeBuilder stoplightStateTree() {
   final greenTimeout = Duration(seconds: 5);
   final yellowTimeout = Duration(seconds: 2);
   final redTimeout = Duration(seconds: 5);
 
-  var treeBuilder = StateTreeBuilder(initialChild: States.stopped);
+  var treeBuilder = DeclarativeStateTreeBuilder(initialChild: States.stopped);
 
   treeBuilder.state(States.running, (b) {
     b.onMessageValue(Messages.stop, (b) => b.goTo(States.stopped));
   }, initialChild: InitialChild(States.green));
 
   treeBuilder.state(States.green, (b) {
-    b.onEnter((b) => b.schedule(message: Messages.timeout, duration: greenTimeout));
+    b.onEnter(
+        (b) => b.schedule(message: Messages.timeout, duration: greenTimeout));
     b.onMessageValue(Messages.timeout, (b) => b.goTo(States.yellow));
   }, parent: States.running);
 
   treeBuilder.state(States.yellow, (b) {
-    b.onEnter((b) => b.schedule(message: Messages.timeout, duration: yellowTimeout));
+    b.onEnter(
+        (b) => b.schedule(message: Messages.timeout, duration: yellowTimeout));
     b.onMessageValue(Messages.timeout, (b) => b.goTo(States.red));
   }, parent: States.running);
 
   treeBuilder.state(States.red, (b) {
-    b.onEnter((b) => b.schedule(message: Messages.timeout, duration: redTimeout));
+    b.onEnter(
+        (b) => b.schedule(message: Messages.timeout, duration: redTimeout));
     b.onMessageValue(Messages.timeout, (b) => b.goTo(States.green));
   }, parent: States.running);
 

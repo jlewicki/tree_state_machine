@@ -87,8 +87,8 @@ class BusyData {
 //
 // State tree
 //
-StateTreeBuilder cdPlayerStateTree() {
-  var b = StateTreeBuilder.withDataRoot<RootData>(
+DeclarativeStateTreeBuilder cdPlayerStateTree() {
+  var b = DeclarativeStateTreeBuilder.withDataRoot<RootData>(
     States.root,
     InitialData(() => RootData()),
     emptyState,
@@ -102,14 +102,18 @@ StateTreeBuilder cdPlayerStateTree() {
   b.state(States.open, (b) {
     b.onMessage<Eject>((b) => b.goTo(States.closed));
     b.onMessage<Load>((b) {
-      b.action(b.act.updateData<RootData>((ctx, data) => data..cd = ctx.message.cd));
+      b.action(
+          b.act.updateData<RootData>((ctx, data) => data..cd = ctx.message.cd));
     });
   }, parent: States.idle);
 
   b.state(States.closed, (b) {
     b.onEnterWithData<RootData>((b) {
       // Auto play if the cd is inserted (and we were aleady idle)
-      b.when((ctx) => ctx.transitionContext.lca == States.idle && ctx.context.cd != null, (b) {
+      b.when(
+          (ctx) =>
+              ctx.transitionContext.lca == States.idle &&
+              ctx.context.cd != null, (b) {
         b.post(message: Play());
       }, label: 'CD inserted');
     });
@@ -137,11 +141,13 @@ StateTreeBuilder cdPlayerStateTree() {
           periodic: true,
         ));
     b.onMessage<Pause>((b) => b.goTo(States.paused));
-    b.onMessage<Play>((b) => b.action(b.act.run(_playTrack, label: 'play track')));
+    b.onMessage<Play>(
+        (b) => b.action(b.act.run(_playTrack, label: 'play track')));
     b.onMessage<MoveTrack>((b) {
       b.when(
-        (ctx) =>
-            ctx.messageContext.dataValueOrThrow<BusyData>().canMoveTrack(ctx.message.trackCount),
+        (ctx) => ctx.messageContext
+            .dataValueOrThrow<BusyData>()
+            .canMoveTrack(ctx.message.trackCount),
         (b) {
           b.action(b.act.updateData<BusyData>(
             (ctx, data) => data..track += ctx.message.trackCount,
