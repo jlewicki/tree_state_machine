@@ -1,10 +1,11 @@
 import 'package:test/test.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'package:tree_state_machine/tree_builders.dart';
-
+import '../utility.dart';
 import 'fixture/fixture_data.dart';
 
-final Matcher throwsStateTreeDefinitionError = throwsA(isA<StateTreeDefinitionError>());
+final Matcher throwsStateTreeDefinitionError =
+    throwsA(isA<StateTreeDefinitionError>());
 
 void main() {
   group('StateTreeBuilder', () {
@@ -21,20 +22,22 @@ void main() {
         expect(StateTreeBuilder.defaultRootKey, rootNode.key);
         expect(1, rootNode.children.length);
         expect(state1, rootNode.children.first.key);
-        expect(StateTreeBuilder.defaultRootKey, rootNode.children.first.parent!.key);
+        expect(StateTreeBuilder.defaultRootKey,
+            rootNode.children.first.parent()!.key);
         expect(sb.rootKey, StateTreeBuilder.defaultRootKey);
       });
     });
 
     group('factory.withRoot', () {
       test('should create explicit root state', () {
-        var sb = StateTreeBuilder.withRoot(rootState, InitialChild(state1), emptyState);
+        var sb = StateTreeBuilder.withRoot(
+            rootState, InitialChild(state1), emptyState);
         sb.state(state1, emptyState);
         var rootNode = sb();
         expect(rootState, rootNode.key);
         expect(1, rootNode.children.length);
         expect(state1, rootNode.children.first.key);
-        expect(rootState, rootNode.children.first.parent!.key);
+        expect(rootState, rootNode.children.first.parent()!.key);
         expect(sb.rootKey, rootState);
       });
     });
@@ -53,7 +56,7 @@ void main() {
         expect(rootState, rootNode.key);
         expect(1, rootNode.children.length);
         expect(state1, rootNode.children.first.key);
-        expect(rootState, rootNode.children.first.parent!.key);
+        expect(rootState, rootNode.children.first.parent()!.key);
         expect(sb.rootKey, rootState);
       });
     });
@@ -71,7 +74,8 @@ void main() {
       });
 
       test('should create a leaf state (rooted)', () {
-        var sb = StateTreeBuilder.withRoot(rootState, InitialChild(state1), emptyState);
+        var sb = StateTreeBuilder.withRoot(
+            rootState, InitialChild(state1), emptyState);
         sb.state(state1, emptyState, initialChild: null);
         var rootNode = sb();
         var state1Node = rootNode.children.first;
@@ -95,7 +99,8 @@ void main() {
       });
 
       test('should create an interior state (rooted)', () {
-        var sb = StateTreeBuilder.withRoot(rootState, InitialChild(state1), emptyState);
+        var sb = StateTreeBuilder.withRoot(
+            rootState, InitialChild(state1), emptyState);
         sb.state(state1, emptyState, initialChild: InitialChild(state2));
         sb.state(state2, emptyState, parent: state1);
         var rootNode = sb();
@@ -111,7 +116,8 @@ void main() {
         var state1 = StateKey('s1');
         var sb = StateTreeBuilder(initialChild: state1);
         sb.state(state1, emptyState, initialChild: null);
-        expect(() => sb.state(state1, emptyState, initialChild: null), throwsStateError);
+        expect(() => sb.state(state1, emptyState, initialChild: null),
+            throwsStateError);
       });
     });
 
@@ -119,7 +125,8 @@ void main() {
       test('should create a leaf state', () {
         final state1 = DataStateKey<int>('state1');
         var sb = StateTreeBuilder(initialChild: state1);
-        sb.dataState<int>(state1, InitialData(() => 1), emptyState, initialChild: null);
+        sb.dataState<int>(state1, InitialData(() => 1), emptyState,
+            initialChild: null);
         var rootNode = sb();
         var state1Node = rootNode.children.first;
         expect(state1, state1Node.key);
@@ -130,8 +137,10 @@ void main() {
 
       test('should create a leaf state (rooted)', () {
         final state1 = DataStateKey<int>('state1');
-        var sb = StateTreeBuilder.withRoot(rootState, InitialChild(state1), emptyState);
-        sb.dataState<int>(state1, InitialData(() => 1), emptyState, initialChild: null);
+        var sb = StateTreeBuilder.withRoot(
+            rootState, InitialChild(state1), emptyState);
+        sb.dataState<int>(state1, InitialData(() => 1), emptyState,
+            initialChild: null);
         var rootNode = sb();
         var state1Node = rootNode.children.first;
         expect(state1, state1Node.key);
@@ -146,7 +155,8 @@ void main() {
         var sb = StateTreeBuilder(initialChild: state1);
         sb.dataState<String>(state1, InitialData(() => ''), emptyState,
             initialChild: InitialChild(state2));
-        sb.dataState<String>(state2, InitialData(() => ''), emptyState, parent: state1);
+        sb.dataState<String>(state2, InitialData(() => ''), emptyState,
+            parent: state1);
         var rootNode = sb();
         var state1Node = rootNode.children.first;
         expect(state1, state1Node.key);
@@ -159,9 +169,11 @@ void main() {
       test('should throw if state is defined more than once', () {
         final state1 = DataStateKey<int>('state1');
         var sb = StateTreeBuilder(initialChild: state1);
-        sb.dataState<int>(state1, InitialData(() => 1), emptyState, initialChild: null);
+        sb.dataState<int>(state1, InitialData(() => 1), emptyState,
+            initialChild: null);
         expect(
-          () => sb.dataState<int>(state1, InitialData(() => 1), emptyState, initialChild: null),
+          () => sb.dataState<int>(state1, InitialData(() => 1), emptyState,
+              initialChild: null),
           throwsStateError,
         );
       });
@@ -203,7 +215,8 @@ void main() {
         var sb = StateTreeBuilder(initialChild: state1);
         sb.finalDataState<int>(state1, InitialData(() => 1), emptyFinalState);
         expect(
-          () => sb.finalDataState<int>(state1, InitialData(() => 1), emptyFinalState),
+          () => sb.finalDataState<int>(
+              state1, InitialData(() => 1), emptyFinalState),
           throwsStateError,
         );
       });
@@ -254,7 +267,8 @@ void main() {
 
         var stateMachine = TreeStateMachine(sb);
         var currentState = await stateMachine.start();
-        var toState2Future = stateMachine.transitions.firstWhere((t) => t.to == state2);
+        var toState2Future =
+            stateMachine.transitions.firstWhere((t) => t.to == state2);
         currentState.post('state2');
         await toState2Future;
 
@@ -277,7 +291,8 @@ void main() {
             b.onMachineDone((b) => b.goTo(
                   state2,
                   action: b.act.run(
-                    (ctx) => finalNestedData = ctx.context.dataValue<StateData>(),
+                    (ctx) =>
+                        finalNestedData = ctx.context.dataValue<StateData>(),
                   ),
                 ));
           },
@@ -286,7 +301,8 @@ void main() {
 
         var stateMachine = TreeStateMachine(sb);
         var currentState = await stateMachine.start();
-        var toState2Future = stateMachine.transitions.firstWhere((t) => t.to == state2);
+        var toState2Future =
+            stateMachine.transitions.firstWhere((t) => t.to == state2);
         currentState.post('state2');
         await toState2Future;
 
@@ -295,7 +311,8 @@ void main() {
         expect(finalNestedData!.val, equals('1'));
       });
 
-      test('should create a nested machine that can complete out of band', () async {
+      test('should create a nested machine that can complete out of band',
+          () async {
         var nestedSb = createNestedBuilder();
         var nestedSm = TreeStateMachine(nestedSb);
         var nestedCurrentState = await nestedSm.start();
@@ -309,7 +326,8 @@ void main() {
             b.onMachineDone((b) => b.goTo(
                   state2,
                   action: b.act.run(
-                    (ctx) => finalNestedData = ctx.context.dataValue<StateData>(),
+                    (ctx) =>
+                        finalNestedData = ctx.context.dataValue<StateData>(),
                   ),
                 ));
           },
@@ -319,7 +337,8 @@ void main() {
         var stateMachine = TreeStateMachine(sb);
         var currentState = await stateMachine.start();
 
-        var toState2Future = stateMachine.transitions.firstWhere((t) => t.to == state2);
+        var toState2Future =
+            stateMachine.transitions.firstWhere((t) => t.to == state2);
         await nestedCurrentState.post('state2');
         await toState2Future;
 
@@ -328,7 +347,8 @@ void main() {
         expect(finalNestedData!.val, equals('1'));
       });
 
-      test('should create a nested machine that can dispose out of band', () async {
+      test('should create a nested machine that can dispose out of band',
+          () async {
         var nestedSb = createNestedBuilder();
         var nestedSm = TreeStateMachine(nestedSb);
         await nestedSm.start();
@@ -342,7 +362,8 @@ void main() {
             b.onMachineDone((b) => b.goTo(
                   state2,
                   action: b.act.run(
-                    (ctx) => finalNestedData = ctx.context.dataValue<StateData>(),
+                    (ctx) =>
+                        finalNestedData = ctx.context.dataValue<StateData>(),
                   ),
                 ));
             b.onMachineDisposed((b) => b.goTo(state2));
@@ -353,8 +374,8 @@ void main() {
         var stateMachine = TreeStateMachine(sb);
         var currentState = await stateMachine.start();
 
-        var toState2Future =
-            stateMachine.transitions.firstWhere((t) => t.to == state2, orElse: null);
+        var toState2Future = stateMachine.transitions
+            .firstWhere((t) => t.to == state2, orElse: null);
         nestedSm.dispose();
         await toState2Future;
 
@@ -403,7 +424,8 @@ void main() {
 
         var stateMachine = TreeStateMachine(sb);
         var currentState = await stateMachine.start();
-        var toState2Future = stateMachine.transitions.firstWhere((t) => t.to == state2);
+        var toState2Future =
+            stateMachine.transitions.firstWhere((t) => t.to == state2);
         currentState.post('state3');
         await toState2Future;
 
@@ -494,7 +516,8 @@ void main() {
       test('should throw if circular parent-child references', () {
         var sb = StateTreeBuilder(initialChild: state1);
         sb.state(state1, emptyState, initialChild: InitialChild(state2));
-        sb.state(state2, emptyState, parent: state1, initialChild: InitialChild(state3));
+        sb.state(state2, emptyState,
+            parent: state1, initialChild: InitialChild(state3));
         sb.state(state3, emptyState, parent: state1);
         expect(() => sb(), throwsStateTreeDefinitionError);
       });

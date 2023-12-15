@@ -44,7 +44,10 @@ class Machine {
 
   /// The current leaf node for the state machine. Messages will be dispatched to the
   /// [TreeNode.state] of this node for processing.
-  TreeNode? get currentLeaf => _currentLeafNode?.treeNode;
+  LeafTreeNode? get currentLeaf {
+    var node = _currentLeafNode?.treeNode;
+    return node is LeafTreeNode ? node : null;
+  }
 
   /// Enters the initial state of the state machine.
   ///
@@ -82,6 +85,7 @@ class Machine {
     // If the state machine is in a final state, do not dispatch the message for processing,
     // since there is no point.
     assert(_currentLeafNode != null);
+
     if (currentLeaf!.isFinalLeaf) {
       _log.fine('Current state is final, result is UnhandledMessage');
       final msgProcessed =
@@ -116,7 +120,7 @@ class Machine {
           (futureOr is Future<MessageResult>) ? await futureOr : futureOr;
       _log.fine(() =>
           "State '$currentKey' processed message ${msgCtx.message} and returned $msgResult");
-      currentNode = currentNode.parent;
+      currentNode = currentNode.parent();
     } while (msgResult is UnhandledResult && currentNode != null);
     return msgResult;
   }
@@ -144,7 +148,7 @@ class Machine {
     MachineMessageContext msgCtx,
   ) async {
     var toNode = _treeNode(result.targetStateKey);
-    if (result.reenterTarget && toNode.parent == null) {
+    if (result.reenterTarget && toNode.parent() == null) {
       throw StateError('Re-entering the root node is invalid.');
     }
     final requestedTransition = MachineTransition.between(
@@ -190,7 +194,7 @@ class Machine {
     SelfTransitionResult result,
     MachineMessageContext msgCtx,
   ) async {
-    if (msgCtx.handlingNode.parent == null) {
+    if (msgCtx.handlingNode.parent() == null) {
       throw StateError('Self-transitions from the root node are invalid.');
     }
     // Note that the handling node might be different from the receiving node. That is, the
@@ -207,7 +211,7 @@ class Machine {
     // re-entered.
     final path = MachineTransition.reenter(
       msgCtx.receivingLeafNode,
-      from: msgCtx.handlingNode.parent ?? rootNode.treeNode,
+      from: msgCtx.handlingNode.parent() ?? rootNode.treeNode,
     );
     final transition =
         await _doTransition(path, transitionAction: result.transitionAction);
@@ -277,7 +281,7 @@ class Machine {
 
     void bookkeepingHandler() {
       var node = transCtx.currentNode;
-      assert(node.isLeaf, 'Transition did not end at a leaf node');
+      assert(node is LeafTreeNode, 'Transition did not end at a leaf node');
       _log.fine(() =>
           "Transitioned to ${node.isFinalLeaf ? 'final' : ''} state '${node.key}'");
       _currentLeafNode = nodes[node.key]!;
@@ -318,7 +322,7 @@ class Machine {
     MachineTransitionContext transCtx,
   ) sync* {
     var currentNode = parentNode;
-    while (!currentNode.isLeaf) {
+    while (currentNode is CompositeTreeNode) {
       var parentOfCurrent = currentNode;
       currentNode = transCtx.onInitialChild(currentNode);
       _log.finer(
@@ -409,7 +413,7 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
   TreeNode get handlingNode => notifiedNodes.last;
 
   MachineMessageContext(this.message, this.receivingLeafNode, this._machine)
-      : assert(receivingLeafNode.isLeaf);
+      : assert(receivingLeafNode is LeafTreeNode);
 
   @override
   DataValue<D>? data<D>([DataStateKey<D>? key]) {
@@ -541,8 +545,8 @@ class MachineTransitionContext
         // starts, there is a transition from the root node to the initial starting state for the
         // machine.
         assert(
-            _requestedTransition.fromNode.isLeaf ||
-                _requestedTransition.fromNode.isRoot,
+            _requestedTransition.fromNode is LeafTreeNode ||
+                _requestedTransition.fromNode is RootTreeNode,
             'Transition did not start at a leaf or root node.');
 
   @override
@@ -595,10 +599,8 @@ class MachineTransitionContext
     return _machine._schedule(_currentNode.key, message, duration, periodic);
   }
 
-  TreeNode onInitialChild(TreeNode parentNode) {
-    assert(parentNode.getInitialChild != null);
-
-    final initialChildKey = parentNode.getInitialChild!(this);
+  TreeNode onInitialChild(CompositeTreeNode parentNode) {
+    final initialChildKey = parentNode.getInitialChild(this);
     final initialChild =
         parentNode.children.firstWhereOrNull((c) => c.key == initialChildKey);
     if (initialChild == null) {
@@ -700,7 +702,10 @@ class MachineTransition implements Transition {
   late final List<StateKey> path = nodePath.map((n) => n.key).toList();
 
   @override
-  bool get isToFinalState => toNode.isFinalLeaf;
+  bool get isToFinalState => switch (toNode) {
+        LeafTreeNode(isFinalState: var f) when f => true,
+        _ => false
+      };
 
   /// Constructs a [TransitionPath] instance.
   MachineTransition._(
@@ -745,7 +750,7 @@ class MachineTransition implements Transition {
 
   factory MachineTransition.enterFromRoot(TreeNode root,
       {required TreeNode to}) {
-    assert(root.isRoot);
+    assert(root is RootTreeNode);
     final exiting = <TreeNode>[];
     final entering = to.selfAndAncestors().toList().reversed.toList();
     return MachineTransition._(root, to, root, exiting, entering);

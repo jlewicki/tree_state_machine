@@ -143,7 +143,7 @@ class StateTreeBuilder {
   }
 
   /// Creates the root node of the state tree.
-  TreeNode call([TreeBuildContext? context]) =>
+  RootTreeNode call([TreeBuildContext? context]) =>
       build(context ?? TreeBuildContext());
 
   /// Adds to the state tree a description of a state, identified by [stateKey].
@@ -413,16 +413,13 @@ class StateTreeBuilder {
   }
 
   /// Builds the state tree described by this builder, and returns the root node of the tree.
-  TreeNode build(TreeBuildContext buildContext) {
+  RootTreeNode build(TreeBuildContext buildContext) {
     _validate();
     var rootBuilder = _getStateBuilder(_rootKey);
-    return _buildTreeNode(buildContext, rootBuilder);
+    return _buildNode(buildContext, rootBuilder) as RootTreeNode;
   }
 
-  TreeNode _buildTreeNode(
-    TreeBuildContext context,
-    _StateBuilder stateBuilder,
-  ) {
+  TreeNode _buildNode(TreeBuildContext context, _StateBuilder stateBuilder) {
     var nodeBuildInfo = stateBuilder.toTreeNodeBuildInfo(_makeChildNodeBuilder);
     return switch (nodeBuildInfo) {
       RootNodeBuildInfo() => context.buildRoot(nodeBuildInfo),
@@ -433,7 +430,7 @@ class StateTreeBuilder {
 
   TreeNodeBuilder _makeChildNodeBuilder(StateKey childStateKey) {
     var childBuilder = _getStateBuilder(childStateKey);
-    return (childCtx) => _buildTreeNode(childCtx, childBuilder);
+    return (childCtx) => _buildNode(childCtx, childBuilder);
   }
 
   _StateBuilder _getStateBuilder(StateKey key) {

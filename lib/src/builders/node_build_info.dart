@@ -1,36 +1,9 @@
 part of '../../tree_builders.dart';
 
-class TreeNodeBuildInfo {
+sealed class TreeNodeBuildInfo {
   TreeNodeBuildInfo(
     this.key,
     this.createState, {
-    this.initialChild,
-    this.childBuilders = const [],
-    this.isFinalState = false,
-    this.dataCodec,
-    this.filters = const [],
-    this.metadata = const {},
-  });
-
-  /// Identifies the node to be built.
-  final StateKey key;
-
-  /// A factory function that can create the [TreeState] that defines the behavior of the node.
-  final StateCreator createState;
-  final List<TreeNodeBuilder> childBuilders;
-
-  /// A function that can select the initial child state to
-  final GetInitialChild? initialChild;
-  final StateDataCodec<dynamic>? dataCodec;
-  final List<TreeStateFilter> filters;
-  final Map<String, Object> metadata;
-  final bool isFinalState;
-}
-
-sealed class TreeNodeBuildInfo2 {
-  TreeNodeBuildInfo2(
-    this.key,
-    this.createState, {
     this.dataCodec,
     this.filters = const [],
     this.metadata = const {},
@@ -47,7 +20,7 @@ sealed class TreeNodeBuildInfo2 {
   final Map<String, Object> metadata;
 }
 
-sealed class CompositeNodeBuildInfo extends TreeNodeBuildInfo2 {
+sealed class CompositeNodeBuildInfo extends TreeNodeBuildInfo {
   CompositeNodeBuildInfo(
     super.key,
     super.createState, {
@@ -97,7 +70,7 @@ final class InteriorNodeBuildInfo extends CompositeNodeBuildInfo {
 }
 
 /// Provides a description of how an leaf [TreeNode] of a state tree should be built.
-final class LeafNodeBuildInfo extends TreeNodeBuildInfo2 {
+final class LeafNodeBuildInfo extends TreeNodeBuildInfo {
   LeafNodeBuildInfo(
     super.key,
     super.createState, {

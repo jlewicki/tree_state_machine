@@ -6,99 +6,61 @@ import 'package:tree_state_machine/src/machine/utility.dart';
 
 enum NodeType { root, interior, leaf }
 
-/// Describes the positioning of a tree state within a state tree.
-abstract class TreeNodeInfo {
-  /// The type of this tree node.
-  NodeType get nodeType;
-
+sealed class TreeNodeInfo {
   /// The key identifying this tree node.
   StateKey get key;
 
-  /// The parent node of this true node. Returns `null` if this is a root node.
-  TreeNodeInfo? get parent;
+  StateDataCodec<dynamic>? get dataCodec;
 
   /// Application provided metadata associated with the state.
   Map<String, Object> get metadata;
 
-  /// The child nodes of this node. The list is empty for leaf nodes.
-  ///
-  /// This list is unmodifiable.
-  List<TreeNodeInfo> get children;
-
-  /// Indicates if the tree state of this node is a final state.
-  bool get isFinal;
+  List<TreeStateFilter> get filters;
 }
 
-/// A node within a state tree.
+sealed class CompositeNodeInfo2 extends TreeNodeInfo {
+  List<TreeNode> get children;
+  GetInitialChild get getInitialChild;
+}
+
+sealed class RootNodeInfo2 extends CompositeNodeInfo2 {}
+
+sealed class InteriorNodeInfo2 extends CompositeNodeInfo2 {
+  CompositeNodeInfo2 get parent;
+}
+
+sealed class LeafNodeInfo2 extends TreeNodeInfo {
+  CompositeNodeInfo2 get parent;
+  bool get isFinalState;
+}
+
+/// A node in a state tree.
 ///
-/// While a [TreeState] defines the message processing behavior of a state, it does not model the
-/// location of the state within a state tree (that is, a [TreeState] does not directly know its
-/// parent or child states). Instead, [TreeNode] composes together a tree state along with
-/// information about the location of the node with the tree.
-class TreeNode implements TreeNodeInfo {
+/// This close matches [TreeNodeInfo], but keeps mutable and/or internal values out of the public
+/// facing interface.
+sealed class TreeNode implements TreeNodeInfo {
   TreeNode(
-    this.key, {
-    required StateCreator createState,
-    this.parent,
-    this.getInitialChild,
-    this.isFinal = false,
+    this.key,
+    StateCreator createState, {
     this.dataCodec,
-    List<TreeStateFilter> filters = const [],
-    Map<String, Object> metadata = const {},
-    List<TreeNode> children = const [],
-  })  : _children = children, // TODO make this lazy
-        _lazyState = Lazy<TreeState>(() => createState(key)),
-        filters = List.unmodifiable(List.of(filters)),
-        metadata = Map.unmodifiable(Map.of(metadata));
+    this.metadata = const {},
+    this.filters = const [],
+  }) : _lazyState = Lazy<TreeState>(() => createState(key));
 
-  /// The type of this tree node.
-  @override
-  NodeType get nodeType => switch (this) {
-        _ when parent == null => NodeType.root,
-        _ when children.isNotEmpty => NodeType.interior,
-        //_ when isFinal => NodeType.finalLeafNode,
-        _ => NodeType.leaf
-      };
-
-  /// The key identifying this tree node.
   @override
   final StateKey key;
 
-  /// The parent node of this true node. Returns `null` if this is a root node.
   @override
-  final TreeNode? parent;
-
-  /// The child nodes of this node. The list is empty for leaf nodes.
-  final List<TreeNode> _children;
-
-  @override
-  late final List<TreeNode> children = UnmodifiableListView(_children);
-
-  /// Function to identify the child node that should be entered, if this node is entered. Returns
-  /// `null` if this node does not have any children.
-  final GetInitialChild? getInitialChild;
-
-  // Codec to be used for encoding/decoding state data for this node. Will be null if this is not a
-  // node for a data state, or if the state tree was built without serialization support.
   final StateDataCodec<dynamic>? dataCodec;
-
-  /// Lazily computed tree state for this node
-  final Lazy<TreeState> _lazyState;
-
-  /// Filters for this node. When available, these filters are invoked, in the order represented by
-  /// this list, in lieu of node handlers.
-  final List<TreeStateFilter> filters;
-
-  @override
-  final bool isFinal;
 
   @override
   final Map<String, Object> metadata;
 
-  bool get isRoot => nodeType == NodeType.root;
-  bool get isLeaf => nodeType == NodeType.leaf;
-  bool get isInterior => nodeType == NodeType.interior;
-  bool get isFinalLeaf => isFinal && nodeType == NodeType.leaf;
+  @override
+  final List<TreeStateFilter> filters;
+
+  /// Lazily computed tree state for this node
+  final Lazy<TreeState> _lazyState;
 
   /// The [TreeState] for this node.
   TreeState get state => _lazyState.value;
@@ -110,6 +72,212 @@ class TreeNode implements TreeNodeInfo {
     return s is DataTreeState ? s.data : null;
   }
 
+  void dispose() {
+    if (_lazyState.hasValue) {
+      _lazyState.value.dispose();
+    }
+  }
+}
+
+sealed class CompositeTreeNode extends TreeNode implements CompositeNodeInfo2 {
+  CompositeTreeNode(
+    super.key,
+    super.createState, {
+    required this.getInitialChild,
+    required this.children,
+    super.dataCodec,
+    super.filters,
+    super.metadata,
+  });
+  @override
+  final List<TreeNode> children;
+
+  @override
+  final GetInitialChild getInitialChild;
+}
+
+abstract interface class ChildNodeInfo2 {
+  TreeNode get parent;
+}
+
+final class RootTreeNode extends CompositeTreeNode implements RootNodeInfo2 {
+  RootTreeNode(
+    super.key,
+    super.createState, {
+    required super.getInitialChild,
+    required super.children,
+    super.dataCodec,
+    super.filters,
+    super.metadata,
+  });
+}
+
+final class InteriorTreeNode extends CompositeTreeNode
+    implements InteriorNodeInfo2 {
+  InteriorTreeNode(
+    super.key,
+    super.createState, {
+    required this.parent,
+    required super.getInitialChild,
+    required super.children,
+    super.dataCodec,
+    super.filters,
+    super.metadata,
+  });
+
+  @override
+  final CompositeTreeNode parent;
+}
+
+final class LeafTreeNode extends TreeNode implements LeafNodeInfo2 {
+  LeafTreeNode(
+    super.key,
+    super.createState, {
+    required this.parent,
+    required this.isFinalState,
+    super.dataCodec,
+    super.filters,
+    super.metadata,
+  });
+
+  @override
+  final CompositeTreeNode parent;
+
+  @override
+  final bool isFinalState;
+}
+
+/// Describes the positioning of a tree state within a state tree.
+// abstract class TreeNodeInfo {
+//   /// The type of this tree node.
+//   NodeType get nodeType;
+
+//   /// The key identifying this tree node.
+//   StateKey get key;
+
+//   /// The parent node of this true node. Returns `null` if this is a root node.
+//   TreeNodeInfo? get parent;
+
+//   /// Application provided metadata associated with the state.
+//   Map<String, Object> get metadata;
+
+//   /// The child nodes of this node. The list is empty for leaf nodes.
+//   ///
+//   /// This list is unmodifiable.
+//   List<TreeNodeInfo> get children;
+
+//   /// Indicates if the tree state of this node is a final state.
+//   bool get isFinal;
+// }
+
+// /// A node within a state tree.
+// ///
+// /// While a [TreeState] defines the message processing behavior of a state, it does not model the
+// /// location of the state within a state tree (that is, a [TreeState] does not directly know its
+// /// parent or child states). Instead, [TreeNode] composes together a tree state along with
+// /// information about the location of the node with the tree.
+// class TreeNode implements TreeNodeInfo {
+//   TreeNode(
+//     this.key, {
+//     required StateCreator createState,
+//     this.parent,
+//     this.getInitialChild,
+//     this.isFinal = false,
+//     this.dataCodec,
+//     List<TreeStateFilter> filters = const [],
+//     Map<String, Object> metadata = const {},
+//     List<TreeNode> children = const [],
+//   })  : _children = children, // TODO make this lazy
+//         _lazyState = Lazy<TreeState>(() => createState(key)),
+//         filters = List.unmodifiable(List.of(filters)),
+//         metadata = Map.unmodifiable(Map.of(metadata));
+
+//   /// The type of this tree node.
+//   @override
+//   NodeType get nodeType => switch (this) {
+//         _ when parent == null => NodeType.root,
+//         _ when children.isNotEmpty => NodeType.interior,
+//         //_ when isFinal => NodeType.finalLeafNode,
+//         _ => NodeType.leaf
+//       };
+
+//   /// The key identifying this tree node.
+//   @override
+//   final StateKey key;
+
+//   /// The parent node of this true node. Returns `null` if this is a root node.
+//   @override
+//   final TreeNode? parent;
+
+//   /// The child nodes of this node. The list is empty for leaf nodes.
+//   final List<TreeNode> _children;
+
+//   @override
+//   late final List<TreeNode> children = UnmodifiableListView(_children);
+
+//   /// Function to identify the child node that should be entered, if this node is entered. Returns
+//   /// `null` if this node does not have any children.
+//   final GetInitialChild? getInitialChild;
+
+//   // Codec to be used for encoding/decoding state data for this node. Will be null if this is not a
+//   // node for a data state, or if the state tree was built without serialization support.
+//   final StateDataCodec<dynamic>? dataCodec;
+
+//   /// Lazily computed tree state for this node
+//   final Lazy<TreeState> _lazyState;
+
+//   /// Filters for this node. When available, these filters are invoked, in the order represented by
+//   /// this list, in lieu of node handlers.
+//   final List<TreeStateFilter> filters;
+
+//   @override
+//   final bool isFinal;
+
+//   @override
+//   final Map<String, Object> metadata;
+
+//   bool get isRoot => nodeType == NodeType.root;
+//   bool get isLeaf => nodeType == NodeType.leaf;
+//   bool get isInterior => nodeType == NodeType.interior;
+//   bool get isFinalLeaf => isFinal && nodeType == NodeType.leaf;
+
+//   /// The [TreeState] for this node.
+//   TreeState get state => _lazyState.value;
+
+//   /// The [DataValue] of the [DataTreeState] for this node, or `null` if [state] is not a
+//   /// [DataTreeState].
+//   DataValue<dynamic>? get data {
+//     var s = state;
+//     return s is DataTreeState ? s.data : null;
+//   }
+
+//   /// Lazily-compute the self-and-ancestor nodes of this node.
+//   ///
+//   /// The first node in the list is this node, and the last is the root node.
+//   Iterable<TreeNode> selfAndAncestors() sync* {
+//     yield this;
+//     yield* ancestors();
+//   }
+
+//   /// Lazily-compute the ancestor nodes of this node.
+//   ///
+//   /// The first node in the list is the parent of this node, and the last is the root node.
+//   Iterable<TreeNode> ancestors() sync* {
+//     var nextAncestor = parent;
+//     while (nextAncestor != null) {
+//       yield nextAncestor;
+//       nextAncestor = nextAncestor.parent;
+//     }
+//   }
+
+//   void dispose() {
+//     if (_lazyState.hasValue) {
+//       _lazyState.value.dispose();
+//     }
+//   }
+// }
+
+extension TreeNodeNavigationExtensions on TreeNode {
   /// Lazily-compute the self-and-ancestor nodes of this node.
   ///
   /// The first node in the list is this node, and the last is the root node.
@@ -122,21 +290,22 @@ class TreeNode implements TreeNodeInfo {
   ///
   /// The first node in the list is the parent of this node, and the last is the root node.
   Iterable<TreeNode> ancestors() sync* {
-    var nextAncestor = parent;
+    var nextAncestor = parent();
     while (nextAncestor != null) {
       yield nextAncestor;
-      nextAncestor = nextAncestor.parent;
+      nextAncestor = nextAncestor.parent();
     }
   }
 
-  void dispose() {
-    if (_lazyState.hasValue) {
-      _lazyState.value.dispose();
-    }
+  // The parent node of this node, or null if this is a root node.
+  TreeNode? parent() {
+    return switch (this) {
+      LeafTreeNode(parent: var parent) => parent,
+      InteriorTreeNode(parent: var parent) => parent,
+      _ => null
+    };
   }
-}
 
-extension TreeNodeNavigationExtensions on TreeNode {
   /// Finds the self-or-ancestor node that is identified by [stateKey].
   ///
   /// Returns `null` if there is no node that matches the key.
@@ -151,6 +320,11 @@ extension TreeNodeNavigationExtensions on TreeNode {
     return selfAndAncestors()
         .firstWhereOrNull((n) => n.data is DataValue<D> ? true : false);
   }
+
+  bool get isFinalLeaf => switch (this) {
+        LeafTreeNode(isFinalState: true) => true,
+        _ => false,
+      };
 
   /// Returns `true` if [stateKey] identifies this node, or one of its ancestor nodes.
   bool isSelfOrAncestor(StateKey stateKey) =>

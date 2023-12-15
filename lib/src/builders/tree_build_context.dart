@@ -3,8 +3,6 @@ part of '../../tree_builders.dart';
 /// Type of functions that can create a [TreeNode].
 typedef TreeNodeBuilder = TreeNode Function(TreeBuildContext context);
 
-/// Provides a description of how a [TreeNode] should be built.
-
 /// Provides contextual information while a state tree is being constructed, and factory methods for
 /// creating tree nodes.
 ///
@@ -21,13 +19,13 @@ class TreeBuildContext {
   /// Map of nodes that have been built.
   final Map<StateKey, TreeNode> nodes;
 
-  /// Creates a [TreeNode] that is the root node in a fully constructed state tree.
+  /// Creates a root [TreeNode] that is fully populated with its descendant nodes.
   TreeNode buildRoot(RootNodeBuildInfo nodeBuildInfo) {
     assert(!nodes.containsKey(nodeBuildInfo.key));
     var children = <TreeNode>[];
-    var node = TreeNode(
+    var node = RootTreeNode(
       nodeBuildInfo.key,
-      createState: nodeBuildInfo.createState,
+      nodeBuildInfo.createState,
       getInitialChild: nodeBuildInfo.initialChild,
       children: UnmodifiableListView(children),
       dataCodec: nodeBuildInfo.dataCodec,
@@ -48,15 +46,17 @@ class TreeBuildContext {
     return node;
   }
 
+  /// Creates an interior [TreeNode] that is fully populated with its descendant nodes.
   TreeNode buildInterior(InteriorNodeBuildInfo nodeBuildInfo) {
     assert(parentNode != null);
+    assert(parentNode is CompositeTreeNode);
     assert(nodeBuildInfo.childBuilders.isNotEmpty);
 
     var children = <TreeNode>[];
-    var node = TreeNode(
+    var node = InteriorTreeNode(
       nodeBuildInfo.key,
-      createState: nodeBuildInfo.createState,
-      parent: parentNode,
+      nodeBuildInfo.createState,
+      parent: parentNode as CompositeTreeNode,
       getInitialChild: nodeBuildInfo.initialChild,
       children: UnmodifiableListView(children),
       dataCodec: nodeBuildInfo.dataCodec,
@@ -72,14 +72,16 @@ class TreeBuildContext {
     return node;
   }
 
+  /// Creates a leaf [TreeNode].
   TreeNode buildLeaf(LeafNodeBuildInfo nodeBuildInfo) {
     assert(parentNode != null);
+    assert(parentNode is CompositeTreeNode);
 
-    var node = TreeNode(
+    var node = LeafTreeNode(
       nodeBuildInfo.key,
-      createState: nodeBuildInfo.createState,
-      parent: parentNode,
-      isFinal: nodeBuildInfo.isFinalState,
+      nodeBuildInfo.createState,
+      parent: parentNode as CompositeTreeNode,
+      isFinalState: nodeBuildInfo.isFinalState,
       dataCodec: nodeBuildInfo.dataCodec,
       filters: nodeBuildInfo.filters,
       metadata: nodeBuildInfo.metadata,
@@ -91,12 +93,12 @@ class TreeBuildContext {
 
   /// Creates a tree node representing the 'exterally stopped' state, which is entered when stop() is
   /// called on a tree state machine.
-  TreeNode _buildStoppedNode(TreeNode rootNode) {
-    return TreeNode(
+  TreeNode _buildStoppedNode(RootTreeNode rootNode) {
+    return LeafTreeNode(
       stoppedStateKey,
-      createState: (_) => _stoppedState,
+      (_) => _stoppedState,
       parent: rootNode,
-      isFinal: true,
+      isFinalState: true,
     );
   }
 

@@ -108,7 +108,7 @@ abstract class _StateBuilder {
   //   );
   // }
 
-  TreeNodeBuildInfo2 toTreeNodeBuildInfo(
+  TreeNodeBuildInfo toTreeNodeBuildInfo(
     TreeNodeBuilder Function(StateKey childState) getChildNodeBuilder,
   ) {
     return switch (nodeType) {
