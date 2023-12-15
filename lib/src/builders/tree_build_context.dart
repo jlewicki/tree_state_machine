@@ -3,6 +3,12 @@ part of '../../tree_builders.dart';
 /// Type of functions that can create a [TreeNode].
 typedef TreeNodeBuilder = TreeNode Function(TreeBuildContext context);
 
+abstract class StateTreeBuilder {
+  String? get label;
+  String? get logName;
+  RootTreeNode build(TreeBuildContext buildContext);
+}
+
 /// Provides contextual information while a state tree is being constructed, and factory methods for
 /// creating tree nodes.
 ///

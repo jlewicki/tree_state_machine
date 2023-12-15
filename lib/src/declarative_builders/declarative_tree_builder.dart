@@ -1,4 +1,4 @@
-part of '../../tree_builders.dart';
+part of '../../declarative_builders.dart';
 
 /// Provides methods to describe a state tree.
 ///
@@ -114,6 +114,14 @@ class DeclarativeStateTreeBuilder implements StateTreeBuilder {
     return b;
   }
 
+  /// Builds the state tree described by this builder, and returns the root node of the tree.
+  @override
+  RootTreeNode build(TreeBuildContext buildContext) {
+    _validate();
+    var rootBuilder = _getStateBuilder(_rootKey);
+    return _buildNode(buildContext, rootBuilder) as RootTreeNode;
+  }
+
   /// Creates a [DeclarativeStateTreeBuilder] with a root state carrying a value of type [D].
   ///
   /// The root state is identified by [rootState], and has an initial child state identified by
@@ -145,8 +153,8 @@ class DeclarativeStateTreeBuilder implements StateTreeBuilder {
   }
 
   /// Creates the root node of the state tree.
-  RootTreeNode call([TreeBuildContext? context]) =>
-      build(context ?? TreeBuildContext());
+  // RootTreeNode call([TreeBuildContext? context]) =>
+  //     build(context ?? TreeBuildContext());
 
   /// Adds to the state tree a description of a state, identified by [stateKey].
   ///
@@ -412,14 +420,6 @@ class DeclarativeStateTreeBuilder implements StateTreeBuilder {
   void format(StringSink sink, StateTreeFormatter formatter) {
     _validate();
     formatter.formatTo(this, sink);
-  }
-
-  /// Builds the state tree described by this builder, and returns the root node of the tree.
-  @override
-  RootTreeNode build(TreeBuildContext buildContext) {
-    _validate();
-    var rootBuilder = _getStateBuilder(_rootKey);
-    return _buildNode(buildContext, rootBuilder) as RootTreeNode;
   }
 
   TreeNode _buildNode(TreeBuildContext context, _StateBuilder stateBuilder) {

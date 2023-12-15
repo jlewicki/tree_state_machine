@@ -31,10 +31,10 @@ import 'src/builders/handlers/transitions/schedule_descriptor.dart';
 
 /// TODO: dont use parts anymore for these
 part 'src/builders/node_build_info.dart';
-part 'src/builders/declarative_tree_builder.dart';
 part 'src/builders/tree_build_context.dart';
 
 /// Move all this to a new package
+part 'src/builders/declarative_tree_builder.dart';
 part 'src/builders/tree_formatters.dart';
 part 'src/builders/state_builder.dart';
 part 'src/builders/state_builder_extensions.dart';
