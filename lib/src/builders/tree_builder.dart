@@ -412,22 +412,6 @@ class StateTreeBuilder {
     formatter.formatTo(this, sink);
   }
 
-  // TreeNode _build(TreeBuildContext context) {
-  //   _validate();
-
-  //   var rootBuilders = _stateBuilders.values
-  //       .where((b) => b._stateType == _StateType.root)
-  //       .toList();
-  //   if (rootBuilders.isEmpty) {
-  //     throw StateError('No root builders available');
-  //   } else if (rootBuilders.length > 1) {
-  //     throw StateError('Found multiple root nodes.');
-  //   }
-
-  //   // If there is a single root, then we have a well formed state tree.
-  //   return rootBuilders.first._toNode(context, _stateBuilders);
-  // }
-
   /// Builds the state tree described by this builder, and returns the root node of the tree.
   TreeNode build(TreeBuildContext buildContext) {
     _validate();
@@ -440,10 +424,10 @@ class StateTreeBuilder {
     _StateBuilder stateBuilder,
   ) {
     var nodeBuildInfo = stateBuilder.toTreeNodeBuildInfo(_makeChildNodeBuilder);
-    return switch (stateBuilder.nodeType) {
-      NodeType.root => context.buildRoot(nodeBuildInfo),
-      NodeType.interior => context.buildInterior(nodeBuildInfo),
-      NodeType.leaf => context.buildLeaf(nodeBuildInfo),
+    return switch (nodeBuildInfo) {
+      RootNodeBuildInfo() => context.buildRoot(nodeBuildInfo),
+      InteriorNodeBuildInfo() => context.buildInterior(nodeBuildInfo),
+      LeafNodeBuildInfo() => context.buildLeaf(nodeBuildInfo),
     };
   }
 

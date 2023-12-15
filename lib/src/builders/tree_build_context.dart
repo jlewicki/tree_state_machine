@@ -22,12 +22,8 @@ class TreeBuildContext {
   final Map<StateKey, TreeNode> nodes;
 
   /// Creates a [TreeNode] that is the root node in a fully constructed state tree.
-  TreeNode buildRoot(TreeNodeBuildInfo nodeBuildInfo) {
-    assert(parentNode == null);
-    assert(nodeBuildInfo.initialChild != null);
-    assert(nodeBuildInfo.childBuilders.isNotEmpty);
+  TreeNode buildRoot(RootNodeBuildInfo nodeBuildInfo) {
     assert(!nodes.containsKey(nodeBuildInfo.key));
-
     var children = <TreeNode>[];
     var node = TreeNode(
       nodeBuildInfo.key,
@@ -52,9 +48,8 @@ class TreeBuildContext {
     return node;
   }
 
-  TreeNode buildInterior(TreeNodeBuildInfo nodeBuildInfo) {
+  TreeNode buildInterior(InteriorNodeBuildInfo nodeBuildInfo) {
     assert(parentNode != null);
-    assert(nodeBuildInfo.initialChild != null);
     assert(nodeBuildInfo.childBuilders.isNotEmpty);
 
     var children = <TreeNode>[];
@@ -77,9 +72,8 @@ class TreeBuildContext {
     return node;
   }
 
-  TreeNode buildLeaf(TreeNodeBuildInfo nodeBuildInfo) {
+  TreeNode buildLeaf(LeafNodeBuildInfo nodeBuildInfo) {
     assert(parentNode != null);
-    assert(nodeBuildInfo.childBuilders.isEmpty);
 
     var node = TreeNode(
       nodeBuildInfo.key,

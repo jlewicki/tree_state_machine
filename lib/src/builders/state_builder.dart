@@ -93,19 +93,54 @@ abstract class _StateBuilder {
     };
   }
 
-  TreeNodeBuildInfo toTreeNodeBuildInfo(
+  // TreeNodeBuildInfo toTreeNodeBuildInfo(
+  //   TreeNodeBuilder Function(StateKey childState) getChildNodeBuilder,
+  // ) {
+  //   return TreeNodeBuildInfo(
+  //     key,
+  //     (_) => _createState(),
+  //     initialChild: _initialChild?.call,
+  //     childBuilders: _children.map(getChildNodeBuilder).toList(),
+  //     isFinalState: _isFinal,
+  //     dataCodec: _codec,
+  //     filters: _filters,
+  //     metadata: _metadata,
+  //   );
+  // }
+
+  TreeNodeBuildInfo2 toTreeNodeBuildInfo(
     TreeNodeBuilder Function(StateKey childState) getChildNodeBuilder,
   ) {
-    return TreeNodeBuildInfo(
-      key,
-      (_) => _createState(),
-      initialChild: _initialChild?.call,
-      childBuilders: _children.map(getChildNodeBuilder).toList(),
-      isFinalState: _isFinal,
-      dataCodec: _codec,
-      filters: _filters,
-      metadata: _metadata,
-    );
+    return switch (nodeType) {
+      NodeType.root => RootNodeBuildInfo(
+          key,
+          (_) => _createState(),
+          childBuilders: _children.map(getChildNodeBuilder).toList(),
+          initialChild: _initialChild!.call,
+          dataCodec: _codec,
+          filters: _filters,
+          metadata: _metadata,
+        ),
+      NodeType.interior => InteriorNodeBuildInfo(
+          key,
+          (_) => _createState(),
+          parent: _parent!,
+          childBuilders: _children.map(getChildNodeBuilder).toList(),
+          initialChild: _initialChild!.call,
+          dataCodec: _codec,
+          filters: _filters,
+          metadata: _metadata,
+        ),
+      NodeType.leaf => LeafNodeBuildInfo(
+          key,
+          (_) => _createState(),
+          parent: _parent!,
+          dataCodec: _codec,
+          filters: _filters,
+          metadata: _metadata,
+          isFinalState: _isFinal,
+        ),
+    };
   }
 
   bool get _hasStateData => _dataType != null;
