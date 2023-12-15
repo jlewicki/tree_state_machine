@@ -47,8 +47,6 @@ class Channel<P> {
   const Channel(this.to, {this.label});
 }
 
-enum _StateType { root, interior, leaf }
-
 abstract class _StateBuilder {
   final StateKey key;
   final bool _isFinal;
@@ -87,10 +85,12 @@ abstract class _StateBuilder {
   )   : _metadata = metadata ?? {},
         _filters = filters ?? [];
 
-  _StateType get _stateType {
-    if (_parent == null) return _StateType.root;
-    if (_children.isEmpty) return _StateType.leaf;
-    return _StateType.interior;
+  NodeType get nodeType {
+    return switch (this) {
+      _ when _parent == null => NodeType.root,
+      _ when _children.isEmpty => NodeType.leaf,
+      _ => NodeType.interior
+    };
   }
 
   TreeNodeBuildInfo toTreeNodeBuildInfo(
@@ -119,60 +119,6 @@ abstract class _StateBuilder {
   void _addChild(_StateBuilder child) {
     child._parent = key;
     _children.add(child.key);
-  }
-
-  // TreeNode _toNode(
-  //     TreeBuildContext context, Map<StateKey, _StateBuilder> builderMap) {
-  //   switch (_nodeType()) {
-  //     case NodeType.rootNode:
-  //       return context.buildRoot(
-  //         key,
-  //         (_) => _createState(),
-  //         _children.map((e) {
-  //           var childBuilder = builderMap[e]!;
-  //           return (childCtx) => childBuilder._toNode(childCtx, builderMap);
-  //         }),
-  //         _initialChild!.call,
-  //         _codec,
-  //         _filters,
-  //         _metadata,
-  //       );
-  //     case NodeType.interiorNode:
-  //       return context.buildInterior(
-  //         key,
-  //         (_) => _createState(),
-  //         _children.map((e) {
-  //           var childBuilder = builderMap[e]!;
-  //           return (childCtx) => childBuilder._toNode(childCtx, builderMap);
-  //         }),
-  //         _initialChild!.call,
-  //         _codec,
-  //         _filters,
-  //         _metadata,
-  //       );
-  //     case NodeType.leafNode:
-  //       return context.buildLeaf(
-  //         key,
-  //         (_) => _createState(),
-  //         _codec,
-  //         filters: _filters,
-  //         metadata: _metadata,
-  //       );
-  //     case NodeType.finalLeafNode:
-  //       return context.buildLeaf(key, (_) => _createState(), _codec,
-  //           isFinal: true);
-  //     default:
-  //       throw StateError('Unrecognized node type');
-  //   }
-  // }
-
-  NodeType _nodeType() {
-    if (_parent == null) {
-      return NodeType.rootNode;
-    } else if (_children.isEmpty) {
-      return _isFinal ? NodeType.finalLeafNode : NodeType.leafNode;
-    }
-    return NodeType.interiorNode;
   }
 
   TreeState _createState() {

@@ -440,12 +440,10 @@ class StateTreeBuilder {
     _StateBuilder stateBuilder,
   ) {
     var nodeBuildInfo = stateBuilder.toTreeNodeBuildInfo(_makeChildNodeBuilder);
-    return switch (stateBuilder._nodeType()) {
-      NodeType.rootNode => context.buildRoot(nodeBuildInfo),
-      NodeType.interiorNode => context.buildInterior(nodeBuildInfo),
-      NodeType.leafNode ||
-      NodeType.finalLeafNode =>
-        context.buildLeaf(nodeBuildInfo),
+    return switch (stateBuilder.nodeType) {
+      NodeType.root => context.buildRoot(nodeBuildInfo),
+      NodeType.interior => context.buildInterior(nodeBuildInfo),
+      NodeType.leaf => context.buildLeaf(nodeBuildInfo),
     };
   }
 

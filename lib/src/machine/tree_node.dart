@@ -4,7 +4,7 @@ import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/data_value.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
 
-enum NodeType { rootNode, interiorNode, leafNode, finalLeafNode }
+enum NodeType { root, interior, leaf }
 
 /// Describes the positioning of a tree state within a state tree.
 abstract class TreeNodeInfo {
@@ -54,10 +54,10 @@ class TreeNode implements TreeNodeInfo {
   /// The type of this tree node.
   @override
   NodeType get nodeType => switch (this) {
-        _ when parent == null => NodeType.rootNode,
-        _ when children.isNotEmpty => NodeType.interiorNode,
-        _ when isFinal => NodeType.finalLeafNode,
-        _ => NodeType.leafNode
+        _ when parent == null => NodeType.root,
+        _ when children.isNotEmpty => NodeType.interior,
+        //_ when isFinal => NodeType.finalLeafNode,
+        _ => NodeType.leaf
       };
 
   /// The key identifying this tree node.
@@ -95,11 +95,10 @@ class TreeNode implements TreeNodeInfo {
   @override
   final Map<String, Object> metadata;
 
-  bool get isRoot => nodeType == NodeType.rootNode;
-  bool get isLeaf =>
-      nodeType == NodeType.leafNode || nodeType == NodeType.finalLeafNode;
-  bool get isInterior => nodeType == NodeType.interiorNode;
-  bool get isFinalLeaf => nodeType == NodeType.finalLeafNode;
+  bool get isRoot => nodeType == NodeType.root;
+  bool get isLeaf => nodeType == NodeType.leaf;
+  bool get isInterior => nodeType == NodeType.interior;
+  bool get isFinalLeaf => isFinal && nodeType == NodeType.leaf;
 
   /// The [TreeState] for this node.
   TreeState get state => _lazyState.value;

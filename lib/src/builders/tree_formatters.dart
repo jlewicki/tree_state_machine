@@ -80,15 +80,18 @@ class _DotFormatter {
     sink.writeln(']');
 
     // Declare leaf child states
-    var childStates =
-        state._children.map((childKey) => treeBuilder._stateBuilders[childKey]!).toList();
-    var childLeaves = childStates.where((child) => child._stateType == _StateType.leaf);
+    var childStates = state._children
+        .map((childKey) => treeBuilder._stateBuilders[childKey]!)
+        .toList();
+    var childLeaves =
+        childStates.where((child) => child.nodeType == NodeType.leaf);
     for (var leaf in childLeaves) {
       _writeLeafState(leaf, sink);
     }
 
     // Declare interior child states
-    var interiors = childStates.where((child) => child._stateType != _StateType.leaf);
+    var interiors =
+        childStates.where((child) => child.nodeType != NodeType.leaf);
     for (var interior in interiors) {
       _writeCompositeState(interior, sink, transitions);
     }
@@ -100,10 +103,11 @@ class _DotFormatter {
     tryWritePostNode(childStates, state.key, postNodeName, sink);
 
     // Declare initial transition
-    var initialChild =
-        childStates.firstWhereOrNull((cs) => cs.key == state._initialChild?._initialChildKey);
+    var initialChild = childStates.firstWhereOrNull(
+        (cs) => cs.key == state._initialChild?._initialChildKey);
     if (initialChild != null) {
-      transitions.add('${_getStateName(state)} -> ${_getStateName(initialChild)} [style=dashed];');
+      transitions.add(
+          '${_getStateName(state)} -> ${_getStateName(initialChild)} [style=dashed];');
     }
 
     // Declare state transitions
@@ -119,7 +123,8 @@ class _DotFormatter {
           var conditions = handlerInfo.conditions;
           if (conditions.isEmpty) {
             transitions.add(
-              _labelMessageHandler(child, handlerInfo, childStateName, postNodeName),
+              _labelMessageHandler(
+                  child, handlerInfo, childStateName, postNodeName),
             );
           } else {
             // Conditions are displayed in the graph as an edge leading to a decision node, and then
@@ -128,11 +133,12 @@ class _DotFormatter {
             // Render the decision node
             var decisionNodeName =
                 '${clusterName}_${childStateName}_decision_${handlerInfo.messageName.toString().replaceAll('.', '_')}';
-            sink.writeln('$tabs$decisionNodeName [shape=circle, label="", width=0.25]');
+            sink.writeln(
+                '$tabs$decisionNodeName [shape=circle, label="", width=0.25]');
 
             // Render edge from state to decision node
-            transitions
-                .add('$childStateName -> $decisionNodeName [label=${handlerInfo.messageName}]');
+            transitions.add(
+                '$childStateName -> $decisionNodeName [label=${handlerInfo.messageName}]');
 
             // Render edges for the targets
             for (var condition in conditions) {
@@ -163,18 +169,22 @@ class _DotFormatter {
     var firstPostOrSchedule = childStates
         .expand((child) => child._getHandlerInfos())
         .expand((info) => _expandConditionHandlers([info]))
-        .firstWhereOrNull((info) => info.actions.any(
-            (act) => act.actionType == ActionType.post || act.actionType == ActionType.schedule));
+        .firstWhereOrNull((info) => info.actions.any((act) =>
+            act.actionType == ActionType.post ||
+            act.actionType == ActionType.schedule));
     var hasPostHandler = firstPostOrSchedule != null;
     if (hasPostHandler) {
-      sink.writeln('${_indent()}$postNodeName [shape=circle, style=dotted, label=""]');
+      sink.writeln(
+          '${_indent()}$postNodeName [shape=circle, style=dotted, label=""]');
     }
   }
 
-  Iterable<MessageHandlerInfo> _expandConditionHandlers(Iterable<MessageHandlerInfo> infos) sync* {
+  Iterable<MessageHandlerInfo> _expandConditionHandlers(
+      Iterable<MessageHandlerInfo> infos) sync* {
     for (var info in infos) {
       if (info.conditions.isNotEmpty) {
-        yield* _expandConditionHandlers(info.conditions.map((c) => c.whenTrueInfo));
+        yield* _expandConditionHandlers(
+            info.conditions.map((c) => c.whenTrueInfo));
       } else {
         yield info;
       }
@@ -216,7 +226,8 @@ class _DotFormatter {
 
     for (var handlerInfo in stateBuilder._getHandlerInfos()) {
       if (handlerInfo.handlerType == MessageHandlerType.unhandled) {
-        var handlerOp = _labelMessageHandlerOp(handlerInfo, labelMessageType: false);
+        var handlerOp =
+            _labelMessageHandlerOp(handlerInfo, labelMessageType: false);
         sink.write('|on ${handlerInfo.messageType}: $handlerOp');
       }
     }
@@ -260,11 +271,13 @@ class _DotFormatter {
     var targetStateName = _getStateName(targetState);
     var conditionLabel = condition != null ? _labelCondition(condition) : '';
     var opName = handlerInfo.label ??
-        _labelMessageHandlerOp(handlerInfo, labelMessageType: !isTransitionFromDecisionNode);
+        _labelMessageHandlerOp(handlerInfo,
+            labelMessageType: !isTransitionFromDecisionNode);
     var conditionAndOp =
         '$conditionLabel${conditionLabel.isNotEmpty && opName.isNotEmpty ? ' / ' : ''}$opName';
     var postOrScheduleAction = handlerInfo.actions.firstWhereOrNull((action) =>
-        action.actionType == ActionType.post || action.actionType == ActionType.schedule);
+        action.actionType == ActionType.post ||
+        action.actionType == ActionType.schedule);
     var isUnhandled = handlerInfo.handlerType == MessageHandlerType.unhandled;
 
     if (postOrScheduleAction != null) {
@@ -279,7 +292,8 @@ class _DotFormatter {
     return '$sourceNodeName -> $targetStateName [label="$conditionAndOp"$style]';
   }
 
-  String _labelMessageHandlerOp(MessageHandlerInfo info, {bool labelMessageType = true}) {
+  String _labelMessageHandlerOp(MessageHandlerInfo info,
+      {bool labelMessageType = true}) {
     var msgName = labelMessageType ? info.messageName : '';
     var msgTypeWithSlash = msgName + (msgName.isNotEmpty ? ' / ' : '');
     switch (info.handlerType) {
@@ -340,6 +354,7 @@ class _DotFormatter {
   }
 
   _StateBuilder _findRootState() {
-    return treeBuilder._stateBuilders.values.firstWhere((sb) => sb._stateType == _StateType.root);
+    return treeBuilder._stateBuilders.values
+        .firstWhere((sb) => sb.nodeType == NodeType.root);
   }
 }
