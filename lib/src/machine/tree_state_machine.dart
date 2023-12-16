@@ -9,7 +9,7 @@ import 'package:tree_state_machine/src/machine/initial_state_data.dart';
 import 'package:tree_state_machine/src/machine/machine.dart';
 import 'package:tree_state_machine/src/machine/tree_node.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
-import 'package:tree_state_machine/tree_build.dart';
+import 'package:tree_state_machine/build.dart';
 
 import 'lifecycle.dart';
 import 'tree_state.dart';
@@ -125,7 +125,7 @@ class TreeStateMachine {
     var rootNode = treeBuilder.build(buildCtx);
     var machine = Machine(
       rootNode,
-      buildCtx.nodes,
+      //buildCtx.nodes,
       (message) => treeMachine!._queueMessage(message),
       logName: logName,
     );
@@ -697,7 +697,7 @@ class TestableTreeStateMachine extends TreeStateMachine {
     var rootNode = treeBuilder.build(buildCtx);
     var machine = Machine(
       rootNode,
-      buildCtx.nodes,
+      //buildCtx.nodes,
       (message) => treeMachine!._queueMessage(message),
     );
     var log = Logger('tree_state_machine.TestableTreeStateMachine');

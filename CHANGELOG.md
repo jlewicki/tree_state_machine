@@ -1,3 +1,7 @@
+## 3.0.0-dev.6
+- Significant reorganization of builder classes. `tree_builders` library is split into `build` and 
+  `declarative_builders` libraries.
+
 ## 3.0.0-dev.5
 - Adjust parameter order of `StateTreeBuilder.withRoot` and `StateTreeBuilder.withDataRoot`
 - Add `ValueSubject.mapValueStream`.

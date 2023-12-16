@@ -24,8 +24,6 @@ class Machine {
 
   factory Machine(
     RootTreeNode rootNode,
-    // TODO: remove this arg. It can built by traversing the rootNode
-    Map<StateKey, TreeNode> nodesByKey,
     void Function(Object message) queueMessage, {
     String? logName,
   }) {
@@ -33,6 +31,8 @@ class Machine {
         'tree_state_machine.Machine${logName != null ? '.$logName' : ''}');
     var machineRoot = MachineNode(rootNode, log);
     var machineNodes = HashMap<StateKey, MachineNode>();
+    var nodesByKey = <StateKey, TreeNode>{};
+    rootNode.visitNodes((n) => nodesByKey[n.key] = n);
     for (var entry in nodesByKey.entries) {
       machineNodes[entry.key] = MachineNode(entry.value, log);
     }

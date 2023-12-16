@@ -2,7 +2,7 @@
 
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
-import 'package:tree_state_machine/tree_build.dart';
+import 'package:tree_state_machine/build.dart';
 
 const r_1_key = StateKey('leaf1');
 const r_2_key = StateKey('leaf2');

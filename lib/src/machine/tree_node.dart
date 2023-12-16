@@ -109,6 +109,21 @@ sealed class CompositeTreeNode extends TreeNode implements CompositeNodeInfo {
 
   @override
   final GetInitialChild getInitialChild;
+
+  void visitNodes(void Function(TreeNode) visitNode) {
+    void visitNodes_(TreeNode node) {
+      visitNode(node);
+      var children = switch (node) {
+        CompositeTreeNode(children: var c) => c,
+        _ => <TreeNode>[],
+      };
+      for (var child in children) {
+        visitNodes_(child);
+      }
+    }
+
+    return visitNodes_(this);
+  }
 }
 
 abstract interface class ChildNodeInfo2 {

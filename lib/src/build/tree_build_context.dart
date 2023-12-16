@@ -2,7 +2,7 @@ import 'dart:collection';
 
 import 'package:tree_state_machine/src/machine/tree_node.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
-import 'package:tree_state_machine/tree_build.dart';
+import 'package:tree_state_machine/build.dart';
 
 /// Type of functions that can create a [TreeNode].
 typedef TreeNodeBuilder = TreeNode Function(TreeBuildContext context);
@@ -12,7 +12,7 @@ typedef TreeNodeBuilder = TreeNode Function(TreeBuildContext context);
 ///
 /// This interface is infrastructure, and is not intended to be called by application code.
 class TreeBuildContext {
-  TreeBuildContext._(this._parentNode, this.nodes);
+  TreeBuildContext._(this._parentNode, this._nodes);
 
   /// Constructs a [TreeBuildContext].
   factory TreeBuildContext() => TreeBuildContext._(null, {});
@@ -21,11 +21,12 @@ class TreeBuildContext {
   final TreeNode? _parentNode;
 
   /// Map of nodes that have been built.
-  final Map<StateKey, TreeNode> nodes;
+  final Map<StateKey, TreeNode> _nodes;
 
-  /// Creates a root [TreeNode] that is fully populated with its descendant nodes.
-  TreeNode buildRoot(RootNodeBuildInfo nodeBuildInfo) {
-    assert(!nodes.containsKey(nodeBuildInfo.key));
+  /// Creates a root [TreeNode] that is fully populated with its descendant nodes, based on the
+  /// description provided by [nodeBuildInfo]
+  RootTreeNode buildRoot(RootNodeBuildInfo nodeBuildInfo) {
+    assert(!_nodes.containsKey(nodeBuildInfo.key));
     var children = <TreeNode>[];
     var node = RootTreeNode(
       nodeBuildInfo.key,
@@ -50,8 +51,9 @@ class TreeBuildContext {
     return node;
   }
 
-  /// Creates an interior [TreeNode] that is fully populated with its descendant nodes.
-  TreeNode buildInterior(InteriorNodeBuildInfo nodeBuildInfo) {
+  /// Creates an interior [TreeNode] that is fully populated with its descendant nodes, based on the
+  /// description provided by [nodeBuildInfo]
+  InteriorTreeNode buildInterior(InteriorNodeBuildInfo nodeBuildInfo) {
     assert(_parentNode != null);
     assert(_parentNode is CompositeTreeNode);
     assert(nodeBuildInfo.childBuilders.isNotEmpty);
@@ -76,8 +78,8 @@ class TreeBuildContext {
     return node;
   }
 
-  /// Creates a leaf [TreeNode].
-  TreeNode buildLeaf(LeafNodeBuildInfo nodeBuildInfo) {
+  /// Creates a leaf [TreeNode], based on the description provided by [nodeBuildInfo]
+  LeafTreeNode buildLeaf(LeafNodeBuildInfo nodeBuildInfo) {
     assert(_parentNode != null);
     assert(_parentNode is CompositeTreeNode);
 
@@ -97,7 +99,7 @@ class TreeBuildContext {
 
   /// Creates a tree node representing the 'exterally stopped' state, which is entered when stop() is
   /// called on a tree state machine.
-  TreeNode _buildStoppedNode(RootTreeNode rootNode) {
+  LeafTreeNode _buildStoppedNode(RootTreeNode rootNode) {
     return LeafTreeNode(
       stoppedStateKey,
       (_) => _stoppedState,
@@ -107,18 +109,18 @@ class TreeBuildContext {
   }
 
   void _addNode(TreeNode node) {
-    if (nodes.containsKey(node.key)) {
+    if (_nodes.containsKey(node.key)) {
       final msg =
           'A state with key ${node.key} has already been added to the state tree.';
       throw ArgumentError.value(node, 'node', msg);
     }
-    nodes[node.key] = node;
+    _nodes[node.key] = node;
   }
 
   // Constructs a [TreeBuildContext] that adusts the current parent node, so child nodes can be
   /// built.
   TreeBuildContext _childBuildContext(TreeNode newParentNode) =>
-      TreeBuildContext._(newParentNode, nodes);
+      TreeBuildContext._(newParentNode, _nodes);
 }
 
 final _stoppedState = DelegatingTreeState(
