@@ -4,7 +4,7 @@ import 'package:async/async.dart';
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/src/machine/data_value.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
-import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/declarative_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 //==================================================================================================
@@ -49,7 +49,9 @@ class _ValueKey<T> implements StateKey {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is _ValueKey<T> && runtimeType == other.runtimeType && _value == other._value);
+      (other is _ValueKey<T> &&
+          runtimeType == other.runtimeType &&
+          _value == other._value);
 
   @override
   int get hashCode {
@@ -98,7 +100,8 @@ typedef MessageHandler = FutureOr<MessageResult> Function(MessageContext ctx);
 FutureOr<void> emptyTransitionHandler(TransitionContext transCtx) {}
 
 /// A [MessageHandler] that always returns [MessageContext.unhandled].
-FutureOr<MessageResult> emptyMessageHandler(MessageContext msgCtx) => msgCtx.unhandled();
+FutureOr<MessageResult> emptyMessageHandler(MessageContext msgCtx) =>
+    msgCtx.unhandled();
 
 /// Type of functions that select a child state to initially enter, when a parent state is entered.
 ///
@@ -153,7 +156,8 @@ class DelegatingTreeState implements TreeState {
   final TransitionHandler _onExit;
   final Dispose _onDispose;
 
-  DelegatingTreeState(this._onMessage, TransitionHandler? onEnter, TransitionHandler? onExit,
+  DelegatingTreeState(
+      this._onMessage, TransitionHandler? onEnter, TransitionHandler? onExit,
       [Dispose? onDispose])
       : _onEnter = onEnter ?? emptyTransitionAction,
         _onExit = onExit ?? emptyTransitionAction,
@@ -163,7 +167,8 @@ class DelegatingTreeState implements TreeState {
   FutureOr<void> onEnter(TransitionContext transCtx) => _onEnter(transCtx);
 
   @override
-  FutureOr<MessageResult> onMessage(MessageContext msgCtx) => _onMessage(msgCtx);
+  FutureOr<MessageResult> onMessage(MessageContext msgCtx) =>
+      _onMessage(msgCtx);
 
   @override
   FutureOr<void> onExit(TransitionContext transCtx) => _onExit(transCtx);
@@ -232,7 +237,8 @@ class DelegatingDataTreeState<D> extends DataTreeState<D> {
   );
 
   @override
-  FutureOr<MessageResult> onMessage(MessageContext msgCtx) => _onMessage(msgCtx);
+  FutureOr<MessageResult> onMessage(MessageContext msgCtx) =>
+      _onMessage(msgCtx);
 
   @override
   FutureOr<void> onEnter(TransitionContext transCtx) {
@@ -262,13 +268,13 @@ class NestedMachineData {
   }
 }
 
-/// Describes the initial state machine of a [StateTreeBuilder.machineState].
+/// Describes the initial state machine of a [DeclarativeStateTreeBuilder.machineState].
 abstract class NestedMachine {
   /// Returns `true` if messages should be forwarded from a state machine to the nested state machine.
   bool get forwardMessages;
 
   ///  Returns `true` if the nested state machine should be disposed when the
-  /// [StateTreeBuilder.machineState] is exited.
+  /// [DeclarativeStateTreeBuilder.machineState] is exited.
   bool get disposeMachineOnExit;
 
   /// Creates a nested [TreeStateMachine].
@@ -294,7 +300,8 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
   final Logger _log;
   CurrentState? nestedCurrentState;
 
-  NestedMachineState(this.nestedMachine, this.onDone, this._log, this.isDone, this._onDisposed)
+  NestedMachineState(
+      this.nestedMachine, this.onDone, this._log, this.isDone, this._onDisposed)
       : super(InitialData(() => NestedMachineData()).call);
 
   @override
@@ -315,7 +322,8 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
           .asStream();
 
       nestedCurrentState = await machine.start();
-      data!.update((current) => current.._nestedCurrentState = nestedCurrentState);
+      data!.update(
+          (current) => current.._nestedCurrentState = nestedCurrentState);
 
       // Post a future that will notify the message handler when the nested machine is done.
       var group = StreamGroup<Object>();
@@ -348,7 +356,8 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
 
     // Dispatch messages sent to parent state machine to the child state machine.
     if (nestedMachine.forwardMessages) {
-      _log.finer('Forwarding message ${msgCtx.message} to nested state machine.');
+      _log.finer(
+          'Forwarding message ${msgCtx.message} to nested state machine.');
       await nestedCurrentState!.post(msgCtx.message);
     }
 
@@ -534,7 +543,8 @@ class InternalTransitionResult extends MessageResult {
 /// for the state should be called.
 class SelfTransitionResult extends MessageResult {
   final TransitionAction? transitionAction;
-  SelfTransitionResult([this.transitionAction = emptyTransitionAction]) : super._();
+  SelfTransitionResult([this.transitionAction = emptyTransitionAction])
+      : super._();
 
   @override
   String toString() {
@@ -670,7 +680,8 @@ class Transition {
   /// followed by the entering states.
   ///
   /// The first state in the list is [from], and the last state in the list is [to].
-  late final List<StateKey> path = List.unmodifiable(exitPath.followedBy(entryPath));
+  late final List<StateKey> path =
+      List.unmodifiable(exitPath.followedBy(entryPath));
 
   /// The exiting states for this transition.
   ///
@@ -685,8 +696,8 @@ class Transition {
   ///
   final bool isToFinalState;
 
-  Transition(
-      this.from, this.to, this.lca, Iterable<StateKey> exitPath, Iterable<StateKey> entryPath,
+  Transition(this.from, this.to, this.lca, Iterable<StateKey> exitPath,
+      Iterable<StateKey> entryPath,
       [bool? isToFinalState = false])
       : exitPath = List.unmodifiable(exitPath),
         entryPath = List.unmodifiable(entryPath),
@@ -734,7 +745,9 @@ class HandledMessage extends ProcessedMessage {
 class UnhandledMessage extends ProcessedMessage {
   /// The collection of states that were notified of, but did not handle, the message.
   final Iterable<StateKey> notifiedStates;
-  const UnhandledMessage(super.message, super.receivingState, this.notifiedStates) : super._();
+  const UnhandledMessage(
+      super.message, super.receivingState, this.notifiedStates)
+      : super._();
 }
 
 /// A [ProcessedMessage] indicating an error was thrown while processing a message.
@@ -745,7 +758,9 @@ class FailedMessage extends ProcessedMessage {
   /// The stack trace at the point the error was thrownn
   final StackTrace stackTrace;
 
-  const FailedMessage(super.message, super.receivingState, this.error, this.stackTrace) : super._();
+  const FailedMessage(
+      super.message, super.receivingState, this.error, this.stackTrace)
+      : super._();
 }
 
 //==================================================================================================

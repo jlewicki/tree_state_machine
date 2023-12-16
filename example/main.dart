@@ -1,6 +1,6 @@
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
-import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/declarative_builders.dart';
 
 // A simple stoplight that transitions between green/yellow/red when it is
 //in the running state.
@@ -20,29 +20,32 @@ class States {
 
 enum Messages { timeout, stop, start }
 
-StateTreeBuilder stoplightStateTree() {
+DeclarativeStateTreeBuilder stoplightStateTree() {
   final greenTimeout = Duration(seconds: 5);
   final yellowTimeout = Duration(seconds: 2);
   final redTimeout = Duration(seconds: 5);
 
-  var treeBuilder = StateTreeBuilder(initialChild: States.stopped);
+  var treeBuilder = DeclarativeStateTreeBuilder(initialChild: States.stopped);
 
   treeBuilder.state(States.running, (b) {
     b.onMessageValue(Messages.stop, (b) => b.goTo(States.stopped));
   }, initialChild: InitialChild(States.green));
 
   treeBuilder.state(States.green, (b) {
-    b.onEnter((b) => b.schedule(message: Messages.timeout, duration: greenTimeout));
+    b.onEnter(
+        (b) => b.schedule(message: Messages.timeout, duration: greenTimeout));
     b.onMessageValue(Messages.timeout, (b) => b.goTo(States.yellow));
   }, parent: States.running);
 
   treeBuilder.state(States.yellow, (b) {
-    b.onEnter((b) => b.schedule(message: Messages.timeout, duration: yellowTimeout));
+    b.onEnter(
+        (b) => b.schedule(message: Messages.timeout, duration: yellowTimeout));
     b.onMessageValue(Messages.timeout, (b) => b.goTo(States.red));
   }, parent: States.running);
 
   treeBuilder.state(States.red, (b) {
-    b.onEnter((b) => b.schedule(message: Messages.timeout, duration: redTimeout));
+    b.onEnter(
+        (b) => b.schedule(message: Messages.timeout, duration: redTimeout));
     b.onMessageValue(Messages.timeout, (b) => b.goTo(States.green));
   }, parent: States.running);
 
@@ -56,8 +59,8 @@ StateTreeBuilder stoplightStateTree() {
 Future<void> main() async {
   initLogging();
 
-  var treeBuilder = stoplightStateTree();
-  var stateMachine = TreeStateMachine(treeBuilder);
+  var declBuilder = stoplightStateTree();
+  var stateMachine = TreeStateMachine(declBuilder);
   var currentState = await stateMachine.start();
 
   await currentState.post(Messages.start);
@@ -69,7 +72,7 @@ Future<void> main() async {
   assert(currentState.key == States.stopped);
 
   var sb = StringBuffer();
-  treeBuilder.format(sb, DotFormatter());
+  declBuilder.format(sb, DotFormatter());
   print(sb.toString());
 }
 

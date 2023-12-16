@@ -1,5 +1,5 @@
 import 'package:tree_state_machine/tree_state_machine.dart';
-import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/declarative_builders.dart';
 
 //
 // State keys
@@ -28,46 +28,50 @@ class ToLowercase {
 
 /// A flat (non-hierarchial) state tree illustrating simple branching and passing data between
 /// states.
-class SimpleStateTree {
-  StateTreeBuilder treeBuilder() {
-    var b = StateTreeBuilder(initialChild: States.enterText, logName: 'simple');
+DeclarativeStateTreeBuilder simpleStateTree() {
+  var b = DeclarativeStateTreeBuilder(
+      initialChild: States.enterText, logName: 'simple');
 
-    b.state(States.enterText, (b) {
-      b.onMessage<ToUppercase>(
-          (b) => b.goTo(States.showUppercase, payload: (ctx) => ctx.message.text));
-    });
+  b.state(States.enterText, (b) {
+    b.onMessage<ToUppercase>((b) =>
+        b.goTo(States.showUppercase, payload: (ctx) => ctx.message.text));
+  });
 
-    b.dataState<String>(
-      States.showUppercase,
-      InitialData.run((ctx) => (ctx.payload as String).toUpperCase()),
-      (b) {
-        b.onMessageValue(
-          Messages.finish,
-          (b) => b.goTo(States.finished, payload: (ctx) {
-            return ctx.data;
-          }),
-        );
-      },
-    );
+  b.dataState<String>(
+    States.showUppercase,
+    InitialData.run((ctx) => (ctx.payload as String).toUpperCase()),
+    (b) {
+      b.onMessageValue(
+        Messages.finish,
+        (b) => b.goTo(States.finished, payload: (ctx) {
+          return ctx.data;
+        }),
+      );
+    },
+  );
 
-    b.finalDataState<String>(
-      States.finished,
-      InitialData.run((ctx) {
-        return ctx.payloadOrThrow<String>();
-      }),
-      emptyFinalState,
-    );
+  b.finalDataState<String>(
+    States.finished,
+    InitialData.run((ctx) {
+      return ctx.payloadOrThrow<String>();
+    }),
+    emptyFinalState,
+  );
 
-    return b;
-  }
+  return b;
 }
 
 Future<void> main() async {
-  var stateMachine = TreeStateMachine(SimpleStateTree().treeBuilder());
+  var declBuilder = simpleStateTree();
+  var stateMachine = TreeStateMachine(declBuilder);
   var currentState = await stateMachine.start();
   await currentState.post(ToUppercase('hi'));
   await currentState.post(Messages.finish);
   var uppercase = currentState.dataValue<String>();
   assert(uppercase == 'HI');
   print(uppercase);
+
+  var sb = StringBuffer();
+  declBuilder.format(sb, DotFormatter());
+  print(sb.toString());
 }

@@ -1,5 +1,5 @@
 import 'package:tree_state_machine/tree_state_machine.dart';
-import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/declarative_builders.dart';
 
 enum Messages {
   insertCoin,
@@ -11,19 +11,20 @@ class States {
   static final unlocked = StateKey('unlocked');
 }
 
-StateTreeBuilder turnstileStateTree() {
-  return StateTreeBuilder(initialChild: States.locked)
+DeclarativeStateTreeBuilder turnstileStateTree() {
+  return DeclarativeStateTreeBuilder(initialChild: States.locked)
     ..state(States.locked, (b) {
       b.onMessageValue(Messages.insertCoin, (b) => b.goTo(States.unlocked));
     })
     ..state(States.unlocked, (b) {
-      b.onMessageValue(Messages.push, (b) => b.goTo(States.locked), messageName: 'push');
+      b.onMessageValue(Messages.push, (b) => b.goTo(States.locked),
+          messageName: 'push');
     });
 }
 
 Future<void> main() async {
-  var treeBuilder = turnstileStateTree();
-  var stateMachine = TreeStateMachine(treeBuilder);
+  var declBuilder = turnstileStateTree();
+  var stateMachine = TreeStateMachine(declBuilder);
 
   var currentState = await stateMachine.start();
   assert(currentState.key == States.locked);
@@ -35,6 +36,6 @@ Future<void> main() async {
   assert(currentState.key == States.locked);
 
   var sb = StringBuffer();
-  treeBuilder.format(sb, DotFormatter());
+  declBuilder.format(sb, DotFormatter());
   print(sb.toString());
 }

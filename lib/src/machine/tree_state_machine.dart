@@ -8,7 +8,8 @@ import 'package:tree_state_machine/src/machine/extensions.dart';
 import 'package:tree_state_machine/src/machine/initial_state_data.dart';
 import 'package:tree_state_machine/src/machine/machine.dart';
 import 'package:tree_state_machine/src/machine/tree_node.dart';
-import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/declarative_builders.dart';
+import 'package:tree_state_machine/build.dart';
 
 import 'lifecycle.dart';
 import 'tree_state.dart';
@@ -16,7 +17,7 @@ import 'utility.dart';
 
 /// A state machine that manages transitions among the states in a state tree.
 ///
-/// A [TreeStateMachine] is constructed with a [StateTreeBuilder] that will create the specific
+/// A [TreeStateMachine] is constructed with a [DeclarativeStateTreeBuilder] that will create the specific
 /// tree of states that the state machine manages. After the state machine is constructed, calling
 /// [start] will enter the initial state for the tree, and return a [CurrentState] that serves as
 /// a proxy for the current state of the state tree. [CurrentState.post] can be used to send
@@ -82,18 +83,22 @@ class TreeStateMachine {
     _messageQueue.stream.listen(_onMessage);
 
     // Listen to states that are entered
-    _transitions.stream.expand((t) => _mapStateDataValues(t.entryPath)).listen((sdv) {
+    _transitions.stream
+        .expand((t) => _mapStateDataValues(t.entryPath))
+        .listen((sdv) {
       var keyByStateKey = (sdv.stateKey, sdv.dataValue.dataType);
       var keyByDataType = (null, sdv.dataValue.dataType);
-      var dataStream = _dataStreams[keyByStateKey] ?? _dataStreams[keyByDataType];
+      var dataStream =
+          _dataStreams[keyByStateKey] ?? _dataStreams[keyByDataType];
       if (dataStream != null) {
         dataStream.addStream(sdv.dataValue);
       }
     });
   }
 
-  /// Constructs a state machine for the state tree defined by [treeBuilder].
+  /// Constructs a state machine for the state tree defined by [treeBuildProvider].
   ///
+  /// {@template TreeStateMachine.commonArgs}
   /// If [logName] is provided, it will be used as a suffix in the name of the [Logger] that this
   /// state machine logs with. This can help disambiguate log messages if more than one state
   /// machine is running at the same time.
@@ -103,35 +108,57 @@ class TreeStateMachine {
   ///
   /// [postMessageErrorPolicy] can be used to control how the future returned by [CurrentState.post]
   /// behaves when an error occurs while processing the posted message.
-  ///
-  /// A [buildContext] can be provided in place of the default context. This is typically not needed,
-  /// but may be useful in advanced scenarios requiring access to the state tree when as it is built.
+  /// {@endtemplate
   factory TreeStateMachine(
-    StateTreeBuilder treeBuilder, {
-    String? label,
+    StateTreeBuildProvider treeBuildProvider, {
     String? logName,
-    PostMessageErrorPolicy postMessageErrorPolicy = PostMessageErrorPolicy.convertToFailedMessage,
-    TreeBuildContext? buildContext,
+    String? label,
+    PostMessageErrorPolicy postMessageErrorPolicy =
+        PostMessageErrorPolicy.convertToFailedMessage,
   }) {
-    logName = logName ?? label ?? treeBuilder.logName;
-    label = label ?? treeBuilder.label;
-    TreeStateMachine? treeMachine;
-    var buildCtx = buildContext ?? TreeBuildContext();
-    var rootNode = treeBuilder(buildCtx);
-    var machine = Machine(
-      rootNode,
-      buildCtx.nodes,
-      (message) => treeMachine!._queueMessage(message),
-      logName: logName,
+    return TreeStateMachine.fromTreeBuilder(
+      StateTreeBuilder(treeBuildProvider),
+      logSuffix: logName,
+      label: label,
+      postMessageErrorPolicy: postMessageErrorPolicy,
     );
-    var log = Logger(
-      'tree_state_machine.TreeStateMachine${logName != null ? '.$logName' : ''}',
-    );
-    return treeMachine = TreeStateMachine._(machine, postMessageErrorPolicy, log, label);
   }
 
-  /// An optional descriptive label for this state machine, for diagnostic purposes.
-  final String? label;
+  /// Constructs a state machine for the state tree defined by [treeBuilder]. This factoryu may be
+  /// useful when a custom [TreeBuildContext] is used during tree construction, but the
+  /// [TreeStateMachine.new] factory is more commonly used.
+  ///
+  /// {@macro TreeStateMachine.commonArgs}
+  factory TreeStateMachine.fromTreeBuilder(
+    StateTreeBuilder treeBuilder, {
+    String? logSuffix,
+    String? label,
+    PostMessageErrorPolicy postMessageErrorPolicy =
+        PostMessageErrorPolicy.convertToFailedMessage,
+  }) {
+    logSuffix = logSuffix ?? treeBuilder.logName;
+    TreeStateMachine? treeMachine;
+
+    var rootNode = treeBuilder.build();
+    var machine = Machine(
+      rootNode,
+      (message) => treeMachine!._queueMessage(message),
+      logName: logSuffix,
+    );
+
+    return treeMachine = TreeStateMachine._(
+      machine,
+      postMessageErrorPolicy,
+      Logger(
+        'tree_state_machine.TreeStateMachine${logSuffix != null ? '.$logSuffix' : ''}',
+      ),
+      label ?? '',
+    );
+  }
+
+  /// A [label] naming this state machine. This is not used by the state machine, but may be useful
+  /// for diagnostic purposes.
+  final String label;
 
   /// The current state of this state machine.
   ///
@@ -142,7 +169,10 @@ class TreeStateMachine {
   ///
   /// A state machine is done when a final state is entered. This may have occurred because transition
   /// to a final state has occurred as result of processing a message, or because [stop] was called.
-  bool get isDone => _machine.currentLeaf?.isFinalLeaf ?? false;
+  bool get isDone => switch (_machine.currentLeaf) {
+        LeafTreeNode(isFinalState: var f) when f => true,
+        _ => false
+      };
 
   /// A broadcast [ValueStream] of [LifecycleState] events.
   ///
@@ -225,7 +255,8 @@ class TreeStateMachine {
   }) async {
     await _lifecycle.start(() async {
       var initData = withData != null ? InitialStateData(withData) : null;
-      final transition = await _machine.enterInitialState(at, initData, initialPayload);
+      final transition =
+          await _machine.enterInitialState(at, initData, initialPayload);
       _currentState = CurrentState._(this);
       _transitions.add(transition);
       return transition;
@@ -332,7 +363,8 @@ class TreeStateMachine {
     ArgumentError.checkNotNull(sink, 'sink');
     _lifecycle.throwIfDisposed();
     if (!lifecycle.isStarted) {
-      throw StateError('This TreeStateMachine must be started before saving the tree.');
+      throw StateError(
+          'This TreeStateMachine must be started before saving the tree.');
     }
 
     // Serialize data from active states
@@ -343,7 +375,9 @@ class TreeStateMachine {
       var dataValue = node!.treeNode.data;
       var stateData = dataValue?.value;
       var codec = node.treeNode.dataCodec;
-      stateData = stateData != null && codec != null ? codec.serialize(stateData) : stateData;
+      stateData = stateData != null && codec != null
+          ? codec.serialize(stateData)
+          : stateData;
       return EncodableState(key.toString(), stateData, version);
     }).toList();
 
@@ -363,7 +397,8 @@ class TreeStateMachine {
   Future<CurrentState> loadFrom(Stream<List<int>> stream) async {
     _lifecycle.throwIfDisposed();
     if (lifecycle.isStarted) {
-      throw StateError('This TreeStateMachine must not be started before loading the tree.');
+      throw StateError(
+          'This TreeStateMachine must not be started before loading the tree.');
     }
     final objectList = await stream.transform(json.fuse(utf8).decoder).toList();
     if (objectList.length != 1) {
@@ -383,19 +418,24 @@ class TreeStateMachine {
 
     // Find tree nodes that match the encoded data
     final nodesByStringKey = Map.fromEntries(
-      _machine.nodes.entries.map((e) => MapEntry(e.key.toString(), e.value.treeNode)),
+      _machine.nodes.entries
+          .map((e) => MapEntry(e.key.toString(), e.value.treeNode)),
     );
-    final encodableTree = EncodableTree.fromJson(objectList[0] as Map<String, dynamic>);
+    final encodableTree =
+        EncodableTree.fromJson(objectList[0] as Map<String, dynamic>);
     final nodesForTree = encodableTree.states.map((es) {
       final treeNode = nodesByStringKey[es.key];
       return treeNode ??
-          (throw StateError('State machine does not contain state with key ${es.key}'));
+          (throw StateError(
+              'State machine does not contain state with key ${es.key}'));
     }).toList();
 
     // Make sure that node hierarchy matches that in the encoded data
     final activeNodes = nodesForTree[0].selfAndAncestors().toList();
-    final encodedActivePath = encodableTree.states.map((es) => '"${es.key}"').join(', ');
-    final treeActivePath = activeNodes.map((n) => '"${n.key.toString()}"').join(', ');
+    final encodedActivePath =
+        encodableTree.states.map((es) => '"${es.key}"').join(', ');
+    final treeActivePath =
+        activeNodes.map((n) => '"${n.key.toString()}"').join(', ');
     final mismatchedActivePath = StateError(
         'Active path in stream [$encodedActivePath] does not match active path in state machine [$treeActivePath]');
     if (activeNodes.length != encodableTree.states.length) {
@@ -418,13 +458,16 @@ class TreeStateMachine {
           final node = activeNodes[i];
           // It's not useful to have a DataTreeState<void>, but it is not prohibited,
           // so skip those states (there is no data to set)
-          if (node.state is DataTreeState && node.state is! DataTreeState<void>) {
+          if (node.state is DataTreeState &&
+              node.state is! DataTreeState<void>) {
             if (node.dataCodec == null) {
-              throw StateError('Unable to deserialize state data because a serializer has not been '
+              throw StateError(
+                  'Unable to deserialize state data because a serializer has not been '
                   'specified for state ${node.key}');
             }
 
-            var stateData = (node.dataCodec!).deserialize(es.encodedStateData) as Object;
+            var stateData =
+                (node.dataCodec!).deserialize(es.encodedStateData) as Object;
             b.initialData(node.key as DataStateKey, stateData);
           }
         }
@@ -449,7 +492,10 @@ class TreeStateMachine {
       result = await _machine.processMessage(queuedMessage.message);
       raiseEvents(result);
     } catch (ex, stack) {
-      _log.warning("Error occurred when processing message '${queuedMessage.message}'", ex, stack);
+      _log.warning(
+          "Error occurred when processing message '${queuedMessage.message}'",
+          ex,
+          stack);
       result = FailedMessage(queuedMessage.message, receivingState, ex, stack);
       raiseEvents(result);
       if (_errorPolicy == PostMessageErrorPolicy.rethrowError) {
@@ -573,8 +619,10 @@ class CurrentState {
   ///
   /// The current leaf state is first in the list, followed by its ancestor states, and ending at
   /// the root state.
-  List<StateKey> get activeStates =>
-      stateMachine._machine.currentLeaf!.selfAndAncestors().map((n) => n.key).toList();
+  List<StateKey> get activeStates => stateMachine._machine.currentLeaf!
+      .selfAndAncestors()
+      .map((n) => n.key)
+      .toList();
 
   /// Sends the specified message to the current leaf state for processing.
   ///
@@ -626,7 +674,9 @@ class EncodableTree {
   factory EncodableTree.fromJson(Map<String, dynamic> json) => EncodableTree(
         json['version'] as String,
         (json['states'] as List)
-            .map((e) => e == null ? null : EncodableState.fromJson(e as Map<String, dynamic>))
+            .map((e) => e == null
+                ? null
+                : EncodableState.fromJson(e as Map<String, dynamic>))
             .where((e) => e != null)
             .cast<EncodableState>()
             .toList(),
@@ -649,23 +699,30 @@ class _StateDataValue {
 typedef _DataStreamKey = (DataStateKey<dynamic>? key, Type);
 
 class TestableTreeStateMachine extends TreeStateMachine {
-  TestableTreeStateMachine._(super.machine, super.failedMessagePolicy, super.log, super.name)
+  TestableTreeStateMachine._(
+      super.machine, super.failedMessagePolicy, super.log, super.label)
       : super._();
+
   factory TestableTreeStateMachine(
-    TreeNode Function(TreeBuildContext) buildRoot, {
-    PostMessageErrorPolicy failedMessagePolicy = PostMessageErrorPolicy.convertToFailedMessage,
-    String? name,
+    StateTreeBuildProvider treeBuilder, {
+    PostMessageErrorPolicy failedMessagePolicy =
+        PostMessageErrorPolicy.convertToFailedMessage,
+    String? label,
   }) {
     TreeStateMachine? treeMachine;
     var buildCtx = TreeBuildContext();
-    var rootNode = buildRoot(buildCtx);
+    var rootNode = StateTreeBuilder(treeBuilder).build(buildCtx);
     var machine = Machine(
       rootNode,
-      buildCtx.nodes,
       (message) => treeMachine!._queueMessage(message),
     );
     var log = Logger('tree_state_machine.TestableTreeStateMachine');
-    return treeMachine = TestableTreeStateMachine._(machine, failedMessagePolicy, log, name ?? '');
+    return treeMachine = TestableTreeStateMachine._(
+      machine,
+      failedMessagePolicy,
+      log,
+      label ?? '',
+    );
   }
 
   /// Gets the internal machine for testing purposes

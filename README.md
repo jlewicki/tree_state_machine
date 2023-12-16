@@ -15,7 +15,7 @@ The primary API for the working with a tree state machine is provided by the `tr
 defining state trees is provided by `tree_builders` library. Depending on how your application is structured, you will 
 need to import one or both of these libraries.
 ```dart
-import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/declarative_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 ```
 

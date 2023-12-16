@@ -15,7 +15,9 @@ void main() {
         final dataByKey = <StateKey, dynamic>{};
         final buildTree = treeBuilder(
           createMessageHandler: (key) => (ctx) {
-            dataByKey[key] = key is DataStateKey<dynamic> ? ctx.data<dynamic>(key)!.value : null;
+            dataByKey[key] = key is DataStateKey<dynamic>
+                ? ctx.data<dynamic>(key)!.value
+                : null;
             return ctx.unhandled();
           },
         );
@@ -105,7 +107,8 @@ void main() {
         await machine.processMessage(Object());
 
         expect(dataVal, isNotNull);
-        expect(() => dataVal!.update((current) => current..label = 'not cool'), throwsStateError);
+        expect(() => dataVal!.update((current) => current..label = 'not cool'),
+            throwsStateError);
       });
     });
 
@@ -113,7 +116,8 @@ void main() {
       test('should replace data in ancestor state', () async {
         final buildTree = treeBuilder(messageHandlers: {
           r_a_a_1_key: (ctx) {
-            ctx.updateOrThrow<ImmutableData>((_) => ImmutableData(name: 'Jim', price: 2));
+            ctx.updateOrThrow<ImmutableData>(
+                (_) => ImmutableData(name: 'Jim', price: 2));
             return ctx.stay();
           }
         });
@@ -122,7 +126,8 @@ void main() {
 
         await machine.processMessage(Object());
 
-        var data = machine.nodes[r_a_key]!.treeNode.data as DataValue<ImmutableData>;
+        var data =
+            machine.nodes[r_a_key]!.treeNode.data as DataValue<ImmutableData>;
         expect(data.value.name, equals('Jim'));
         expect(data.value.price, equals(2));
       });
@@ -138,7 +143,8 @@ void main() {
           },
           messageHandlers: {
             r_a_1_key: (ctx) {
-              ctx.updateOrThrow<ImmutableData>((_) => ImmutableData(name: 'Jim', price: 2));
+              ctx.updateOrThrow<ImmutableData>(
+                  (_) => ImmutableData(name: 'Jim', price: 2));
               return ctx.stay();
             }
           },
@@ -148,18 +154,21 @@ void main() {
 
         await machine.processMessage(Object());
 
-        var data = machine.nodes[r_a_1_key]!.treeNode.data as DataValue<ImmutableData>;
+        var data =
+            machine.nodes[r_a_1_key]!.treeNode.data as DataValue<ImmutableData>;
         expect(data.value.name, equals('Jim'));
         expect(data.value.price, equals(2));
 
-        var ancestorData = machine.nodes[r_a_key]!.treeNode.data as DataValue<ImmutableData>;
+        var ancestorData =
+            machine.nodes[r_a_key]!.treeNode.data as DataValue<ImmutableData>;
         expect(ancestorData.value, same(r_a_data));
       });
 
       test('should replace data in ancestor state by key', () async {
         final buildTree = treeBuilder(messageHandlers: {
           r_a_1_key: (ctx) {
-            ctx.updateOrThrow<ImmutableData>((_) => ImmutableData(name: 'Jim', price: 2),
+            ctx.updateOrThrow<ImmutableData>(
+                (_) => ImmutableData(name: 'Jim', price: 2),
                 key: r_a_key);
             return ctx.stay();
           }
@@ -169,7 +178,8 @@ void main() {
 
         await machine.processMessage(Object());
 
-        var ancestorData = machine.nodes[r_a_key]!.treeNode.data as DataValue<ImmutableData>;
+        var ancestorData =
+            machine.nodes[r_a_key]!.treeNode.data as DataValue<ImmutableData>;
         expect(ancestorData.value.name, equals('Jim'));
         expect(ancestorData.value.price, equals(2));
       });
@@ -190,7 +200,8 @@ void main() {
       test('should throw if provider for key cannot be found', () async {
         final buildTree = treeBuilder(messageHandlers: {
           r_a_a_1_key: (ctx) {
-            ctx.updateOrThrow<LeafData2>((current) => current, key: r_a_a_2_key);
+            ctx.updateOrThrow<LeafData2>((current) => current,
+                key: r_a_a_2_key);
             return ctx.stay();
           }
         });
@@ -318,7 +329,8 @@ void main() {
                 receiveCount++;
                 if (receiveCount == 3) {
                   dispose!();
-                  ctx.schedule(() => completionMsg, duration: Duration(milliseconds: 30));
+                  ctx.schedule(() => completionMsg,
+                      duration: Duration(milliseconds: 30));
                 }
               } else if (identical(ctx.message, completionMsg)) {
                 completer.complete();

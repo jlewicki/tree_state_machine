@@ -41,11 +41,14 @@ void main() {
         final dataByKey = <StateKey, Object?>{};
         final buildTree = treeBuilder(
             createEntryHandler: (key) => (ctx) {
-                  dataByKey[key] =
-                      key is DataStateKey<dynamic> ? ctx.data<dynamic>(key)?.value : null;
+                  dataByKey[key] = key is DataStateKey<dynamic>
+                      ? ctx.data<dynamic>(key)?.value
+                      : null;
                 },
             createExitHandler: (key) => (ctx) {
-                  key is DataStateKey<dynamic> ? ctx.data<dynamic>(key)?.value : null;
+                  key is DataStateKey<dynamic>
+                      ? ctx.data<dynamic>(key)?.value
+                      : null;
                 },
             messageHandlers: {
               r_b_1_key: (ctx) => ctx.goTo(r_a_a_2_key),
@@ -63,7 +66,8 @@ void main() {
     });
 
     group('post', () {
-      test('Should send message to end state when transition completes', () async {
+      test('Should send message to end state when transition completes',
+          () async {
         final completer = Completer<void>();
         var receivedMessage = false;
         final msg = Object();
@@ -88,7 +92,8 @@ void main() {
         expect(receivedMessage, isTrue);
       });
 
-      test('Should send messages to end state if called more than once', () async {
+      test('Should send messages to end state if called more than once',
+          () async {
         final completer = Completer<void>();
         var receivedMessage1 = false;
         var receivedMessage2 = false;
@@ -195,7 +200,8 @@ void main() {
                 receiveCount++;
                 if (receiveCount == 3) {
                   dispose!();
-                  ctx.schedule(() => completionMsg, duration: Duration(milliseconds: 30));
+                  ctx.schedule(() => completionMsg,
+                      duration: Duration(milliseconds: 30));
                 }
               } else if (identical(ctx.message, completionMsg)) {
                 completer.complete();
@@ -306,8 +312,10 @@ void main() {
         await machine.enterInitialState();
         var result = await machine.processMessage(Object());
 
-        expect(ListEquality<int>().equals([1, 2, 3], filtersExecutedBefore), isTrue);
-        expect(ListEquality<int>().equals([3, 2, 1], filtersExecutedAfter), isTrue);
+        expect(ListEquality<int>().equals([1, 2, 3], filtersExecutedBefore),
+            isTrue);
+        expect(ListEquality<int>().equals([3, 2, 1], filtersExecutedAfter),
+            isTrue);
         expect(result, isA<HandledMessage>());
         expect(wasTreeStateHandlerRun, isTrue);
       });
@@ -351,8 +359,10 @@ void main() {
         await machine.enterInitialState();
         var result = await machine.processMessage(Object());
 
-        expect(ListEquality<int>().equals([1, 2, 3], filtersExecutedBefore), isTrue);
-        expect(ListEquality<int>().equals([3, 2, 1], filtersExecutedAfter), isTrue);
+        expect(ListEquality<int>().equals([1, 2, 3], filtersExecutedBefore),
+            isTrue);
+        expect(ListEquality<int>().equals([3, 2, 1], filtersExecutedAfter),
+            isTrue);
         expect(result, isA<HandledMessage>());
         expect(wasTreeStateHandlerRun, isTrue);
       });

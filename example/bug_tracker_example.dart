@@ -1,5 +1,5 @@
 import 'package:tree_state_machine/tree_state_machine.dart';
-import 'package:tree_state_machine/tree_builders.dart';
+import 'package:tree_state_machine/declarative_builders.dart';
 
 //
 // State keys
@@ -39,8 +39,8 @@ class BugData {
 //
 // State tree
 //
-StateTreeBuilder bugTrackerStateTree() {
-  var b = StateTreeBuilder.withDataRoot<BugData>(
+DeclarativeStateTreeBuilder bugTrackerStateTree() {
+  var b = DeclarativeStateTreeBuilder.withDataRoot<BugData>(
     States.root,
     InitialData(() => BugData()..title = 'New Bug'),
     emptyState,
@@ -49,7 +49,8 @@ StateTreeBuilder bugTrackerStateTree() {
 
   b.state(States.open, (b) {
     b.onMessage<Assign>((b) {
-      b.enterChannel(assignedChannel, (ctx) => ctx.message.assignee, reenterTarget: true);
+      b.enterChannel(assignedChannel, (ctx) => ctx.message.assignee,
+          reenterTarget: true);
     });
     b.onMessageValue(Messages.close, (b) => b.goTo(States.closed));
     b.onMessageValue(Messages.defer, (b) => b.goTo(States.deferred));
