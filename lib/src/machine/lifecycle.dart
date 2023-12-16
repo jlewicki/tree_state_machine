@@ -52,8 +52,9 @@ class Lifecycle {
       _stateSubject.add(next);
       return next;
     });
-    if (_stateSubject.value != transition.state)
+    if (_stateSubject.value != transition.state) {
       _stateSubject.add(transition.state);
+    }
     return transition.nextState;
   }
 
@@ -67,8 +68,9 @@ class Lifecycle {
       _stateSubject.add(next);
       return next;
     });
-    if (_stateSubject.value != transition.state)
+    if (_stateSubject.value != transition.state) {
       _stateSubject.add(transition.state);
+    }
     return transition.nextState;
   }
 
