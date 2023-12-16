@@ -3,7 +3,10 @@ library tree_state_machine;
 
 export 'src/machine/extensions.dart';
 export 'src/machine/tree_node.dart'
-    show TreeNodeInfo, TreeNodeNavigationExtensions;
+    show
+        TreeNodeInfo,
+        TreeNodeInfoNavigationExtensions,
+        TreeNodeNavigationExtensions;
 export 'src/machine/tree_state.dart'
     hide
         DataTreeState,
@@ -20,6 +23,7 @@ export 'src/machine/tree_state.dart'
 export 'src/machine/data_value.dart' hide ClosableDataValue, VoidDataValue;
 export 'src/machine/tree_state_machine.dart'
     hide TestableTreeStateMachine, EncodableState, EncodableTree;
+export 'src/machine/machine.dart' show StateMachineError;
 export 'src/machine/lifecycle.dart' show LifecycleState;
 
 // To publish:

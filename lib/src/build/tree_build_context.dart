@@ -1,8 +1,8 @@
 import 'dart:collection';
 
 import 'package:tree_state_machine/src/machine/tree_node.dart';
-import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/build.dart';
+import 'package:tree_state_machine/tree_state_machine.dart';
 
 /// Type of functions that can create a [TreeNode].
 typedef TreeNodeBuilder = TreeNode Function(TreeBuildContext context);
@@ -23,6 +23,9 @@ class TreeBuildContext {
   /// Map of nodes that have been built.
   final Map<StateKey, TreeNode> _nodes;
 
+  /// Map of nodes that have been built by this context.
+  Map<StateKey, TreeNodeInfo> get nodes => _nodes;
+
   /// Creates a root [TreeNode] that is fully populated with its descendant nodes, based on the
   /// description provided by [nodeBuildInfo]
   RootTreeNode buildRoot(RootNodeBuildInfo nodeBuildInfo) {
@@ -42,11 +45,6 @@ class TreeBuildContext {
     children.addAll(
         nodeBuildInfo.childBuilders.map((buildChild) => buildChild(childCtx)));
     _addNode(node);
-
-    // Every state tree needs a 'Stopped' state, which is entered when 'Stop' is called on a
-    // tree state machine.
-    var stoppedNode = _buildStoppedNode(node);
-    _addNode(stoppedNode);
 
     return node;
   }
@@ -97,17 +95,6 @@ class TreeBuildContext {
     return node;
   }
 
-  /// Creates a tree node representing the 'exterally stopped' state, which is entered when stop() is
-  /// called on a tree state machine.
-  LeafTreeNode _buildStoppedNode(RootTreeNode rootNode) {
-    return LeafTreeNode(
-      stoppedStateKey,
-      (_) => _stoppedState,
-      parent: rootNode,
-      isFinalState: true,
-    );
-  }
-
   void _addNode(TreeNode node) {
     if (_nodes.containsKey(node.key)) {
       final msg =
@@ -122,10 +109,3 @@ class TreeBuildContext {
   TreeBuildContext _childBuildContext(TreeNode newParentNode) =>
       TreeBuildContext._(newParentNode, _nodes);
 }
-
-final _stoppedState = DelegatingTreeState(
-  (ctx) => throw StateError('Can not send message to a final state'),
-  (ctx) => {},
-  (ctx) => throw StateError('Can not leave a final state.'),
-  null,
-);

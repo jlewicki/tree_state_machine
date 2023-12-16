@@ -29,6 +29,10 @@ class Machine {
   }) {
     var log = Logger(
         'tree_state_machine.Machine${logName != null ? '.$logName' : ''}');
+
+    // Add an extra node to represent the 'externally stopped' state
+    rootNode = rootNode.withStoppedNode(_createStoppedNode);
+
     var machineRoot = MachineNode(rootNode, log);
     var machineNodes = HashMap<StateKey, MachineNode>();
     var nodesByKey = <StateKey, TreeNode>{};
@@ -127,6 +131,7 @@ class Machine {
     MessageResult result,
     MachineMessageContext msgCtx,
   ) async {
+    // TODO: convert to ADT
     if (result is GoToResult) {
       return _handleGoTo(result, msgCtx);
     } else if (result is UnhandledResult) {
@@ -138,7 +143,8 @@ class Machine {
     } else if (result is StopResult) {
       return _handleStop(msgCtx);
     }
-    throw StateError('Unrecognized message result ${result.runtimeType}');
+    throw StateMachineError(
+        'Unrecognized message result ${result.runtimeType}');
   }
 
   Future<HandledMessage> _handleGoTo(
@@ -147,6 +153,8 @@ class Machine {
   ) async {
     var toNode = _treeNode(result.targetStateKey);
     if (result.reenterTarget && toNode.parent() == null) {
+      // This is a application error, since a developer asked for this transition. Can we catch the
+      // problem sooner?
       throw StateError('Re-entering the root node is invalid.');
     }
     final requestedTransition = MachineTransition.between(
@@ -193,7 +201,8 @@ class Machine {
     MachineMessageContext msgCtx,
   ) async {
     if (msgCtx.handlingNode.parent() == null) {
-      throw StateError('Self-transitions from the root node are invalid.');
+      throw StateMachineError(
+          'Self-transitions from the root node are invalid.');
     }
     // Note that the handling node might be different from the receiving node. That is, the
     // receiving node might not handle a message, but one of its ancestor nodes could return
@@ -370,7 +379,7 @@ class Machine {
   MachineNode _node(StateKey key) {
     final machineNode = nodes[key];
     if (machineNode == null) {
-      throw StateError(
+      throw StateMachineError(
         'This TreeStateMachine does not contain the specified state $key.',
       );
     }
@@ -382,19 +391,14 @@ class Machine {
     return machineNode.treeNode;
   }
 
-  // static void _addStoppedNode(
-  //   TreeNode rootNode,
-  //   Map<StateKey, TreeNode> nodesByKey,
-  // ) {
-  //   var stoppedNode = TreeNode(
-  //     stoppedStateKey,
-  //     createState: (_) => _stoppedState,
-  //     parent: rootNode,
-  //     isFinal: true,
-  //   );
-  //   nodesByKey[stoppedStateKey] = stoppedNode;
-  //   rootNode.children.add(stoppedNode);
-  // }
+  static LeafTreeNode _createStoppedNode(RootTreeNode root) {
+    return LeafTreeNode(
+      stoppedStateKey,
+      (_) => _stoppedState,
+      parent: root,
+      isFinalState: true,
+    );
+  }
 }
 
 class MachineMessageContext with DisposableMixin implements MessageContext {
@@ -602,7 +606,7 @@ class MachineTransitionContext
     final initialChild =
         parentNode.children.firstWhereOrNull((c) => c.key == initialChildKey);
     if (initialChild == null) {
-      throw StateError(
+      throw StateMachineError(
           'Unable to find initialChild $initialChildKey for ${parentNode.key}.');
     }
     return initialChild;
@@ -795,9 +799,19 @@ class MachineNode {
 
 final stopMessage = Object();
 
-// final _stoppedState = DelegatingTreeState(
-//   (ctx) => throw StateError('Can not send message to a final state'),
-//   (ctx) => {},
-//   (ctx) => throw StateError('Can not leave a final state.'),
-//   null,
-// );
+/// Error thrown by the state machine if an internal error occurs.
+///
+/// This error is intended to be unrecoverable and represents a bug in the machine implementation.
+class StateMachineError extends Error {
+  final String message;
+  StateMachineError(this.message);
+  @override
+  String toString() => "Critical state machine error: $message";
+}
+
+final _stoppedState = DelegatingTreeState(
+  (ctx) => throw StateError('Can not send message to a final state'),
+  (ctx) => {},
+  (ctx) => throw StateError('Can not leave a final state.'),
+  null,
+);

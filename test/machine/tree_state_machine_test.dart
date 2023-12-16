@@ -5,8 +5,10 @@ import 'dart:convert';
 
 import 'package:async/async.dart';
 import 'package:test/test.dart';
+import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/src/machine/extensions.dart';
 import 'package:tree_state_machine/src/machine/lifecycle.dart';
+import 'package:tree_state_machine/src/machine/tree_node.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/tree_state_machine.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
@@ -504,6 +506,7 @@ void main() {
 
         await sm.stop();
 
+        //expect(sm.currentState, matcher)
         expect(transitionsDone, isFalse);
         expect(processedMessagesDone, isFalse);
         expect(handledMessagesDone, isFalse);
@@ -604,9 +607,7 @@ void main() {
 
         expect(sm.lifecycle.isDisposed, isTrue);
       });
-    });
 
-    group('dispose', () {
       test('should complete when disposed', () async {
         final sm = TreeStateMachine(tree.treeBuilder());
         await sm.start();
@@ -864,6 +865,21 @@ void main() {
 
         sm.dispose();
         expect(sm.lifecycle.isDisposed, isTrue);
+      });
+    });
+
+    group('rootNode', () {
+      test('should return populated root node', () {
+        var declBuilder = tree.treeBuilder();
+        var context = TreeBuildContext();
+        StateTreeBuilder(declBuilder).build(context);
+        var expectedNodes = context.nodes;
+
+        final sm = TreeStateMachine(declBuilder);
+        expect(sm.rootNode, isNotNull);
+
+        var states = sm.rootNode.selfAndDescendants().map((e) => e.key).toSet();
+        expect(states, containsAll(expectedNodes.keys));
       });
     });
   });

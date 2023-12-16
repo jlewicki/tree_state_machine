@@ -3,13 +3,12 @@ import 'dart:convert';
 
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/async.dart';
-import 'package:tree_state_machine/src/machine/data_value.dart';
-import 'package:tree_state_machine/src/machine/extensions.dart';
 import 'package:tree_state_machine/src/machine/initial_state_data.dart';
 import 'package:tree_state_machine/src/machine/machine.dart';
 import 'package:tree_state_machine/src/machine/tree_node.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
 import 'package:tree_state_machine/build.dart';
+import 'package:tree_state_machine/tree_state_machine.dart';
 
 import 'lifecycle.dart';
 import 'tree_state.dart';
@@ -108,7 +107,7 @@ class TreeStateMachine {
   ///
   /// [postMessageErrorPolicy] can be used to control how the future returned by [CurrentState.post]
   /// behaves when an error occurs while processing the posted message.
-  /// {@endtemplate
+  /// {@endtemplate}
   factory TreeStateMachine(
     StateTreeBuildProvider treeBuildProvider, {
     String? logName,
@@ -219,8 +218,11 @@ class TreeStateMachine {
 
   /// The [TreeNodeInfo] of the root node of this state machine.
   ///
-  /// Each node in the state tree is accessible from this node and its [TreeNodeInfo.getChildren].
-  TreeNodeInfo get rootNode => _machine.rootNode.treeNode;
+  /// Each node in the state tree is accessible from this node and its [RootNodeInfo.children].
+  RootNodeInfo get rootNode {
+    assert(_machine.rootNode.treeNode is RootNodeInfo);
+    return _machine.rootNode.treeNode as RootNodeInfo;
+  }
 
   /// Starts the state machine, transitioning the current state to the initial state of the state
   /// tree. Returns a [CurrentState] that can be used to send messages for processing.
@@ -498,7 +500,11 @@ class TreeStateMachine {
           stack);
       result = FailedMessage(queuedMessage.message, receivingState, ex, stack);
       raiseEvents(result);
-      if (_errorPolicy == PostMessageErrorPolicy.rethrowError) {
+
+      // StateMachineErrors should always be re-thrown, since they represent a fatal error in the
+      // machine implementation.
+      if (ex is StateMachineError ||
+          _errorPolicy == PostMessageErrorPolicy.rethrowError) {
         queuedMessage.completer.completeError(ex, stack);
         return;
       }

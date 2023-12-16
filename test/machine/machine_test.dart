@@ -374,7 +374,10 @@ void main() {
           final machine = createMachine(buildTree);
           await machine.enterInitialState(r_a_a_1_key);
 
-          expect(() => machine.processMessage(Object()), throwsStateError);
+          expect(
+            () => machine.processMessage(Object()),
+            throwsStateError,
+          );
         });
 
         test('should clear state data when exiting state', () async {

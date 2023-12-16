@@ -1,5 +1,4 @@
 import 'package:collection/collection.dart';
-
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/data_value.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
@@ -45,6 +44,25 @@ sealed class LeafNodeInfo extends TreeNodeInfo {
   /// Once a final state has been entered, no further message processing or state transitions will
   /// occur, and the state tree is considered ended and complete.
   bool get isFinalState;
+}
+
+// TODO: is there a way to reuse TreeNodeNavigationExtensions
+extension TreeNodeInfoNavigationExtensions on TreeNodeInfo {
+  /// Lazily-computes the self-and-descendant nodes of this node.
+  Iterable<TreeNodeInfo> selfAndDescendants() sync* {
+    Iterable<TreeNodeInfo> visitNodes_(TreeNodeInfo node) sync* {
+      yield node;
+      var children = switch (node) {
+        CompositeNodeInfo(children: var c) => c,
+        _ => <TreeNode>[],
+      };
+      for (var child in children) {
+        yield* visitNodes_(child);
+      }
+    }
+
+    yield* visitNodes_(this);
+  }
 }
 
 /// A node in a state tree.
@@ -140,6 +158,20 @@ final class RootTreeNode extends CompositeTreeNode implements RootNodeInfo {
     super.filters,
     super.metadata,
   });
+
+  RootTreeNode withStoppedNode(
+    LeafTreeNode Function(RootTreeNode newRoot) createStoppedNode,
+  ) {
+    var newChildren = List.of(children);
+    var root = RootTreeNode(key, (_) => _lazyState.value,
+        getInitialChild: getInitialChild,
+        children: UnmodifiableListView(newChildren),
+        dataCodec: dataCodec,
+        filters: filters,
+        metadata: metadata);
+    newChildren.add(createStoppedNode(root));
+    return root;
+  }
 }
 
 /// A node in a state tree that both has a parent node, and contains child nodes.
@@ -202,6 +234,22 @@ extension TreeNodeNavigationExtensions on TreeNode {
     }
   }
 
+  /// Lazily-compute the self-and-descendant nodes of this node.
+  Iterable<TreeNode> selfAndDescendants() sync* {
+    Iterable<TreeNode> visitNodes_(TreeNode node) sync* {
+      yield node;
+      var children = switch (node) {
+        CompositeTreeNode(children: var c) => c,
+        _ => <TreeNode>[],
+      };
+      for (var child in children) {
+        yield* visitNodes_(child);
+      }
+    }
+
+    yield* visitNodes_(this);
+  }
+
   // The parent node of this node, or null if this is a root node.
   TreeNode? parent() {
     return switch (this) {
@@ -226,6 +274,7 @@ extension TreeNodeNavigationExtensions on TreeNode {
         .firstWhereOrNull((n) => n.data is DataValue<D> ? true : false);
   }
 
+  /// Indicates if this node represents a final leaf state.
   bool get isFinalLeaf => switch (this) {
         LeafTreeNode(isFinalState: true) => true,
         _ => false,
@@ -250,6 +299,7 @@ extension TreeNodeNavigationExtensions on TreeNode {
     return lca!;
   }
 
+  /// TODO: simplify this by requiring a DataStateKey
   DataValue<D>? selfOrAncestorDataValue<D>(
       {DataStateKey<D>? key, bool throwIfNotFound = false}) {
     // We cant search
