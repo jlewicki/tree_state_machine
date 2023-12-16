@@ -2,12 +2,11 @@
 
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
-import 'package:tree_state_machine/build.dart';
 
 const r_1_key = StateKey('leaf1');
 const r_2_key = StateKey('leaf2');
 
-StateTreeBuilder treeBuilder({
+DeclarativeStateTreeBuilder treeBuilder({
   MessageHandler? state1Handler,
   MessageHandler? state2Handler,
 }) {
@@ -18,5 +17,5 @@ StateTreeBuilder treeBuilder({
   b.state(r_2_key, (b) {
     if (state2Handler != null) b.handleOnMessage(state2Handler);
   });
-  return b.toTreeBuilder();
+  return b;
 }

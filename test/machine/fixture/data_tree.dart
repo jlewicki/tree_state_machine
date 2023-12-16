@@ -2,7 +2,6 @@
 
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
-import 'package:tree_state_machine/build.dart';
 
 import 'state_data.dart';
 
@@ -21,7 +20,7 @@ final r_c_a_1_key = StateKey('r_c_a_1');
 final r_X_key = StateKey('r_X');
 final r_XD_key = DataStateKey<FinalData>('r_XD');
 
-StateTreeBuilder treeBuilder({
+DeclarativeStateTreeBuilder treeBuilder({
   TransitionHandler Function(StateKey key)? createEntryHandler,
   TransitionHandler Function(StateKey key)? createExitHandler,
   MessageHandler Function(StateKey key)? createMessageHandler,
@@ -73,8 +72,9 @@ StateTreeBuilder treeBuilder({
 
   D Function() buildInitialDataValue<D>(StateKey key, D defaultValue) {
     return () {
-      if (createInitialDataValues != null)
+      if (createInitialDataValues != null) {
         return createInitialDataValues(key)() as D;
+      }
       if (initialDataValueCreators[key] != null) {
         return initialDataValueCreators[key]!() as D;
       }
@@ -213,5 +213,5 @@ StateTreeBuilder treeBuilder({
       )
       .filters(filters_[r_c_a_1_key] ?? []);
 
-  return builder.toTreeBuilder();
+  return builder;
 }

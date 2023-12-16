@@ -325,12 +325,7 @@ class _DotFormatter {
   }
 
   String _labelCondition(MessageConditionInfo condition) {
-    var label = '';
-    if (condition.label != null) {
-      label = condition.label!;
-    } else {
-      label = 'Function';
-    }
+    var label = condition.label ?? 'Function';
     return label.isNotEmpty ? '[$label]' : '';
   }
 
@@ -349,10 +344,21 @@ class _DotFormatter {
   }
 
   String _getStateName(_StateBuilder state) {
-    var name = getStateName != null ? getStateName!(state.key) : '${state.key}';
+    var name = '';
+    if (getStateName != null) {
+      name = getStateName!(state.key);
+    } else {
+      name = '${state.key}';
+      if (state.key is DataStateKey) {
+        // Strip out the datatype from the name, since it is displayed elsewhere in the graph
+        name = name.substring(0, name.lastIndexOf('<'));
+      }
+    }
+
     return name == DeclarativeStateTreeBuilder.defaultRootKey.toString()
         ? 'Root'
-        : name;
+        // Graphviz does not like <, > in names
+        : name.replaceAll('<', '_').replaceAll(">", '');
   }
 
   _StateBuilder _findRootState() {

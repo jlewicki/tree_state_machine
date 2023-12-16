@@ -16,7 +16,7 @@ void main() {
         });
         b.state(state2, emptyState);
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         var msg = Message();
         await currentState.post(msg);
@@ -38,7 +38,7 @@ void main() {
           }),
         );
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         var msg = Message();
         await currentState.post(msg);
@@ -57,7 +57,7 @@ void main() {
         });
         b.state(state2, emptyState);
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         var msg = Message();
         await currentState.post(msg);
@@ -89,7 +89,7 @@ void main() {
           parent: state1,
         );
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         var msg = Message();
         await currentState.post(msg);
@@ -123,7 +123,7 @@ void main() {
           parent: state1,
         );
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         var msg = Message();
         await currentState.post(msg);
@@ -150,7 +150,7 @@ void main() {
 
       test('should evaluate conditions and use handler of first match',
           () async {
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         var msg = Message()..val = "3";
         await currentState.post(msg);
@@ -158,7 +158,7 @@ void main() {
       });
 
       test('should use otherwise handler when no match', () async {
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         var msg = Message()..val = "no match";
         await currentState.post(msg);
@@ -182,7 +182,7 @@ void main() {
           });
         });
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         var msg = Message()..val = '2';
 
@@ -209,7 +209,7 @@ void main() {
           });
         });
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         var msg = Message()..val = '2';
 

@@ -40,11 +40,16 @@ abstract interface class StateTreeBuildProvider {
 /// // The state machine will call treeBuilder.build()
 /// var stateMachine = TreeStateMachine(treeBuilder);
 /// ```
+/// If [createBuildContext] is provided, it will be called each time [build] is called, and the
+/// resulting build context will be used during tree construction. This is typically not needed, but
+/// may be useful in advanced scenarios requiring access to the state tree as it is built.
 class StateTreeBuilder {
+  /// Constructs a [StateTreeBuilder].
   StateTreeBuilder(
     this.treeBuildInfoProvider, {
     this.label,
     this.logName,
+    this.createBuildContext,
   });
 
   /// Describes how the root node of the state tree should be constructed when [build] is called.
@@ -63,10 +68,17 @@ class StateTreeBuilder {
   /// output.
   final String? logName;
 
+  final TreeBuildContext Function()? createBuildContext;
+
   /// Builds a state tree, and returns the root node of the tree.
-  RootTreeNode build(TreeBuildContext buildContext) {
+  ///
+  /// A [buildContext] may optionally provided. This is typically not needed, but may be useful in
+  /// advanced scenarios requiring access to the state tree as it is built.
+  RootTreeNode build([TreeBuildContext? buildContext]) {
+    var buildContext_ =
+        buildContext ?? createBuildContext?.call() ?? TreeBuildContext();
     return _buildNode(
-            buildContext, treeBuildInfoProvider.createRootNodeBuildInfo())
+            buildContext_, treeBuildInfoProvider.createRootNodeBuildInfo())
         as RootTreeNode;
   }
 

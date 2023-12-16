@@ -27,7 +27,7 @@ void main() {
           },
         );
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         await currentState.post(Message());
 
@@ -61,7 +61,7 @@ void main() {
           parent: state2,
         );
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         await currentState.post(Message());
 
@@ -100,7 +100,7 @@ void main() {
           parent: state2,
         );
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         await currentState.post(Message());
 

@@ -417,7 +417,7 @@ void main() {
           parent: tree.r_key,
         );
 
-        sm = TreeStateMachine(otherTreeBuilder.toTreeBuilder());
+        sm = TreeStateMachine(otherTreeBuilder);
 
         expect(() async => await sm.loadFrom(Stream.fromIterable(encoded)),
             throwsStateError);
@@ -441,7 +441,7 @@ void main() {
           parent: tree.r_b_key,
         );
 
-        sm = TreeStateMachine(otherTreeBuilder.toTreeBuilder());
+        sm = TreeStateMachine(otherTreeBuilder);
         expect(() async => await sm.loadFrom(Stream.fromIterable(encoded)),
             throwsStateError);
       });
@@ -455,7 +455,7 @@ void main() {
                   initialChild: InitialChild(tree.r_a_1_key))
               ..state(tree.r_a_1_key, emptyState, parent: tree.r_a_key)
               ..state(tree.r_b_key, emptyState);
-        var sm = TreeStateMachine(treeBuilder.toTreeBuilder());
+        var sm = TreeStateMachine(treeBuilder);
         var cur = await sm.start();
         expect(cur.key, equals(tree.r_b_key));
       });
@@ -465,7 +465,7 @@ void main() {
         var treeBuilder =
             DeclarativeStateTreeBuilder(initialChild: tree.r_a_key)
               ..state(tree.r_a_key, emptyState);
-        var sm = TreeStateMachine(treeBuilder.toTreeBuilder());
+        var sm = TreeStateMachine(treeBuilder);
         var future = sm.start();
         expect(sm.lifecycle.isStarting, isTrue);
         await future;
@@ -477,7 +477,7 @@ void main() {
         var treeBuilder =
             DeclarativeStateTreeBuilder(initialChild: tree.r_a_key)
               ..state(tree.r_a_key, emptyState);
-        var sm = TreeStateMachine(treeBuilder.toTreeBuilder());
+        var sm = TreeStateMachine(treeBuilder);
         var future = sm.start();
         expect(sm.currentState, isNull);
         await future;

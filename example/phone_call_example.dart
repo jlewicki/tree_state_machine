@@ -120,7 +120,7 @@ void onSetVolume(MessageHandlerContext<SetVolume, void, void> ctx) {
 
 Future<void> main() async {
   var declBuilder = phoneCallStateTree();
-  var stateMachine = TreeStateMachine(declBuilder.toTreeBuilder());
+  var stateMachine = TreeStateMachine(declBuilder);
   var currentState = await stateMachine.start();
 
   await currentState.post(Dial('Carolyn'));

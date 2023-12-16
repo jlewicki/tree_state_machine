@@ -24,7 +24,7 @@ DeclarativeStateTreeBuilder turnstileStateTree() {
 
 Future<void> main() async {
   var declBuilder = turnstileStateTree();
-  var stateMachine = TreeStateMachine(declBuilder.toTreeBuilder());
+  var stateMachine = TreeStateMachine(declBuilder);
 
   var currentState = await stateMachine.start();
   assert(currentState.key == States.locked);

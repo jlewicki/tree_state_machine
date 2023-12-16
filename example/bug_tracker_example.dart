@@ -93,7 +93,7 @@ void sendEmailToAssignee(BugData bug, String message) {
 
 Future<void> main() async {
   var treeBuilder = bugTrackerStateTree();
-  var stateMachine = TreeStateMachine(treeBuilder.toTreeBuilder());
+  var stateMachine = TreeStateMachine(treeBuilder);
 
   var currentState = await stateMachine.start();
   assert(currentState.key == States.unassigned);

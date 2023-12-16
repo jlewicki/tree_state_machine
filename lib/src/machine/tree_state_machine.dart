@@ -96,7 +96,35 @@ class TreeStateMachine {
     });
   }
 
-  /// Constructs a state machine for the state tree defined by [treeBuilder].
+  /// Constructs a state machine for the state tree defined by [treeBuildProvider].
+  ///
+  /// If [logName] is provided, it will be used as a suffix in the name of the [Logger] that this
+  /// state machine logs with. This can help disambiguate log messages if more than one state
+  /// machine is running at the same time.
+  ///
+  /// A [label] can be optionally be provided for the this machine. This will not used by the state
+  /// machine, but may be useful for diagnostic purposes.
+  ///
+  /// [postMessageErrorPolicy] can be used to control how the future returned by [CurrentState.post]
+  /// behaves when an error occurs while processing the posted message.
+  factory TreeStateMachine(
+    StateTreeBuildProvider treeBuildProvider, {
+    String? label,
+    String? logName,
+    PostMessageErrorPolicy postMessageErrorPolicy =
+        PostMessageErrorPolicy.convertToFailedMessage,
+  }) {
+    return TreeStateMachine.fromTreeBuilder(
+      StateTreeBuilder(treeBuildProvider),
+      label: label,
+      logName: logName,
+      postMessageErrorPolicy: postMessageErrorPolicy,
+    );
+  }
+
+  /// Constructs a state machine for the state tree defined by [treeBuilder]. This factoryu may be
+  /// useful when a custom [TreeBuildContext] is used during tree construction, but the
+  /// [TreeStateMachine.new] factory is more commonly used.
   ///
   /// If [logName] is provided, it will be used as a suffix in the name of the [Logger] that this
   /// state machine logs with. This can help disambiguate log messages if more than one state
@@ -108,32 +136,32 @@ class TreeStateMachine {
   /// [postMessageErrorPolicy] can be used to control how the future returned by [CurrentState.post]
   /// behaves when an error occurs while processing the posted message.
   ///
-  /// A [buildContext] can be provided in place of the default context. This is typically not needed,
-  /// but may be useful in advanced scenarios requiring access to the state tree when as it is built.
-  factory TreeStateMachine(
+  factory TreeStateMachine.fromTreeBuilder(
     StateTreeBuilder treeBuilder, {
     String? label,
     String? logName,
     PostMessageErrorPolicy postMessageErrorPolicy =
         PostMessageErrorPolicy.convertToFailedMessage,
-    TreeBuildContext? buildContext,
   }) {
     logName = logName ?? label ?? treeBuilder.logName;
     label = label ?? treeBuilder.label;
     TreeStateMachine? treeMachine;
-    var buildCtx = buildContext ?? TreeBuildContext();
-    var rootNode = treeBuilder.build(buildCtx);
+
+    var rootNode = treeBuilder.build();
     var machine = Machine(
       rootNode,
-      //buildCtx.nodes,
       (message) => treeMachine!._queueMessage(message),
       logName: logName,
     );
-    var log = Logger(
-      'tree_state_machine.TreeStateMachine${logName != null ? '.$logName' : ''}',
+
+    return treeMachine = TreeStateMachine._(
+      machine,
+      postMessageErrorPolicy,
+      Logger(
+        'tree_state_machine.TreeStateMachine${logName != null ? '.$logName' : ''}',
+      ),
+      label,
     );
-    return treeMachine =
-        TreeStateMachine._(machine, postMessageErrorPolicy, log, label);
   }
 
   /// An optional descriptive label for this state machine, for diagnostic purposes.
@@ -686,18 +714,16 @@ class TestableTreeStateMachine extends TreeStateMachine {
   ) : super._();
 
   factory TestableTreeStateMachine(
-    // RootTreeNode Function(TreeBuildContext) buildRoot, {
-    StateTreeBuilder treeBuilder, {
+    StateTreeBuildProvider treeBuilder, {
     PostMessageErrorPolicy failedMessagePolicy =
         PostMessageErrorPolicy.convertToFailedMessage,
     String? name,
   }) {
     TreeStateMachine? treeMachine;
     var buildCtx = TreeBuildContext();
-    var rootNode = treeBuilder.build(buildCtx);
+    var rootNode = StateTreeBuilder(treeBuilder).build(buildCtx);
     var machine = Machine(
       rootNode,
-      //buildCtx.nodes,
       (message) => treeMachine!._queueMessage(message),
     );
     var log = Logger('tree_state_machine.TestableTreeStateMachine');

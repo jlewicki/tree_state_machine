@@ -63,11 +63,15 @@ DeclarativeStateTreeBuilder simpleStateTree() {
 
 Future<void> main() async {
   var declBuilder = simpleStateTree();
-  var stateMachine = TreeStateMachine(declBuilder.toTreeBuilder());
+  var stateMachine = TreeStateMachine(declBuilder);
   var currentState = await stateMachine.start();
   await currentState.post(ToUppercase('hi'));
   await currentState.post(Messages.finish);
   var uppercase = currentState.dataValue<String>();
   assert(uppercase == 'HI');
   print(uppercase);
+
+  var sb = StringBuffer();
+  declBuilder.format(sb, DotFormatter());
+  print(sb.toString());
 }

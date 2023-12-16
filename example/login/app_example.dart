@@ -126,7 +126,7 @@ void main() async {
 
   var declBuilder = appStateTree(authService);
   declBuilder.extendStates((_, b) => b.filter(loggingFilter));
-  var stateMachine = TreeStateMachine(declBuilder.toTreeBuilder());
+  var stateMachine = TreeStateMachine(declBuilder);
 
   var currentState = await stateMachine.start();
   assert(currentState.key == States.splash);

@@ -18,7 +18,7 @@ void main() {
           b.onEnter((b) => b.run((ctx) => handlerCalled = true));
         });
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         await currentState.post(Message());
         expect(handlerCalled, isTrue);
@@ -33,7 +33,7 @@ void main() {
         });
         b.state(state2, emptyState);
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         await currentState.post(Message());
         expect(handlerCalled, isTrue);
@@ -56,7 +56,7 @@ void main() {
               (b) => b.updateData<StateData>((ctx) => ctx.data..val = '1'));
         });
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         await currentState.post(Message());
         expect(currentState.dataValue<StateData>()!.val, equals('1'));
@@ -78,7 +78,7 @@ void main() {
         });
         b.state(state3, emptyState);
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         await currentState.post(Message());
         expect(currentState.key, equals(state3));
@@ -101,7 +101,7 @@ void main() {
           });
         });
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         await currentState.post(Message());
         expect(currentState.key, equals(state2));
@@ -127,7 +127,7 @@ void main() {
           });
         });
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         await currentState.post(Message());
         expect(trueHandlerCalled, isTrue);
@@ -155,7 +155,7 @@ void main() {
           });
         });
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         await currentState.post(Message());
         expect(trueHandlerCalled, isTrue);
@@ -180,7 +180,7 @@ void main() {
           });
         });
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         await currentState.post(Message());
         expect(trueHandlerCalled, isFalse);
@@ -215,7 +215,7 @@ void main() {
           });
         });
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         await currentState.post(Message());
         expect(trueHandlerCalled, isTrue);
@@ -246,7 +246,7 @@ void main() {
           });
         });
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         await currentState.post(Message());
         expect(trueHandlerCalled, isFalse);
@@ -275,7 +275,7 @@ void main() {
           });
         });
 
-        var stateMachine = TreeStateMachine(b.toTreeBuilder());
+        var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         await currentState.post(Message()..val = '1');
         expect(currentState.key, equals(state3));
