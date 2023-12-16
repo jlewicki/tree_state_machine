@@ -845,22 +845,6 @@ void main() {
       });
     });
 
-    group('name', () {
-      test('should return name', () {
-        var builderName = 'builder';
-        var name = 'machine name';
-        final sm =
-            TreeStateMachine(tree.treeBuilder(name: builderName), label: name);
-        expect(sm.label, equals(name));
-      });
-
-      test('should return builder name if not specified', () {
-        var builderName = 'builder';
-        final sm = TreeStateMachine(tree.treeBuilder(name: builderName));
-        expect(sm.label, equals(builderName));
-      });
-    });
-
     group('lifecycle', () {
       test('runthrough', () async {
         final sm = TreeStateMachine(tree.treeBuilder());

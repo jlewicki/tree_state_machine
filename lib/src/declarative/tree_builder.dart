@@ -753,14 +753,14 @@ class InitialMachine implements NestedMachine {
   factory InitialMachine.fromTree(
     FutureOr<StateTreeBuilder> Function(TransitionContext transCtx) create, {
     String? label,
-    String? logName,
+    String? logSuffix,
   }) {
     return InitialMachine._(
       (ctx) {
         return create(ctx).bind((treeBuilder) {
           return TreeStateMachine.fromTreeBuilder(
             treeBuilder,
-            logName: logName,
+            logSuffix: logSuffix,
           );
         });
       },
