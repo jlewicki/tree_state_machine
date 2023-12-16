@@ -100,7 +100,7 @@ class DeclarativeStateTreeBuilder implements StateTreeBuildProvider {
 
   /// The key identifying the root state that is implicitly added to a state tree, if the
   /// [StateTreeBuilder.new] constructor is used.
-  static const StateKey defaultRootKey = StateKey('<_RootState_>');
+  static const StateKey defaultRootKey = StateKey('<!RootState!>');
 
   /// An optional descriptive label for this state tree, for diagnostic purposes.
   final String? label;

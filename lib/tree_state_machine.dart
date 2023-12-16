@@ -5,8 +5,11 @@ export 'src/machine/extensions.dart';
 export 'src/machine/tree_node.dart'
     show
         TreeNodeInfo,
-        TreeNodeInfoNavigationExtensions,
-        TreeNodeNavigationExtensions;
+        CompositeNodeInfo,
+        RootNodeInfo,
+        LeafNodeInfo,
+        InteriorNodeInfo,
+        TreeNodeInfoExtensions;
 export 'src/machine/tree_state.dart'
     hide
         DataTreeState,

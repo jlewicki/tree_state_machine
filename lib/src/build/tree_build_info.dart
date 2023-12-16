@@ -22,17 +22,13 @@ sealed class TreeNodeBuildInfo {
   /// it is an active state in a state machine.
   final StateCreator createState;
 
-  /// The [StateDataCodec] that should be used to serialize and deserialize any state data
-  /// associated with this node.
+  /// {@macro TreeNodeInfo.dataCodec}
   final StateDataCodec<dynamic>? dataCodec;
 
-  /// An unmodifiable list of [TreeStateFilter]s that should intercept the message and transitions
-  /// handlers of the tree state for this node.
-  ///
-  /// The filters should be applies in the order they occur im this list.
+  /// {@macro TreeNodeInfo.filters}
   final List<TreeStateFilter> filters;
 
-  /// An unmodifiable map of Application-specific metadata applied to this node.
+  /// {@macro TreeNodeInfo.metadata}
   final Map<String, Object> metadata;
 }
 

@@ -131,7 +131,7 @@ class Machine {
     MessageResult result,
     MachineMessageContext msgCtx,
   ) async {
-    // TODO: convert to ADT
+    // convert to ADT?
     if (result is GoToResult) {
       return _handleGoTo(result, msgCtx);
     } else if (result is UnhandledResult) {

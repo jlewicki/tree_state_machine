@@ -6,18 +6,35 @@ import 'package:tree_state_machine/src/machine/utility.dart';
 enum NodeType { root, interior, leaf }
 
 /// Describes a node in a state tree.
+///
+/// Pattern-match on subclasses to obtain additional info.
 sealed class TreeNodeInfo {
   /// The key identifying this tree node.
   StateKey get key;
 
+  /// {@template TreeNodeInfo.dataCodec}
+  /// The [StateDataCodec] that should be used to serialize and deserialize any state data
+  /// associated with this node.
+  /// {@endtemplate}
   StateDataCodec<dynamic>? get dataCodec;
 
-  /// Application provided metadata associated with the state.
+  /// {@template TreeNodeInfo.metadata}
+  /// An unmodifiable map of application-provided metadata associated with this node.
+  /// {@endtemplate}
   Map<String, Object> get metadata;
 
+  /// {@template TreeNodeInfo.filters}
+  /// An unmodifiable list of [TreeStateFilter]s that should intercept the message and transitions
+  /// handlers of the tree state for this node.
+  ///
+  /// The filters should be applied in the order they occur in this list.
+  /// {@endtemplate}
   List<TreeStateFilter> get filters;
 }
 
+/// Describes a composite node in a state tree. An composite node has a collection of child nodes.
+///
+/// Pattern-match on subclasses to obtain additional info.
 sealed class CompositeNodeInfo extends TreeNodeInfo {
   /// The child nodes of this node.
   ///
@@ -28,13 +45,16 @@ sealed class CompositeNodeInfo extends TreeNodeInfo {
   GetInitialChild get getInitialChild;
 }
 
+/// Describes the root node in a state tree.
 sealed class RootNodeInfo extends CompositeNodeInfo {}
 
+/// Describes an interior node in a state tree. An interior node has both a parent and children.
 sealed class InteriorNodeInfo extends CompositeNodeInfo {
   /// The parent node of this interior node
   CompositeNodeInfo get parent;
 }
 
+/// Describes a leaf node in a state tree. An interior node has a parent, but no children.
 sealed class LeafNodeInfo extends TreeNodeInfo {
   /// The parent node of this leaf node
   CompositeNodeInfo get parent;
@@ -46,8 +66,9 @@ sealed class LeafNodeInfo extends TreeNodeInfo {
   bool get isFinalState;
 }
 
+/// Utility extensions on [TreeNodeInfo].
 // TODO: is there a way to reuse TreeNodeNavigationExtensions
-extension TreeNodeInfoNavigationExtensions on TreeNodeInfo {
+extension TreeNodeInfoExtensions on TreeNodeInfo {
   /// Lazily-computes the self-and-descendant nodes of this node.
   Iterable<TreeNodeInfo> selfAndDescendants() sync* {
     Iterable<TreeNodeInfo> visitNodes_(TreeNodeInfo node) sync* {

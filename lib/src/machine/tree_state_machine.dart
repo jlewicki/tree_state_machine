@@ -540,6 +540,9 @@ class TreeStateMachine {
 enum PostMessageErrorPolicy {
   /// The error is caught and converted to a [FailedMessage] that is returned when the future
   /// returned by [CurrentState.post] is awaited.
+  ///
+  /// Note that this conversion does *not* apply if the error is [StateMachineError]. Errors of that
+  /// type will always be rethrown.
   convertToFailedMessage,
 
   /// The error is rethrown when the future returned by [CurrentState.post] is awaited.

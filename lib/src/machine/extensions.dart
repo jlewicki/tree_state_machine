@@ -77,6 +77,7 @@ extension MessageContextExtensions on MessageContext {
   }
 }
 
+/// Utility extensions on `ValueStream<LifecycleState>`.
 extension LifecycleStreamExtensions on ValueStream<LifecycleState> {
   /// Indicates if the current value is [LifecycleState.constructed].
   bool get isConstructed => value == LifecycleState.constructed;

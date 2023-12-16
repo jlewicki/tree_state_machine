@@ -66,7 +66,7 @@ class _ValueKey<T> implements StateKey {
 }
 
 /// Identifies the stopped state in a state tree.
-final stoppedStateKey = StateKey('!Stopped!');
+const stoppedStateKey = StateKey('<!Stopped!>');
 
 //==================================================================================================
 //
@@ -710,18 +710,27 @@ class Transition {
 //
 
 /// Base class for types describing how a message was processed by a state machine.
-abstract class ProcessedMessage {
+///
+/// Pattern-match on subclasses to obtain additional information.
+sealed class ProcessedMessage {
+  const ProcessedMessage._(this.message, this.receivingState);
+
   /// The message that was processed.
   final Object message;
 
   /// The leaf state that first received the message.
   final StateKey receivingState;
-
-  const ProcessedMessage._(this.message, this.receivingState);
 }
 
 /// A [ProcessedMessage] indicating that a state successfully handled a message.
-class HandledMessage extends ProcessedMessage {
+final class HandledMessage extends ProcessedMessage {
+  const HandledMessage(
+    super.message,
+    super.receivingState,
+    this.handlingState, [
+    this.transition,
+  ]) : super._();
+
   /// The state that handled the message.
   ///
   /// This state might be different from [receivingState], if receiving state returned
@@ -731,42 +740,40 @@ class HandledMessage extends ProcessedMessage {
   /// Returns a [Transition] describing the state transition that took place as a result of
   /// processing the message, or `null` if there was no transition.
   final Transition? transition;
-
-  const HandledMessage(
-    super.message,
-    super.receivingState,
-    this.handlingState, [
-    this.transition,
-  ]) : super._();
 }
 
 /// A [ProcessedMessage] indicating that none of the active states in the state machine recognized
 /// the message.
-class UnhandledMessage extends ProcessedMessage {
-  /// The collection of states that were notified of, but did not handle, the message.
-  final Iterable<StateKey> notifiedStates;
+final class UnhandledMessage extends ProcessedMessage {
   const UnhandledMessage(
       super.message, super.receivingState, this.notifiedStates)
       : super._();
+
+  /// The collection of states that were notified of, but did not handle, the message.
+  final Iterable<StateKey> notifiedStates;
 }
 
 /// A [ProcessedMessage] indicating an error was thrown while processing a message.
-class FailedMessage extends ProcessedMessage {
-  /// The error object that was thrown.
-  final Object error;
-
-  /// The stack trace at the point the error was thrownn
-  final StackTrace stackTrace;
-
+final class FailedMessage extends ProcessedMessage {
   const FailedMessage(
       super.message, super.receivingState, this.error, this.stackTrace)
       : super._();
+
+  /// The error object that was thrown.
+  final Object error;
+
+  /// The stack trace at the point the error was thrown.
+  final StackTrace stackTrace;
 }
 
 //==================================================================================================
 //
 // Codecs
 //
+/// Provides serialization and deserialization methods for a data state.
+///
+/// These codecs are executed when [TreeStateMachine.loadFrom] or [TreeStateMachine.saveTo] is
+/// called.
 class StateDataCodec<D> {
   final Object? Function(D?) _encode;
   final D? Function(Object?) _decode;
