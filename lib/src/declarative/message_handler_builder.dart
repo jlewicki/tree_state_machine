@@ -95,7 +95,7 @@ mixin _GoToHandlerBuilderMixin<M, D, C> on _MessageHandlerBuilder<M, D, C> {
   /// If [reenterTarget] is true, then the target state will be re-entered (that is, its exit and
   /// entry handlers will be called), even if the state is already active.
   void enterChannel<P>(
-    Channel<P> channel,
+    EntryChannel<P> channel,
     FutureOr<P> Function(MessageHandlerContext<M, D, C>) payload, {
     MessageActionDescriptor<M, D, C>? action,
     bool reenterTarget = false,

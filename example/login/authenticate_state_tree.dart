@@ -71,8 +71,9 @@ enum Messages { goToLogin, goToRegister, back, logout, submitRegistration }
 //
 // Channels
 //
-final authenticatingChannel = Channel<SubmitCredentials>(States.authenticating);
-final authenticatedChannel = Channel<AuthorizedUser>(States.authenticated);
+final authenticatingChannel =
+    EntryChannel<SubmitCredentials>(States.authenticating);
+final authenticatedChannel = EntryChannel<AuthorizedUser>(States.authenticated);
 
 //
 // State Data

@@ -12,6 +12,15 @@ abstract interface class StateTreeBuildProvider {
   RootNodeBuildInfo createRootNodeBuildInfo();
 }
 
+/// An error that can be thrown if a [StateTreeBuildProvider] produces an invalid state tree
+/// definition.
+class StateTreeDefinitionError extends Error {
+  final String message;
+  StateTreeDefinitionError(this.message);
+  @override
+  String toString() => "Invalid definition: $message";
+}
+
 /// Provides a [build] method that constructs a state tree.
 ///
 /// [StateTreeBuilder] is primary means to supply a state tree to a [TreeStateMachine]. The typical

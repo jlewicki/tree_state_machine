@@ -11,7 +11,7 @@ void main() {
   group('InitialData', () {
     group('fromChannel', () {
       test('should initialize data from channel payload', () async {
-        var channel = Channel<String>(state2);
+        var channel = EntryChannel<String>(state2);
         StateData? entryData;
 
         var b = DeclarativeStateTreeBuilder(initialChild: state1);
@@ -75,7 +75,7 @@ void main() {
       test('should initialize data from channel payload ancestor state data',
           () async {
         StateData2? entryData;
-        var channel = Channel<String>(state3);
+        var channel = EntryChannel<String>(state3);
 
         var b = DeclarativeStateTreeBuilder(initialChild: state1);
         b.state(state1, (b) {

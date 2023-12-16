@@ -40,7 +40,7 @@ enum Messages {
 //
 // Channels
 //
-final ringingChannel = Channel<Dial>(States.ringing);
+final ringingChannel = EntryChannel<Dial>(States.ringing);
 
 typedef VoidTransitionHandlerContext = TransitionHandlerContext<void, void>;
 

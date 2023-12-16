@@ -259,7 +259,7 @@ void main() {
   group('TransitionHandlerBuilderWithPayload', () {
     group('updateData', () {
       test('should update data from payload', () async {
-        var s3Channel = Channel<String>(state3);
+        var s3Channel = EntryChannel<String>(state3);
         var b = DeclarativeStateTreeBuilder.withDataRoot<StateData>(rootState,
             InitialData(() => StateData()), emptyState, InitialChild(state1));
         b.state(state1, (b) {

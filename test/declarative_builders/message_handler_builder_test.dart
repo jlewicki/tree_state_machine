@@ -168,7 +168,7 @@ void main() {
 
     group('enterChannel', () {
       test('should go to target state with payload from channel', () async {
-        var s2Channel = Channel<String>(state2);
+        var s2Channel = EntryChannel<String>(state2);
 
         var b = DeclarativeStateTreeBuilder(initialChild: state1);
         b.state(state1, (b) {
@@ -193,7 +193,7 @@ void main() {
       });
 
       test('should run action before transition', () async {
-        var s2Channel = Channel<String>(state2);
+        var s2Channel = EntryChannel<String>(state2);
 
         var actionWasRun = false;
         var b = DeclarativeStateTreeBuilder(initialChild: state1);

@@ -30,8 +30,8 @@ enum Messages { goToLogin, goToRegister, logout }
 //
 
 // Paylod is the initial state in the nested state machine enter.
-final authenticateChannel = Channel<StateKey>(States.authenticate);
-final authenticatedChannel = Channel<AuthorizedUser>(States.authenticated);
+final authenticateChannel = EntryChannel<StateKey>(States.authenticate);
+final authenticatedChannel = EntryChannel<AuthorizedUser>(States.authenticated);
 
 //
 // State Data

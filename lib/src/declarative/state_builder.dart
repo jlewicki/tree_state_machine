@@ -2,8 +2,9 @@ part of '../../declarative_builders.dart';
 
 /// Indicates that a value of type [P] must be provided when entering a state.
 ///
-/// Channels are intended as a contract indicating that in order to transition to a particular
+/// [EntryChannel] serves as a contract indicating that in order to transition to a particular
 /// state, additional contextual information of type [P] must be provided by the transition source.
+///
 /// ```dart
 /// class SubmitCredentials {}
 /// class AuthenticatedUser {}
@@ -15,7 +16,7 @@ part of '../../declarative_builders.dart';
 /// var loginState = StateKey('login');
 /// var authenticatingState = StateKey('authenticating');
 ///
-/// var authenticatingChannel = Channel<SubmitCredentials>(authenticatingState);
+/// var authenticatingChannel = EntryChannel<SubmitCredentials>(authenticatingState);
 ///
 /// AuthFuture _login(SubmitCredentials creds) {
 ///   // ...Perform authentication
@@ -36,7 +37,7 @@ part of '../../declarative_builders.dart';
 ///     b.post<AuthFuture>(getMessage: (ctx) => _login(ctx.context));
 ///   });
 /// });
-class Channel<P> {
+class EntryChannel<P> {
   /// The state to enter for this channel.
   final StateKey to;
 
@@ -44,7 +45,7 @@ class Channel<P> {
   final String? label;
 
   /// Constructs a channel for the [to] state.
-  const Channel(this.to, {this.label});
+  const EntryChannel(this.to, {this.label});
 }
 
 abstract class _StateBuilder {
@@ -223,7 +224,7 @@ abstract class EnterStateBuilder<D> {
   /// The [build] function is called with a [TransitionHandlerBuilder] that can be used
   /// to describe the behavior of the entry transition.
   void onEnterFromChannel<P>(
-    Channel<P> channel,
+    EntryChannel<P> channel,
     void Function(TransitionHandlerBuilder<D, P>) build,
   );
 }
@@ -277,7 +278,7 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
 
   @override
   void onEnterFromChannel<P>(
-    Channel<P> channel,
+    EntryChannel<P> channel,
     void Function(TransitionHandlerBuilder<D, P>) build,
   ) {
     var builder = TransitionHandlerBuilder<D, P>._(

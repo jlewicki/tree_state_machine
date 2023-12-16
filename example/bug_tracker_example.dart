@@ -26,7 +26,7 @@ enum Messages { close, defer }
 //
 // Channels
 //
-final assignedChannel = Channel<String>(States.assigned);
+final assignedChannel = EntryChannel<String>(States.assigned);
 
 //
 // State data

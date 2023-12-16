@@ -63,7 +63,7 @@ class MoveTrack {
 //
 // Channels
 //
-final busyChannel = Channel<Cd>(States.busy);
+final busyChannel = EntryChannel<Cd>(States.busy);
 
 //
 // State Data

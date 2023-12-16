@@ -612,7 +612,7 @@ class InitialData<D> {
   ///   });
   /// ```
   static InitialData<D> fromChannel<D, P>(
-      Channel<P> channel, D Function(P payload) initialValue) {
+      EntryChannel<P> channel, D Function(P payload) initialValue) {
     return InitialData._((transCtx) {
       try {
         return initialValue(transCtx.payloadOrThrow<P>());
@@ -661,7 +661,7 @@ class InitialData<D> {
   /// a value of type [DAncestor], obtained by from an ancestor state in the state tree, and the
   /// payload value of [channel].
   static InitialData<D> fromChannelAndAncestor<D, DAncestor, P>(
-    Channel<P> channel,
+    EntryChannel<P> channel,
     D Function(DAncestor parentData, P payload) initialValue,
   ) {
     return InitialData._(
@@ -776,11 +776,3 @@ void emptyState<D>(StateBuilder<D> builder) {}
 
 /// A state builder callback that adds no behavior to a final state.
 void emptyFinalState<D>(EnterStateBuilder<D> builder) {}
-
-/// Error occurring when an invalid state tree definition was produced.
-class StateTreeDefinitionError extends Error {
-  final String message;
-  StateTreeDefinitionError(this.message);
-  @override
-  String toString() => "Invalid definition: $message";
-}
