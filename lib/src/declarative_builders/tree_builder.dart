@@ -11,7 +11,7 @@ part of '../../declarative_builders.dart';
 /// var offState = StateKey('off');
 /// var onState = StateKey('on');
 ///
-/// StateTreeBuilder switchBuilder() {
+/// DeclarativeStateTreeBuilder switchBuilder() {
 ///   // A simple switch with on and off states
 ///   var treeBuilder = DeclarativeStateTreeBuilder(initialChild: offState)
 ///   treeBuilder.state(offState, (b) {
@@ -28,8 +28,8 @@ part of '../../declarative_builders.dart';
 /// defined by the builder.
 ///
 /// ```dart
-///  var stateTreeBuilder = switchBuilder();
-///  var stateMachine = TreeStateMachine(builder);
+///  var declBuilder = switchBuilder();
+///  var stateMachine = TreeStateMachine(StateTreeBuilder(declBuilder));
 /// ```
 ///
 /// Note that a single state tree builder instance can be used to create multiple state machine
@@ -38,31 +38,8 @@ part of '../../declarative_builders.dart';
 /// A textual description of the state tree can be produced by calling [format] method, passing a
 /// [StateTreeFormatter] (for example a [DotFormatter]) representing the desired output format.
 class DeclarativeStateTreeBuilder implements StateTreeBuildProvider {
-  final StateKey _rootKey;
-  final Map<StateKey, _StateBuilder> _stateBuilders = {};
-  late final Logger _log = Logger(
-    'tree_state_machine.StateTreeBuilder${logName != null ? '.${logName!}' : ''}',
-  );
-
   DeclarativeStateTreeBuilder._(this._rootKey, this.label, String? logName)
       : logName = logName ?? label;
-
-  /// The key identifying the root state that is implicitly added to a state tree, if the
-  /// [StateTreeBuilder.new] constructor is used.
-  static const StateKey defaultRootKey = StateKey('<_RootState_>');
-
-  /// An optional descriptive label for this state tree, for diagnostic purposes.
-  final String? label;
-
-  /// An optional name for this state tree that will be used as the suffix of the logger name used
-  /// when logging messages.
-  ///
-  /// This can be used to correlate log messages with specific state trees when examining the log
-  /// output.
-  final String? logName;
-
-  /// The key indentifying the root state of the state tree.
-  StateKey get rootKey => _rootKey;
 
   /// Creates a [DeclarativeStateTreeBuilder] that will build a state tree that starts in the state identified
   /// by [initialChild].
@@ -120,6 +97,29 @@ class DeclarativeStateTreeBuilder implements StateTreeBuildProvider {
     extensions?.call(extensionBuilder);
     return b;
   }
+
+  /// The key identifying the root state that is implicitly added to a state tree, if the
+  /// [StateTreeBuilder.new] constructor is used.
+  static const StateKey defaultRootKey = StateKey('<_RootState_>');
+
+  /// An optional descriptive label for this state tree, for diagnostic purposes.
+  final String? label;
+
+  /// An optional name for this state tree that will be used as the suffix of the logger name used
+  /// when logging messages.
+  ///
+  /// This can be used to correlate log messages with specific state trees when examining the log
+  /// output.
+  final String? logName;
+
+  /// The key indentifying the root state of the state tree.
+  StateKey get rootKey => _rootKey;
+
+  final StateKey _rootKey;
+  final Map<StateKey, _StateBuilder> _stateBuilders = {};
+  late final Logger _log = Logger(
+    'tree_state_machine.StateTreeBuilder${logName != null ? '.${logName!}' : ''}',
+  );
 
   @override
   RootNodeBuildInfo createRootNodeBuildInfo() {

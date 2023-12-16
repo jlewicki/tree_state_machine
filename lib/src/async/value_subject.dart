@@ -6,7 +6,8 @@ import 'package:tree_state_machine/src/machine/utility.dart';
 ///
 /// Note that [Subject] is conceptually similar to Subjects from other Rx.net oriented
 /// libraries.
-abstract class Subject<T> implements Stream<T>, EventSink<T>, StreamConsumer<T> {}
+abstract class Subject<T>
+    implements Stream<T>, EventSink<T>, StreamConsumer<T> {}
 
 /// A [Stream] that provides synchronous access to the last emitted item or error.
 abstract class ValueStream<T> implements Stream<T> {
@@ -37,12 +38,10 @@ abstract class ValueStream<T> implements Stream<T> {
 ///
 /// Note that [ValueSubject] is conceptually identical to BehaviorSubject from other Rx.net oriented
 /// libraries.
-class ValueSubject<T> extends StreamView<T> implements Subject<T>, ValueStream<T> {
-  StreamController<T> _controller;
-  _CurrentValue<T> _currentValue;
-  bool _sync;
-
-  ValueSubject._(this._controller, this._currentValue, this._sync) : super(_controller.stream);
+class ValueSubject<T> extends StreamView<T>
+    implements Subject<T>, ValueStream<T> {
+  ValueSubject._(this._controller, this._currentValue, this._sync)
+      : super(_controller.stream);
 
   /// Contructs a new [ValueSubject].
   ///
@@ -75,6 +74,10 @@ class ValueSubject<T> extends StreamView<T> implements Subject<T>, ValueStream<T
     var currentValue = _CurrentValue<T>(_LazyValue<T>(initialValue));
     return ValueSubject._(controller, currentValue, sync);
   }
+
+  final StreamController<T> _controller;
+  final _CurrentValue<T> _currentValue;
+  final bool _sync;
 
   @override
   AsyncError get error => _currentValue.error;
@@ -128,7 +131,8 @@ class ValueSubject<T> extends StreamView<T> implements Subject<T>, ValueStream<T
     void Function()? onDone,
     bool? cancelOnError,
   }) {
-    return _listen(onData, onError: onError, onDone: onDone, cancelOnError: cancelOnError);
+    return _listen(onData,
+        onError: onError, onDone: onDone, cancelOnError: cancelOnError);
   }
 
   /// Returns a [ValueStream] that converts each element of this stream to a new value using the
@@ -142,7 +146,8 @@ class ValueSubject<T> extends StreamView<T> implements Subject<T>, ValueStream<T
   ///
   /// If [hasValue] is true for this subject, the [ValueStream.value] of the returned stream will
   /// synchronously return the mapped value.
-  ValueStream<R> mapValueStream<R>(R Function(T value) convert, {bool sync = false}) {
+  ValueStream<R> mapValueStream<R>(R Function(T value) convert,
+      {bool sync = false}) {
     var mappedSubject = ValueSubject<R>(sync: sync);
     _listen(
       (value) {
@@ -207,20 +212,23 @@ class ValueSubject<T> extends StreamView<T> implements Subject<T>, ValueStream<T
 
 /// Describes the most recent value or error emitted on a stream.
 class _CurrentValue<T> {
-  _ValueOrError<T>? _current;
   _CurrentValue([_ValueOrError<T>? initialValue]) : _current = initialValue;
+
+  _ValueOrError<T>? _current;
 
   bool get hasValue => _current is _Value<T>;
 
-  T get value {
-    return hasValue ? (_current as _Value<T>).value : throw StateError('No value is available');
-  }
+  T get value => switch (_current) {
+        _Value(value: var v) => v,
+        _ => throw StateError('No value is available')
+      };
 
   bool get hasError => _current is _Error<T>;
 
-  AsyncError get error {
-    return hasError ? (_current as _Error<T>).error : throw StateError('No value is available');
-  }
+  AsyncError get error => switch (_current) {
+        _Error(error: var e) => e,
+        _ => throw StateError('No value is available')
+      };
 
   void setValue(T value) {
     if (hasValue) {
@@ -239,14 +247,14 @@ class _CurrentValue<T> {
   }
 }
 
-abstract class _ValueOrError<T> {}
+sealed class _ValueOrError<T> {}
 
-class _Value<T> implements _ValueOrError<T> {
+final class _Value<T> implements _ValueOrError<T> {
   T value;
   _Value(this.value);
 }
 
-class _LazyValue<T> implements _Value<T> {
+final class _LazyValue<T> implements _Value<T> {
   final MutableLazy<T> _lazyValue;
 
   _LazyValue(T Function() evaluator) : _lazyValue = MutableLazy(evaluator);
@@ -259,7 +267,8 @@ class _LazyValue<T> implements _Value<T> {
   }
 }
 
-class _Error<T> implements _ValueOrError<T> {
+final class _Error<T> implements _ValueOrError<T> {
   AsyncError error;
-  _Error(Object error, StackTrace? stackTrace) : error = AsyncError(error, stackTrace);
+  _Error(Object error, StackTrace? stackTrace)
+      : error = AsyncError(error, stackTrace);
 }

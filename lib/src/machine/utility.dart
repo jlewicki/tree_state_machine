@@ -100,15 +100,15 @@ class MutableLazy<T> extends Lazy<T> {
   }
 }
 
-abstract class _LazyValue<T> {}
+sealed class _LazyValue<T> {}
 
-class _Deferred<T> implements _LazyValue<T> {
+final class _Deferred<T> implements _LazyValue<T> {
   final T Function() evaluator;
   _Deferred(this.evaluator);
   _Evaluated<T> eval() => _Evaluated(evaluator(), this);
 }
 
-class _Evaluated<T> implements _LazyValue<T> {
+final class _Evaluated<T> implements _LazyValue<T> {
   T value;
   final _Deferred<T> deferred;
   _Evaluated(this.value, this.deferred);

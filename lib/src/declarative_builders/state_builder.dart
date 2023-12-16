@@ -93,21 +93,6 @@ abstract class _StateBuilder {
     };
   }
 
-  // TreeNodeBuildInfo toTreeNodeBuildInfo(
-  //   TreeNodeBuilder Function(StateKey childState) getChildNodeBuilder,
-  // ) {
-  //   return TreeNodeBuildInfo(
-  //     key,
-  //     (_) => _createState(),
-  //     initialChild: _initialChild?.call,
-  //     childBuilders: _children.map(getChildNodeBuilder).toList(),
-  //     isFinalState: _isFinal,
-  //     dataCodec: _codec,
-  //     filters: _filters,
-  //     metadata: _metadata,
-  //   );
-  // }
-
   TreeNodeBuildInfo toTreeNodeBuildInfo(
     TreeNodeBuilder Function(StateKey childState) getChildNodeBuilder,
   ) {

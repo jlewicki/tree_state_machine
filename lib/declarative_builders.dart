@@ -1,7 +1,9 @@
-/// Provides support for defining state trees.
+/// Provides support for defining state trees in a declartive fashion.
+///
+/// When defining state and their behavior with this libraryu
 ///
 ///
-library declarative_tree_builders;
+library declarative_builders;
 
 import 'dart:async';
 import 'dart:collection';
