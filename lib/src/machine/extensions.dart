@@ -17,7 +17,8 @@ extension TransitionContextExtensions on TransitionContext {
     if (data == null) {
       return isTypeOf<Object, void>()
           ? data as D
-          : throw StateError('Unable to find data value of type ${TypeLiteral<D>().type}');
+          : throw StateError(
+              'Unable to find data value of type ${TypeLiteral<D>().type}');
     }
     return data.value;
   }
@@ -25,7 +26,9 @@ extension TransitionContextExtensions on TransitionContext {
   P payloadOrThrow<P>() {
     var payload = this.payload;
     if (payload != null) {
-      return payload is P ? payload as P : throw StateError('Unexpected payload type.');
+      return payload is P
+          ? payload as P
+          : throw StateError('Unexpected payload type.');
     }
     throw StateError('The transition context does not have a payload.');
   }
@@ -53,7 +56,8 @@ extension MessageContextExtensions on MessageContext {
     if (dataVal == null) {
       return isTypeOf<Object, void>()
           ? data as D
-          : throw StateError('Unable to find data value of type ${TypeLiteral<D>().type}');
+          : throw StateError(
+              'Unable to find data value of type ${TypeLiteral<D>().type}');
     }
     return dataVal.value;
   }

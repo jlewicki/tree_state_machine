@@ -109,7 +109,8 @@ class ClosableDataValue<T> extends DataValue<T> {
 
   void setValue(Object value) {
     if (value is! T) {
-      throw ArgumentError('Value of type ${value.runtimeType} is not of expected type $T');
+      throw ArgumentError(
+          'Value of type ${value.runtimeType} is not of expected type $T');
     }
     _subject.add(value as T);
   }

@@ -32,10 +32,12 @@ enum LifecycleState {
 class Lifecycle {
   // This is sync stream so that [states] will map the latest value as soon as it arrives on this
   // subject.
-  final _stateSubject = ValueSubject<_LifecycleState>.initialValue(_Constructed(), sync: true);
+  final _stateSubject =
+      ValueSubject<_LifecycleState>.initialValue(_Constructed(), sync: true);
 
   /// A broadcast [ValueStream] of the state changes of this lifecycle.
-  late final ValueStream<LifecycleState> states = _stateSubject.mapValueStream((s) => s.status);
+  late final ValueStream<LifecycleState> states =
+      _stateSubject.mapValueStream((s) => s.status);
 
   /// The current state of this lifecycle.
   LifecycleState get state => _stateSubject.value.status;
@@ -50,7 +52,8 @@ class Lifecycle {
       _stateSubject.add(next);
       return next;
     });
-    if (_stateSubject.value != transition.state) _stateSubject.add(transition.state);
+    if (_stateSubject.value != transition.state)
+      _stateSubject.add(transition.state);
     return transition.nextState;
   }
 
@@ -64,7 +67,8 @@ class Lifecycle {
       _stateSubject.add(next);
       return next;
     });
-    if (_stateSubject.value != transition.state) _stateSubject.add(transition.state);
+    if (_stateSubject.value != transition.state)
+      _stateSubject.add(transition.state);
     return transition.nextState;
   }
 
@@ -134,7 +138,8 @@ class _Disposed extends _LifecycleState {
   _LifecycleTransition<_Started> start(Future<_Started> Function() doStart) =>
       throw DisposedError();
   @override
-  _LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) => throw DisposedError();
+  _LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) =>
+      throw DisposedError();
 }
 
 class _Started extends _LifecycleState {
@@ -163,7 +168,8 @@ class _Started extends _LifecycleState {
 
 class _Starting extends _LifecycleState {
   final CancelableOperation<_Started> _operation;
-  _Starting(Future<_Started> future) : _operation = CancelableOperation.fromFuture(future);
+  _Starting(Future<_Started> future)
+      : _operation = CancelableOperation.fromFuture(future);
   Future<_Started> get future => _operation.value;
 
   @override
@@ -181,7 +187,8 @@ class _Starting extends _LifecycleState {
       _LifecycleTransition(this, future);
 
   @override
-  _LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) => _LifecycleTransition(
+  _LifecycleTransition<_Stopped> stop(Future<_Stopped> Function() doStop) =>
+      _LifecycleTransition(
         this,
         future.then((started) => started.stop(doStop).nextState),
       );
@@ -210,7 +217,8 @@ class _Stopped extends _LifecycleState {
 
 class _Stopping extends _LifecycleState {
   final CancelableOperation<_Stopped> _operation;
-  _Stopping(Future<_Stopped> future) : _operation = CancelableOperation.fromFuture(future);
+  _Stopping(Future<_Stopped> future)
+      : _operation = CancelableOperation.fromFuture(future);
 
   Future<_Stopped> get future => _operation.value;
 
@@ -225,7 +233,8 @@ class _Stopping extends _LifecycleState {
   }
 
   @override
-  _LifecycleTransition<_Started> start(Future<_Started> Function() doStart) => _LifecycleTransition(
+  _LifecycleTransition<_Started> start(Future<_Started> Function() doStart) =>
+      _LifecycleTransition(
         this,
         future.then((_) => _Constructed().start(doStart).nextState),
       );

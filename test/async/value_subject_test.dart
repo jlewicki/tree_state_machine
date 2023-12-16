@@ -231,7 +231,8 @@ void main() {
         expect(items2, equals([10]));
       });
 
-      test('should convert errors in mapping function to error notifications ', () {
+      test('should convert errors in mapping function to error notifications ',
+          () {
         var subject = ValueSubject.initialValue(2);
         var error = ArgumentError("oops");
         var mapped = subject.mapValueStream((value) => throw error);

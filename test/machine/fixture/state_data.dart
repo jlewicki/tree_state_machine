@@ -29,7 +29,8 @@ class HiScore {
   String game;
   int score;
   HiScore(this.game, this.score);
-  factory HiScore.fromJson(Map<String, dynamic> json) => _$HiScoreFromJson(json);
+  factory HiScore.fromJson(Map<String, dynamic> json) =>
+      _$HiScoreFromJson(json);
   Map<String, dynamic> toJson() => _$HiScoreToJson(this);
 }
 
@@ -79,7 +80,8 @@ class ReadOnlyData {
   );
 }
 
-abstract class ImmutableData implements Built<ImmutableData, ImmutableDataBuilder> {
+abstract class ImmutableData
+    implements Built<ImmutableData, ImmutableDataBuilder> {
   String get name;
   int get price;
   factory ImmutableData({required String name, required int price}) =>

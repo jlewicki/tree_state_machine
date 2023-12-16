@@ -6,7 +6,8 @@ import 'package:tree_state_machine/async.dart';
 void main() {
   group('StreamCombineLatest', () {
     group('listen', () {
-      test('should emit latest items whem all streams have emitted a value', () async {
+      test('should emit latest items whem all streams have emitted a value',
+          () async {
         var s1 = StreamController<int>.broadcast();
         var s2 = StreamController<int>.broadcast();
         var s3 = StreamController<int>.broadcast();
@@ -44,7 +45,10 @@ void main() {
         List<int>? emittedValues;
         Object? error;
 
-        combined.listen((values) => emittedValues = values, onError: (Object? err) => error = err);
+        combined.listen(
+          (values) => emittedValues = values,
+          onError: (Object? err) => error = err,
+        );
 
         Timer(Duration(milliseconds: 25), () {
           expect(emittedValues, isNull);
@@ -70,7 +74,8 @@ void main() {
         expect(error, equals('oops'));
       });
 
-      test('should cancel immediately when a stream emits error and cancelOnError is true',
+      test(
+          'should cancel immediately when a stream emits error and cancelOnError is true',
           () async {
         var s1 = StreamController<int>.broadcast();
         var s2 = StreamController<int>.broadcast();

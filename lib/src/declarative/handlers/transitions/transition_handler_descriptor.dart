@@ -97,15 +97,3 @@ class TransitionHandlerDescriptorContext<C> {
   final C ctx;
   TransitionHandlerDescriptorContext(this.transCtx, this.ctx);
 }
-
-
-
-
-// void example() {
-//   var sb = _StateBuilder<int>(StateKey(''));
-//   sb.onEnter((b) {
-//     b.updateData<String>((transCtx, data, ctx) => data);
-//   });
-
-//   TransitionHandler handler = sb._onEnterDescriptor!.makeHandler();
-// }
