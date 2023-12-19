@@ -458,7 +458,8 @@ class DeclarativeStateTreeBuilder implements StateTreeBuildProvider {
 
   void _addState(_StateBuilder builder) {
     if (_stateBuilders.containsKey(builder.key)) {
-      throw StateError("State '${builder.key}' has already been configured.");
+      throw StateTreeDefinitionError(
+          "State '${builder.key}' has already been configured.");
     }
     _stateBuilders[builder.key] = builder;
   }
