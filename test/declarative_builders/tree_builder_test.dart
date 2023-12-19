@@ -119,7 +119,7 @@ void main() {
         var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.state(state1, emptyState, initialChild: null);
         expect(() => sb.state(state1, emptyState, initialChild: null),
-            throwsStateError);
+            throwsStateTreeDefinitionError);
       });
     });
 
@@ -176,7 +176,7 @@ void main() {
         expect(
           () => sb.dataState<int>(state1, InitialData(() => 1), emptyState,
               initialChild: null),
-          throwsStateError,
+          throwsStateTreeDefinitionError,
         );
       });
     });
@@ -196,7 +196,10 @@ void main() {
       test('should throw if state is defined more than once', () {
         var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.finalState(state1, emptyFinalState);
-        expect(() => sb.finalState(state1, emptyFinalState), throwsStateError);
+        expect(
+          () => sb.finalState(state1, emptyFinalState),
+          throwsStateTreeDefinitionError,
+        );
       });
     });
 
@@ -219,7 +222,7 @@ void main() {
         expect(
           () => sb.finalDataState<int>(
               state1, InitialData(() => 1), emptyFinalState),
-          throwsStateError,
+          throwsStateTreeDefinitionError,
         );
       });
     });
