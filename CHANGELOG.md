@@ -1,3 +1,6 @@
+## 3.0.0-dev.8
+- Expose `TreeNodeBuildInfo` from `NodeBuildInfoBuilder` (should have been in previous release)
+
 ## 3.0.0-dev.7
 - Add `extendNodes` parameter to `TreeBuildContext` constructor allowing metadata and filters to be
 applied to tree nodes as they are constructed. 

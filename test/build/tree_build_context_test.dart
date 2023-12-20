@@ -30,7 +30,7 @@ void main() {
 
       test('should apply extensions when building nodes', () {
         var buildCtx = TreeBuildContext(extendNodes: (b) {
-          b.metadata({"nodeKey": b.nodeKey});
+          b.metadata({"nodeKey": b.nodeBuildInfo.key});
           b.filter(filter2);
           b.filter(filter1);
         });

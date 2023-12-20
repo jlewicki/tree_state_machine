@@ -174,7 +174,7 @@ class TreeBuildContext {
     }
 
     var transformBuilder = NodeBuildInfoBuilder(
-      nodeBuildInfo.key,
+      nodeBuildInfo,
       Map.from(nodeBuildInfo.metadata),
       List.from(nodeBuildInfo.filters),
     );
@@ -214,10 +214,10 @@ class TreeBuildContext {
 /// ```
 class NodeBuildInfoBuilder {
   /// Constructs a [NodeBuildInfoBuilder].
-  NodeBuildInfoBuilder(this.nodeKey, this._metadata, this._filters);
+  NodeBuildInfoBuilder(this.nodeBuildInfo, this._metadata, this._filters);
 
   /// Identifies the [TreeNodeBuildInfo] to which this builder applies.
-  final StateKey nodeKey;
+  final TreeNodeBuildInfo nodeBuildInfo;
 
   final List<TreeStateFilter> _filters;
   final Map<String, Object> _metadata;
@@ -230,7 +230,7 @@ class NodeBuildInfoBuilder {
     for (var pair in metadata.entries) {
       if (_metadata.containsKey(pair.key)) {
         throw StateError(
-            'Node "$nodeKey" already has metadata with key "${pair.key}"');
+            'Node "${nodeBuildInfo.key}" already has metadata with key "${pair.key}"');
       }
       _metadata[pair.key] = pair.value;
     }
