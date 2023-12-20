@@ -10,7 +10,7 @@ typedef TreeNodeBuilder = TreeNode Function(TreeBuildContext context);
 /// Provides contextual information while a state tree is being constructed, and factory methods for
 /// creating tree nodes.
 ///
-/// This interface is infrastructure, and is generally not used by application code.
+/// This is a low-level feature and will not be needed by most applications.
 class TreeBuildContext {
   TreeBuildContext._(this._parentNode, this._nodes, this.extendNodes);
 
@@ -190,19 +190,23 @@ class TreeBuildContext {
       TreeBuildContext._(newParentNode, _nodes, extendNodes);
 }
 
-/// Provides methods for adding additional information to a [TreeNodeBuildInfo], before it is used
-/// to construct a tree node.
+/// Provides methods for adding additional information to [TreeNodeBuildInfo] values, before they
+/// are used by [TreeBuildContext] to construct tree nodes.
+///
+/// This is a low-level feature and will not be needed by most applications.
 ///
 /// ```dart
 ///  StateTreeBuildProvider treeProvider = defineStateTree();
+///  StateKey stateToExtend = getStateToExtend();
 ///
 ///  var builder = StateTreeBuilder(
 ///    treeProvider,
 ///    createContext: () => TreeBuildContext(
 ///      extendNodes: (NodeBuildInfoBuilder b) {
-///        b.metadata({"nodeKey": b.nodeKey})
-///         .filter(filter2);
-///      }
+///        if (b.nodeKey == stateToExtend) {
+///          b.metadata({"IsExtended": true});
+///        }
+///      },
 ///    ),
 ///  );
 ///
