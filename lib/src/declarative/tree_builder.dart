@@ -759,7 +759,7 @@ class InitialMachine implements NestedMachine {
     return InitialMachine._(
       (ctx) {
         return create(ctx).bind((treeBuilder) {
-          return TreeStateMachine.fromTreeBuilder(
+          return TreeStateMachine.withBuilder(
             treeBuilder,
             logSuffix: logSuffix,
           );

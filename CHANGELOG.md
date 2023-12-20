@@ -1,3 +1,8 @@
+## 3.0.0-dev.7
+- Add `extendNodes` parameter to `TreeBuildContext` constructor allowing metadata and filters to be
+applied to tree nodes as they are constructed. 
+- Rename `TreeStateMachine.fromTreeBuilder` -> `TreeStateMachine.withTreeBuilder`
+
 ## 3.0.0-dev.6
 - Significant reorganization of builder classes. `tree_builders` library is split into `build` and 
   `declarative_builders` libraries.
@@ -35,7 +40,7 @@
 - Add `TreeStateFilter`.
 - Add `leafState`, `handlingState`, and `activeStates` to `MessageContext`.
 - Add `handlingState` to `TransitionContext`.
-- Rename `MessageContext.appData` -> - `MessageContext.metadata`.
+- Rename `MessageContext.appData` -> `MessageContext.metadata`.
 
 ## 3.0.0-dev.1
 - Upgrade to Dart3 SDK

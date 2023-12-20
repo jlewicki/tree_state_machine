@@ -115,7 +115,7 @@ class TreeStateMachine {
     PostMessageErrorPolicy postMessageErrorPolicy =
         PostMessageErrorPolicy.convertToFailedMessage,
   }) {
-    return TreeStateMachine.fromTreeBuilder(
+    return TreeStateMachine.withBuilder(
       StateTreeBuilder(treeBuildProvider),
       logSuffix: logName,
       label: label,
@@ -128,7 +128,7 @@ class TreeStateMachine {
   /// [TreeStateMachine.new] factory is more commonly used.
   ///
   /// {@macro TreeStateMachine.commonArgs}
-  factory TreeStateMachine.fromTreeBuilder(
+  factory TreeStateMachine.withBuilder(
     StateTreeBuilder treeBuilder, {
     String? logSuffix,
     String? label,
