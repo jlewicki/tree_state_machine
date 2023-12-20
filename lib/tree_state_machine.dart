@@ -9,7 +9,7 @@ export 'src/machine/tree_node.dart'
         RootNodeInfo,
         LeafNodeInfo,
         InteriorNodeInfo,
-        TreeNodeInfoExtensions;
+        TreeNodeInfoNavigationExtensions;
 export 'src/machine/tree_state.dart'
     hide
         DataTreeState,

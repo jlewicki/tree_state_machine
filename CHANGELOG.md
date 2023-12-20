@@ -2,6 +2,7 @@
 - Add `extendNodes` parameter to `TreeBuildContext` constructor allowing metadata and filters to be
 applied to tree nodes as they are constructed. 
 - Rename `TreeStateMachine.fromTreeBuilder` -> `TreeStateMachine.withTreeBuilder`
+- Add methods to `TreeNodeInfoNavigationExtensions` to traverse `TreeNodeInfo` hierarchy.
 
 ## 3.0.0-dev.6
 - Significant reorganization of builder classes. `tree_builders` library is split into `build` and 

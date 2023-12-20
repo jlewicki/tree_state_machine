@@ -68,21 +68,62 @@ sealed class LeafNodeInfo extends TreeNodeInfo {
 
 /// Utility extensions on [TreeNodeInfo].
 // TODO: is there a way to reuse TreeNodeNavigationExtensions
-extension TreeNodeInfoExtensions on TreeNodeInfo {
-  /// Lazily-computes the self-and-descendant nodes of this node.
-  Iterable<TreeNodeInfo> selfAndDescendants() sync* {
-    Iterable<TreeNodeInfo> visitNodes_(TreeNodeInfo node) sync* {
-      yield node;
-      var children = switch (node) {
-        CompositeNodeInfo(children: var c) => c,
-        _ => <TreeNode>[],
-      };
-      for (var child in children) {
-        yield* visitNodes_(child);
-      }
-    }
+extension TreeNodeInfoNavigationExtensions on TreeNodeInfo {
+  /// The parent node of this node, or `null` if it is a root node.
+  TreeNodeInfo? parent() {
+    return switch (this) {
+      LeafNodeInfo(parent: var p) => p,
+      InteriorNodeInfo(parent: var p) => p,
+      _ => null
+    };
+  }
 
-    yield* visitNodes_(this);
+  /// Returns the root ancestor node of this node, or this node itself if it is a root node.
+  RootNodeInfo root() {
+    return selfAndAncestors().firstWhere((e) => e is RootNodeInfo)
+        as RootNodeInfo;
+  }
+
+  /// Lazily-computes the ancestor nodes of this node.
+  Iterable<TreeNodeInfo> ancestors() sync* {
+    var nextAncestor = parent();
+    while (nextAncestor != null) {
+      yield nextAncestor;
+      nextAncestor = nextAncestor.parent();
+    }
+  }
+
+  /// Lazily-computes the self-and-ancestor nodes of this node.
+  Iterable<TreeNodeInfo> selfAndAncestors() sync* {
+    yield this;
+    yield* ancestors();
+  }
+
+  /// The child node of this node.
+  Iterable<TreeNodeInfo> children() {
+    return switch (this) {
+      CompositeNodeInfo(children: var c) => c,
+      _ => <TreeNode>[],
+    };
+  }
+
+  /// Lazily-computes the descendant nodes of this node, in depth first order
+  Iterable<TreeNodeInfo> descendants() sync* {
+    for (var child in children()) {
+      yield child;
+      yield* child.descendants();
+    }
+  }
+
+  /// Lazily-computes the self-and-descendant nodes of this node, in depth first order
+  Iterable<TreeNodeInfo> selfAndDescendants() sync* {
+    yield this;
+    yield* descendants();
+  }
+
+  /// Lazily-computes the descendant leaf nodes of this node.
+  Iterable<LeafNodeInfo> leaves() {
+    return selfAndDescendants().whereType<LeafNodeInfo>();
   }
 }
 

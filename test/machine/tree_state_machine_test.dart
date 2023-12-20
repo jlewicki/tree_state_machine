@@ -451,11 +451,12 @@ void main() {
 
     group('start', () {
       test('should start in initial state', () async {
+        var r_a_1_key = StateKey('r_a_1');
         var treeBuilder =
             DeclarativeStateTreeBuilder(initialChild: tree.r_b_key)
               ..state(tree.r_a_key, emptyState,
-                  initialChild: InitialChild(tree.r_a_1_key))
-              ..state(tree.r_a_1_key, emptyState, parent: tree.r_a_key)
+                  initialChild: InitialChild(r_a_1_key))
+              ..state(r_a_1_key, emptyState, parent: tree.r_a_key)
               ..state(tree.r_b_key, emptyState);
         var sm = TreeStateMachine(treeBuilder);
         var cur = await sm.start();

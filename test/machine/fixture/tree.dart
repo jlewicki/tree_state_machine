@@ -6,7 +6,6 @@ import 'package:tree_state_machine/declarative_builders.dart';
 const r_key = StateKey('r');
 const r_a_key = StateKey('r_a');
 const r_a_a_key = StateKey('r_a_a');
-const r_a_1_key = StateKey('r_a_1');
 const r_a_a_1_key = StateKey('r_a_a_1');
 const r_a_a_2_key = StateKey('r_a_a_2');
 const r_b_key = StateKey('r_b');
