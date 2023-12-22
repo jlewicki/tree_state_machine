@@ -431,7 +431,7 @@ class MachineStateBuilder extends _StateBuilder {
   MessageHandlerDescriptor<void>? _disposedDescriptor;
 
   MachineStateBuilder(
-    StateKey key,
+    DataStateKey<NestedMachineData> key,
     this._initialMachine,
     this._isDone,
     Logger log,

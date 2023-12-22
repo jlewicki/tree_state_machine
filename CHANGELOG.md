@@ -1,3 +1,6 @@
+## 3.0.0-dev.9
+- Change type of `key` parameter of `DeclarativeStateTreeBuilder.machineState` to `DataStateKey<NestedMachineData>`
+
 ## 3.0.0-dev.8
 - Expose `TreeNodeBuildInfo` from `NodeBuildInfoBuilder` (should have been in previous release)
 
