@@ -752,6 +752,7 @@ class InitialMachine implements NestedMachine {
   /// Constructs an [InitialMachine] that will create and start a nested state machine using the
   /// [StateTreeBuilder] produced by the [create] function.
   factory InitialMachine.fromTree(
+    // TODO: changte this to FutureOr<StateTreeBuildProvider>
     FutureOr<StateTreeBuilder> Function(TransitionContext transCtx) create, {
     String? label,
     String? logSuffix,

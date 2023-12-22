@@ -264,6 +264,7 @@ class TreeStateMachine {
       return transition;
     });
     assert(_currentState != null);
+    // TODO: consider returning initial transition as well
     return _currentState!;
   }
 
