@@ -2,6 +2,7 @@ import 'dart:collection';
 
 import 'package:tree_state_machine/src/machine/tree_node.dart';
 import 'package:tree_state_machine/build.dart';
+import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 /// Type of functions that can create a [TreeNode].
@@ -38,26 +39,28 @@ class TreeBuildContext {
   void Function(NodeBuildInfoBuilder)? extendNodes;
 
   /// Creates a root [TreeNode] that is fully populated with its descendant nodes, based on the
-  /// description provided by [nodeBuildInfo]
-  RootTreeNode buildRoot(RootNodeBuildInfo nodeBuildInfo) {
-    assert(!_nodes.containsKey(nodeBuildInfo.key));
+  /// description provided by [rootBuildInfo]
+  RootTreeNode buildRoot(RootNodeBuildInfo rootBuildInfo) {
+    assert(!_nodes.containsKey(rootBuildInfo.key));
 
-    nodeBuildInfo = _transformRoot(nodeBuildInfo);
+    rootBuildInfo = _transformRoot(rootBuildInfo);
 
     var children = <TreeNode>[];
     var node = RootTreeNode(
-      nodeBuildInfo.key,
-      nodeBuildInfo.createState,
-      getInitialChild: nodeBuildInfo.initialChild,
+      rootBuildInfo.key,
+      rootBuildInfo.createState,
+      getInitialChild: rootBuildInfo.initialChild,
       children: UnmodifiableListView(children),
-      dataCodec: nodeBuildInfo.dataCodec,
-      filters: nodeBuildInfo.filters,
-      metadata: nodeBuildInfo.metadata,
+      dataCodec: rootBuildInfo.dataCodec,
+      filters: rootBuildInfo.filters,
+      metadata: rootBuildInfo.metadata,
     );
 
+    var childBuilders = rootBuildInfo.childBuilders
+        .followedBy([_stoppedNodeBuilder(rootBuildInfo)]);
+
     final childCtx = _childBuildContext(node);
-    children.addAll(
-        nodeBuildInfo.childBuilders.map((buildChild) => buildChild(childCtx)));
+    children.addAll(childBuilders.map((buildChild) => buildChild(childCtx)));
     _addNode(node);
 
     return node;
@@ -184,6 +187,17 @@ class TreeBuildContext {
     return transformBuilder;
   }
 
+  static TreeNodeBuilder _stoppedNodeBuilder(RootNodeBuildInfo root) {
+    return (buildCtx) {
+      return buildCtx.buildLeaf(LeafNodeBuildInfo(
+        stoppedStateKey,
+        parent: root.key,
+        (_) => _stoppedState,
+        isFinalState: true,
+      ));
+    };
+  }
+
   // Constructs a [TreeBuildContext] that adusts the current parent node, so child nodes can be
   /// built.
   TreeBuildContext _childBuildContext(TreeNode newParentNode) =>
@@ -244,3 +258,10 @@ class NodeBuildInfoBuilder {
     return this;
   }
 }
+
+final _stoppedState = DelegatingTreeState(
+  (ctx) => throw StateError('Can not send message to a final state'),
+  (ctx) => {},
+  (ctx) => throw StateError('Can not leave a final state.'),
+  null,
+);

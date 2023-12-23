@@ -30,9 +30,6 @@ class Machine {
     var log = Logger(
         'tree_state_machine.Machine${logName != null ? '.$logName' : ''}');
 
-    // Add an extra node to represent the 'externally stopped' state
-    rootNode = rootNode.withStoppedNode(_createStoppedNode);
-
     var machineRoot = MachineNode(rootNode, log);
     var machineNodes = HashMap<StateKey, MachineNode>();
     var nodesByKey = <StateKey, TreeNode>{};
