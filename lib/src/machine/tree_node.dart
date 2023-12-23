@@ -155,20 +155,59 @@ sealed class TreeNode implements TreeNodeInfo {
   /// Lazily computed tree state for this node
   final Lazy<TreeState> _lazyState;
 
+  late final Lazy<_TreeNodeDataValue?> _lazyNodeData = Lazy(() =>
+      key is DataStateKey && _lazyState.value is DataTreeState
+          ? _TreeNodeDataValue(key as DataStateKey,
+              (_lazyState.value as DataTreeState).initialData)
+          : null);
+
   /// The [TreeState] for this node.
   TreeState get state => _lazyState.value;
 
+  TreeNodeDataValue? get nodeDataValue => _lazyNodeData.value;
+
   /// The [DataValue] of the [DataTreeState] for this node, or `null` if [state] is not a
   /// [DataTreeState].
-  DataValue<dynamic>? get data {
-    var s = state;
-    return s is DataTreeState ? s.data : null;
-  }
+  DataValue<dynamic>? get data => _lazyNodeData.value?.dataValue;
 
   void dispose() {
+    if (_lazyNodeData.hasValue) {
+      _lazyNodeData.value?.dispose();
+    }
     if (_lazyState.hasValue) {
       _lazyState.value.dispose();
     }
+  }
+}
+
+abstract interface class TreeNodeDataValue {
+  void initalizeData(TransitionContext transCtx, [Object? initialData]);
+  void clearData();
+}
+
+class _TreeNodeDataValue implements TreeNodeDataValue {
+  _TreeNodeDataValue(this._dataStateKey, this._getInitialData);
+
+  final DataStateKey<dynamic> _dataStateKey;
+  final dynamic Function(TransitionContext) _getInitialData;
+
+  ClosableDataValue<dynamic>? dataValue;
+
+  @override
+  void initalizeData(TransitionContext transCtx, [Object? initialData]) {
+    assert(dataValue == null);
+    var initialData_ = initialData ?? _getInitialData(transCtx);
+    dataValue = _dataStateKey.createDataValue(initialData_);
+  }
+
+  @override
+  void clearData() {
+    dataValue?.close();
+    dataValue = null;
+  }
+
+  void dispose() {
+    clearData();
   }
 }
 
@@ -206,10 +245,6 @@ sealed class CompositeTreeNode extends TreeNode implements CompositeNodeInfo {
   }
 }
 
-abstract interface class ChildNodeInfo2 {
-  TreeNode get parent;
-}
-
 final class RootTreeNode extends CompositeTreeNode implements RootNodeInfo {
   RootTreeNode(
     super.key,
@@ -231,6 +266,13 @@ final class RootTreeNode extends CompositeTreeNode implements RootNodeInfo {
         dataCodec: dataCodec,
         filters: filters,
         metadata: metadata);
+    for (var child in newChildren) {
+      if (child is LeafTreeNode) {
+        child._setParent(root);
+      } else if (child is InteriorTreeNode) {
+        child._setParent(root);
+      }
+    }
     newChildren.add(createStoppedNode(root));
     return root;
   }
@@ -249,6 +291,8 @@ final class InteriorTreeNode extends CompositeTreeNode
     super.filters,
     super.metadata,
   });
+
+  void _setParent(CompositeTreeNode parent) {}
 
   @override
   final CompositeTreeNode parent;
@@ -271,6 +315,8 @@ final class LeafTreeNode extends TreeNode implements LeafNodeInfo {
 
   @override
   final CompositeTreeNode parent;
+
+  void _setParent(CompositeTreeNode parent) {}
 
   @override
   final bool isFinalState;
@@ -332,8 +378,10 @@ extension TreeNodeNavigationExtensions on TreeNode {
   ///
   /// Returns `null` if there is no node that matches the data type.
   TreeNode? selfOrAncestorWithData<D>() {
-    return selfAndAncestors()
-        .firstWhereOrNull((n) => n.data is DataValue<D> ? true : false);
+    return selfAndAncestors().firstWhereOrNull((n) {
+      var match = n.data is DataValue && n.data?.value is D ? true : false;
+      return match;
+    });
   }
 
   /// Indicates if this node represents a final leaf state.
@@ -371,31 +419,27 @@ extension TreeNodeNavigationExtensions on TreeNode {
         isTypeOfExact<Object, D>() || isTypeOfExact<dynamic, D>();
     // If requested type was Object, then we can't meaningfully search by type. So we can only
     // search by key, and if no key was specified, then we assume the current leaf.
-    key = key ??
-        (typeofDIsObjectOrDynamic
-            ? (switch (this.key) {
-                DataStateKey<D>() => this.key as DataStateKey<D>,
-                _ => null
-              })
-            : null);
-    var node =
-        key != null ? selfOrAncestorWithKey(key) : selfOrAncestorWithData<D>();
+    var key_ = key ?? (typeofDIsObjectOrDynamic ? this.key : null);
+    var node = key_ != null
+        ? selfOrAncestorWithKey(key_)
+        : selfOrAncestorWithData<D>();
     var dataValue = node?.data;
     if (dataValue != null) {
       if (typeofDIsObjectOrDynamic) {
         // In this case we know DataValue<D> is DataValue<Object|dynamic> so it is safe to cast
         return dataValue as DataValue<D>;
       }
+
       return dataValue is DataValue<D>
           ? dataValue
           : throw StateError(
-              'DataValue of type ${dataValue.runtimeType} for requested state ${node!.key} does have '
+              'DataValue of type ${dataValue.runtimeType} for requested state ${node!.key} does not have '
               'value of requested type ${TypeLiteral<D>().type}.');
     }
 
     if (throwIfNotFound) {
-      var msg = key != null
-          ? 'Unable to find data value that matches data type ${TypeLiteral<D>().type} and key $key'
+      var msg = key_ != null
+          ? 'Unable to find data value that matches data type ${TypeLiteral<D>().type} and key $key_'
           : 'Unable to find data value that matches data type ${TypeLiteral<D>().type}';
       throw StateError(msg);
     }

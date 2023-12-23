@@ -4,7 +4,8 @@ import 'package:tree_state_machine/tree_state_machine.dart';
 
 import 'fixture/fixture_data.dart';
 
-final state2 = DataStateKey<String>('state2');
+final state2 = StateKey('state2');
+final dataState2 = DataStateKey<String>('state2');
 
 void main() {
   group('MessageActionBuilder', () {
@@ -168,7 +169,7 @@ void main() {
 
     group('enterChannel', () {
       test('should go to target state with payload from channel', () async {
-        var s2Channel = EntryChannel<String>(state2);
+        var s2Channel = EntryChannel<String>(dataState2);
 
         var b = DeclarativeStateTreeBuilder(initialChild: state1);
         b.state(state1, (b) {
@@ -176,7 +177,7 @@ void main() {
             b.enterChannel(s2Channel, (ctx) => ctx.message.val);
           });
         });
-        b.dataState<String>(state2, InitialData(() => '1'), (b) {
+        b.dataState<String>(dataState2, InitialData(() => '1'), (b) {
           b.onEnterFromChannel<String>(s2Channel, (b) {
             b.updateOwnData((ctx) => ctx.context);
           });
@@ -188,12 +189,12 @@ void main() {
 
         await currentState.post(msg);
 
-        expect(currentState.key, equals(state2));
+        expect(currentState.key, equals(dataState2));
         expect(currentState.dataValue<String>(), equals('2'));
       });
 
       test('should run action before transition', () async {
-        var s2Channel = EntryChannel<String>(state2);
+        var s2Channel = EntryChannel<String>(dataState2);
 
         var actionWasRun = false;
         var b = DeclarativeStateTreeBuilder(initialChild: state1);
@@ -203,7 +204,7 @@ void main() {
                 action: b.act.run((_) => actionWasRun = true));
           });
         });
-        b.dataState<String>(state2, InitialData(() => '1'), (b) {
+        b.dataState<String>(dataState2, InitialData(() => '1'), (b) {
           b.onEnterFromChannel<String>(s2Channel, (b) {
             b.updateOwnData((ctx) => ctx.context);
           });
@@ -215,7 +216,7 @@ void main() {
 
         await currentState.post(msg);
 
-        expect(currentState.key, equals(state2));
+        expect(currentState.key, equals(dataState2));
         expect(currentState.dataValue<String>(), equals('2'));
         expect(actionWasRun, isTrue);
       });

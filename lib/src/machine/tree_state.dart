@@ -2,9 +2,8 @@ import 'dart:async';
 
 import 'package:async/async.dart';
 import 'package:logging/logging.dart';
-import 'package:tree_state_machine/src/machine/data_value.dart';
-import 'package:tree_state_machine/src/machine/utility.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
+import 'package:tree_state_machine/src/machine/data_value.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 //==================================================================================================
@@ -40,6 +39,9 @@ class DataStateKey<D> extends _ValueKey<(Type, String)> implements StateKey {
     var (type, name) = _value;
     return "$name<$type>";
   }
+
+  ClosableDataValue<D> createDataValue(D initialValue) =>
+      ClosableDataValue<D>(initialValue);
 }
 
 class _ValueKey<T> implements StateKey {
@@ -147,7 +149,7 @@ abstract class TreeState {
   FutureOr<void> onExit(TransitionContext transCtx);
 
   /// Optional function to call when the state machine is being disposed.
-  void dispose();
+  void dispose() {}
 }
 
 class DelegatingTreeState implements TreeState {
@@ -182,54 +184,60 @@ class DelegatingTreeState implements TreeState {
 /// The [data] property provides access to a [DataValue] that encapsulates to the current state
 /// data, as well as providing change notifications in the form of a [Stream]. This [DataValue]
 /// is recreated each time she state is entered.
+// abstract class DataTreeState<D> extends TreeState {
+//   final _refDataValue = Ref<ClosableDataValue<D>?>(null);
+//   final D Function(TransitionContext) _initialData;
+
+//   DataTreeState(this._initialData);
+
+//   /// The data value associated with this state. Returns `null` when the state is not active.
+//   DataValue<D>? get data => _refDataValue.value;
+
+//   @override
+//   FutureOr<void> onEnter(TransitionContext transCtx) {
+//     // Typically _refDataValue.value will be null, since it is only initialized) when the state is
+//     // entered, and cleared when the state is exited. However, even if this is the first time the
+//     // state has been entered, it potentially might not be null, if the state machine was started
+//     // with startWith, and one or more initial data values were provided.
+//     if (_refDataValue.value == null) {
+//       initializeData(transCtx);
+//     }
+//   }
+
+//   @override
+//   FutureOr<void> onExit(TransitionContext transCtx) {
+//     assert(_refDataValue.value != null);
+//     _refDataValue.value?.close();
+//     _refDataValue.value = null;
+//   }
+
+//   @override
+//   void dispose() => _refDataValue.value?.close();
+
+//   void initializeData(TransitionContext transCtx, [D? initialData]) {
+//     assert(_refDataValue.value == null);
+//     var initialData_ = initialData ?? _initialData(transCtx);
+//     _refDataValue.value?.close();
+//     _refDataValue.value = isTypeOfExact<void, D>()
+//         ? VoidDataValue() as ClosableDataValue<D>
+//         : ClosableDataValue(initialData_);
+//   }
+// }
+
 abstract class DataTreeState<D> extends TreeState {
-  final _refDataValue = Ref<ClosableDataValue<D>?>(null);
-  final D Function(TransitionContext) _initialData;
-
-  DataTreeState(this._initialData);
-
-  /// The data value associated with this state. Returns `null` when the state is not active.
-  DataValue<D>? get data => _refDataValue.value;
-
-  @override
-  FutureOr<void> onEnter(TransitionContext transCtx) {
-    // Typically _refDataValue.value will be null, since it is only initialized) when the state is
-    // entered, and cleared when the state is exited. However, even if this is the first time the
-    // state has been entered, it potentially might not be null, if the state machine was started
-    // with startWith, and one or more initial data values were provided.
-    if (_refDataValue.value == null) {
-      initializeData(transCtx);
-    }
-  }
-
-  @override
-  FutureOr<void> onExit(TransitionContext transCtx) {
-    assert(_refDataValue.value != null);
-    _refDataValue.value?.close();
-    _refDataValue.value = null;
-  }
-
-  @override
-  void dispose() => _refDataValue.value?.close();
-
-  void initializeData(TransitionContext transCtx, [D? initialData]) {
-    assert(_refDataValue.value == null);
-    var initialData_ = initialData ?? _initialData(transCtx);
-    _refDataValue.value?.close();
-    _refDataValue.value = isTypeOfExact<void, D>()
-        ? VoidDataValue() as ClosableDataValue<D>
-        : ClosableDataValue(initialData_);
-  }
+  // TODO: consider storing this as a delegate on TreeNode
+  D initialData(TransitionContext transCtx);
 }
 
 class DelegatingDataTreeState<D> extends DataTreeState<D> {
+  final D Function(TransitionContext) _initialData;
   final MessageHandler _onMessage;
   final TransitionHandler _onEnter;
   final TransitionHandler _onExit;
   final Dispose _onDispose;
 
   DelegatingDataTreeState(
-    super.initialData,
+    this._initialData,
     this._onMessage,
     this._onEnter,
     this._onExit,
@@ -237,23 +245,27 @@ class DelegatingDataTreeState<D> extends DataTreeState<D> {
   );
 
   @override
+  D initialData(TransitionContext transCtx) {
+    return _initialData(transCtx);
+  }
+
+  @override
   FutureOr<MessageResult> onMessage(MessageContext msgCtx) =>
       _onMessage(msgCtx);
 
   @override
   FutureOr<void> onEnter(TransitionContext transCtx) {
-    return super.onEnter(transCtx).bind((_) => _onEnter(transCtx));
+    return _onEnter(transCtx);
   }
 
   @override
   FutureOr<void> onExit(TransitionContext transCtx) {
-    return _onExit(transCtx).bind((_) => super.onExit(transCtx));
+    return _onExit(transCtx);
   }
 
   @override
   void dispose() {
     _onDispose();
-    super.dispose();
   }
 }
 
@@ -301,37 +313,44 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
   CurrentState? nestedCurrentState;
 
   NestedMachineState(
-      this.nestedMachine, this.onDone, this._log, this.isDone, this._onDisposed)
-      : super(InitialData(() => NestedMachineData()).call);
+    this.nestedMachine,
+    this.onDone,
+    this._log,
+    this.isDone,
+    this._onDisposed,
+  );
 
   @override
-  FutureOr<void> onEnter(TransitionContext transCtx) {
-    return super.onEnter(transCtx).bind((_) async {
-      var machine = await nestedMachine(transCtx);
+  NestedMachineData initialData(TransitionContext transCtx) {
+    return NestedMachineData();
+  }
 
-      // Future that tells us when the nested machine is done.
-      var done = machine.transitions.where((t) {
-        if (t.isToFinalState) return true;
-        return isDone != null ? isDone!(t) : false;
-      }).map((_) => whenDoneMessage);
+  @override
+  FutureOr<void> onEnter(TransitionContext transCtx) async {
+    var machine = await nestedMachine(transCtx);
 
-      // Future that tells us when the nested machine is disposed.
-      var disposed = machine.lifecycle
-          .firstWhere((s) => s == LifecycleState.disposed)
-          .then((_) => whenDisposedMessage)
-          .asStream();
+    // Future that tells us when the nested machine is done.
+    var done = machine.transitions.where((t) {
+      if (t.isToFinalState) return true;
+      return isDone != null ? isDone!(t) : false;
+    }).map((_) => whenDoneMessage);
 
-      nestedCurrentState = await machine.start();
-      data!.update(
-          (current) => current.._nestedCurrentState = nestedCurrentState);
+    // Future that tells us when the nested machine is disposed.
+    var disposed = machine.lifecycle
+        .firstWhere((s) => s == LifecycleState.disposed)
+        .then((_) => whenDisposedMessage)
+        .asStream();
 
-      // Post a future that will notify the message handler when the nested machine is done.
-      var group = StreamGroup<Object>();
-      group.add(done);
-      group.add(disposed);
-      Future<Object> msgFuture = group.stream.first;
-      transCtx.post(msgFuture);
-    });
+    nestedCurrentState = await machine.start();
+    transCtx
+        .data<NestedMachineData>()!
+        .update((current) => current.._nestedCurrentState = nestedCurrentState);
+
+    // Post a future that will notify the message handler when the nested machine is done.
+    var group = StreamGroup<Object>();
+    group.add(done);
+    group.add(disposed);
+    transCtx.post(group.stream.first);
   }
 
   @override
@@ -370,7 +389,6 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
     if (nestedMachine.disposeMachineOnExit) {
       nestedCurrentState?.stateMachine.dispose();
     }
-    return super.onExit(transCtx);
   }
 }
 

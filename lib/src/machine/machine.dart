@@ -257,14 +257,10 @@ class Machine {
       return () => transCtx.onExit(n);
     });
     final entryHandlers = path.enteringNodes.map((n) {
-      return initialStateData != null && n.state is DataTreeState
+      return initialStateData != null && n.nodeDataValue != null
           ? () {
               var initialData = initialStateData(n.key);
-              if (initialData != null) {
-                (n.state as DataTreeState)
-                    .initializeData(transCtx, initialData);
-              }
-              return transCtx.onEnter(n);
+              return transCtx.onEnter(n, initialData);
             }
           : () => transCtx.onEnter(n);
     });
@@ -609,14 +605,25 @@ class MachineTransitionContext
     return initialChild;
   }
 
-  FutureOr<void> onEnter(TreeNode node) {
+  FutureOr<void> onEnter(TreeNode node, [Object? initialData]) {
     _currentNode = node;
     _enteredNodes.add(node);
     _machine._log.fine("Entering state '${node.key}'");
+
+    TransitionHandler onEnterWithIntializeData(TreeState state) {
+      assert(initialData == null || node.nodeDataValue != null);
+      return (transCtx) {
+        if (node.nodeDataValue != null) {
+          node.nodeDataValue!.initalizeData(transCtx, initialData);
+        }
+        return state.onEnter(transCtx);
+      };
+    }
+
     return _runTransitionHandlers(
       node,
       (filter) => filter.onEnter,
-      (state) => state.onEnter,
+      (state) => onEnterWithIntializeData(state),
     );
   }
 
@@ -625,10 +632,21 @@ class MachineTransitionContext
     _exitedNodes.add(node);
     _machine._node(node.key).cancelTimers();
     _machine._log.fine("Exiting state '${node.key}'");
+
+    TransitionHandler onExitWithClearData(TreeState state) {
+      return (transCtx) {
+        return state.onExit(transCtx).bind((_) {
+          if (node.nodeDataValue != null) {
+            node.nodeDataValue!.clearData();
+          }
+        });
+      };
+    }
+
     return _runTransitionHandlers(
       node,
       (filter) => filter.onExit,
-      (state) => state.onExit,
+      (state) => onExitWithClearData(state),
     );
   }
 
