@@ -110,9 +110,14 @@ void main() {
       test('should return leaves', () {
         var ancs = nodeMap[r_key]!.leaves().map((a) => a.key);
         expect(
-          SetEquality<StateKey>().equals(
-              {r_a_a_1_key, r_a_a_2_key, r_b_1_key, r_b_2_key, r_X_key},
-              ancs.toSet()),
+          SetEquality<StateKey>().equals({
+            r_a_a_1_key,
+            r_a_a_2_key,
+            r_b_1_key,
+            r_b_2_key,
+            r_X_key,
+            stoppedStateKey
+          }, ancs.toSet()),
           isTrue,
         );
       });
