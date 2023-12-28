@@ -155,11 +155,8 @@ sealed class TreeNode implements TreeNodeInfo {
   /// Lazily computed tree state for this node
   final Lazy<TreeState> _lazyState;
 
-  late final Lazy<_TreeNodeDataValue?> _lazyNodeData = Lazy(() =>
-      key is DataStateKey && _lazyState.value is DataTreeState
-          ? _TreeNodeDataValue(key as DataStateKey,
-              (_lazyState.value as DataTreeState).initialData)
-          : null);
+  late final Lazy<TreeNodeDataValue?> _lazyNodeData = _lazyState
+      .map((state) => state is DataTreeState ? TreeNodeDataValue(state) : null);
 
   /// The [TreeState] for this node.
   TreeState get state => _lazyState.value;
@@ -168,11 +165,11 @@ sealed class TreeNode implements TreeNodeInfo {
 
   /// The [DataValue] of the [DataTreeState] for this node, or `null` if [state] is not a
   /// [DataTreeState].
-  DataValue<dynamic>? get data => _lazyNodeData.value?.dataValue;
+  DataValue<dynamic>? get data => _lazyNodeData.value?.data;
 
   void dispose() {
     if (_lazyNodeData.hasValue) {
-      _lazyNodeData.value?.dispose();
+      _lazyNodeData.value?.clearData();
     }
     if (_lazyState.hasValue) {
       _lazyState.value.dispose();
@@ -180,34 +177,33 @@ sealed class TreeNode implements TreeNodeInfo {
   }
 }
 
-abstract interface class TreeNodeDataValue {
-  void initalizeData(TransitionContext transCtx, [Object? initialData]);
-  void clearData();
-}
+/// Manages the [DataValue] that is associated with a [TreeNode] whose [TreeNode.state] is a
+/// [DataTreeState].
+class TreeNodeDataValue {
+  TreeNodeDataValue(this._dataState);
 
-class _TreeNodeDataValue implements TreeNodeDataValue {
-  _TreeNodeDataValue(this._dataStateKey, this._getInitialData);
+  final DataTreeState<dynamic> _dataState;
 
-  final DataStateKey<dynamic> _dataStateKey;
-  final dynamic Function(TransitionContext) _getInitialData;
+  Ref<ClosableDataValue<dynamic>?>? _dataValueRef;
 
-  ClosableDataValue<dynamic>? dataValue;
+  /// The current [DataValue] for this [TreeNodeDataValue], or `null` if the associated data
+  /// state is not active
+  DataValue<dynamic>? get data => _dataValueRef?.value;
 
-  @override
   void initalizeData(TransitionContext transCtx, [Object? initialData]) {
-    assert(dataValue == null);
-    var initialData_ = initialData ?? _getInitialData(transCtx);
-    dataValue = _dataStateKey.createDataValue(initialData_);
+    _dataState.initializeData(<D>() {
+      var initialData_ = initialData ?? _dataState.initialData(transCtx);
+      assert(initialData == null || initialData is D);
+      assert(_dataValueRef == null);
+      var ref = Ref(ClosableDataValue<D>(initialData_ as D));
+      _dataValueRef = ref;
+      return ref;
+    });
   }
 
-  @override
   void clearData() {
-    dataValue?.close();
-    dataValue = null;
-  }
-
-  void dispose() {
-    clearData();
+    _dataValueRef?.value?.close();
+    _dataValueRef = null;
   }
 }
 

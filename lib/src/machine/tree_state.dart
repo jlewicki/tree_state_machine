@@ -4,6 +4,7 @@ import 'package:async/async.dart';
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
 import 'package:tree_state_machine/src/machine/data_value.dart';
+import 'package:tree_state_machine/src/machine/utility.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 //==================================================================================================
@@ -179,53 +180,26 @@ class DelegatingTreeState implements TreeState {
   void dispose() => _onDispose();
 }
 
+typedef DataInitializer = ReadOnlyRef<DataValue<D>?> Function<D>();
+
 /// A tree state with an associated data value of type [D].
 ///
 /// The [data] property provides access to a [DataValue] that encapsulates to the current state
 /// data, as well as providing change notifications in the form of a [Stream]. This [DataValue]
 /// is recreated each time she state is entered.
-// abstract class DataTreeState<D> extends TreeState {
-//   final _refDataValue = Ref<ClosableDataValue<D>?>(null);
-//   final D Function(TransitionContext) _initialData;
-
-//   DataTreeState(this._initialData);
-
-//   /// The data value associated with this state. Returns `null` when the state is not active.
-//   DataValue<D>? get data => _refDataValue.value;
-
-//   @override
-//   FutureOr<void> onEnter(TransitionContext transCtx) {
-//     // Typically _refDataValue.value will be null, since it is only initialized) when the state is
-//     // entered, and cleared when the state is exited. However, even if this is the first time the
-//     // state has been entered, it potentially might not be null, if the state machine was started
-//     // with startWith, and one or more initial data values were provided.
-//     if (_refDataValue.value == null) {
-//       initializeData(transCtx);
-//     }
-//   }
-
-//   @override
-//   FutureOr<void> onExit(TransitionContext transCtx) {
-//     assert(_refDataValue.value != null);
-//     _refDataValue.value?.close();
-//     _refDataValue.value = null;
-//   }
-
-//   @override
-//   void dispose() => _refDataValue.value?.close();
-
-//   void initializeData(TransitionContext transCtx, [D? initialData]) {
-//     assert(_refDataValue.value == null);
-//     var initialData_ = initialData ?? _initialData(transCtx);
-//     _refDataValue.value?.close();
-//     _refDataValue.value = isTypeOfExact<void, D>()
-//         ? VoidDataValue() as ClosableDataValue<D>
-//         : ClosableDataValue(initialData_);
-//   }
-// }
-
 abstract class DataTreeState<D> extends TreeState {
-  // TODO: consider storing this as a delegate on TreeNode
+  ReadOnlyRef<DataValue<D>?>? _dataRef;
+
+  /// The data value associated with this state. Returns `null` when the state is not active.
+  DataValue<D>? get data => _dataRef?.value;
+
+  /// Called when the data value for this tree state should be initialized.
+  ///
+  /// This will be called by the framework, and is not intended for use by application code.
+  void initializeData(DataInitializer initializer) {
+    _dataRef = initializer<D>();
+  }
+
   D initialData(TransitionContext transCtx);
 }
 
