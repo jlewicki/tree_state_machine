@@ -1,4 +1,4 @@
-part of '../../declarative_builders.dart';
+part of '../../../declarative_builders.dart';
 
 /// Indicates that a value of type [P] must be provided when entering a state.
 ///
@@ -46,6 +46,65 @@ class EntryChannel<P> {
 
   /// Constructs a channel for the [to] state.
   const EntryChannel(this.to, {this.label});
+
+  /// Creates an [InitialData] that produces its value by calling [initialValue] with the payload
+  /// provided when entering the state through this channel.
+  ///
+  /// ```dart
+  /// var s1 = StateKey('state1');
+  /// var s2 = DataStateKey<S2Data>('state2');
+  /// var s2Channel = Channel<String>(s2);
+  /// class S2Data {
+  ///   String value = '';
+  /// }
+  /// var builder = StateTreeBuilder(initialChild: parentState);
+  ///
+  /// builder.state(s1, (b) {
+  ///   b.onMessageValue('go', (b) => b.enterChannel(s2Channel, (msgCtx, msg) => 'Hi!'));
+  /// });
+  ///
+  /// builder.dataState<S2Data>(
+  ///   s2,
+  ///   channel.initialData((payload) => S2Data()..value = payload),
+  ///   (b) {
+  ///     b.onEnter((b) {
+  ///       // Will print 'Hi!'
+  ///       b.run((transCtx, data) => print(data.value));
+  ///     });
+  ///   });
+  /// ```
+  InitialData<D> initialData<D>(D Function(P payload) initialValue) {
+    return InitialData.run((transCtx) {
+      try {
+        return initialValue(transCtx.payloadOrThrow<P>());
+      } catch (e) {
+        throw StateError('Failed to obtain inital data of type $D for '
+            'channel ${label != null ? '"$label" ' : ''}'
+            'to state $to: $e');
+      }
+    });
+  }
+
+  /// Creates an [InitialData] that produces its initial value by calling the [initialValue]
+  /// function with a value of type [DAnc], obtained from the ancestor state identified by
+  /// [ancestorKey] and the payload value of this channel.
+  InitialData<D> initialDataFromAncestor<D, DAnc>(
+    DataStateKey<DAnc> ancestorKey,
+    D Function(DAnc ancestorData, P payload) initialValue,
+  ) {
+    return InitialData.run((transCtx) {
+      try {
+        return initialValue(
+          transCtx.dataValueOrThrow(ancestorKey),
+          transCtx.payloadOrThrow<P>(),
+        );
+      } catch (e) {
+        throw StateError('Failed to obtain inital data of type $D for '
+            'channel ${label != null ? '"$label" ' : ''}'
+            'to state $to: $e');
+      }
+    });
+  }
 }
 
 abstract class _StateBuilder {
@@ -435,10 +494,10 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
   TreeState _createState() {
     return DelegatingDataTreeState<D>(
       _typedInitialData.call,
-      _createMessageHandler(),
-      _createOnEnter(),
-      _createOnExit(),
-      () {},
+      onMessage: _createMessageHandler(),
+      onEnter: _createOnEnter(),
+      onExit: _createOnExit(),
+      onDispose: emptyDispose,
     );
   }
 

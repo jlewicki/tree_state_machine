@@ -1,4 +1,4 @@
-part of '../../declarative_builders.dart';
+part of '../../../declarative_builders.dart';
 
 /// Describes the message processing result of runnin an action with [MessageHandlerBuilder.action].
 enum ActionResult {

@@ -1,4 +1,4 @@
-part of '../../declarative_builders.dart';
+part of '../../../declarative_builders.dart';
 
 /// Defines methods for writing a textual description of the state tree represented by a
 /// [DeclarativeStateTreeBuilder].

@@ -1,4 +1,4 @@
-part of '../../declarative_builders.dart';
+part of '../../../declarative_builders.dart';
 
 /// Provides methods for describing how a state behaves during a transition.
 ///

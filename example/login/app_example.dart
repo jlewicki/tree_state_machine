@@ -81,7 +81,7 @@ DeclarativeStateTreeBuilder appStateTree(AuthService authService) {
 
   b.dataState<AuthorizedUser>(
     States.authenticated,
-    InitialData.fromChannel(authenticatedChannel, (AuthorizedUser p) => p),
+    authenticatedChannel.initialData((AuthorizedUser p) => p),
     (b) {
       b.onMessageValue(Messages.logout, (b) => b.goTo(States.splash));
     },

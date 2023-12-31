@@ -126,3 +126,69 @@ final class InitialChildByDelegate extends InitialChild {
   @override
   StateKey call(TransitionContext transCtx) => initialChild(transCtx);
 }
+
+/// A callable class that can produce the initial data value for a data state, when the state is
+/// entered.
+sealed class InitialData<D> {
+  InitialData._();
+
+  /// Creates an [InitialData] that will call the [create] function to obtain the initial data
+  /// value. The function is called each time the data state is entered.
+  factory InitialData(D Function() create) {
+    return InitialDataByFactory(create);
+  }
+
+  /// Creates an [InitialData] that will call the [create] function to obtain the initial data
+  /// value. The function is called each time the data state is entered.
+  factory InitialData.value(D value) {
+    return InitialDataByValue(value);
+  }
+
+  /// Creates an [InitialData] that will call the [create] function, passing the [TransitionContext]
+  /// for the transition in progress, to obtain the initial data value. The function is called each
+  /// time the data state is entered.
+  factory InitialData.run(GetInitialData<D> getInitialData) {
+    return InitialDataByDelegate._(getInitialData);
+  }
+
+  static InitialData<D> fromAncestor<D, DAnc>(
+    DataStateKey<DAnc> ancestorState,
+    D Function(DAnc ancData) initialValue,
+  ) {
+    return InitialData.run((ctx) {
+      var data = ctx.data(ancestorState);
+      if (data == null) {
+        throw StateError("Unable to determine initial data of type $D "
+            "because ancestor state '$ancestorState' is not an active state");
+      }
+      return initialValue(data.value);
+    });
+  }
+
+  /// Creates the initial data value.
+  D call(TransitionContext transCtx);
+}
+
+final class InitialDataByValue<D> extends InitialData<D> {
+  InitialDataByValue(this.value) : super._();
+  final D value;
+
+  @override
+  D call(TransitionContext transCtx) => value;
+}
+
+final class InitialDataByFactory<D> extends InitialData<D> {
+  InitialDataByFactory(this.create) : super._();
+  final D Function() create;
+
+  @override
+  D call(TransitionContext transCtx) => create();
+}
+
+final class InitialDataByDelegate<D> extends InitialData<D> {
+  InitialDataByDelegate._(this.initialData) : super._();
+  final GetInitialData<D> initialData;
+
+  @override
+  D call(TransitionContext transCtx) => initialData(transCtx);
+}

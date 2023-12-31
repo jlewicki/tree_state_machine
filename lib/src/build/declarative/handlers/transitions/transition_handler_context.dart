@@ -1,4 +1,4 @@
-part of '../../../../declarative_builders.dart';
+part of '../../../../../declarative_builders.dart';
 
 /// Provides access to the context for a transition handler, including the [transitionContext], the
 /// state [data], and a [context] value.

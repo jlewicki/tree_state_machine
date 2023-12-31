@@ -198,8 +198,7 @@ DeclarativeStateTreeBuilder authenticateStateTree(
 
   b.finalDataState<AuthenticatedData>(
     States.authenticated,
-    InitialData.fromChannel(
-      authenticatedChannel,
+    authenticatedChannel.initialData(
       (AuthorizedUser user) => AuthenticatedData(user),
     ),
     emptyFinalState,

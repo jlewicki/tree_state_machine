@@ -106,11 +106,21 @@ FutureOr<void> emptyTransitionHandler(TransitionContext transCtx) {}
 FutureOr<MessageResult> emptyMessageHandler(MessageContext msgCtx) =>
     msgCtx.unhandled();
 
+/// An empty disposal function.
+void emptyDispose() {}
+
 /// Type of functions that select a child state to initially enter, when a parent state is entered.
 ///
 /// The function is passed a [TransitionContext] that describes the transition that is currently
 /// taking place.
 typedef GetInitialChild = StateKey Function(TransitionContext ctx);
+
+/// Type of functions that creates the initial data value for a data state, when that state is
+/// entered.
+///
+/// The function is passed a [TransitionContext] that describes the transition that is currently
+/// taking place.
+typedef GetInitialData<D> = D Function(TransitionContext ctx);
 
 /// An individual state within a tree state machine.
 ///
@@ -211,12 +221,15 @@ class DelegatingDataTreeState<D> extends DataTreeState<D> {
   final Dispose _onDispose;
 
   DelegatingDataTreeState(
-    this._initialData,
-    this._onMessage,
-    this._onEnter,
-    this._onExit,
-    this._onDispose,
-  );
+    this._initialData, {
+    MessageHandler? onMessage,
+    TransitionHandler? onEnter,
+    TransitionHandler? onExit,
+    Dispose? onDispose,
+  })  : _onMessage = onMessage ?? emptyMessageHandler,
+        _onEnter = onEnter ?? emptyTransitionHandler,
+        _onExit = onExit ?? emptyTransitionHandler,
+        _onDispose = onDispose ?? emptyDispose;
 
   @override
   D initialData(TransitionContext transCtx) {
@@ -483,9 +496,6 @@ typedef TransitionAction = FutureOr<void> Function(TransitionContext ctx);
 
 /// A transition action that does nothing.
 FutureOr<void> emptyTransitionAction(TransitionContext ctx) {}
-
-/// A dispose function that does nothing
-void emptyDispose() {}
 
 /// Base class for describing the results of processing a state machine message.
 ///

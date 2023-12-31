@@ -123,7 +123,7 @@ DeclarativeStateTreeBuilder cdPlayerStateTree() {
 
   b.dataState<BusyData>(
     States.busy,
-    InitialData.fromChannel(busyChannel, (Cd cd) => BusyData(cd)),
+    busyChannel.initialData((Cd cd) => BusyData(cd)),
     (b) {
       b.onEnter((b) {
         b.updateOwnData((ctx) => ctx.data

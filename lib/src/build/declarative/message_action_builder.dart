@@ -1,4 +1,4 @@
-part of '../../declarative_builders.dart';
+part of '../../../declarative_builders.dart';
 
 /// Provides methods for describing actions that can be taken while a state handles a message.
 ///

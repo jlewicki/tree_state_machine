@@ -29,4 +29,9 @@ library build;
 export 'src/build/tree_node_info.dart';
 export 'src/build/tree_build_context.dart';
 export 'src/build/tree_builder.dart'
-    hide InitialChildByDelegate, InitialChildByKey;
+    hide
+        InitialChildByDelegate,
+        InitialChildByKey,
+        InitialDataByDelegate,
+        InitialDataByValue,
+        InitialDataByFactory;
