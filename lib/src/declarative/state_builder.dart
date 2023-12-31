@@ -94,39 +94,73 @@ abstract class _StateBuilder {
     };
   }
 
-  TreeNodeBuildInfo toTreeNodeBuildInfo(
-    TreeNodeBuilder Function(StateKey childState) getChildNodeBuilder,
+  TreeNodeInfo toTreeNodeInfo(
+    _StateBuilder Function(StateKey) getChildBuilder,
+    TreeNodeInfo? parent,
   ) {
     return switch (nodeType) {
-      NodeType.root => RootNodeBuildInfo(
-          key,
-          (_) => _createState(),
-          childBuilders: _children.map(getChildNodeBuilder).toList(),
-          initialChild: _initialChild!.call,
-          dataCodec: _codec,
-          filters: _filters,
-          metadata: _metadata,
-        ),
-      NodeType.interior => InteriorNodeBuildInfo(
-          key,
-          (_) => _createState(),
-          parent: _parent!,
-          childBuilders: _children.map(getChildNodeBuilder).toList(),
-          initialChild: _initialChild!.call,
-          dataCodec: _codec,
-          filters: _filters,
-          metadata: _metadata,
-        ),
-      NodeType.leaf => LeafNodeBuildInfo(
-          key,
-          (_) => _createState(),
-          parent: _parent!,
-          dataCodec: _codec,
-          filters: _filters,
-          metadata: _metadata,
-          isFinalState: _isFinal,
-        ),
+      NodeType.root => _toRootNodeInfo(getChildBuilder),
+      NodeType.interior => _toInteriorNodeInfo(getChildBuilder, parent!),
+      NodeType.leaf => _toLeafNodeInfo(parent!),
     };
+  }
+
+  LeafNodeInfo _toLeafNodeInfo(TreeNodeInfo parent) {
+    return LeafNodeInfo(
+      key,
+      (_) => _createState(),
+      parent: parent,
+      dataCodec: _codec,
+      filters: _filters,
+      metadata: _metadata,
+      isFinalState: _isFinal,
+    );
+  }
+
+  RootNodeInfo _toRootNodeInfo(
+    _StateBuilder Function(StateKey) getChildBuilder,
+  ) {
+    List<TreeNodeInfo> children = [];
+
+    var nodeInfo = RootNodeInfo(
+      key,
+      (_) => _createState(),
+      children: children,
+      initialChild: _initialChild!.call,
+      dataCodec: _codec,
+      filters: _filters,
+      metadata: _metadata,
+    );
+
+    children.addAll(_children
+        .map(getChildBuilder)
+        .map((sb) => sb.toTreeNodeInfo(getChildBuilder, nodeInfo)));
+
+    return nodeInfo;
+  }
+
+  InteriorNodeInfo _toInteriorNodeInfo(
+    _StateBuilder Function(StateKey) getChildBuilder,
+    TreeNodeInfo parent,
+  ) {
+    List<TreeNodeInfo> children = [];
+
+    var nodeInfo = InteriorNodeInfo(
+      key,
+      (_) => _createState(),
+      parent: parent,
+      children: children,
+      initialChild: _initialChild!.call,
+      dataCodec: _codec,
+      filters: _filters,
+      metadata: _metadata,
+    );
+
+    children.addAll(_children
+        .map(getChildBuilder)
+        .map((sb) => sb.toTreeNodeInfo(getChildBuilder, nodeInfo)));
+
+    return nodeInfo;
   }
 
   bool get _hasStateData => _dataType != null;

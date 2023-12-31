@@ -1,15 +1,16 @@
-import 'package:tree_state_machine/tree_state_machine.dart';
-import 'package:tree_state_machine/src/machine/tree_node.dart';
-import 'package:tree_state_machine/build.dart';
+import 'package:tree_state_machine/src/machine/tree_state.dart';
+import 'tree_build_context.dart';
+import 'tree_node.dart';
+import 'tree_node_info.dart';
 
-/// Defines a method for constructing a [RootNodeBuildInfo] the describes how to build a state tree.
+/// Defines a method for constructing a [RootNodeInfo] the describes how to build a state tree.
 ///
 /// Libraries that provide high-level APIs for defining a state tree must implement this interface
-/// in order to translate the state tree as represented by the API into a [RootNodeBuildInfo] that
+/// in order to translate the state tree as represented by the API into a [RootNodeInfo] that
 /// can be used by [StateTreeBuilder] to construct a state tree.
 abstract interface class StateTreeBuildProvider {
-  /// Creates a [RootNodeBuildInfo] that can be used by [StateTreeBuilder] to build a state tree.
-  RootNodeBuildInfo createRootNodeBuildInfo();
+  /// Creates a [RootNodeInfo] that can be used by [StateTreeBuilder] to build a state tree.
+  RootNodeInfo createRootNodeInfo();
 }
 
 /// An error that can be thrown if a [StateTreeBuildProvider] produces an invalid state tree
@@ -25,7 +26,7 @@ class StateTreeDefinitionError extends Error {
 ///
 /// [StateTreeBuilder] is primary means to supply a state tree to a [TreeStateMachine]. The typical
 /// usage is to use a high-level builder API to define a state tree. This API provides a
-/// [StateTreeBuildProvider] implementation that can construct a [RootNodeBuildInfo] that reifies
+/// [StateTreeBuildProvider] implementation that can construct a [RootNodeInfo] that reifies
 /// the definition of the tree. A [StateTreeBuilder] can then be constructed with this
 /// implementation, which in turn can be used to construct a [TreeStateMachine].
 ///
@@ -63,7 +64,7 @@ class StateTreeBuilder {
 
   /// Describes how the root node of the state tree should be constructed when [build] is called.
   ///
-  /// Because this [RootNodeBuildInfo] also describes how its descendants should be built, it provides
+  /// Because this [RootNodeInfo] also describes how its descendants should be built, it provides
   /// a complete description of a state tree.
   final StateTreeBuildProvider treeBuildInfoProvider;
 
@@ -83,22 +84,45 @@ class StateTreeBuilder {
   ///
   /// A [buildContext] may optionally provided. This is typically not needed, but may be useful in
   /// advanced scenarios requiring access to the state tree as it is built.
-  RootNode build([TreeBuildContext? buildContext]) {
+  TreeNode build([TreeBuildContext? buildContext]) {
     var buildContext_ =
         buildContext ?? createBuildContext?.call() ?? TreeBuildContext();
-    return _buildNode(
-            buildContext_, treeBuildInfoProvider.createRootNodeBuildInfo())
-        as RootNode;
+    var rootNodeInfo = treeBuildInfoProvider.createRootNodeInfo();
+    return buildContext_.buildTree(rootNodeInfo);
   }
+}
 
-  TreeNode _buildNode(
-    TreeBuildContext buildContext,
-    TreeNodeBuildInfo nodeBuildInfo,
-  ) {
-    return switch (nodeBuildInfo) {
-      RootNodeBuildInfo() => buildContext.buildRoot(nodeBuildInfo),
-      InteriorNodeBuildInfo() => buildContext.buildInterior(nodeBuildInfo),
-      LeafNodeBuildInfo() => buildContext.buildLeaf(nodeBuildInfo),
-    };
-  }
+/// A callable class that can select the initial child state of a parent state, when the parent state
+/// is entered.
+sealed class InitialChild {
+  InitialChild._();
+
+  /// Constructs an [InitialChild] indicating that the state identified by [initialChild] should be
+  /// entered.
+  factory InitialChild(StateKey initialChild) =>
+      InitialChildByKey._(initialChild);
+
+  /// Constructs an [InitialChild] that will run the [getInitialChild] function when the state is
+  /// entered in order to determine the initial child,
+  factory InitialChild.delegate(GetInitialChild getInitialChild) =>
+      InitialChildByDelegate._(getInitialChild);
+
+  /// Returns the key of the child state that should be entered.
+  StateKey call(TransitionContext transCtx);
+}
+
+final class InitialChildByKey extends InitialChild {
+  InitialChildByKey._(this.initialChild) : super._();
+  final StateKey initialChild;
+
+  @override
+  StateKey call(TransitionContext transCtx) => initialChild;
+}
+
+final class InitialChildByDelegate extends InitialChild {
+  InitialChildByDelegate._(this.initialChild) : super._();
+  final GetInitialChild initialChild;
+
+  @override
+  StateKey call(TransitionContext transCtx) => initialChild(transCtx);
 }

@@ -8,7 +8,6 @@ import 'package:test/test.dart';
 import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/src/machine/extensions.dart';
 import 'package:tree_state_machine/src/machine/lifecycle.dart';
-import 'package:tree_state_machine/src/machine/tree_node.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/tree_state_machine.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
@@ -580,9 +579,9 @@ void main() {
         var doneByKey = <StateKey, bool>{};
         await sm.start();
         for (var mn in sm.machine.nodes.values) {
-          if (mn.treeNode.data != null) {
-            mn.treeNode.data!.listen((value) {}, onDone: () {
-              doneByKey[mn.treeNode.key] = true;
+          if (mn.data != null) {
+            mn.data!.listen((value) {}, onDone: () {
+              doneByKey[mn.key] = true;
             });
           }
         }
@@ -593,8 +592,8 @@ void main() {
         await Future<void>.delayed(Duration.zero);
         // Now we can make sure we were notified of completion
         for (var mn in sm.machine.nodes.values) {
-          if (mn.treeNode.data != null) {
-            expect(doneByKey[mn.treeNode.key], isTrue);
+          if (mn.data != null) {
+            expect(doneByKey[mn.key], isTrue);
           }
         }
       });

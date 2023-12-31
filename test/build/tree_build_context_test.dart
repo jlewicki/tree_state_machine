@@ -1,5 +1,6 @@
 import 'package:test/test.dart';
 import 'package:tree_state_machine/build.dart';
+import 'package:tree_state_machine/src/build/tree_node.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
 
@@ -38,10 +39,10 @@ void main() {
         var builder = StateTreeBuilder(treeBuilder);
         var rootNode = builder.build(buildCtx);
         for (var node in rootNode.selfAndDescendants()) {
-          expect(node.metadata["nodeKey"], equals(node.key));
-          expect(node.filters.length, 2);
-          expect(node.filters, contains(filter1));
-          expect(node.filters, contains(filter2));
+          expect(node.info.metadata["nodeKey"], equals(node.key));
+          expect(node.info.filters.length, 2);
+          expect(node.info.filters, contains(filter1));
+          expect(node.info.filters, contains(filter2));
         }
       });
     });

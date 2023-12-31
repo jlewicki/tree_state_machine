@@ -3,9 +3,9 @@ import 'dart:convert';
 
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/async.dart';
+import 'package:tree_state_machine/src/build/tree_node.dart';
 import 'package:tree_state_machine/src/machine/initial_state_data.dart';
 import 'package:tree_state_machine/src/machine/machine.dart';
-import 'package:tree_state_machine/src/machine/tree_node.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
 import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
@@ -168,8 +168,8 @@ class TreeStateMachine {
   ///
   /// A state machine is done when a final state is entered. This may have occurred because transition
   /// to a final state has occurred as result of processing a message, or because [stop] was called.
-  bool get isDone => switch (_machine.currentLeaf) {
-        LeafNode(isFinalState: var f) when f => true,
+  bool get isDone => switch (_machine.currentLeaf?.info) {
+        LeafNodeInfo(isFinalState: true) => true,
         _ => false
       };
 
@@ -220,8 +220,8 @@ class TreeStateMachine {
   ///
   /// Each node in the state tree is accessible from this node and its [RootNodeInfo.children].
   RootNodeInfo get rootNode {
-    assert(_machine.rootNode.treeNode is RootNodeInfo);
-    return _machine.rootNode.treeNode as RootNodeInfo;
+    assert(_machine.rootNode.info is RootNodeInfo);
+    return _machine.rootNode.info as RootNodeInfo;
   }
 
   /// Starts the state machine, transitioning the current state to the initial state of the state
@@ -375,9 +375,9 @@ class TreeStateMachine {
     var stateDataList = _currentState!.activeStates.map((key) {
       var node = _machine.nodes[key];
       assert(node != null, 'active state ${key.toString()} could not be found');
-      var dataValue = node!.treeNode.data;
+      var dataValue = node!.data;
       var stateData = dataValue?.value;
-      var codec = node.treeNode.dataCodec;
+      var codec = node.info.dataCodec;
       stateData = stateData != null && codec != null
           ? codec.serialize(stateData)
           : stateData;
@@ -421,8 +421,7 @@ class TreeStateMachine {
 
     // Find tree nodes that match the encoded data
     final nodesByStringKey = Map.fromEntries(
-      _machine.nodes.entries
-          .map((e) => MapEntry(e.key.toString(), e.value.treeNode)),
+      _machine.nodes.entries.map((e) => MapEntry(e.key.toString(), e.value)),
     );
     final encodableTree =
         EncodableTree.fromJson(objectList[0] as Map<String, dynamic>);
@@ -463,14 +462,14 @@ class TreeStateMachine {
           // so skip those states (there is no data to set)
           if (node.state is DataTreeState &&
               node.state is! DataTreeState<void>) {
-            if (node.dataCodec == null) {
+            if (node.info.dataCodec == null) {
               throw StateError(
                   'Unable to deserialize state data because a serializer has not been '
                   'specified for state ${node.key}');
             }
 
-            var stateData =
-                (node.dataCodec!).deserialize(es.encodedStateData) as Object;
+            var stateData = (node.info.dataCodec!)
+                .deserialize(es.encodedStateData) as Object;
             b.initialData(node.key as DataStateKey, stateData);
           }
         }
@@ -526,7 +525,7 @@ class TreeStateMachine {
   Iterable<_StateDataValue> _mapStateDataValues(Iterable<StateKey> keys) {
     return keys
         .map((key) {
-          var treeNode = _machine.nodes[key]?.treeNode;
+          var treeNode = _machine.nodes[key];
           return treeNode?.key is DataStateKey
               ? _StateDataValue(treeNode!.key as DataStateKey, treeNode.data!)
               : null;
@@ -622,7 +621,8 @@ class CurrentState {
   ///
   /// The current leaf state, and all of its ancestor states, are considered active states.
   bool isInState(StateKey key) {
-    return stateMachine._machine.currentLeaf!.isSelfOrAncestor(key);
+    return stateMachine._machine.currentLeaf!.selfOrAncestorWithKey(key) !=
+        null;
   }
 
   /// The [StateKey]s identifying the states that are currently active in the state machine.

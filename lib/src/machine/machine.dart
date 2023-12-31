@@ -1,12 +1,12 @@
 import 'dart:async';
-import 'dart:collection';
 import 'package:collection/collection.dart';
 import 'package:logging/logging.dart';
+import 'package:tree_state_machine/build.dart';
+import 'package:tree_state_machine/src/build/tree_node.dart';
 import 'package:tree_state_machine/src/machine/data_value.dart';
 import 'package:tree_state_machine/src/machine/initial_state_data.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/tree_state_machine.dart';
-import 'package:tree_state_machine/src/machine/tree_node.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
 
 /// Provides methods for processing messages and performing state transitions.
@@ -14,40 +14,36 @@ import 'package:tree_state_machine/src/machine/utility.dart';
 /// [Machine] defines the core state machine engine, and is not intended for direct use by an
 /// application. [TreeStateMachine] should be used instead.
 class Machine {
-  final MachineNode rootNode;
-  final Map<StateKey, MachineNode> nodes;
+  final TreeNode rootNode;
+  final Map<StateKey, TreeNode> nodes;
   final void Function(Object message) _queueMessage;
   final Logger _log;
-  MachineNode? _currentLeafNode;
+  TreeNode? _currentLeafNode;
 
   Machine._(this.rootNode, this.nodes, this._queueMessage, this._log);
 
   factory Machine(
-    RootNode rootNode,
+    TreeNode rootNode,
     void Function(Object message) queueMessage, {
     String? logName,
   }) {
     var log = Logger(
         'tree_state_machine.Machine${logName != null ? '.$logName' : ''}');
 
-    var machineRoot = MachineNode(rootNode, log);
-    var machineNodes = HashMap<StateKey, MachineNode>();
+    //var machineRoot = MachineNode(rootNode, log);
+    //var machineNodes = <StateKey, TreeNode>{};
     var nodesByKey = <StateKey, TreeNode>{};
     for (var node in rootNode.selfAndDescendants()) {
       nodesByKey[node.key] = node;
     }
-    for (var entry in nodesByKey.entries) {
-      machineNodes[entry.key] = MachineNode(entry.value, log);
-    }
 
-    return Machine._(machineRoot, machineNodes, queueMessage, log);
+    return Machine._(rootNode, nodesByKey, queueMessage, log);
   }
 
   /// The current leaf node for the state machine. Messages will be dispatched to the
   /// [TreeNode.state] of this node for processing.
-  LeafNode? get currentLeaf {
-    var node = _currentLeafNode?.treeNode;
-    return node is LeafNode ? node : null;
+  TreeNode? get currentLeaf {
+    return _currentLeafNode;
   }
 
   /// Enters the initial state of the state machine.
@@ -70,8 +66,7 @@ class Machine {
         'This TreeStateMachine does not contain the specified initial state.',
       );
     }
-    final path = MachineTransition.enterFromRoot(rootNode.treeNode,
-        to: initialNode.treeNode);
+    final path = MachineTransition.enterFromRoot(rootNode, to: initialNode);
     return _doTransition(path, initialStateData: initialData, payload: payload);
   }
 
@@ -87,19 +82,18 @@ class Machine {
     // since there is no point.
     assert(_currentLeafNode != null);
 
-    if (currentLeaf!.isFinalLeaf) {
+    if (currentLeaf!.isFinal) {
       _log.fine('Current state is final, result is UnhandledMessage');
       final msgProcessed =
-          UnhandledMessage(message, _currentLeafNode!.treeNode.key, const []);
+          UnhandledMessage(message, _currentLeafNode!.key, const []);
       return Future.value(msgProcessed);
     }
 
-    final msgCtx =
-        MachineMessageContext(message, _currentLeafNode!.treeNode, this);
+    final msgCtx = MachineMessageContext(message, _currentLeafNode!, this);
 
     final msgResult = identical(message, stopMessage)
         ? StopResult.value
-        : await _handleMessage(_currentLeafNode!.treeNode, msgCtx);
+        : await _handleMessage(_currentLeafNode!, msgCtx);
 
     final msgProcessed = await _handleMessageResult(msgResult, msgCtx);
 
@@ -121,7 +115,7 @@ class Machine {
           (futureOr is Future<MessageResult>) ? await futureOr : futureOr;
       _log.fine(() =>
           "State '$currentKey' processed message ${msgCtx.message} and returned $msgResult");
-      currentNode = currentNode.parent();
+      currentNode = currentNode.parent;
     } while (msgResult is UnhandledResult && currentNode != null);
     return msgResult;
   }
@@ -150,8 +144,8 @@ class Machine {
     GoToResult result,
     MachineMessageContext msgCtx,
   ) async {
-    var toNode = _treeNode(result.targetStateKey);
-    if (result.reenterTarget && toNode.parent() == null) {
+    var toNode = _node(result.targetStateKey);
+    if (result.reenterTarget && toNode.parent == null) {
       // This is a application error, since a developer asked for this transition. Can we catch the
       // problem sooner?
       throw StateError('Re-entering the root node is invalid.');
@@ -199,7 +193,7 @@ class Machine {
     SelfTransitionResult result,
     MachineMessageContext msgCtx,
   ) async {
-    if (msgCtx.handlingNode.parent() == null) {
+    if (msgCtx.handlingNode.parent == null) {
       throw StateMachineError(
           'Self-transitions from the root node are invalid.');
     }
@@ -217,7 +211,7 @@ class Machine {
     // re-entered.
     final path = MachineTransition.reenter(
       msgCtx.receivingLeafNode,
-      from: msgCtx.handlingNode.parent() ?? rootNode.treeNode,
+      from: msgCtx.handlingNode.parent ?? rootNode,
     );
     final transition =
         await _doTransition(path, transitionAction: result.transitionAction);
@@ -230,7 +224,7 @@ class Machine {
   }
 
   Future<HandledMessage> _handleStop(MachineMessageContext msgCtx) async {
-    final toNode = _treeNode(stoppedStateKey);
+    final toNode = _node(stoppedStateKey);
     final path = MachineTransition.between(msgCtx.receivingLeafNode, toNode);
     final transition = await _doTransition(path);
     return HandledMessage(
@@ -259,7 +253,7 @@ class Machine {
       return () => transCtx.onExit(n);
     });
     final entryHandlers = path.enteringNodes.map((n) {
-      return initialStateData != null && n.nodeDataValue != null
+      return initialStateData != null && n.resources.nodeData != null
           ? () {
               var initialData = initialStateData(n.key);
               return transCtx.onEnter(n, initialData);
@@ -283,9 +277,10 @@ class Machine {
 
     void bookkeepingHandler() {
       var node = transCtx.currentNode;
-      assert(node is LeafNode, 'Transition did not end at a leaf node');
+      assert(node.nodeType == NodeType.leaf,
+          'Transition did not end at a leaf node');
       _log.fine(() =>
-          "Transitioned to ${node.isFinalLeaf ? 'final' : ''} state '${node.key}'");
+          "Transitioned to ${node.isFinal ? 'final' : ''} state '${node.key}'");
       _currentLeafNode = nodes[node.key]!;
     }
 
@@ -324,7 +319,7 @@ class Machine {
     MachineTransitionContext transCtx,
   ) sync* {
     var currentNode = parentNode;
-    while (currentNode is CompositeNode) {
+    while (currentNode.children.isNotEmpty) {
       var parentOfCurrent = currentNode;
       currentNode = transCtx.onInitialChild(currentNode);
       _log.finer(
@@ -363,7 +358,7 @@ class Machine {
         : Timer(duration, postMessage);
     // Associate the timer with the tree node that is currently processing the message when this
     // method is called.
-    _node(timerOwner).addTimer(timer);
+    _node(timerOwner).resources.addTimer(timer);
     return () {
       canceled = true;
       timer.cancel();
@@ -371,7 +366,7 @@ class Machine {
     };
   }
 
-  MachineNode _node(StateKey key) {
+  TreeNode _node(StateKey key) {
     final machineNode = nodes[key];
     if (machineNode == null) {
       throw StateMachineError(
@@ -381,10 +376,10 @@ class Machine {
     return machineNode;
   }
 
-  TreeNode _treeNode(StateKey key) {
-    final machineNode = _node(key);
-    return machineNode.treeNode;
-  }
+  // TreeNode _treeNode(StateKey key) {
+  //   final machineNode = _node(key);
+  //   return machineNode.treeNode;
+  // }
 }
 
 class MachineMessageContext with DisposableMixin implements MessageContext {
@@ -401,7 +396,7 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
   TreeNode get handlingNode => notifiedNodes.last;
 
   MachineMessageContext(this.message, this.receivingLeafNode, this._machine)
-      : assert(receivingLeafNode is LeafNode);
+      : assert(receivingLeafNode.nodeType == NodeType.leaf);
 
   @override
   DataValue<D>? data<D>([DataStateKey<D>? key]) {
@@ -489,8 +484,8 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
   }
 
   FutureOr<MessageResult> _runMessageHandlers(TreeNode node) {
-    if (node.filters.isNotEmpty) {
-      var filters = node.filters;
+    if (node.info.filters.isNotEmpty) {
+      var filters = node.info.filters;
       var currentFilterIndex = 0;
       // Note that for the sake of convenience to filter authors, message filters return a
       // Future, not a FutureOr
@@ -533,8 +528,8 @@ class MachineTransitionContext
         // starts, there is a transition from the root node to the initial starting state for the
         // machine.
         assert(
-            _requestedTransition.fromNode is LeafNode ||
-                _requestedTransition.fromNode is RootNode,
+            _requestedTransition.fromNode.nodeType == NodeType.leaf ||
+                _requestedTransition.fromNode.nodeType == NodeType.root,
             'Transition did not start at a leaf or root node.');
 
   @override
@@ -568,7 +563,7 @@ class MachineTransitionContext
 
   Transition toTransition() {
     return Transition(_requestedTransition.from, _currentNode.key, lca, exited,
-        entered, _enteredNodes.last.isFinalLeaf);
+        entered, _enteredNodes.last.isFinal);
   }
 
   @override
@@ -587,8 +582,10 @@ class MachineTransitionContext
     return _machine._schedule(_currentNode.key, message, duration, periodic);
   }
 
-  TreeNode onInitialChild(CompositeNode parentNode) {
-    final initialChildKey = parentNode.getInitialChild(this);
+  TreeNode onInitialChild(TreeNode parentNode) {
+    assert(parentNode.info is CompositeNodeInfo);
+    final initialChildKey =
+        (parentNode.info as CompositeNodeInfo).initialChild(this);
     final initialChild =
         parentNode.children.firstWhereOrNull((c) => c.key == initialChildKey);
     if (initialChild == null) {
@@ -604,10 +601,10 @@ class MachineTransitionContext
     _machine._log.fine("Entering state '${node.key}'");
 
     TransitionHandler onEnterWithIntializeData(TreeState state) {
-      assert(initialData == null || node.nodeDataValue != null);
+      assert(initialData == null || node.resources.nodeData != null);
       return (transCtx) {
-        if (node.nodeDataValue != null) {
-          node.nodeDataValue!.initalizeData(transCtx, initialData);
+        if (node.resources.nodeData != null) {
+          node.resources.nodeData!.initalizeData(transCtx, initialData);
         }
         return state.onEnter(transCtx);
       };
@@ -623,14 +620,14 @@ class MachineTransitionContext
   FutureOr<void> onExit(TreeNode node) {
     _currentNode = node;
     _exitedNodes.add(node);
-    _machine._node(node.key).cancelTimers();
+    _machine._node(node.key).resources.cancelTimers();
     _machine._log.fine("Exiting state '${node.key}'");
 
     TransitionHandler onExitWithClearData(TreeState state) {
       return (transCtx) {
         return state.onExit(transCtx).bind((_) {
-          if (node.nodeDataValue != null) {
-            node.nodeDataValue!.clearData();
+          if (node.resources.nodeData != null) {
+            node.resources.nodeData!.clearData();
           }
         });
       };
@@ -649,8 +646,8 @@ class MachineTransitionContext
     TransitionHandler Function(TreeState) getHandler,
   ) {
     var handler = getHandler(node.state);
-    if (node.filters.isNotEmpty) {
-      var filters = node.filters;
+    if (node.info.filters.isNotEmpty) {
+      var filters = node.info.filters;
       var currentFilterIndex = 0;
       // Note that for the sake of convenience to filter authors, transition filters return a
       // Future, not a FutureOr
@@ -712,8 +709,8 @@ class MachineTransition implements Transition {
   late final List<StateKey> path = nodePath.map((n) => n.key).toList();
 
   @override
-  bool get isToFinalState => switch (toNode) {
-        LeafNode(isFinalState: var f) when f => true,
+  bool get isToFinalState => switch (toNode.info) {
+        LeafNodeInfo(isFinalState: true) => true,
         _ => false
       };
 
@@ -760,7 +757,7 @@ class MachineTransition implements Transition {
 
   factory MachineTransition.enterFromRoot(TreeNode root,
       {required TreeNode to}) {
-    assert(root is RootNode);
+    assert(root.nodeType == NodeType.root);
     final exiting = <TreeNode>[];
     final entering = to.selfAndAncestors().toList().reversed.toList();
     return MachineTransition._(root, to, root, exiting, entering);
@@ -780,30 +777,30 @@ mixin DisposableMixin {
 }
 
 /// Keeps track of resources associated with a tree node.
-class MachineNode {
-  final TreeNode treeNode;
-  final List<Timer> _timers = [];
-  final Logger _log;
-  MachineNode(this.treeNode, this._log);
+// class MachineNode {
+//   final TreeNode treeNode;
+//   final List<Timer> _timers = [];
+//   final Logger _log;
+//   MachineNode(this.treeNode, this._log);
 
-  void addTimer(Timer timer) {
-    _timers.add(timer);
-  }
+//   void addTimer(Timer timer) {
+//     _timers.add(timer);
+//   }
 
-  void cancelTimers() {
-    if (_timers.isNotEmpty) {
-      _log.fine("Canceling timers for state '${treeNode.key}'");
-      for (final timer in _timers) {
-        timer.cancel();
-      }
-    }
-  }
+//   void cancelTimers() {
+//     if (_timers.isNotEmpty) {
+//       _log.fine("Canceling timers for state '${treeNode.key}'");
+//       for (final timer in _timers) {
+//         timer.cancel();
+//       }
+//     }
+//   }
 
-  void dispose() {
-    cancelTimers();
-    treeNode.dispose();
-  }
-}
+//   void dispose() {
+//     cancelTimers();
+//     treeNode.dispose();
+//   }
+// }
 
 final stopMessage = Object();
 

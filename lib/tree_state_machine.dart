@@ -2,14 +2,14 @@
 library tree_state_machine;
 
 export 'src/machine/extensions.dart';
-export 'src/machine/tree_node.dart'
-    show
-        TreeNodeInfo,
-        CompositeNodeInfo,
-        RootNodeInfo,
-        LeafNodeInfo,
-        InteriorNodeInfo,
-        TreeNodeInfoNavigationExtensions;
+// export 'src/machine/tree_node.dart'
+//     show
+//         TreeNodeInfo,
+//         CompositeNodeInfo,
+//         RootNodeInfo,
+//         LeafNodeInfo,
+//         InteriorNodeInfo,
+//         TreeNodeInfoNavigationExtensions;
 export 'src/machine/tree_state.dart'
     hide
         DataTreeState,

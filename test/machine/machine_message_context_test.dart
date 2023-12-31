@@ -126,8 +126,7 @@ void main() {
 
         await machine.processMessage(Object());
 
-        var data =
-            machine.nodes[r_a_key]!.treeNode.data as DataValue<ImmutableData>;
+        var data = machine.nodes[r_a_key]!.data as DataValue<ImmutableData>;
         expect(data.value.name, equals('Jim'));
         expect(data.value.price, equals(2));
       });
@@ -154,13 +153,12 @@ void main() {
 
         await machine.processMessage(Object());
 
-        var data =
-            machine.nodes[r_a_1_key]!.treeNode.data as DataValue<ImmutableData>;
+        var data = machine.nodes[r_a_1_key]!.data as DataValue<ImmutableData>;
         expect(data.value.name, equals('Jim'));
         expect(data.value.price, equals(2));
 
         var ancestorData =
-            machine.nodes[r_a_key]!.treeNode.data as DataValue<ImmutableData>;
+            machine.nodes[r_a_key]!.data as DataValue<ImmutableData>;
         expect(ancestorData.value, same(r_a_data));
       });
 
@@ -179,7 +177,7 @@ void main() {
         await machine.processMessage(Object());
 
         var ancestorData =
-            machine.nodes[r_a_key]!.treeNode.data as DataValue<ImmutableData>;
+            machine.nodes[r_a_key]!.data as DataValue<ImmutableData>;
         expect(ancestorData.value.name, equals('Jim'));
         expect(ancestorData.value.price, equals(2));
       });

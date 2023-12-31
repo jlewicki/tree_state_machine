@@ -33,8 +33,9 @@ import 'package:collection/collection.dart';
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/build.dart';
+import 'package:tree_state_machine/src/build/tree_node.dart';
+import 'package:tree_state_machine/src/build/tree_builder.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
-import 'package:tree_state_machine/src/machine/tree_node.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
 
 import 'src/declarative/handlers/messages/message_handler_descriptor.dart';

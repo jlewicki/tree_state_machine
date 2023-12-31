@@ -122,12 +122,14 @@ class DeclarativeStateTreeBuilder implements StateTreeBuildProvider {
   );
 
   @override
-  RootNodeBuildInfo createRootNodeBuildInfo() {
+  RootNodeInfo createRootNodeInfo() {
     _validate();
     var rootStateBuilder = _getStateBuilder(_rootKey);
-    var rootBuildInfo =
-        rootStateBuilder.toTreeNodeBuildInfo(_makeChildNodeBuilder);
-    return rootBuildInfo as RootNodeBuildInfo;
+    var rootBuildInfo = rootStateBuilder.toTreeNodeInfo(
+      (childKey) => _stateBuilders[childKey]!,
+      null,
+    );
+    return rootBuildInfo as RootNodeInfo;
   }
 
   StateTreeBuilder toTreeBuilder() {
@@ -135,7 +137,7 @@ class DeclarativeStateTreeBuilder implements StateTreeBuildProvider {
   }
 
   // /// Creates the root node of the state tree.
-  RootNode call([TreeBuildContext? context]) {
+  TreeNode call([TreeBuildContext? context]) {
     var treeBuilder = StateTreeBuilder(this);
     return treeBuilder.build(context ?? TreeBuildContext());
   }
@@ -436,19 +438,19 @@ class DeclarativeStateTreeBuilder implements StateTreeBuildProvider {
     formatter.formatTo(this, sink);
   }
 
-  TreeNode _buildNode(TreeBuildContext context, _StateBuilder stateBuilder) {
-    var nodeBuildInfo = stateBuilder.toTreeNodeBuildInfo(_makeChildNodeBuilder);
-    return switch (nodeBuildInfo) {
-      RootNodeBuildInfo() => context.buildRoot(nodeBuildInfo),
-      InteriorNodeBuildInfo() => context.buildInterior(nodeBuildInfo),
-      LeafNodeBuildInfo() => context.buildLeaf(nodeBuildInfo),
-    };
-  }
+  // TreeNode _buildNode(TreeBuildContext context, _StateBuilder stateBuilder) {
+  //   var nodeBuildInfo = stateBuilder.toTreeNodeInfo(_makeChildNodeBuilder);
+  //   return switch (nodeBuildInfo) {
+  //     RootNodeInfo() => context.buildRoot(nodeBuildInfo),
+  //     InteriorNodeInfo() => context.buildInterior(nodeBuildInfo),
+  //     LeafNodeInfo() => context.buildLeaf(nodeBuildInfo),
+  //   };
+  // }
 
-  TreeNodeBuilder _makeChildNodeBuilder(StateKey childStateKey) {
-    var childBuilder = _getStateBuilder(childStateKey);
-    return (childCtx) => _buildNode(childCtx, childBuilder);
-  }
+  // TreeNodeBuilder _makeChildNodeBuilder(StateKey childStateKey) {
+  //   var childBuilder = _getStateBuilder(childStateKey);
+  //   return (childCtx) => _buildNode(childCtx, childBuilder);
+  // }
 
   _StateBuilder _getStateBuilder(StateKey key) {
     var stateBuilder = _stateBuilders[key];
@@ -471,6 +473,8 @@ class DeclarativeStateTreeBuilder implements StateTreeBuildProvider {
     for (var entry in _stateBuilders.entries.where(
         (e) => e.value._initialChild != null || e.value._children.isNotEmpty)) {
       var initialChild = entry.value._initialChild;
+      var initialChildKey =
+          initialChild is InitialChildByKey ? initialChild.initialChild : null;
       var children = entry.value._children;
       if (children.isNotEmpty && entry.value is MachineStateBuilder) {
         throw StateTreeDefinitionError(
@@ -480,7 +484,8 @@ class DeclarativeStateTreeBuilder implements StateTreeBuildProvider {
         throw StateTreeDefinitionError(
             'Parent state ${entry.key} is missing an initial child state');
       } else if (children.isEmpty) {
-        var initialChildBuilder = _stateBuilders[initialChild._initialChildKey];
+        var initialChildBuilder =
+            initialChildKey != null ? _stateBuilders[initialChildKey] : null;
         if (initialChildBuilder != null) {
           throw StateTreeDefinitionError(
               'Parent state ${entry.key} has initial child $initialChild, but $initialChild has '
@@ -490,21 +495,20 @@ class DeclarativeStateTreeBuilder implements StateTreeBuildProvider {
               'Parent state ${entry.key} is has initial child $initialChild, but $initialChild is '
               'not defined.');
         }
-      } else if (initialChild._initialChildKey != null &&
-          !children.any((c) => c == initialChild._initialChildKey)) {
-        var initChildKey = initialChild._initialChildKey;
+      } else if (initialChildKey != null &&
+          !children.any((c) => c == initialChildKey)) {
         // If an implicit root is used, make sure the initialChild for the root state has no parent specified
         // A more descriptive error message is used in this case.
         if (entry.key == defaultRootKey &&
-            _stateBuilders[initChildKey]?._parent != null) {
-          var parentKey = _stateBuilders[initChildKey]?._parent;
+            _stateBuilders[initialChildKey]?._parent != null) {
+          var parentKey = _stateBuilders[initialChildKey]?._parent;
           throw StateTreeDefinitionError(
-              'The initial chlld state $initChildKey specified for this implicit-root $runtimeType has '
+              'The initial chlld state $initialChildKey specified for this implicit-root $runtimeType has '
               '$parentKey as a parent. The initial child state of the implicit root can not have a parent '
               'specified.');
         } else {
           throw StateTreeDefinitionError(
-              'Initial child $initChildKey is not a child state of ${entry.key}');
+              'Initial child $initialChildKey is not a child state of ${entry.key}');
         }
       }
     }
@@ -692,29 +696,29 @@ class InitialData<D> {
 /// builder.state(childState2, emptyState, parent: parentState);
 /// ```
 ///
-class InitialChild {
-  final StateKey? _initialChildKey;
-  final GetInitialChild _getInitialChild;
-  InitialChild._(this._getInitialChild, this._initialChildKey);
+// class InitialChild {
+//   final StateKey? _initialChildKey;
+//   final GetInitialChild _getInitialChild;
+//   InitialChild._(this._getInitialChild, this._initialChildKey);
 
-  /// Constructs an [InitialChild] indicating that the state identified by [key] should be entered.
-  factory InitialChild(StateKey key) {
-    return InitialChild._((_) => key, key);
-  }
+//   /// Constructs an [InitialChild] indicating that the state identified by [key] should be entered.
+//   factory InitialChild(StateKey key) {
+//     return InitialChild._((_) => key, key);
+//   }
 
-  /// Constructs an [InitialChild] that will run the [getInitialChild] function when the state is
-  /// entered in order to determine the initial child,
-  ///
-  /// Because the behavior of [getInitialChild] is opaque to a [StateTreeFormatter] when
-  /// [DeclarativeStateTreeBuilder.format] is called, the graph description produced by the formatter may not
-  /// be particularly useful. This method is best avoided if the formatting feature is important to you.
-  factory InitialChild.run(GetInitialChild getInitialChild) {
-    return InitialChild._(getInitialChild, null);
-  }
+//   /// Constructs an [InitialChild] that will run the [getInitialChild] function when the state is
+//   /// entered in order to determine the initial child,
+//   ///
+//   /// Because the behavior of [getInitialChild] is opaque to a [StateTreeFormatter] when
+//   /// [DeclarativeStateTreeBuilder.format] is called, the graph description produced by the formatter may not
+//   /// be particularly useful. This method is best avoided if the formatting feature is important to you.
+//   factory InitialChild.run(GetInitialChild getInitialChild) {
+//     return InitialChild._(getInitialChild, null);
+//   }
 
-  /// Returns the key of the child state that should be entered.
-  StateKey call(TransitionContext transCtx) => _getInitialChild(transCtx);
-}
+//   /// Returns the key of the child state that should be entered.
+//   StateKey call(TransitionContext transCtx) => _getInitialChild(transCtx);
+// }
 
 /// Describes the initial state machine of a [DeclarativeStateTreeBuilder.machineState].
 class InitialMachine implements NestedMachine {

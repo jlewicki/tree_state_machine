@@ -398,8 +398,8 @@ void main() {
 
           await machine.processMessage(Object());
 
-          expect(machine.nodes[data_tree.r_a_a_1_key]!.treeNode.data, isNull);
-          expect(machine.nodes[data_tree.r_a_key]!.treeNode.data, isNull);
+          expect(machine.nodes[data_tree.r_a_a_1_key]!.data, isNull);
+          expect(machine.nodes[data_tree.r_a_key]!.data, isNull);
         });
       });
 
@@ -589,7 +589,7 @@ void main() {
         ]);
 
         D? getDataValue<D>(StateKey key) {
-          return machine.nodes[key]?.treeNode.data?.value as D?;
+          return machine.nodes[key]?.data?.value as D?;
         }
 
         expect(

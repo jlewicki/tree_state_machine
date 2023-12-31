@@ -103,8 +103,11 @@ class _DotFormatter {
     tryWritePostNode(childStates, state.key, postNodeName, sink);
 
     // Declare initial transition
-    var initialChild = childStates.firstWhereOrNull(
-        (cs) => cs.key == state._initialChild?._initialChildKey);
+    var initialChildKey = state._initialChild is InitialChildByKey
+        ? state._initialChild.initialChild
+        : null;
+    var initialChild =
+        childStates.firstWhereOrNull((cs) => cs.key == initialChildKey);
     if (initialChild != null) {
       transitions.add(
           '${_getStateName(state)} -> ${_getStateName(initialChild)} [style=dashed];');

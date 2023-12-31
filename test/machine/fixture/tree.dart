@@ -1,5 +1,6 @@
 // ignore_for_file: constant_identifier_names
 
+import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
 
@@ -59,7 +60,7 @@ DeclarativeStateTreeBuilder treeBuilder({
 
   var b = DeclarativeStateTreeBuilder.withRoot(
     r_key,
-    InitialChild.run(
+    InitialChild.delegate(
       (ctx) {
         initialChildCallback(r_key)(ctx);
         return r_a_key;
@@ -75,7 +76,7 @@ DeclarativeStateTreeBuilder treeBuilder({
     r_a_key,
     buildState(r_a_key),
     parent: r_key,
-    initialChild: InitialChild.run((ctx) {
+    initialChild: InitialChild.delegate((ctx) {
       initialChildCallback(r_a_key)(ctx);
       return r_a_a_key;
     }),
@@ -85,7 +86,7 @@ DeclarativeStateTreeBuilder treeBuilder({
     r_a_a_key,
     buildState(r_a_a_key),
     parent: r_a_key,
-    initialChild: InitialChild.run((ctx) {
+    initialChild: InitialChild.delegate((ctx) {
       initialChildCallback(r_a_a_key)(ctx);
       return r_a_a_2_key;
     }),
@@ -98,7 +99,7 @@ DeclarativeStateTreeBuilder treeBuilder({
     r_b_key,
     buildState(r_b_key),
     parent: r_key,
-    initialChild: InitialChild.run((ctx) {
+    initialChild: InitialChild.delegate((ctx) {
       initialChildCallback(r_b_key)(ctx);
       return r_b_1_key;
     }),

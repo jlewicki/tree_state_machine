@@ -108,7 +108,7 @@ void main() {
 
     group('leaves', () {
       test('should return leaves', () {
-        var ancs = nodeMap[r_key]!.leaves().map((a) => a.key);
+        var ancs = nodeMap[r_key]!.leaves().map((a) => a.key).toList();
         expect(
           SetEquality<StateKey>().equals({
             r_a_a_1_key,
@@ -116,7 +116,6 @@ void main() {
             r_b_1_key,
             r_b_2_key,
             r_X_key,
-            stoppedStateKey
           }, ancs.toSet()),
           isTrue,
         );
