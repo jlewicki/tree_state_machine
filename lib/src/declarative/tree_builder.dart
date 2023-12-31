@@ -135,7 +135,7 @@ class DeclarativeStateTreeBuilder implements StateTreeBuildProvider {
   }
 
   // /// Creates the root node of the state tree.
-  RootTreeNode call([TreeBuildContext? context]) {
+  RootNode call([TreeBuildContext? context]) {
     var treeBuilder = StateTreeBuilder(this);
     return treeBuilder.build(context ?? TreeBuildContext());
   }

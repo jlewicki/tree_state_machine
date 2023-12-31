@@ -83,12 +83,12 @@ class StateTreeBuilder {
   ///
   /// A [buildContext] may optionally provided. This is typically not needed, but may be useful in
   /// advanced scenarios requiring access to the state tree as it is built.
-  RootTreeNode build([TreeBuildContext? buildContext]) {
+  RootNode build([TreeBuildContext? buildContext]) {
     var buildContext_ =
         buildContext ?? createBuildContext?.call() ?? TreeBuildContext();
     return _buildNode(
             buildContext_, treeBuildInfoProvider.createRootNodeBuildInfo())
-        as RootTreeNode;
+        as RootNode;
   }
 
   TreeNode _buildNode(

@@ -208,8 +208,8 @@ class TreeNodeDataValue {
 }
 
 /// A node in a state tree that contains child nodes.
-sealed class CompositeTreeNode extends TreeNode implements CompositeNodeInfo {
-  CompositeTreeNode(
+sealed class CompositeNode extends TreeNode implements CompositeNodeInfo {
+  CompositeNode(
     super.key,
     super.createState, {
     required this.getInitialChild,
@@ -224,25 +224,10 @@ sealed class CompositeTreeNode extends TreeNode implements CompositeNodeInfo {
 
   @override
   final GetInitialChild getInitialChild;
-
-  void visitNodes(void Function(TreeNode) visitNode) {
-    void visitNodes_(TreeNode node) {
-      visitNode(node);
-      var children = switch (node) {
-        CompositeTreeNode(children: var c) => c,
-        _ => <TreeNode>[],
-      };
-      for (var child in children) {
-        visitNodes_(child);
-      }
-    }
-
-    return visitNodes_(this);
-  }
 }
 
-final class RootTreeNode extends CompositeTreeNode implements RootNodeInfo {
-  RootTreeNode(
+final class RootNode extends CompositeNode implements RootNodeInfo {
+  RootNode(
     super.key,
     super.createState, {
     required super.getInitialChild,
@@ -251,33 +236,11 @@ final class RootTreeNode extends CompositeTreeNode implements RootNodeInfo {
     super.filters,
     super.metadata,
   });
-
-  RootTreeNode withStoppedNode(
-    LeafTreeNode Function(RootTreeNode newRoot) createStoppedNode,
-  ) {
-    var newChildren = List.of(children);
-    var root = RootTreeNode(key, (_) => _lazyState.value,
-        getInitialChild: getInitialChild,
-        children: UnmodifiableListView(newChildren),
-        dataCodec: dataCodec,
-        filters: filters,
-        metadata: metadata);
-    for (var child in newChildren) {
-      if (child is LeafTreeNode) {
-        child._setParent(root);
-      } else if (child is InteriorTreeNode) {
-        child._setParent(root);
-      }
-    }
-    newChildren.add(createStoppedNode(root));
-    return root;
-  }
 }
 
 /// A node in a state tree that both has a parent node, and contains child nodes.
-final class InteriorTreeNode extends CompositeTreeNode
-    implements InteriorNodeInfo {
-  InteriorTreeNode(
+final class InteriorNode extends CompositeNode implements InteriorNodeInfo {
+  InteriorNode(
     super.key,
     super.createState, {
     required this.parent,
@@ -288,18 +251,16 @@ final class InteriorTreeNode extends CompositeTreeNode
     super.metadata,
   });
 
-  void _setParent(CompositeTreeNode parent) {}
-
   @override
-  final CompositeTreeNode parent;
+  final CompositeNode parent;
 }
 
 /// A node in a state tree that has a parent, but no child nodes.
 ///
 /// When a state machine receieves a message, it dispatches the message to the current leaf node
 /// for processing.
-final class LeafTreeNode extends TreeNode implements LeafNodeInfo {
-  LeafTreeNode(
+final class LeafNode extends TreeNode implements LeafNodeInfo {
+  LeafNode(
     super.key,
     super.createState, {
     required this.parent,
@@ -307,12 +268,10 @@ final class LeafTreeNode extends TreeNode implements LeafNodeInfo {
     super.dataCodec,
     super.filters,
     super.metadata,
-  }) : assert(!isFinalState || parent is RootTreeNode);
+  }) : assert(!isFinalState || parent is RootNode);
 
   @override
-  final CompositeTreeNode parent;
-
-  void _setParent(CompositeTreeNode parent) {}
+  final CompositeNode parent;
 
   @override
   final bool isFinalState;
@@ -343,7 +302,7 @@ extension TreeNodeNavigationExtensions on TreeNode {
     Iterable<TreeNode> visitNodes_(TreeNode node) sync* {
       yield node;
       var children = switch (node) {
-        CompositeTreeNode(children: var c) => c,
+        CompositeNode(children: var c) => c,
         _ => <TreeNode>[],
       };
       for (var child in children) {
@@ -357,8 +316,8 @@ extension TreeNodeNavigationExtensions on TreeNode {
   // The parent node of this node, or null if this is a root node.
   TreeNode? parent() {
     return switch (this) {
-      LeafTreeNode(parent: var parent) => parent,
-      InteriorTreeNode(parent: var parent) => parent,
+      LeafNode(parent: var parent) => parent,
+      InteriorNode(parent: var parent) => parent,
       _ => null
     };
   }
@@ -382,7 +341,7 @@ extension TreeNodeNavigationExtensions on TreeNode {
 
   /// Indicates if this node represents a final leaf state.
   bool get isFinalLeaf => switch (this) {
-        LeafTreeNode(isFinalState: true) => true,
+        LeafNode(isFinalState: true) => true,
         _ => false,
       };
 

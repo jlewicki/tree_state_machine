@@ -23,7 +23,7 @@ class Machine {
   Machine._(this.rootNode, this.nodes, this._queueMessage, this._log);
 
   factory Machine(
-    RootTreeNode rootNode,
+    RootNode rootNode,
     void Function(Object message) queueMessage, {
     String? logName,
   }) {
@@ -33,7 +33,9 @@ class Machine {
     var machineRoot = MachineNode(rootNode, log);
     var machineNodes = HashMap<StateKey, MachineNode>();
     var nodesByKey = <StateKey, TreeNode>{};
-    rootNode.visitNodes((n) => nodesByKey[n.key] = n);
+    for (var node in rootNode.selfAndDescendants()) {
+      nodesByKey[node.key] = node;
+    }
     for (var entry in nodesByKey.entries) {
       machineNodes[entry.key] = MachineNode(entry.value, log);
     }
@@ -43,9 +45,9 @@ class Machine {
 
   /// The current leaf node for the state machine. Messages will be dispatched to the
   /// [TreeNode.state] of this node for processing.
-  LeafTreeNode? get currentLeaf {
+  LeafNode? get currentLeaf {
     var node = _currentLeafNode?.treeNode;
-    return node is LeafTreeNode ? node : null;
+    return node is LeafNode ? node : null;
   }
 
   /// Enters the initial state of the state machine.
@@ -281,7 +283,7 @@ class Machine {
 
     void bookkeepingHandler() {
       var node = transCtx.currentNode;
-      assert(node is LeafTreeNode, 'Transition did not end at a leaf node');
+      assert(node is LeafNode, 'Transition did not end at a leaf node');
       _log.fine(() =>
           "Transitioned to ${node.isFinalLeaf ? 'final' : ''} state '${node.key}'");
       _currentLeafNode = nodes[node.key]!;
@@ -322,7 +324,7 @@ class Machine {
     MachineTransitionContext transCtx,
   ) sync* {
     var currentNode = parentNode;
-    while (currentNode is CompositeTreeNode) {
+    while (currentNode is CompositeNode) {
       var parentOfCurrent = currentNode;
       currentNode = transCtx.onInitialChild(currentNode);
       _log.finer(
@@ -383,15 +385,6 @@ class Machine {
     final machineNode = _node(key);
     return machineNode.treeNode;
   }
-
-  static LeafTreeNode _createStoppedNode(RootTreeNode root) {
-    return LeafTreeNode(
-      stoppedStateKey,
-      (_) => _stoppedState,
-      parent: root,
-      isFinalState: true,
-    );
-  }
 }
 
 class MachineMessageContext with DisposableMixin implements MessageContext {
@@ -408,7 +401,7 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
   TreeNode get handlingNode => notifiedNodes.last;
 
   MachineMessageContext(this.message, this.receivingLeafNode, this._machine)
-      : assert(receivingLeafNode is LeafTreeNode);
+      : assert(receivingLeafNode is LeafNode);
 
   @override
   DataValue<D>? data<D>([DataStateKey<D>? key]) {
@@ -540,8 +533,8 @@ class MachineTransitionContext
         // starts, there is a transition from the root node to the initial starting state for the
         // machine.
         assert(
-            _requestedTransition.fromNode is LeafTreeNode ||
-                _requestedTransition.fromNode is RootTreeNode,
+            _requestedTransition.fromNode is LeafNode ||
+                _requestedTransition.fromNode is RootNode,
             'Transition did not start at a leaf or root node.');
 
   @override
@@ -594,7 +587,7 @@ class MachineTransitionContext
     return _machine._schedule(_currentNode.key, message, duration, periodic);
   }
 
-  TreeNode onInitialChild(CompositeTreeNode parentNode) {
+  TreeNode onInitialChild(CompositeNode parentNode) {
     final initialChildKey = parentNode.getInitialChild(this);
     final initialChild =
         parentNode.children.firstWhereOrNull((c) => c.key == initialChildKey);
@@ -720,7 +713,7 @@ class MachineTransition implements Transition {
 
   @override
   bool get isToFinalState => switch (toNode) {
-        LeafTreeNode(isFinalState: var f) when f => true,
+        LeafNode(isFinalState: var f) when f => true,
         _ => false
       };
 
@@ -767,7 +760,7 @@ class MachineTransition implements Transition {
 
   factory MachineTransition.enterFromRoot(TreeNode root,
       {required TreeNode to}) {
-    assert(root is RootTreeNode);
+    assert(root is RootNode);
     final exiting = <TreeNode>[];
     final entering = to.selfAndAncestors().toList().reversed.toList();
     return MachineTransition._(root, to, root, exiting, entering);
@@ -823,10 +816,3 @@ class StateMachineError extends Error {
   @override
   String toString() => "Critical state machine error: $message";
 }
-
-final _stoppedState = DelegatingTreeState(
-  (ctx) => throw StateError('Can not send message to a final state'),
-  (ctx) => {},
-  (ctx) => throw StateError('Can not leave a final state.'),
-  null,
-);

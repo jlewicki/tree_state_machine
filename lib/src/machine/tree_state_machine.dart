@@ -169,7 +169,7 @@ class TreeStateMachine {
   /// A state machine is done when a final state is entered. This may have occurred because transition
   /// to a final state has occurred as result of processing a message, or because [stop] was called.
   bool get isDone => switch (_machine.currentLeaf) {
-        LeafTreeNode(isFinalState: var f) when f => true,
+        LeafNode(isFinalState: var f) when f => true,
         _ => false
       };
 

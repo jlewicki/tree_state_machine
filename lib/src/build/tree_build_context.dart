@@ -40,13 +40,13 @@ class TreeBuildContext {
 
   /// Creates a root [TreeNode] that is fully populated with its descendant nodes, based on the
   /// description provided by [rootBuildInfo]
-  RootTreeNode buildRoot(RootNodeBuildInfo rootBuildInfo) {
+  RootNode buildRoot(RootNodeBuildInfo rootBuildInfo) {
     assert(!_nodes.containsKey(rootBuildInfo.key));
 
     rootBuildInfo = _transformRoot(rootBuildInfo);
 
     var children = <TreeNode>[];
-    var node = RootTreeNode(
+    var node = RootNode(
       rootBuildInfo.key,
       rootBuildInfo.createState,
       getInitialChild: rootBuildInfo.initialChild,
@@ -68,18 +68,18 @@ class TreeBuildContext {
 
   /// Creates an interior [TreeNode] that is fully populated with its descendant nodes, based on the
   /// description provided by [nodeBuildInfo]
-  InteriorTreeNode buildInterior(InteriorNodeBuildInfo nodeBuildInfo) {
+  InteriorNode buildInterior(InteriorNodeBuildInfo nodeBuildInfo) {
     assert(_parentNode != null);
-    assert(_parentNode is CompositeTreeNode);
+    assert(_parentNode is CompositeNode);
     assert(nodeBuildInfo.childBuilders.isNotEmpty);
 
     nodeBuildInfo = _transformInterior(nodeBuildInfo);
 
     var children = <TreeNode>[];
-    var node = InteriorTreeNode(
+    var node = InteriorNode(
       nodeBuildInfo.key,
       nodeBuildInfo.createState,
-      parent: _parentNode as CompositeTreeNode,
+      parent: _parentNode as CompositeNode,
       getInitialChild: nodeBuildInfo.initialChild,
       children: UnmodifiableListView(children),
       dataCodec: nodeBuildInfo.dataCodec,
@@ -96,16 +96,16 @@ class TreeBuildContext {
   }
 
   /// Creates a leaf [TreeNode], based on the description provided by [nodeBuildInfo]
-  LeafTreeNode buildLeaf(LeafNodeBuildInfo nodeBuildInfo) {
+  LeafNode buildLeaf(LeafNodeBuildInfo nodeBuildInfo) {
     assert(_parentNode != null);
-    assert(_parentNode is CompositeTreeNode);
+    assert(_parentNode is CompositeNode);
 
     nodeBuildInfo = _transformLeaf(nodeBuildInfo);
 
-    var node = LeafTreeNode(
+    var node = LeafNode(
       nodeBuildInfo.key,
       nodeBuildInfo.createState,
-      parent: _parentNode as CompositeTreeNode,
+      parent: _parentNode as CompositeNode,
       isFinalState: nodeBuildInfo.isFinalState,
       dataCodec: nodeBuildInfo.dataCodec,
       filters: nodeBuildInfo.filters,
