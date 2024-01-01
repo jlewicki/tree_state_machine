@@ -1,3 +1,4 @@
+import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
 
@@ -102,13 +103,13 @@ DeclarativeStateTreeBuilder cdPlayerStateTree() {
   b.state(States.open, (b) {
     b.onMessage<Eject>((b) => b.goTo(States.closed));
     b.onMessage<Load>((b) {
-      b.action(
-          b.act.updateData<RootData>((ctx, data) => data..cd = ctx.message.cd));
+      b.action(b.act
+          .updateData(States.root, (ctx, data) => data..cd = ctx.message.cd));
     });
   }, parent: States.idle);
 
   b.state(States.closed, (b) {
-    b.onEnterWithData<RootData>((b) {
+    b.onEnterWithData(States.root, (b) {
       // Auto play if the cd is inserted (and we were aleady idle)
       b.when(
           (ctx) =>
@@ -122,7 +123,7 @@ DeclarativeStateTreeBuilder cdPlayerStateTree() {
 
   b.dataState<BusyData>(
     States.busy,
-    InitialData.fromChannel(busyChannel, (Cd cd) => BusyData(cd)),
+    busyChannel.initialData((Cd cd) => BusyData(cd)),
     (b) {
       b.onEnter((b) {
         b.updateOwnData((ctx) => ctx.data
@@ -146,10 +147,11 @@ DeclarativeStateTreeBuilder cdPlayerStateTree() {
     b.onMessage<MoveTrack>((b) {
       b.when(
         (ctx) => ctx.messageContext
-            .dataValueOrThrow<BusyData>()
+            .dataValueOrThrow(States.busy)
             .canMoveTrack(ctx.message.trackCount),
         (b) {
-          b.action(b.act.updateData<BusyData>(
+          b.action(b.act.updateData(
+            States.busy,
             (ctx, data) => data..track += ctx.message.trackCount,
             label: 'update next track',
           ));
@@ -175,7 +177,7 @@ DeclarativeStateTreeBuilder cdPlayerStateTree() {
 final Duration refreshDuration = Duration(seconds: 1);
 
 void _playTrack(MessageHandlerContext<Play, void, void> ctx) {
-  ctx.messageContext.dataOrThrow<BusyData>().update((data) {
+  ctx.messageContext.dataOrThrow(States.busy).update((data) {
     var elapsed = data.elapsedTime + refreshDuration;
     var trackLength = data.cd.tracks[data.track].duration;
     if (elapsed >= trackLength) {

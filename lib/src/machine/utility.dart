@@ -82,6 +82,15 @@ class Lazy<T> {
       _value = (_value as _Evaluated<T>).deferred;
     }
   }
+
+  /// Returns a [Lazy] that when evaluated will apply the [convert] function to the value of this
+  /// lazy.
+  Lazy<R> map<R>(R Function(T) convert) {
+    return Lazy<R>(() {
+      var next = convert(value);
+      return next;
+    });
+  }
 }
 
 class MutableLazy<T> extends Lazy<T> {
@@ -118,7 +127,13 @@ final class _Evaluated<T> implements _LazyValue<T> {
 //
 // Ref
 //
-class Ref<T> {
+
+abstract class ReadOnlyRef<T> {
+  T get value;
+}
+
+class Ref<T> implements ReadOnlyRef<T> {
+  @override
   T value;
   Ref(this.value);
 }

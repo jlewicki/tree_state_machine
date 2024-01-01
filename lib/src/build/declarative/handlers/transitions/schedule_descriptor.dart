@@ -8,6 +8,7 @@ import 'package:tree_state_machine/declarative_builders.dart';
 import './transition_handler_descriptor.dart';
 
 TransitionHandlerDescriptor<C> makeScheduleDescriptor<D, C, M>(
+  StateKey forState,
   M Function(TransitionHandlerContext<D, C> ctx) getValue,
   Duration duration,
   bool periodic,
@@ -25,7 +26,9 @@ TransitionHandlerDescriptor<C> makeScheduleDescriptor<D, C, M>(
       // TODO: reconsider getMessage. It probably shouldnt accept a transCtx, or alternatively
       // the function passed to schedule should accept a transCtx (which should be OK since the
       // timer is cancelled when state is exited)
-      var data = transCtx.dataValueOrThrow<D>();
+      var data = forState is DataStateKey<D>
+          ? transCtx.dataValueOrThrow(forState)
+          : null as D;
       var ctx = TransitionHandlerContext<D, C>(transCtx, data, descrCtx.ctx);
       var msg = getValue(ctx).bind((msg) => msg as Object);
       transCtx.schedule(() => msg, duration: duration, periodic: periodic);

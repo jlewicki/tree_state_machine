@@ -2,26 +2,13 @@
 library tree_state_machine;
 
 export 'src/machine/extensions.dart';
-export 'src/machine/tree_node.dart'
-    show
-        TreeNodeInfo,
-        CompositeNodeInfo,
-        RootNodeInfo,
-        LeafNodeInfo,
-        InteriorNodeInfo,
-        TreeNodeInfoNavigationExtensions;
 export 'src/machine/tree_state.dart'
     hide
-        DataTreeState,
-        DelegatingDataTreeState,
-        DelegatingTreeState,
         GoToResult,
         InternalTransitionResult,
         NestedMachineState,
         SelfTransitionResult,
-        StateCreator,
         StopResult,
-        TreeState,
         UnhandledResult;
 export 'src/machine/data_value.dart' hide ClosableDataValue, VoidDataValue;
 export 'src/machine/tree_state_machine.dart'

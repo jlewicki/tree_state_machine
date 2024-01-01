@@ -1,10 +1,12 @@
 import 'package:test/test.dart';
+import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 import 'fixture/fixture_data.dart';
 
-final state1 = DataStateKey<int>('state1');
+final state1 = StateKey('state1');
+final dataState1 = DataStateKey<int>('state1');
 
 void main() {
   group('MessageActionBuilder', () {
@@ -28,8 +30,8 @@ void main() {
 
     group('updateData', () {
       test('should update data', () async {
-        var b = DeclarativeStateTreeBuilder(initialChild: state1);
-        b.dataState<int>(state1, InitialData(() => 1), (b) {
+        var b = DeclarativeStateTreeBuilder(initialChild: dataState1);
+        b.dataState<int>(dataState1, InitialData(() => 1), (b) {
           b.onMessage<Message>((b) =>
               b.stay(action: b.act.updateOwnData((ctx) => ctx.data + 1)));
         });
@@ -37,7 +39,7 @@ void main() {
         var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         await currentState.post(Message());
-        expect(currentState.dataValue<int>(), equals(2));
+        expect(currentState.dataValue(dataState1), equals(2));
       });
     });
 
@@ -82,10 +84,10 @@ void main() {
   group('MessageActionBuilderWithData', () {
     group('run', () {
       test('should run action', () async {
-        var b = DeclarativeStateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: dataState1);
         Message? messageFromAction;
         int? dataFromAction;
-        b.dataState<int>(state1, InitialData(() => 2), (b) {
+        b.dataState<int>(dataState1, InitialData(() => 2), (b) {
           b.onMessage<Message>((b) => b.goTo(state2, action: b.act.run(
                 (ctx) {
                   messageFromAction = ctx.message;
@@ -106,8 +108,8 @@ void main() {
 
     group('updateData', () {
       test('should update data', () async {
-        var b = DeclarativeStateTreeBuilder(initialChild: state1);
-        b.dataState<int>(state1, InitialData(() => 1), (b) {
+        var b = DeclarativeStateTreeBuilder(initialChild: dataState1);
+        b.dataState<int>(dataState1, InitialData(() => 1), (b) {
           b.onMessage<Message>((b) =>
               b.stay(action: b.act.updateOwnData((ctx) => ctx.data + 1)));
         });
@@ -115,17 +117,16 @@ void main() {
         var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         await currentState.post(Message());
-        currentState.dataValue<int>();
-        expect(currentState.dataValue<int>(), equals(2));
+        expect(currentState.dataValue(dataState1), equals(2));
       });
     });
 
     group('post', () {
       test('should post message', () async {
-        var b = DeclarativeStateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: dataState1);
         Message? messageFromAction;
         int? dataFromAction;
-        b.dataState<int>(state1, InitialData(() => 2), (b) {
+        b.dataState<int>(dataState1, InitialData(() => 2), (b) {
           b.onMessage<Message>((b) => b.stay(action: b.act.post(
                 getMessage: (ctx) {
                   messageFromAction = ctx.message;
@@ -149,10 +150,10 @@ void main() {
 
     group('schedule', () {
       test('should schedule message', () async {
-        var b = DeclarativeStateTreeBuilder(initialChild: state1);
+        var b = DeclarativeStateTreeBuilder(initialChild: dataState1);
         Message? messageFromAction;
         int? dataFromAction;
-        b.dataState<int>(state1, InitialData(() => 2), (b) {
+        b.dataState<int>(dataState1, InitialData(() => 2), (b) {
           b.onMessage<Message>((b) => b.stay(
                 action: b.act.schedule(
                   getMessage: (ctx) {
@@ -172,7 +173,7 @@ void main() {
         var msg = Message();
         await currentState.post(msg);
 
-        expect(currentState.key, equals(state1));
+        expect(currentState.key, equals(dataState1));
         await Future<void>.delayed(Duration(milliseconds: 30));
         expect(messageFromAction, equals(msg));
         expect(dataFromAction, equals(2));

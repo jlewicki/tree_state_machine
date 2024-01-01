@@ -1,3 +1,4 @@
+import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
 
@@ -58,22 +59,23 @@ DeclarativeStateTreeBuilder bugTrackerStateTree() {
 
   b.state(States.unassigned, (b) {
     b.onEnter((b) {
-      b.updateData<BugData>((ctx) => ctx.data..assignee = null);
+      b.updateData(States.root, (ctx) => ctx.data..assignee = null);
     });
   }, parent: States.open);
 
   b.state(States.assigned, (b) {
     b.onEnterFromChannel<String>(assignedChannel, (b) {
-      b.updateData<BugData>((ctx) => ctx.data..assignee = ctx.context);
+      b.updateData(States.root, (ctx) => ctx.data..assignee = ctx.context);
     });
-    b.onExitWithData<BugData>((b) {
+    b.onExitWithData(States.root, (b) {
       b.run((ctx) => sendEmailToAssignee(ctx.context, "You're off the hook."),
           label: 'send email to assignee');
     });
   }, parent: States.open);
 
   b.state(States.deferred, (b) {
-    b.onEnter((b) => b.updateData<BugData>(
+    b.onEnter((b) => b.updateData(
+          States.root,
           (ctx) => ctx.data..assignee = null,
           label: 'clear assignee',
         ));
@@ -100,15 +102,15 @@ Future<void> main() async {
 
   await currentState.post(Assign('Joey'));
   assert(currentState.key == States.assigned);
-  assert(currentState.dataValue<BugData>()!.assignee == 'Joey');
+  assert(currentState.dataValue(States.root)!.assignee == 'Joey');
 
   await currentState.post(Messages.defer);
   assert(currentState.key == States.deferred);
-  assert(currentState.dataValue<BugData>()!.assignee == null);
+  assert(currentState.dataValue(States.root)!.assignee == null);
 
   await currentState.post(Assign('Rachel'));
   assert(currentState.key == States.assigned);
-  assert(currentState.dataValue<BugData>()!.assignee == 'Rachel');
+  assert(currentState.dataValue(States.root)!.assignee == 'Rachel');
 
   await currentState.post(Messages.close);
   assert(currentState.key == States.closed);

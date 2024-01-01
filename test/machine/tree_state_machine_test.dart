@@ -8,7 +8,6 @@ import 'package:test/test.dart';
 import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/src/machine/extensions.dart';
 import 'package:tree_state_machine/src/machine/lifecycle.dart';
-import 'package:tree_state_machine/src/machine/tree_node.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/tree_state_machine.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
@@ -270,7 +269,7 @@ void main() {
 
         await currentState.post(Object());
         expect(currentState.key, equals(data_tree.r_XD_key));
-        expect(currentState.dataValue<FinalData>()!.counter, equals(1));
+        expect(currentState.dataValue(data_tree.r_XD_key)!.counter, equals(1));
         expect(sm.isDone, isTrue);
       });
     });
@@ -353,20 +352,20 @@ void main() {
         expect(sm.lifecycle.isStarted, isTrue);
         expect(currentState.key, data_tree.r_a_a_1_key);
 
-        final r_a_a_1_data = currentState.dataValue<LeafData1>();
+        final r_a_a_1_data = currentState.dataValue(data_tree.r_a_a_1_key);
         expect(r_a_a_1_data, isNotNull);
         expect(r_a_a_1_data!.counter, equals(10));
 
-        final r_a_a_data = currentState.dataValue<LeafDataBase>();
+        final r_a_a_data = currentState.dataValue(data_tree.r_a_a_key);
         expect(r_a_a_data, isNotNull);
         expect(r_a_a_data!.name, equals('Yo'));
 
-        final r_a_data = currentState.dataValue<ImmutableData>();
+        final r_a_data = currentState.dataValue(data_tree.r_a_key);
         expect(r_a_data, isNotNull);
         expect(r_a_data!.price, equals(8));
         expect(r_a_data.name, equals('Dude'));
 
-        final r_data = currentState.dataValue<SpecialDataD>();
+        final r_data = currentState.dataValue(data_tree.r_key);
         expect(r_data, isNotNull);
         expect(r_data!.playerName, equals('FOO'));
         expect(r_data.startYear, equals(2000));
@@ -580,9 +579,9 @@ void main() {
         var doneByKey = <StateKey, bool>{};
         await sm.start();
         for (var mn in sm.machine.nodes.values) {
-          if (mn.treeNode.data != null) {
-            mn.treeNode.data!.listen((value) {}, onDone: () {
-              doneByKey[mn.treeNode.key] = true;
+          if (mn.data != null) {
+            mn.data!.listen((value) {}, onDone: () {
+              doneByKey[mn.key] = true;
             });
           }
         }
@@ -593,8 +592,8 @@ void main() {
         await Future<void>.delayed(Duration.zero);
         // Now we can make sure we were notified of completion
         for (var mn in sm.machine.nodes.values) {
-          if (mn.treeNode.data != null) {
-            expect(doneByKey[mn.treeNode.key], isTrue);
+          if (mn.data != null) {
+            expect(doneByKey[mn.key], isTrue);
           }
         }
       });
@@ -657,16 +656,16 @@ void main() {
           messageHandlers: {
             data_tree.r_a_a_2_key: (msgCtx) {
               msgCtx
-                  .data<LeafData2>()!
+                  .data(data_tree.r_a_a_2_key)!
                   .update((current) => current..label = 'not cool man');
               msgCtx
-                  .data<LeafDataBase>()!
+                  .data(data_tree.r_a_a_key)!
                   .update((current) => current..name = 'you');
               return msgCtx.goTo(data_tree.r_a_a_1_key);
             },
             data_tree.r_a_a_1_key: (msgCtx) {
               msgCtx
-                  .data<LeafDataBase>()!
+                  .data(data_tree.r_a_a_key)!
                   .update((current) => current..name = 'you!');
               return msgCtx.goTo(data_tree.r_a_a_2_key);
             }
@@ -720,16 +719,16 @@ void main() {
           messageHandlers: {
             data_tree.r_a_a_2_key: (msgCtx) {
               msgCtx
-                  .data<LeafData2>()!
+                  .data(data_tree.r_a_a_2_key)!
                   .update((current) => current..label = 'not cool man');
               msgCtx
-                  .data<LeafDataBase>()!
+                  .data(data_tree.r_a_a_key)!
                   .update((current) => current..name = 'you');
               return msgCtx.goTo(data_tree.r_a_a_1_key);
             },
             data_tree.r_a_a_1_key: (msgCtx) {
               msgCtx
-                  .data<LeafDataBase>()!
+                  .data(data_tree.r_a_a_key)!
                   .update((current) => current..name = 'you!');
               return msgCtx.goTo(data_tree.r_a_a_2_key);
             }
@@ -784,10 +783,10 @@ void main() {
             data_tree.r_a_a_2_key: (msgCtx) {
               if (msgCtx.message is _GoToMessage) {
                 msgCtx
-                    .data<LeafData2>()!
+                    .data(data_tree.r_a_a_2_key)!
                     .update((current) => current..label = 'not cool man');
                 msgCtx
-                    .data<LeafDataBase>()!
+                    .data(data_tree.r_a_a_key)!
                     .update((current) => current..name = 'you');
                 return msgCtx.goTo((msgCtx.message as _GoToMessage).state);
               }
@@ -795,7 +794,7 @@ void main() {
             },
             data_tree.r_a_a_1_key: (msgCtx) {
               msgCtx
-                  .data<LeafDataBase>()!
+                  .data(data_tree.r_a_a_key)!
                   .update((current) => current..name = 'you!');
               return msgCtx.goTo(data_tree.r_a_a_2_key);
             },

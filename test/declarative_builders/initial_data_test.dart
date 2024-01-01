@@ -1,4 +1,5 @@
 import 'package:test/test.dart';
+import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
@@ -20,8 +21,7 @@ void main() {
         });
         b.dataState<StateData>(
           state2,
-          InitialData.fromChannel(
-              channel, (String payload) => StateData()..val = payload),
+          channel.initialData((payload) => StateData()..val = payload),
           (b) {
             b.onEnter((b) => b.run((ctx) => entryData = ctx.data));
           },
@@ -53,8 +53,10 @@ void main() {
         );
         b.dataState<StateData2>(
           state3,
-          InitialData.fromAncestor((StateData ancData) =>
-              StateData2()..val = int.parse(ancData.val)),
+          InitialData.fromAncestor(
+            state2,
+            (ancData) => StateData2()..val = int.parse(ancData.val),
+          ),
           (b) {
             b.onEnter((b) => b.run((ctx) => entryData = ctx.data));
           },
@@ -89,8 +91,8 @@ void main() {
         );
         b.dataState<StateData2>(
           state3,
-          InitialData.fromChannelAndAncestor(
-            channel,
+          channel.initialDataFromAncestor(
+            state2,
             (StateData ancData, String payload) =>
                 StateData2()..val = int.parse(ancData.val + payload),
           ),

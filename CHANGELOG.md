@@ -1,3 +1,7 @@
+## 3.0.0-dev.10
+- Significant reorganization of builder classes (again). Added `delegate_builders` library.
+- Require a `DataStateKey` when accessing state data. Lookups by type alone are no longer supported.
+
 ## 3.0.0-dev.9
 - Change type of `key` parameter of `DeclarativeStateTreeBuilder.machineState` to `DataStateKey<NestedMachineData>`
 

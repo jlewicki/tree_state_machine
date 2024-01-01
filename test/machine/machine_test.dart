@@ -384,10 +384,13 @@ void main() {
           var buildTree = data_tree.treeBuilder(
             messageHandlers: {
               data_tree.r_a_a_1_key: (msgCtx) {
-                msgCtx.updateOrThrow<LeafData1>((d) => d..counter = 10);
+                msgCtx.updateOrThrow(
+                  data_tree.r_a_a_1_key,
+                  (d) => d..counter = 10,
+                );
                 msgCtx.updateOrThrow<ImmutableData>(
+                  data_tree.r_a_key,
                   (d) => ImmutableData(name: 'bob', price: d.price),
-                  key: data_tree.r_a_key,
                 );
                 return msgCtx.goTo(data_tree.r_b_1_key, reenterTarget: true);
               },
@@ -398,8 +401,8 @@ void main() {
 
           await machine.processMessage(Object());
 
-          expect(machine.nodes[data_tree.r_a_a_1_key]!.treeNode.data, isNull);
-          expect(machine.nodes[data_tree.r_a_key]!.treeNode.data, isNull);
+          expect(machine.nodes[data_tree.r_a_a_1_key]!.data, isNull);
+          expect(machine.nodes[data_tree.r_a_key]!.data, isNull);
         });
       });
 
@@ -589,7 +592,7 @@ void main() {
         ]);
 
         D? getDataValue<D>(StateKey key) {
-          return machine.nodes[key]?.treeNode.data?.value as D?;
+          return machine.nodes[key]?.data?.value as D?;
         }
 
         expect(

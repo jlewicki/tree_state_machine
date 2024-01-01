@@ -1,4 +1,4 @@
-part of '../../declarative_builders.dart';
+part of '../../../declarative_builders.dart';
 
 /// Provides methods for describing how a state behaves during a transition.
 ///
@@ -54,7 +54,8 @@ class TransitionHandlerBuilder<D, C> {
     FutureOr<void> Function(TransitionHandlerContext<D, C> ctx) handler, {
     String? label,
   }) {
-    _descriptor = makeRunDescriptor<D, C>(handler, _makeContext, _log, label);
+    _descriptor =
+        makeRunDescriptor<D, C>(_forState, handler, _makeContext, _log, label);
   }
 
   /// Posts a message to be processed by the state machine when the transition occurs.
@@ -86,6 +87,7 @@ class TransitionHandlerBuilder<D, C> {
     var messageName = StateBuilder._getMessageName(null, message) ??
         TypeLiteral<D>().type.toString();
     _descriptor = makePostDescriptor<D, C, M>(
+      _forState,
       getMessage_,
       _makeContext,
       _log,
@@ -120,6 +122,7 @@ class TransitionHandlerBuilder<D, C> {
     var messageName = StateBuilder._getMessageName(null, message) ??
         TypeLiteral<D>().type.toString();
     _descriptor = makeScheduleDescriptor<D, C, M>(
+      _forState,
       getMessage_,
       duration,
       periodic,
@@ -155,8 +158,14 @@ class TransitionHandlerBuilder<D, C> {
     D Function(TransitionHandlerContext<D, C> ctx) update, {
     String? label,
   }) {
-    _descriptor =
-        makeUpdateDataDescriptor(update, _makeContext, _forState, _log, label);
+    _descriptor = makeUpdateDataDescriptor(
+      _forState as DataStateKey<D>,
+      update,
+      _makeContext,
+      _forState,
+      _log,
+      label,
+    );
   }
 
   /// Updates ancestor state data of type [D2] when the transition occurs.
@@ -188,12 +197,18 @@ class TransitionHandlerBuilder<D, C> {
   ///
   /// This action can be labeled when formatting a state tree by providing a [label].
   void updateData<D2>(
+    DataStateKey<D2> stateToUpdate,
     D2 Function(TransitionHandlerContext<D2, C> ctx) update, {
-    DataStateKey<D2>? stateToUpdate,
     String? label,
   }) {
-    _descriptor =
-        makeUpdateDataDescriptor(update, _makeContext, _forState, _log, label);
+    _descriptor = makeUpdateDataDescriptor(
+      stateToUpdate,
+      update,
+      _makeContext,
+      _forState,
+      _log,
+      label,
+    );
   }
 
   /// Describes transition behavior that may be run conditionally.
@@ -246,6 +261,7 @@ class TransitionHandlerBuilder<D, C> {
   }) {
     var conditions = <TransitionConditionDescriptor<C>>[];
     var whenBuilder = TransitionHandlerWhenBuilder<D, C>._(
+      _forState,
       conditions,
       () => TransitionHandlerBuilder<D, C>._(_forState, _log, _makeContext),
     );
@@ -281,6 +297,7 @@ class TransitionHandlerBuilder<D, C> {
     var contextRef = Ref<C2?>(null);
     var conditions = <TransitionConditionDescriptor<C2>>[];
     var whenBuilder = TransitionHandlerWhenBuilder<D, C2>._(
+      _forState,
       conditions,
       () => TransitionHandlerBuilder<D, C2>._(
           _forState, _log, (_) => contextRef.value!),
@@ -288,6 +305,7 @@ class TransitionHandlerBuilder<D, C> {
 
     whenBuilder.when(condition, buildTrueHandler, label: label);
     _descriptor = makeWhenWithContextDescriptor<D, C, C2>(
+      _forState,
       context,
       conditions,
       _makeContext,
@@ -349,9 +367,11 @@ class TransitionHandlerBuilder<D, C> {
 /// Provides methods for defining conditional transition behavior for a state carrying state data
 /// of type [D], and a context value of type [C].
 class TransitionHandlerWhenBuilder<D, C> {
+  final StateKey forState;
   final List<TransitionConditionDescriptor<C>> _conditions;
   final TransitionHandlerBuilder<D, C> Function() _makeBuilder;
-  TransitionHandlerWhenBuilder._(this._conditions, this._makeBuilder);
+  TransitionHandlerWhenBuilder._(
+      this.forState, this._conditions, this._makeBuilder);
 
   /// Adds a conditional transition behavior, in the same manner as [TransitionHandlerBuilder.when].
   TransitionHandlerWhenBuilder<D, C> when(
@@ -367,6 +387,7 @@ class TransitionHandlerWhenBuilder<D, C> {
       var conditionInfo = TransitionConditionInfo(label, whenTrueDescr.info);
       _conditions.add(
         TransitionConditionDescriptor.withData<D, C>(
+          forState,
           conditionInfo,
           condition,
           whenTrueDescr,

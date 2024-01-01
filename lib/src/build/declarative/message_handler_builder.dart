@@ -1,4 +1,4 @@
-part of '../../declarative_builders.dart';
+part of '../../../declarative_builders.dart';
 
 /// Describes the message processing result of runnin an action with [MessageHandlerBuilder.action].
 enum ActionResult {
@@ -154,6 +154,7 @@ class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
     String? label,
   }) {
     descriptor = makeGoToSelfDescriptor<M, D, C>(
+      _forState,
       _makeContext,
       _log,
       transitionAction,
@@ -169,6 +170,7 @@ class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
   /// [act] builder can be used to specify this action.
   void stay({MessageActionDescriptor<M, D, C>? action}) {
     descriptor = makeStayOrUnhandledDescriptor<M, D, C>(
+      _forState,
       _makeContext,
       _log,
       _forState,
@@ -188,6 +190,7 @@ class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
     ActionResult actionResult = ActionResult.handled,
   ]) {
     descriptor = makeStayOrUnhandledDescriptor<M, D, C>(
+      _forState,
       _makeContext,
       _log,
       _forState,
@@ -205,6 +208,7 @@ class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
   /// message. The [act] builder can be used to specify this action.
   void unhandled({MessageActionDescriptor<M, D, C>? action}) {
     descriptor = makeStayOrUnhandledDescriptor<M, D, C>(
+      _forState,
       _makeContext,
       _log,
       _forState,
@@ -239,7 +243,7 @@ class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
 
     whenBuilder.when(condition, buildTrue, label: label);
     descriptor = makeWhenMessageDescriptor<M, D, C>(
-        conditions, _makeContext, _log, label, _messageName);
+        _forState, conditions, _makeContext, _log, label, _messageName);
     return whenBuilder;
   }
 
@@ -278,6 +282,7 @@ class MessageHandlerBuilder<M, D, C> extends _MessageHandlerBuilder<M, D, C>
 
     whenBuilder.when(condition, buildTrue, label: label);
     descriptor = makeWhenWithContextMessageDescriptor<M, D, C, C2>(
+      _forState,
       context,
       conditions,
       _makeContext,
@@ -346,6 +351,7 @@ class MachineDoneHandlerBuilder<C>
 
     whenBuilder.when(condition, buildTrueHandler, label: label);
     descriptor = makeWhenMessageDescriptor<Object, NestedMachineData, C>(
+      _forState,
       conditions,
       _makeContext,
       _log,

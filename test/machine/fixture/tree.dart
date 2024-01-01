@@ -1,5 +1,6 @@
 // ignore_for_file: constant_identifier_names
 
+import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
 

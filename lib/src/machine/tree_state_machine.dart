@@ -3,15 +3,14 @@ import 'dart:convert';
 
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/async.dart';
+import 'package:tree_state_machine/src/build/tree_node.dart';
 import 'package:tree_state_machine/src/machine/initial_state_data.dart';
 import 'package:tree_state_machine/src/machine/machine.dart';
-import 'package:tree_state_machine/src/machine/tree_node.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
 import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 import 'lifecycle.dart';
-import 'tree_state.dart';
 import 'utility.dart';
 
 /// A state machine that manages transitions among the states in a state tree.
@@ -168,8 +167,8 @@ class TreeStateMachine {
   ///
   /// A state machine is done when a final state is entered. This may have occurred because transition
   /// to a final state has occurred as result of processing a message, or because [stop] was called.
-  bool get isDone => switch (_machine.currentLeaf) {
-        LeafTreeNode(isFinalState: var f) when f => true,
+  bool get isDone => switch (_machine.currentLeaf?.info) {
+        LeafNodeInfo(isFinalState: true) => true,
         _ => false
       };
 
@@ -220,8 +219,8 @@ class TreeStateMachine {
   ///
   /// Each node in the state tree is accessible from this node and its [RootNodeInfo.children].
   RootNodeInfo get rootNode {
-    assert(_machine.rootNode.treeNode is RootNodeInfo);
-    return _machine.rootNode.treeNode as RootNodeInfo;
+    assert(_machine.rootNode.info is RootNodeInfo);
+    return _machine.rootNode.info as RootNodeInfo;
   }
 
   /// Starts the state machine, transitioning the current state to the initial state of the state
@@ -375,9 +374,9 @@ class TreeStateMachine {
     var stateDataList = _currentState!.activeStates.map((key) {
       var node = _machine.nodes[key];
       assert(node != null, 'active state ${key.toString()} could not be found');
-      var dataValue = node!.treeNode.data;
+      var dataValue = node!.data;
       var stateData = dataValue?.value;
-      var codec = node.treeNode.dataCodec;
+      var codec = node.info.dataCodec;
       stateData = stateData != null && codec != null
           ? codec.serialize(stateData)
           : stateData;
@@ -421,8 +420,7 @@ class TreeStateMachine {
 
     // Find tree nodes that match the encoded data
     final nodesByStringKey = Map.fromEntries(
-      _machine.nodes.entries
-          .map((e) => MapEntry(e.key.toString(), e.value.treeNode)),
+      _machine.nodes.entries.map((e) => MapEntry(e.key.toString(), e.value)),
     );
     final encodableTree =
         EncodableTree.fromJson(objectList[0] as Map<String, dynamic>);
@@ -463,14 +461,14 @@ class TreeStateMachine {
           // so skip those states (there is no data to set)
           if (node.state is DataTreeState &&
               node.state is! DataTreeState<void>) {
-            if (node.dataCodec == null) {
+            if (node.info.dataCodec == null) {
               throw StateError(
                   'Unable to deserialize state data because a serializer has not been '
                   'specified for state ${node.key}');
             }
 
-            var stateData =
-                (node.dataCodec!).deserialize(es.encodedStateData) as Object;
+            var stateData = (node.info.dataCodec!)
+                .deserialize(es.encodedStateData) as Object;
             b.initialData(node.key as DataStateKey, stateData);
           }
         }
@@ -526,7 +524,7 @@ class TreeStateMachine {
   Iterable<_StateDataValue> _mapStateDataValues(Iterable<StateKey> keys) {
     return keys
         .map((key) {
-          var treeNode = _machine.nodes[key]?.treeNode;
+          var treeNode = _machine.nodes[key];
           return treeNode?.key is DataStateKey
               ? _StateDataValue(treeNode!.key as DataStateKey, treeNode.data!)
               : null;
@@ -582,47 +580,23 @@ class CurrentState {
   /// The retured stream completes when the state to which it corresponds is no longer active. If a
   /// long lived stream is needed that remains valid as the state becomes inactive then active
   /// again, then [TreeStateMachine.dataStream] can be used.
-  ValueStream<D>? dataStream<D>([DataStateKey<D>? key]) {
+  ValueStream<D>? dataStream<D>(DataStateKey<D> key) {
     if (isTypeOfExact<void, D>()) return null;
     var node = stateMachine._machine.currentLeaf!;
-    return node.selfOrAncestorDataValue<D>(key: key);
+    return node.selfOrAncestorDataValue<D>(key);
   }
 
-  /// Returns the state data of a given type associated with an active state.
+  /// Returns the state data for an active data state identified by [key].
   ///
-  /// Starting with the current leaf state, each active state is visited. If a state has a state
-  /// data value that matches `D`, then that data value is returned. If [key] is provided, then
-  /// the value is only returned if the key matches the active state.
-  ///
-  /// If [D] is `dynamic`, then the data for the current leaf state is returned, or `null` if the
-  /// current leaf state is not a data state.
-  ///
-  /// Returns `null` if a data value could not be resolved, or if `Object` is specified for `D`.
-  ///
-  /// ```dart
-  ///   // Assume the active state hierarchy is as follows, with S5 as the
-  ///   // current leaf state:
-  ///   // (S5, state data C) ->
-  ///   // (S4, state data C) ->
-  ///   // (S3: no state data) ->
-  ///   // (S2: state data B) ->
-  ///   // (S1: state data A)
-  ///
-  ///   currentState.dataValue<A>();      // Returns data from S1
-  ///   currentState.dataValue<B>();      // Returns data from S2
-  ///   currentState.dataValue<C>();      // Returns data from S5
-  ///   currentState.dataValue<C>(S4);    // Returns data from S4
-  ///   currentState.dataValue<D>();      // Returns null
-  ///   currentState.dataValue();         // Returns data from S5
-  ///   currentState.dataValue<void>();   // Returns null
-  /// ```
-  D? dataValue<D>([DataStateKey<D>? key]) => dataStream<D>(key)?.value;
+  /// Returns `null` if the requested state is not active.
+  D? dataValue<D>(DataStateKey<D> key) => dataStream<D>(key)?.value;
 
   /// Returns `true` if the specified state is an active state in the state machine.
   ///
   /// The current leaf state, and all of its ancestor states, are considered active states.
   bool isInState(StateKey key) {
-    return stateMachine._machine.currentLeaf!.isSelfOrAncestor(key);
+    return stateMachine._machine.currentLeaf!.selfOrAncestorWithKey(key) !=
+        null;
   }
 
   /// The [StateKey]s identifying the states that are currently active in the state machine.

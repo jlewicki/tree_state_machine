@@ -1,9 +1,8 @@
 import 'package:test/test.dart';
 import 'package:tree_state_machine/build.dart';
-import 'package:tree_state_machine/src/machine/tree_node.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
-import '../utility.dart';
+import 'package:tree_state_machine/src/build/tree_node.dart';
 import 'fixture/fixture_data.dart';
 
 final Matcher throwsStateTreeDefinitionError =
@@ -26,9 +25,9 @@ void main() {
         expect(state1, rootNode.children[0].key);
         expect(stoppedStateKey, rootNode.children[1].key);
         expect(DeclarativeStateTreeBuilder.defaultRootKey,
-            rootNode.children.first.parent()!.key);
+            rootNode.children.first.parent!.key);
         expect(DeclarativeStateTreeBuilder.defaultRootKey,
-            rootNode.children.first.parent()!.key);
+            rootNode.children.first.parent!.key);
         expect(sb.rootKey, DeclarativeStateTreeBuilder.defaultRootKey);
       });
     });
@@ -43,7 +42,7 @@ void main() {
         expect(rootNode.children.length, 2);
         expect(rootNode.children[0].key, state1);
         expect(rootNode.children[1].key, stoppedStateKey);
-        expect(rootNode.children.first.parent()!.key, rootState);
+        expect(rootNode.children.first.parent!.key, rootState);
         expect(rootState, sb.rootKey);
       });
     });
@@ -63,7 +62,7 @@ void main() {
         expect(rootNode.children.length, 2);
         expect(rootNode.children[0].key, state1);
         expect(rootNode.children[1].key, stoppedStateKey);
-        expect(rootNode.children.first.parent()!.key, rootState);
+        expect(rootNode.children.first.parent!.key, rootState);
         expect(rootState, sb.rootKey);
       });
     });
@@ -75,8 +74,8 @@ void main() {
         var rootNode = sb();
         var state1Node = rootNode.children.first;
         expect(state1Node.key, state1);
-        expect(state1Node.isLeaf, isTrue);
-        expect(state1Node.isFinalLeaf, isFalse);
+        expect(state1Node.nodeType == NodeType.leaf, isTrue);
+        expect(state1Node.isFinal, isFalse);
         expect(state1Node.children.isEmpty, isTrue);
       });
 
@@ -87,8 +86,8 @@ void main() {
         var rootNode = sb();
         var state1Node = rootNode.children.first;
         expect(state1Node.key, state1);
-        expect(state1Node.isLeaf, isTrue);
-        expect(state1Node.isFinalLeaf, isFalse);
+        expect(state1Node.nodeType == NodeType.leaf, isTrue);
+        expect(state1Node.isFinal, isFalse);
         expect(state1Node.children.isEmpty, isTrue);
       });
 
@@ -99,8 +98,8 @@ void main() {
         var rootNode = sb();
         var state1Node = rootNode.children.first;
         expect(state1Node.key, state1);
-        expect(state1Node.isInterior, isTrue);
-        expect(state1Node.isFinalLeaf, isFalse);
+        expect(state1Node.nodeType == NodeType.interior, isTrue);
+        expect(state1Node.isFinal, isFalse);
         expect(state1Node.children.length, 1);
         expect(state1Node.children.first.key, state2);
       });
@@ -113,8 +112,8 @@ void main() {
         var rootNode = sb();
         var state1Node = rootNode.children.first;
         expect(state1Node.key, state1);
-        expect(state1Node.isInterior, isTrue);
-        expect(state1Node.isFinalLeaf, isFalse);
+        expect(state1Node.nodeType == NodeType.interior, isTrue);
+        expect(state1Node.isFinal, isFalse);
         expect(state1Node.children.length, 1);
         expect(state1Node.children.first.key, state2);
       });
@@ -137,8 +136,8 @@ void main() {
         var rootNode = sb();
         var state1Node = rootNode.children.first;
         expect(state1Node.key, state1);
-        expect(state1Node.isLeaf, isTrue);
-        expect(state1Node.isFinalLeaf, isFalse);
+        expect(state1Node.nodeType == NodeType.leaf, isTrue);
+        expect(state1Node.isFinal, isFalse);
         expect(state1Node.children.isEmpty, isTrue);
       });
 
@@ -151,8 +150,8 @@ void main() {
         var rootNode = sb();
         var state1Node = rootNode.children.first;
         expect(state1Node.key, state1);
-        expect(state1Node.isLeaf, isTrue);
-        expect(state1Node.isFinalLeaf, isFalse);
+        expect(state1Node.nodeType == NodeType.leaf, isTrue);
+        expect(state1Node.isFinal, isFalse);
         expect(state1Node.children.isEmpty, isTrue);
       });
 
@@ -167,8 +166,8 @@ void main() {
         var rootNode = sb();
         var state1Node = rootNode.children.first;
         expect(state1Node.key, state1);
-        expect(state1Node.isInterior, isTrue);
-        expect(state1Node.isFinalLeaf, isFalse);
+        expect(state1Node.nodeType == NodeType.interior, isTrue);
+        expect(state1Node.isFinal, isFalse);
         expect(state1Node.children.length, 1);
         expect(state1Node.children.first.key, state2);
       });
@@ -193,8 +192,8 @@ void main() {
         var rootNode = sb();
         var state1Node = rootNode.children.first;
         expect(state1Node.key, state1);
-        expect(state1Node.isLeaf, isTrue);
-        expect(state1Node.isFinalLeaf, isTrue);
+        expect(state1Node.nodeType == NodeType.leaf, isTrue);
+        expect(state1Node.isFinal, isTrue);
         expect(state1Node.children.isEmpty, isTrue);
       });
 
@@ -216,8 +215,8 @@ void main() {
         var rootNode = sb();
         var state1Node = rootNode.children.first;
         expect(state1Node.key, state1);
-        expect(state1Node.isLeaf, isTrue);
-        expect(state1Node.isFinalLeaf, isTrue);
+        expect(state1Node.nodeType == NodeType.leaf, isTrue);
+        expect(state1Node.isFinal, isTrue);
         expect(state1Node.children.isEmpty, isTrue);
       });
 

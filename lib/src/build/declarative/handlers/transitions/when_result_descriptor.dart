@@ -32,7 +32,9 @@ TransitionHandlerDescriptor<C> makeWhenResultTransitionDescriptor<C, D, T>(
       descriptorInfo,
       makeContext,
       (descrCtx) => (transCtx) {
-            var data = transCtx.dataValueOrThrow<D>();
+            var data = forState is DataStateKey<D>
+                ? transCtx.dataValueOrThrow(forState)
+                : null as D;
             var ctx =
                 TransitionHandlerContext<D, C>(transCtx, data, descrCtx.ctx);
             return result(ctx).bind((result) {

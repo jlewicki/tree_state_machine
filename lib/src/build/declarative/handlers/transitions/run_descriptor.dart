@@ -6,22 +6,23 @@ import 'package:tree_state_machine/src/machine/extensions.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
 import './transition_handler_descriptor.dart';
 
-TransitionHandlerDescriptor<C> makeUpdateDataDescriptor<C, D>(
-  D Function(TransitionHandlerContext<D, C>) update,
+TransitionHandlerDescriptor<C> makeRunDescriptor<D, C>(
+  StateKey forState,
+  FutureOr<void> Function(TransitionHandlerContext<D, C> ctx) handler,
   FutureOr<C> Function(TransitionContext) makeContext,
-  StateKey? state,
   Logger log,
   String? label,
 ) {
-  var info = TransitionHandlerInfo(
-      TransitionHandlerType.updateData, [], label, null, D);
+  var info = TransitionHandlerInfo(TransitionHandlerType.run, [], label);
   return TransitionHandlerDescriptor<C>(
       info,
       makeContext,
       (descrCtx) => (transCtx) {
-            var data = transCtx.dataOrThrow<D>();
-            var ctx = TransitionHandlerContext<D, C>(
-                transCtx, data.value, descrCtx.ctx);
-            data.update((d) => update(ctx));
+            var data = forState is DataStateKey<D>
+                ? transCtx.dataValueOrThrow(forState)
+                : null as D;
+            var ctx =
+                TransitionHandlerContext<D, C>(transCtx, data, descrCtx.ctx);
+            return handler(ctx);
           });
 }

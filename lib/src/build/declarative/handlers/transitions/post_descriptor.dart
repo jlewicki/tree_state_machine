@@ -8,6 +8,7 @@ import 'package:tree_state_machine/declarative_builders.dart';
 import './transition_handler_descriptor.dart';
 
 TransitionHandlerDescriptor<C> makePostDescriptor<D, C, M>(
+  StateKey forState,
   FutureOr<M> Function(TransitionHandlerContext<D, C> ctx) getMessage,
   FutureOr<C> Function(TransitionContext) makeContext,
   Logger log,
@@ -20,7 +21,9 @@ TransitionHandlerDescriptor<C> makePostDescriptor<D, C, M>(
     info,
     makeContext,
     (descrCtx) => (transCtx) {
-      var data = transCtx.dataValueOrThrow<D>();
+      var data = forState is DataStateKey<D>
+          ? transCtx.dataValueOrThrow(forState)
+          : null as D;
       var ctx = TransitionHandlerContext<D, C>(transCtx, data, descrCtx.ctx);
       var msg = getMessage(ctx).bind((msg) => msg as Object);
       transCtx.post(msg);

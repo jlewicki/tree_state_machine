@@ -1,118 +1,100 @@
-import 'dart:collection';
-
-import 'package:tree_state_machine/src/machine/tree_node.dart';
-import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
-import 'package:tree_state_machine/tree_state_machine.dart';
+import 'tree_node_info.dart';
+import 'tree_node.dart';
 
-/// Type of functions that can create a [TreeNode].
-typedef TreeNodeBuilder = TreeNode Function(TreeBuildContext context);
+/// Function that can augment a [TreeNodeInfo] using the provided [NodeInfoBuilder].
+typedef ExtendNodeInfo = void Function(NodeInfoBuilder);
 
 /// Provides contextual information while a state tree is being constructed, and factory methods for
 /// creating tree nodes.
 ///
 /// This is a low-level feature and will not be needed by most applications.
 class TreeBuildContext {
-  TreeBuildContext._(this._parentNode, this._nodes, this.extendNodes);
+  TreeBuildContext._(
+      this._parent, this._nodes, this.extendNodes, this._addStoppedState);
 
   /// Constructs a [TreeBuildContext].
   factory TreeBuildContext({
-    void Function(NodeBuildInfoBuilder)? extendNodes,
+    ExtendNodeInfo? extendNodes,
+    bool addStoppedState = true,
   }) =>
-      TreeBuildContext._(null, {}, extendNodes);
+      TreeBuildContext._(null, {}, extendNodes, addStoppedState);
 
   /// The current parent node for nodes that will be built.
-  final TreeNode? _parentNode;
+  final TreeNode? _parent;
 
   /// Map of nodes that have been built.
   final Map<StateKey, TreeNode> _nodes;
 
   /// Map of nodes that have been built by this context.
-  Map<StateKey, TreeNodeInfo> get nodes => _nodes;
+  Map<StateKey, TreeNodeInfo> get nodes => {
+        for (var e in _nodes.entries)
+          if (e.key != stoppedStateKey) e.key: e.value.info
+      };
+
+  final bool _addStoppedState;
 
   /// If provided, this function is called each time this context builds a tree node. The function
-  /// is provided the [NodeBuildInfoBuilder] that can be used to augment the existing
-  /// [TreeNodeBuildInfo] before it is used to construct a node.
+  /// is provided the [NodeInfoBuilder] that can be used to augment the existing
+  /// [TreeNodeInfo] before it is used to construct a node.
   ///
   /// This is a low-level feature inteded to support general purpose extensions, and will not
   /// typically be used.
-  void Function(NodeBuildInfoBuilder)? extendNodes;
+  ExtendNodeInfo? extendNodes;
 
   /// Creates a root [TreeNode] that is fully populated with its descendant nodes, based on the
-  /// description provided by [rootBuildInfo]
-  RootTreeNode buildRoot(RootNodeBuildInfo rootBuildInfo) {
-    assert(!_nodes.containsKey(rootBuildInfo.key));
+  /// description provided by [rootInfo].
+  TreeNode buildTree(RootNodeInfo rootInfo) {
+    return _buildNode(rootInfo);
+  }
 
-    rootBuildInfo = _transformRoot(rootBuildInfo);
+  TreeNode _buildNode(TreeNodeInfo nodeInfo) {
+    return switch (nodeInfo) {
+      RootNodeInfo() => _buildRoot(nodeInfo),
+      InteriorNodeInfo() => _buildInterior(nodeInfo),
+      LeafNodeInfo() => _buildLeaf(nodeInfo)
+    };
+  }
+
+  TreeNode _buildRoot(RootNodeInfo nodeInfo) {
+    assert(_parent == null);
+    assert(nodeInfo.children.isNotEmpty);
+
+    nodeInfo = _transformRoot(nodeInfo);
 
     var children = <TreeNode>[];
-    var node = RootTreeNode(
-      rootBuildInfo.key,
-      rootBuildInfo.createState,
-      getInitialChild: rootBuildInfo.initialChild,
-      children: UnmodifiableListView(children),
-      dataCodec: rootBuildInfo.dataCodec,
-      filters: rootBuildInfo.filters,
-      metadata: rootBuildInfo.metadata,
-    );
+    var node = TreeNode(nodeInfo, parent: null, children: children);
+    var childCtx = _childContext(node);
+    var childInfos = nodeInfo.children
+        .followedBy(_addStoppedState ? [_stoppedStateInfo(nodeInfo)] : []);
+    children.addAll(childInfos.map(childCtx._buildNode));
 
-    var childBuilders = rootBuildInfo.childBuilders
-        .followedBy([_stoppedNodeBuilder(rootBuildInfo)]);
-
-    final childCtx = _childBuildContext(node);
-    children.addAll(childBuilders.map((buildChild) => buildChild(childCtx)));
     _addNode(node);
-
     return node;
   }
 
-  /// Creates an interior [TreeNode] that is fully populated with its descendant nodes, based on the
-  /// description provided by [nodeBuildInfo]
-  InteriorTreeNode buildInterior(InteriorNodeBuildInfo nodeBuildInfo) {
-    assert(_parentNode != null);
-    assert(_parentNode is CompositeTreeNode);
-    assert(nodeBuildInfo.childBuilders.isNotEmpty);
+  TreeNode _buildInterior(InteriorNodeInfo nodeInfo) {
+    assert(_parent != null);
+    assert(nodeInfo.children.isNotEmpty);
 
-    nodeBuildInfo = _transformInterior(nodeBuildInfo);
+    nodeInfo = _transformInterior(nodeInfo);
 
     var children = <TreeNode>[];
-    var node = InteriorTreeNode(
-      nodeBuildInfo.key,
-      nodeBuildInfo.createState,
-      parent: _parentNode as CompositeTreeNode,
-      getInitialChild: nodeBuildInfo.initialChild,
-      children: UnmodifiableListView(children),
-      dataCodec: nodeBuildInfo.dataCodec,
-      filters: nodeBuildInfo.filters,
-      metadata: nodeBuildInfo.metadata,
-    );
+    var node = TreeNode(nodeInfo, parent: _parent, children: children);
+    var childCtx = _childContext(node);
+    children.addAll(nodeInfo.children.map(childCtx._buildNode));
 
-    final childCtx = _childBuildContext(node);
-    children.addAll(
-        nodeBuildInfo.childBuilders.map((buildChild) => buildChild(childCtx)));
     _addNode(node);
-
     return node;
   }
 
-  /// Creates a leaf [TreeNode], based on the description provided by [nodeBuildInfo]
-  LeafTreeNode buildLeaf(LeafNodeBuildInfo nodeBuildInfo) {
-    assert(_parentNode != null);
-    assert(_parentNode is CompositeTreeNode);
+  TreeNode _buildLeaf(LeafNodeInfo nodeInfo) {
+    assert(_parent != null);
 
-    nodeBuildInfo = _transformLeaf(nodeBuildInfo);
-
-    var node = LeafTreeNode(
-      nodeBuildInfo.key,
-      nodeBuildInfo.createState,
-      parent: _parentNode as CompositeTreeNode,
-      isFinalState: nodeBuildInfo.isFinalState,
-      dataCodec: nodeBuildInfo.dataCodec,
-      filters: nodeBuildInfo.filters,
-      metadata: nodeBuildInfo.metadata,
-    );
-
+    nodeInfo = _transformLeaf(nodeInfo);
+    var node = TreeNode(nodeInfo, parent: _parent, children: const []);
     _addNode(node);
+
     return node;
   }
 
@@ -125,13 +107,17 @@ class TreeBuildContext {
     _nodes[node.key] = node;
   }
 
-  RootNodeBuildInfo _transformRoot(RootNodeBuildInfo node) {
+  TreeBuildContext _childContext(TreeNode newParentNode) {
+    return TreeBuildContext._(newParentNode, _nodes, extendNodes, false);
+  }
+
+  RootNodeInfo _transformRoot(RootNodeInfo node) {
     var transformBuilder = _applyTransform(node);
     return transformBuilder != null
-        ? RootNodeBuildInfo(
+        ? RootNodeInfo(
             node.key,
             node.createState,
-            childBuilders: node.childBuilders,
+            children: node.children,
             initialChild: node.initialChild,
             dataCodec: node.dataCodec,
             filters: transformBuilder._filters,
@@ -140,14 +126,14 @@ class TreeBuildContext {
         : node;
   }
 
-  InteriorNodeBuildInfo _transformInterior(InteriorNodeBuildInfo node) {
+  InteriorNodeInfo _transformInterior(InteriorNodeInfo node) {
     var transformBuilder = _applyTransform(node);
     return transformBuilder != null
-        ? InteriorNodeBuildInfo(
+        ? InteriorNodeInfo(
             node.key,
             node.createState,
             parent: node.parent,
-            childBuilders: node.childBuilders,
+            children: node.children,
             initialChild: node.initialChild,
             dataCodec: node.dataCodec,
             filters: transformBuilder._filters,
@@ -156,10 +142,10 @@ class TreeBuildContext {
         : node;
   }
 
-  LeafNodeBuildInfo _transformLeaf(LeafNodeBuildInfo node) {
+  LeafNodeInfo _transformLeaf(LeafNodeInfo node) {
     var transformBuilder = _applyTransform(node);
     return transformBuilder != null
-        ? LeafNodeBuildInfo(
+        ? LeafNodeInfo(
             node.key,
             node.createState,
             parent: node.parent,
@@ -171,12 +157,12 @@ class TreeBuildContext {
         : node;
   }
 
-  NodeBuildInfoBuilder? _applyTransform(TreeNodeBuildInfo nodeBuildInfo) {
+  NodeInfoBuilder? _applyTransform(TreeNodeInfo nodeBuildInfo) {
     if (extendNodes == null) {
       return null;
     }
 
-    var transformBuilder = NodeBuildInfoBuilder(
+    var transformBuilder = NodeInfoBuilder(
       nodeBuildInfo,
       Map.from(nodeBuildInfo.metadata),
       List.from(nodeBuildInfo.filters),
@@ -187,60 +173,32 @@ class TreeBuildContext {
     return transformBuilder;
   }
 
-  static TreeNodeBuilder _stoppedNodeBuilder(RootNodeBuildInfo root) {
-    return (buildCtx) {
-      return buildCtx.buildLeaf(LeafNodeBuildInfo(
-        stoppedStateKey,
-        parent: root.key,
-        (_) => _stoppedState,
-        isFinalState: true,
-      ));
-    };
+  LeafNodeInfo _stoppedStateInfo(RootNodeInfo rootNodeInfo) {
+    return LeafNodeInfo(
+      stoppedStateKey,
+      (key) => _stoppedState,
+      parent: rootNodeInfo,
+      isFinalState: true,
+    );
   }
-
-  // Constructs a [TreeBuildContext] that adusts the current parent node, so child nodes can be
-  /// built.
-  TreeBuildContext _childBuildContext(TreeNode newParentNode) =>
-      TreeBuildContext._(newParentNode, _nodes, extendNodes);
 }
 
-/// Provides methods for adding additional information to [TreeNodeBuildInfo] values, before they
-/// are used by [TreeBuildContext] to construct tree nodes.
-///
-/// This is a low-level feature and will not be needed by most applications.
-///
-/// ```dart
-///  StateTreeBuildProvider treeProvider = defineStateTree();
-///  StateKey stateToExtend = getStateToExtend();
-///
-///  var builder = StateTreeBuilder(
-///    treeProvider,
-///    createContext: () => TreeBuildContext(
-///      extendNodes: (NodeBuildInfoBuilder b) {
-///        if (b.nodeKey == stateToExtend) {
-///          b.metadata({"IsExtended": true});
-///        }
-///      },
-///    ),
-///  );
-///
-///  var stateMachine = TreeStateMachine.withBuilder(builder);
-/// ```
-class NodeBuildInfoBuilder {
-  /// Constructs a [NodeBuildInfoBuilder].
-  NodeBuildInfoBuilder(this.nodeBuildInfo, this._metadata, this._filters);
+/// Provides methods for augmenting a [TreeNodeInfo] value with additional information.
+class NodeInfoBuilder {
+  /// Constructs a [NodeInfoBuilder].
+  NodeInfoBuilder(this.nodeBuildInfo, this._metadata, this._filters);
 
-  /// Identifies the [TreeNodeBuildInfo] to which this builder applies.
-  final TreeNodeBuildInfo nodeBuildInfo;
+  /// Identifies the [TreeNodeInfo] to which this builder applies.
+  final TreeNodeInfo nodeBuildInfo;
 
   final List<TreeStateFilter> _filters;
   final Map<String, Object> _metadata;
 
-  /// Adds all entries in [metadata] to [TreeNodeBuildInfo.metadata].
+  /// Adds all entries in [metadata] to [TreeNodeInfo.metadata].
   ///
-  /// Throws [StateError] if [TreeNodeBuildInfo.metadata] already contains a key
+  /// Throws [StateError] if [TreeNodeInfo.metadata] already contains a key
   /// that is in [metadata].
-  NodeBuildInfoBuilder metadata(Map<String, Object> metadata) {
+  NodeInfoBuilder metadata(Map<String, Object> metadata) {
     for (var pair in metadata.entries) {
       if (_metadata.containsKey(pair.key)) {
         throw StateError(
@@ -252,16 +210,15 @@ class NodeBuildInfoBuilder {
     return this;
   }
 
-  /// Adds [filter] to [TreeNodeBuildInfo.filters].
-  NodeBuildInfoBuilder filter(TreeStateFilter filter) {
+  /// Adds [filter] to [TreeNodeInfo.filters].
+  NodeInfoBuilder filter(TreeStateFilter filter) {
     _filters.add(filter);
     return this;
   }
 }
 
 final _stoppedState = DelegatingTreeState(
-  (ctx) => throw StateError('Can not send message to a final state'),
-  (ctx) => {},
-  (ctx) => throw StateError('Can not leave a final state.'),
-  null,
+  onMessage: (ctx) => throw StateError('Can not send message to a final state'),
+  onEnter: emptyTransitionHandler,
+  onExit: (ctx) => throw StateError('Can not leave a final state.'),
 );

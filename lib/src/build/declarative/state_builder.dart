@@ -1,4 +1,4 @@
-part of '../../declarative_builders.dart';
+part of '../../../declarative_builders.dart';
 
 /// Indicates that a value of type [P] must be provided when entering a state.
 ///
@@ -46,6 +46,65 @@ class EntryChannel<P> {
 
   /// Constructs a channel for the [to] state.
   const EntryChannel(this.to, {this.label});
+
+  /// Creates an [InitialData] that produces its value by calling [initialValue] with the payload
+  /// provided when entering the state through this channel.
+  ///
+  /// ```dart
+  /// var s1 = StateKey('state1');
+  /// var s2 = DataStateKey<S2Data>('state2');
+  /// var s2Channel = Channel<String>(s2);
+  /// class S2Data {
+  ///   String value = '';
+  /// }
+  /// var builder = StateTreeBuilder(initialChild: parentState);
+  ///
+  /// builder.state(s1, (b) {
+  ///   b.onMessageValue('go', (b) => b.enterChannel(s2Channel, (msgCtx, msg) => 'Hi!'));
+  /// });
+  ///
+  /// builder.dataState<S2Data>(
+  ///   s2,
+  ///   channel.initialData((payload) => S2Data()..value = payload),
+  ///   (b) {
+  ///     b.onEnter((b) {
+  ///       // Will print 'Hi!'
+  ///       b.run((transCtx, data) => print(data.value));
+  ///     });
+  ///   });
+  /// ```
+  InitialData<D> initialData<D>(D Function(P payload) initialValue) {
+    return InitialData.run((transCtx) {
+      try {
+        return initialValue(transCtx.payloadOrThrow<P>());
+      } catch (e) {
+        throw StateError('Failed to obtain inital data of type $D for '
+            'channel ${label != null ? '"$label" ' : ''}'
+            'to state $to: $e');
+      }
+    });
+  }
+
+  /// Creates an [InitialData] that produces its initial value by calling the [initialValue]
+  /// function with a value of type [DAnc], obtained from the ancestor state identified by
+  /// [ancestorKey] and the payload value of this channel.
+  InitialData<D> initialDataFromAncestor<D, DAnc>(
+    DataStateKey<DAnc> ancestorKey,
+    D Function(DAnc ancestorData, P payload) initialValue,
+  ) {
+    return InitialData.run((transCtx) {
+      try {
+        return initialValue(
+          transCtx.dataValueOrThrow(ancestorKey),
+          transCtx.payloadOrThrow<P>(),
+        );
+      } catch (e) {
+        throw StateError('Failed to obtain inital data of type $D for '
+            'channel ${label != null ? '"$label" ' : ''}'
+            'to state $to: $e');
+      }
+    });
+  }
 }
 
 abstract class _StateBuilder {
@@ -94,39 +153,73 @@ abstract class _StateBuilder {
     };
   }
 
-  TreeNodeBuildInfo toTreeNodeBuildInfo(
-    TreeNodeBuilder Function(StateKey childState) getChildNodeBuilder,
+  TreeNodeInfo toTreeNodeInfo(
+    _StateBuilder Function(StateKey) getChildBuilder,
+    TreeNodeInfo? parent,
   ) {
     return switch (nodeType) {
-      NodeType.root => RootNodeBuildInfo(
-          key,
-          (_) => _createState(),
-          childBuilders: _children.map(getChildNodeBuilder).toList(),
-          initialChild: _initialChild!.call,
-          dataCodec: _codec,
-          filters: _filters,
-          metadata: _metadata,
-        ),
-      NodeType.interior => InteriorNodeBuildInfo(
-          key,
-          (_) => _createState(),
-          parent: _parent!,
-          childBuilders: _children.map(getChildNodeBuilder).toList(),
-          initialChild: _initialChild!.call,
-          dataCodec: _codec,
-          filters: _filters,
-          metadata: _metadata,
-        ),
-      NodeType.leaf => LeafNodeBuildInfo(
-          key,
-          (_) => _createState(),
-          parent: _parent!,
-          dataCodec: _codec,
-          filters: _filters,
-          metadata: _metadata,
-          isFinalState: _isFinal,
-        ),
+      NodeType.root => _toRootNodeInfo(getChildBuilder),
+      NodeType.interior => _toInteriorNodeInfo(getChildBuilder, parent!),
+      NodeType.leaf => _toLeafNodeInfo(parent!),
     };
+  }
+
+  LeafNodeInfo _toLeafNodeInfo(TreeNodeInfo parent) {
+    return LeafNodeInfo(
+      key,
+      (_) => _createState(),
+      parent: parent,
+      dataCodec: _codec,
+      filters: _filters,
+      metadata: _metadata,
+      isFinalState: _isFinal,
+    );
+  }
+
+  RootNodeInfo _toRootNodeInfo(
+    _StateBuilder Function(StateKey) getChildBuilder,
+  ) {
+    List<TreeNodeInfo> children = [];
+
+    var nodeInfo = RootNodeInfo(
+      key,
+      (_) => _createState(),
+      children: children,
+      initialChild: _initialChild!.call,
+      dataCodec: _codec,
+      filters: _filters,
+      metadata: _metadata,
+    );
+
+    children.addAll(_children
+        .map(getChildBuilder)
+        .map((sb) => sb.toTreeNodeInfo(getChildBuilder, nodeInfo)));
+
+    return nodeInfo;
+  }
+
+  InteriorNodeInfo _toInteriorNodeInfo(
+    _StateBuilder Function(StateKey) getChildBuilder,
+    TreeNodeInfo parent,
+  ) {
+    List<TreeNodeInfo> children = [];
+
+    var nodeInfo = InteriorNodeInfo(
+      key,
+      (_) => _createState(),
+      parent: parent,
+      children: children,
+      initialChild: _initialChild!.call,
+      dataCodec: _codec,
+      filters: _filters,
+      metadata: _metadata,
+    );
+
+    children.addAll(_children
+        .map(getChildBuilder)
+        .map((sb) => sb.toTreeNodeInfo(getChildBuilder, nodeInfo)));
+
+    return nodeInfo;
   }
 
   bool get _hasStateData => _dataType != null;
@@ -144,10 +237,9 @@ abstract class _StateBuilder {
 
   TreeState _createState() {
     return DelegatingTreeState(
-      _createMessageHandler(),
-      _createOnEnter(),
-      _createOnExit(),
-      null,
+      onMessage: _createMessageHandler(),
+      onEnter: _createOnEnter(),
+      onExit: _createOnExit(),
     );
   }
 
@@ -217,7 +309,9 @@ abstract class EnterStateBuilder<D> {
   /// The [build] function is called with a [TransitionHandlerBuilder] that can be used to
   /// describe the behavior of the exit transition.
   void onEnterWithData<D2>(
-      void Function(TransitionHandlerBuilder<D, D2>) build);
+    DataStateKey<D2> ancestorKey,
+    void Function(TransitionHandlerBuilder<D, D2>) build,
+  );
 
   /// Describes how transition to this state through [channel] should be handled.
   ///
@@ -268,10 +362,11 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
 
   @override
   void onEnterWithData<D2>(
+    DataStateKey<D2> ancestorKey,
     void Function(TransitionHandlerBuilder<D, D2>) build,
   ) {
     var builder = TransitionHandlerBuilder<D, D2>._(
-        key, _log, (transCtx) => transCtx.dataValueOrThrow<D2>());
+        key, _log, (transCtx) => transCtx.dataValueOrThrow(ancestorKey));
     build(builder);
     _onEnter = builder._descriptor;
   }
@@ -336,11 +431,11 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
   ///
   /// The [build] function is called with a [TransitionHandlerBuilder] that can be used to
   /// describe the behavior of the exit transition.
-  void onMessageWithData<M, D2>(
+  void onMessageWithData<M, D2>(DataStateKey<D2> ancestorKey,
       void Function(MessageHandlerBuilder<M, D, D2> b) build) {
     var builder = MessageHandlerBuilder<M, D, D2>(
       key,
-      (msgCtx) => msgCtx.dataValueOrThrow<D2>(),
+      (msgCtx) => msgCtx.dataValueOrThrow(ancestorKey),
       _log,
       null,
     );
@@ -389,10 +484,11 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
   /// The [build] function is called with a [TransitionHandlerBuilder] that can be used to
   /// describe the behavior of the exit transition.
   void onExitWithData<D2>(
+    DataStateKey<D2> ancestorKey,
     void Function(TransitionHandlerBuilder<D, D2>) build,
   ) {
     var builder = TransitionHandlerBuilder<D, D2>._(
-        key, _log, (transCtx) => transCtx.dataValueOrThrow<D2>());
+        key, _log, (transCtx) => transCtx.dataValueOrThrow(ancestorKey));
     build(builder);
     _onExit = builder._descriptor;
   }
@@ -401,10 +497,10 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
   TreeState _createState() {
     return DelegatingDataTreeState<D>(
       _typedInitialData.call,
-      _createMessageHandler(),
-      _createOnEnter(),
-      _createOnExit(),
-      () {},
+      onMessage: _createMessageHandler(),
+      onEnter: _createOnEnter(),
+      onExit: _createOnExit(),
+      onDispose: emptyDispose,
     );
   }
 
