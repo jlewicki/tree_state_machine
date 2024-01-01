@@ -46,7 +46,7 @@ void main() {
                   state2,
                   action: b.act.run(
                     (ctx) {
-                      finalNestedData = ctx.context.dataValue<StateData>();
+                      finalNestedData = ctx.context.dataValue(nestedState2);
                     },
                   ),
                 ));
@@ -82,7 +82,7 @@ void main() {
                   state2,
                   action: b.act.run(
                     (ctx) =>
-                        finalNestedData = ctx.context.dataValue<StateData>(),
+                        finalNestedData = ctx.context.dataValue(nestedState2),
                   ),
                 ));
           },
@@ -117,7 +117,7 @@ void main() {
                   state2,
                   action: b.act.run(
                     (ctx) =>
-                        finalNestedData = ctx.context.dataValue<StateData>(),
+                        finalNestedData = ctx.context.dataValue(nestedState2),
                   ),
                 ));
           },
@@ -153,7 +153,7 @@ void main() {
                   state2,
                   action: b.act.run(
                     (ctx) =>
-                        finalNestedData = ctx.context.dataValue<StateData>(),
+                        finalNestedData = ctx.context.dataValue(nestedState2),
                   ),
                 ));
             b.onMachineDisposed((b) => b.goTo(state2));

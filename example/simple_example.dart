@@ -64,7 +64,7 @@ Future<void> main() async {
   var currentState = await stateMachine.start();
   await currentState.post(ToUppercase('hi'));
   await currentState.post(Messages.finish);
-  var uppercase = currentState.dataValue<String>();
+  var uppercase = currentState.dataValue(States.finished);
   assert(uppercase == 'HI');
   print(uppercase);
 }

@@ -102,15 +102,15 @@ Future<void> main() async {
 
   await currentState.post(Assign('Joey'));
   assert(currentState.key == States.assigned);
-  assert(currentState.dataValue<BugData>()!.assignee == 'Joey');
+  assert(currentState.dataValue(States.root)!.assignee == 'Joey');
 
   await currentState.post(Messages.defer);
   assert(currentState.key == States.deferred);
-  assert(currentState.dataValue<BugData>()!.assignee == null);
+  assert(currentState.dataValue(States.root)!.assignee == null);
 
   await currentState.post(Assign('Rachel'));
   assert(currentState.key == States.assigned);
-  assert(currentState.dataValue<BugData>()!.assignee == 'Rachel');
+  assert(currentState.dataValue(States.root)!.assignee == 'Rachel');
 
   await currentState.post(Messages.close);
   assert(currentState.key == States.closed);

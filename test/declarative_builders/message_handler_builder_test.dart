@@ -191,7 +191,7 @@ void main() {
         await currentState.post(msg);
 
         expect(currentState.key, equals(dataState2));
-        expect(currentState.dataValue<String>(), equals('2'));
+        expect(currentState.dataValue(dataState2), equals('2'));
       });
 
       test('should run action before transition', () async {
@@ -218,7 +218,7 @@ void main() {
         await currentState.post(msg);
 
         expect(currentState.key, equals(dataState2));
-        expect(currentState.dataValue<String>(), equals('2'));
+        expect(currentState.dataValue(dataState2), equals('2'));
         expect(actionWasRun, isTrue);
       });
     });

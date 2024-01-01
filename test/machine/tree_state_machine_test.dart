@@ -269,7 +269,7 @@ void main() {
 
         await currentState.post(Object());
         expect(currentState.key, equals(data_tree.r_XD_key));
-        expect(currentState.dataValue<FinalData>()!.counter, equals(1));
+        expect(currentState.dataValue(data_tree.r_XD_key)!.counter, equals(1));
         expect(sm.isDone, isTrue);
       });
     });
@@ -352,20 +352,20 @@ void main() {
         expect(sm.lifecycle.isStarted, isTrue);
         expect(currentState.key, data_tree.r_a_a_1_key);
 
-        final r_a_a_1_data = currentState.dataValue<LeafData1>();
+        final r_a_a_1_data = currentState.dataValue(data_tree.r_a_a_1_key);
         expect(r_a_a_1_data, isNotNull);
         expect(r_a_a_1_data!.counter, equals(10));
 
-        final r_a_a_data = currentState.dataValue<LeafDataBase>();
+        final r_a_a_data = currentState.dataValue(data_tree.r_a_a_key);
         expect(r_a_a_data, isNotNull);
         expect(r_a_a_data!.name, equals('Yo'));
 
-        final r_a_data = currentState.dataValue<ImmutableData>();
+        final r_a_data = currentState.dataValue(data_tree.r_a_key);
         expect(r_a_data, isNotNull);
         expect(r_a_data!.price, equals(8));
         expect(r_a_data.name, equals('Dude'));
 
-        final r_data = currentState.dataValue<SpecialDataD>();
+        final r_data = currentState.dataValue(data_tree.r_key);
         expect(r_data, isNotNull);
         expect(r_data!.playerName, equals('FOO'));
         expect(r_data.startYear, equals(2000));

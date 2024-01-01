@@ -60,7 +60,7 @@ void main() {
         var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         await currentState.post(Message());
-        expect(currentState.dataValue<StateData>()!.val, equals('1'));
+        expect(currentState.dataValue<StateData>(rootState)!.val, equals('1'));
       });
     });
 
@@ -280,7 +280,7 @@ void main() {
         var currentState = await stateMachine.start();
         await currentState.post(Message()..val = '1');
         expect(currentState.key, equals(state3));
-        expect(currentState.dataValue<StateData>()!.val, equals('1'));
+        expect(currentState.dataValue(rootState)!.val, equals('1'));
       });
     });
   });

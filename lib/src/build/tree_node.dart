@@ -179,48 +179,25 @@ extension TreeNodeNavigationExtensions on TreeNode {
     return selfAndAncestors().firstWhereOrNull((n) => n.key == stateKey);
   }
 
-  /// Finds the self-or-ancestor node that has a data provider whose data value matches type [D].
-  ///
-  /// Returns `null` if there is no node that matches the data type.
-  TreeNode? selfOrAncestorWithData<D>() {
-    return selfAndAncestors().firstWhereOrNull((n) {
-      var match = n.data is DataValue && n.data?.value is D ? true : false;
-      return match;
-    });
-  }
-
-  /// TODO: simplify this by requiring a DataStateKey
   DataValue<D>? selfOrAncestorDataValue<D>(
-      {DataStateKey<D>? key, bool throwIfNotFound = false}) {
-    // We cant search
-    if (isTypeOfExact<void, D>()) return null;
-
-    var typeofDIsObjectOrDynamic =
-        isTypeOfExact<Object, D>() || isTypeOfExact<dynamic, D>();
+    DataStateKey<D> key, {
+    bool throwIfNotFound = false,
+  }) {
     // If requested type was Object, then we can't meaningfully search by type. So we can only
     // search by key, and if no key was specified, then we assume the current leaf.
-    var key_ = key ?? (typeofDIsObjectOrDynamic ? this.key : null);
-    var node = key_ != null
-        ? selfOrAncestorWithKey(key_)
-        : selfOrAncestorWithData<D>();
+    var node = selfOrAncestorWithKey(key);
     var dataValue = node?.data;
     if (dataValue != null) {
-      if (typeofDIsObjectOrDynamic) {
-        // In this case we know DataValue<D> is DataValue<Object|dynamic> so it is safe to cast
-        return dataValue as DataValue<D>;
-      }
-
       return dataValue is DataValue<D>
           ? dataValue
           : throw StateError(
-              'DataValue of type ${dataValue.runtimeType} for requested state ${node!.key} does not have '
-              'value of requested type ${TypeLiteral<D>().type}.');
+              'DataValue of type ${dataValue.runtimeType} for requested state $key does not have '
+              'value of requested type $D.');
     }
 
     if (throwIfNotFound) {
-      var msg = key_ != null
-          ? 'Unable to find data value that matches data type ${TypeLiteral<D>().type} and key $key_'
-          : 'Unable to find data value that matches data type ${TypeLiteral<D>().type}';
+      var msg =
+          'Unable to find data value that matches data type $D and key $key';
       throw StateError(msg);
     }
 

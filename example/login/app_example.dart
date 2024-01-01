@@ -74,7 +74,7 @@ DeclarativeStateTreeBuilder appStateTree(AuthService authService) {
     (b) {
       b.onMachineDone((b) => b.enterChannel(
             authenticatedChannel,
-            (ctx) => ctx.context.dataValue<auth.AuthenticatedData>()!.user,
+            (ctx) => ctx.context.dataValue(auth.States.authenticated)!.user,
           ));
     },
   );
@@ -135,7 +135,7 @@ void main() async {
   assert(currentState.key == States.authenticate);
 
   var nestedState =
-      currentState.dataValue<NestedMachineData>()!.nestedCurrentState;
+      currentState.dataValue(States.authenticate)!.nestedCurrentState;
   assert(nestedState.isInState(auth.States.login));
   assert(nestedState.key == auth.States.loginEntry);
 
@@ -148,7 +148,7 @@ void main() async {
 
   // Check that nested state machine finished
   assert(nestedState.key == auth.States.authenticated);
-  assert(nestedState.dataValue<auth.AuthenticatedData>()!.user.email ==
+  assert(nestedState.dataValue(auth.States.authenticated)!.user.email ==
       'chandler.bing@hotmail.com');
   assert(nestedState.stateMachine.isDone);
 
@@ -160,7 +160,7 @@ void main() async {
   await currentState.post(Messages.goToRegister);
   assert(currentState.key == States.authenticate);
 
-  nestedState = currentState.dataValue<NestedMachineData>()!.nestedCurrentState;
+  nestedState = currentState.dataValue(States.authenticate)!.nestedCurrentState;
   assert(nestedState.isInState(auth.States.registration));
   assert(nestedState.key == auth.States.credentialsRegistration);
 

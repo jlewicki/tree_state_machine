@@ -39,7 +39,7 @@ void main() {
         var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         await currentState.post(Message());
-        expect(currentState.dataValue<int>(), equals(2));
+        expect(currentState.dataValue(dataState1), equals(2));
       });
     });
 
@@ -117,8 +117,7 @@ void main() {
         var stateMachine = TreeStateMachine(b);
         var currentState = await stateMachine.start();
         await currentState.post(Message());
-        currentState.dataValue<int>();
-        expect(currentState.dataValue<int>(), equals(2));
+        expect(currentState.dataValue(dataState1), equals(2));
       });
     });
 

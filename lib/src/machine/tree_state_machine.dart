@@ -11,7 +11,6 @@ import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 import 'lifecycle.dart';
-import 'tree_state.dart';
 import 'utility.dart';
 
 /// A state machine that manages transitions among the states in a state tree.
@@ -581,41 +580,16 @@ class CurrentState {
   /// The retured stream completes when the state to which it corresponds is no longer active. If a
   /// long lived stream is needed that remains valid as the state becomes inactive then active
   /// again, then [TreeStateMachine.dataStream] can be used.
-  ValueStream<D>? dataStream<D>([DataStateKey<D>? key]) {
+  ValueStream<D>? dataStream<D>(DataStateKey<D> key) {
     if (isTypeOfExact<void, D>()) return null;
     var node = stateMachine._machine.currentLeaf!;
-    return node.selfOrAncestorDataValue<D>(key: key);
+    return node.selfOrAncestorDataValue<D>(key);
   }
 
-  /// Returns the state data of a given type associated with an active state.
+  /// Returns the state data for an active data state identified by [key].
   ///
-  /// Starting with the current leaf state, each active state is visited. If a state has a state
-  /// data value that matches `D`, then that data value is returned. If [key] is provided, then
-  /// the value is only returned if the key matches the active state.
-  ///
-  /// If [D] is `dynamic`, then the data for the current leaf state is returned, or `null` if the
-  /// current leaf state is not a data state.
-  ///
-  /// Returns `null` if a data value could not be resolved, or if `Object` is specified for `D`.
-  ///
-  /// ```dart
-  ///   // Assume the active state hierarchy is as follows, with S5 as the
-  ///   // current leaf state:
-  ///   // (S5, state data C) ->
-  ///   // (S4, state data C) ->
-  ///   // (S3: no state data) ->
-  ///   // (S2: state data B) ->
-  ///   // (S1: state data A)
-  ///
-  ///   currentState.dataValue<A>();      // Returns data from S1
-  ///   currentState.dataValue<B>();      // Returns data from S2
-  ///   currentState.dataValue<C>();      // Returns data from S5
-  ///   currentState.dataValue<C>(S4);    // Returns data from S4
-  ///   currentState.dataValue<D>();      // Returns null
-  ///   currentState.dataValue();         // Returns data from S5
-  ///   currentState.dataValue<void>();   // Returns null
-  /// ```
-  D? dataValue<D>([DataStateKey<D>? key]) => dataStream<D>(key)?.value;
+  /// Returns `null` if the requested state is not active.
+  D? dataValue<D>(DataStateKey<D> key) => dataStream<D>(key)?.value;
 
   /// Returns `true` if the specified state is an active state in the state machine.
   ///
