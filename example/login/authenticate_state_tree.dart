@@ -146,18 +146,22 @@ DeclarativeStateTreeBuilder authenticateStateTree(
   b.state(States.credentialsRegistration, (b) {
     b.onMessage<SubmitCredentials>((b) {
       b.goTo(States.demographicsRegistration,
-          action: b.act.updateData<RegisterData>((ctx, data) => data
-            ..email = ctx.message.email
-            ..password = ctx.message.password));
+          action: b.act.updateData(
+              States.registration,
+              (ctx, data) => data
+                ..email = ctx.message.email
+                ..password = ctx.message.password));
     });
   }, parent: States.registration);
 
   b.state(States.demographicsRegistration, (b) {
     b.onMessage<SubmitDemographics>((b) {
       b.unhandled(
-        action: b.act.updateData<RegisterData>((ctx, data) => data
-          ..firstName = ctx.message.firstName
-          ..lastName = ctx.message.lastName),
+        action: b.act.updateData(
+            States.registration,
+            (ctx, data) => data
+              ..firstName = ctx.message.firstName
+              ..lastName = ctx.message.lastName),
       );
     });
   }, parent: States.registration);
@@ -189,7 +193,7 @@ DeclarativeStateTreeBuilder authenticateStateTree(
       }).otherwise((b) {
         b.goTo(
           States.loginEntry,
-          action: b.act.updateData<LoginData>(
+          action: b.act.updateData(States.login,
               (ctx, err) => err..errorMessage = ctx.context.error.toString()),
         );
       });
@@ -217,7 +221,7 @@ Future<Result<AuthorizedUser>> _register(
   AuthService authService,
 ) async {
   var errorMessage = '';
-  var dataVal = msgCtx.dataOrThrow<RegisterData>();
+  var dataVal = msgCtx.dataOrThrow(States.registration);
   try {
     dataVal.update((_) => registerData
       ..isBusy = true

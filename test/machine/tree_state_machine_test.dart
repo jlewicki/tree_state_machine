@@ -656,16 +656,16 @@ void main() {
           messageHandlers: {
             data_tree.r_a_a_2_key: (msgCtx) {
               msgCtx
-                  .data<LeafData2>()!
+                  .data(data_tree.r_a_a_2_key)!
                   .update((current) => current..label = 'not cool man');
               msgCtx
-                  .data<LeafDataBase>()!
+                  .data(data_tree.r_a_a_key)!
                   .update((current) => current..name = 'you');
               return msgCtx.goTo(data_tree.r_a_a_1_key);
             },
             data_tree.r_a_a_1_key: (msgCtx) {
               msgCtx
-                  .data<LeafDataBase>()!
+                  .data(data_tree.r_a_a_key)!
                   .update((current) => current..name = 'you!');
               return msgCtx.goTo(data_tree.r_a_a_2_key);
             }
@@ -719,16 +719,16 @@ void main() {
           messageHandlers: {
             data_tree.r_a_a_2_key: (msgCtx) {
               msgCtx
-                  .data<LeafData2>()!
+                  .data(data_tree.r_a_a_2_key)!
                   .update((current) => current..label = 'not cool man');
               msgCtx
-                  .data<LeafDataBase>()!
+                  .data(data_tree.r_a_a_key)!
                   .update((current) => current..name = 'you');
               return msgCtx.goTo(data_tree.r_a_a_1_key);
             },
             data_tree.r_a_a_1_key: (msgCtx) {
               msgCtx
-                  .data<LeafDataBase>()!
+                  .data(data_tree.r_a_a_key)!
                   .update((current) => current..name = 'you!');
               return msgCtx.goTo(data_tree.r_a_a_2_key);
             }
@@ -783,10 +783,10 @@ void main() {
             data_tree.r_a_a_2_key: (msgCtx) {
               if (msgCtx.message is _GoToMessage) {
                 msgCtx
-                    .data<LeafData2>()!
+                    .data(data_tree.r_a_a_2_key)!
                     .update((current) => current..label = 'not cool man');
                 msgCtx
-                    .data<LeafDataBase>()!
+                    .data(data_tree.r_a_a_key)!
                     .update((current) => current..name = 'you');
                 return msgCtx.goTo((msgCtx.message as _GoToMessage).state);
               }
@@ -794,7 +794,7 @@ void main() {
             },
             data_tree.r_a_a_1_key: (msgCtx) {
               msgCtx
-                  .data<LeafDataBase>()!
+                  .data(data_tree.r_a_a_key)!
                   .update((current) => current..name = 'you!');
               return msgCtx.goTo(data_tree.r_a_a_2_key);
             },

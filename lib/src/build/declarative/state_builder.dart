@@ -237,10 +237,9 @@ abstract class _StateBuilder {
 
   TreeState _createState() {
     return DelegatingTreeState(
-      _createMessageHandler(),
-      _createOnEnter(),
-      _createOnExit(),
-      null,
+      onMessage: _createMessageHandler(),
+      onEnter: _createOnEnter(),
+      onExit: _createOnExit(),
     );
   }
 
@@ -310,7 +309,9 @@ abstract class EnterStateBuilder<D> {
   /// The [build] function is called with a [TransitionHandlerBuilder] that can be used to
   /// describe the behavior of the exit transition.
   void onEnterWithData<D2>(
-      void Function(TransitionHandlerBuilder<D, D2>) build);
+    DataStateKey<D2> ancestorKey,
+    void Function(TransitionHandlerBuilder<D, D2>) build,
+  );
 
   /// Describes how transition to this state through [channel] should be handled.
   ///
@@ -361,10 +362,11 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
 
   @override
   void onEnterWithData<D2>(
+    DataStateKey<D2> ancestorKey,
     void Function(TransitionHandlerBuilder<D, D2>) build,
   ) {
     var builder = TransitionHandlerBuilder<D, D2>._(
-        key, _log, (transCtx) => transCtx.dataValueOrThrow<D2>());
+        key, _log, (transCtx) => transCtx.dataValueOrThrow(ancestorKey));
     build(builder);
     _onEnter = builder._descriptor;
   }
@@ -429,11 +431,11 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
   ///
   /// The [build] function is called with a [TransitionHandlerBuilder] that can be used to
   /// describe the behavior of the exit transition.
-  void onMessageWithData<M, D2>(
+  void onMessageWithData<M, D2>(DataStateKey<D2> ancestorKey,
       void Function(MessageHandlerBuilder<M, D, D2> b) build) {
     var builder = MessageHandlerBuilder<M, D, D2>(
       key,
-      (msgCtx) => msgCtx.dataValueOrThrow<D2>(),
+      (msgCtx) => msgCtx.dataValueOrThrow(ancestorKey),
       _log,
       null,
     );
@@ -482,10 +484,11 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
   /// The [build] function is called with a [TransitionHandlerBuilder] that can be used to
   /// describe the behavior of the exit transition.
   void onExitWithData<D2>(
+    DataStateKey<D2> ancestorKey,
     void Function(TransitionHandlerBuilder<D, D2>) build,
   ) {
     var builder = TransitionHandlerBuilder<D, D2>._(
-        key, _log, (transCtx) => transCtx.dataValueOrThrow<D2>());
+        key, _log, (transCtx) => transCtx.dataValueOrThrow(ancestorKey));
     build(builder);
     _onExit = builder._descriptor;
   }

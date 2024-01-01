@@ -68,8 +68,8 @@ class MessageActionBuilder<M, D, C> {
   /// ```
   /// This action can be labeled when formatting a state tree by providing a [label].
   MessageActionDescriptor<M, D, C> updateData<D2>(
+    DataStateKey<D2> forState,
     D2 Function(MessageHandlerContext<M, D, C> ctx, D2 data) update, {
-    DataStateKey<D2>? forState,
     String? label,
   }) {
     var info = MessageActionInfo(ActionType.updateData, null, D2, label);
@@ -87,8 +87,10 @@ class MessageActionBuilder<M, D, C> {
     var info = MessageActionInfo(ActionType.updateData, null, D, label);
     return MessageActionDescriptor(info, (ctx) {
       _log.fine(() => "State '$_forState' is updating data of type $D");
-      var data = ctx.messageContext.dataOrThrow<D>(
-          switch (_forState) { DataStateKey<D>() => _forState, _ => null });
+      var data = _forState is DataStateKey<D>
+          ? ctx.messageContext.dataOrThrow(_forState)
+          : throw StateError(
+              'Unable to find data value of type $D in active data states');
       data.update((current) => update(ctx));
     });
   }

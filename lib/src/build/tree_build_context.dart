@@ -218,8 +218,7 @@ class NodeInfoBuilder {
 }
 
 final _stoppedState = DelegatingTreeState(
-  (ctx) => throw StateError('Can not send message to a final state'),
-  (ctx) => {},
-  (ctx) => throw StateError('Can not leave a final state.'),
-  null,
+  onMessage: (ctx) => throw StateError('Can not send message to a final state'),
+  onEnter: emptyTransitionHandler,
+  onExit: (ctx) => throw StateError('Can not leave a final state.'),
 );

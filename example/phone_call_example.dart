@@ -1,6 +1,6 @@
 import 'package:tree_state_machine/build.dart';
+import 'package:tree_state_machine/delegate_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
-import 'package:tree_state_machine/declarative_builders.dart';
 
 //
 // State keys
@@ -39,89 +39,99 @@ enum Messages {
 }
 
 //
-// Channels
-//
-final ringingChannel = EntryChannel<Dial>(States.ringing);
-
-typedef VoidTransitionHandlerContext = TransitionHandlerContext<void, void>;
-
-//
 // State tree
 //
-DeclarativeStateTreeBuilder phoneCallStateTree() {
-  return DeclarativeStateTreeBuilder(initialChild: States.offHook)
-    ..state(States.offHook, (b) {
-      b.onMessage<Dial>(
-          (b) => b.enterChannel(ringingChannel, (ctx) => ctx.message));
-    })
-    ..state(States.ringing, (b) {
-      b.onEnterFromChannel<Dial>(ringingChannel, (b) => b.run(onDialed));
-      b.onMessageValue(
-        Messages.callConnected,
-        (b) => b.goTo(States.connected),
-        messageName: 'callConnected',
-      );
-    })
-    ..state(States.connected, (b) {
-      b.onEnter((b) => b.run(onCallStarted));
-      b.onExit((b) => b.run(onCallEnded));
-      b.onMessageValue(
-        Messages.muteMicrophone,
-        (b) => b.action(b.act.run(onMute)),
-      );
-      b.onMessageValue(
-        Messages.unmuteMicrophone,
-        (b) => b.action(b.act.run(onUnmute)),
-      );
-      b.onMessage<SetVolume>((b) => b.action(b.act.run(onSetVolume)));
-      b.onMessageValue(Messages.leftMessage, (b) => b.goTo(States.offHook));
-      b.onMessageValue(Messages.placedOnHold, (b) => b.goTo(States.onHold));
-      b.onMessageValue(Messages.hangUp, (b) => b.goTo(States.offHook));
-    }, initialChild: InitialChild(States.talking))
-    ..state(States.talking, emptyState, parent: States.connected)
-    ..state(States.onHold, (b) {
-      b.onMessageValue(Messages.takenOffHold, (b) => b.goTo(States.connected));
-      b.onMessageValue(
-        Messages.phoneHurledAgainstWall,
-        (b) => b.goTo(States.phoneDestroyed),
-      );
-    }, parent: States.connected)
-    ..finalState(States.phoneDestroyed, emptyFinalState);
-}
+final phoneCallStateTree = StateTree(
+  InitialChild(States.offHook),
+  children: [
+    State(
+      States.offHook,
+      onMessage: (ctx) => switch (ctx.message) {
+        Dial() => ctx.goTo(States.ringing, payload: ctx.message),
+        _ => ctx.unhandled()
+      },
+    ),
+    State(
+      States.ringing,
+      onEnter: onDialed,
+      onMessage: (ctx) => ctx.message == Messages.callConnected
+          ? ctx.goTo(States.connected)
+          : ctx.unhandled(),
+    ),
+    State.composite(
+      States.connected,
+      InitialChild(States.talking),
+      onEnter: onCallStarted,
+      onExit: onCallEnded,
+      onMessage: (ctx) {
+        if (ctx.message == Messages.muteMicrophone) {
+          onMute(ctx);
+          return ctx.stay();
+        } else if (ctx.message == Messages.unmuteMicrophone) {
+          onUnmute(ctx);
+          return ctx.stay();
+        } else if (ctx.message is SetVolume) {
+          onSetVolume(ctx.message as SetVolume);
+          return ctx.stay();
+        } else if (ctx.message == Messages.leftMessage) {
+          return ctx.goTo(States.offHook);
+        } else if (ctx.message == Messages.placedOnHold) {
+          return ctx.goTo(States.onHold);
+        } else if (ctx.message == Messages.takenOffHold) {
+          return ctx.goTo(States.connected);
+        } else if (ctx.message == Messages.hangUp) {
+          return ctx.goTo(States.offHook);
+        }
+        return ctx.unhandled();
+      },
+      children: [
+        State(States.talking),
+        State(
+          States.onHold,
+          onMessage: (ctx) => switch (ctx.message) {
+            Messages.takenOffHold => ctx.goTo(States.connected),
+            Messages.phoneHurledAgainstWall => ctx.goTo(States.phoneDestroyed),
+            _ => ctx.unhandled(),
+          },
+        ),
+      ],
+    ),
+    State(States.phoneDestroyed, isFinal: true),
+  ],
+);
 
-void onCallStarted(VoidTransitionHandlerContext ctx) {
+void onCallStarted(TransitionContext ctx) {
   print('Call started at ${DateTime.now()}.');
 }
 
-void onCallEnded(VoidTransitionHandlerContext ctx) {
+void onCallEnded(TransitionContext ctx) {
   print('Call ended at ${DateTime.now()}.');
 }
 
-Future<void> onDialed(TransitionHandlerContext<void, Dial> ctx) async {
-  print('Call placed to ${ctx.context.callee}.');
+Future<void> onDialed(TransitionContext ctx) async {
+  print('Call placed to ${ctx.payloadOrThrow<Dial>().callee}.');
   print('Connecting...');
-  ctx.transitionContext.schedule(
+  ctx.schedule(
     () => Messages.callConnected,
     duration: Duration(seconds: 1),
     periodic: false,
   );
 }
 
-void onMute(MessageHandlerContext<Messages, void, void> ctx) {
+void onMute(MessageContext ctx) {
   print('Microphone muted.');
 }
 
-void onUnmute(MessageHandlerContext<Messages, void, void> ctx) {
+void onUnmute(MessageContext ctx) {
   print('Microphone unmuted.');
 }
 
-void onSetVolume(MessageHandlerContext<SetVolume, void, void> ctx) {
-  print('Volume set to ${ctx.message.level}');
+void onSetVolume(SetVolume setVolume) {
+  print('Volume set to ${setVolume.level}');
 }
 
 Future<void> main() async {
-  var declBuilder = phoneCallStateTree();
-  var stateMachine = TreeStateMachine(declBuilder);
+  var stateMachine = TreeStateMachine(phoneCallStateTree);
   var currentState = await stateMachine.start();
 
   await currentState.post(Dial('Carolyn'));
@@ -142,8 +152,4 @@ Future<void> main() async {
 
   await currentState.post(Messages.hangUp);
   assert(currentState.key == States.offHook);
-
-  var sb = StringBuffer();
-  declBuilder.format(sb, DotFormatter());
-  print(sb.toString());
 }

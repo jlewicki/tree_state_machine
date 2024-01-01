@@ -1,40 +1,107 @@
-import 'package:tree_state_machine/src/machine/tree_state.dart';
-import '../tree_builder.dart';
-import '../tree_node_info.dart';
+import 'package:tree_state_machine/build.dart';
+import 'package:tree_state_machine/tree_state_machine.dart';
 
 sealed class StateConfig {
   TreeNodeInfo nodeInfo(TreeNodeInfo parent);
 }
 
-class StateTree implements StateTreeBuildProvider {
-  StateTree._(this.info);
+/// The key identifying the root state that is implicitly added to a state tree when using the
+/// [StateTree.new] constructor.
+const StateKey defaultRootKey = StateKey('<!StateTree.RootState!>');
 
+/// Defines a state tree that can be used in conjunction with a [TreeStateMachine].
+class StateTree implements StateTreeBuildProvider {
+  StateTree._(this._info);
+
+  /// Constructs a state tree that is is composed of the states in the list of [children], and
+  /// starts in the state identified by the [initialChild].
+  ///
+  /// The state tree has an implicit root state, identified by [defaultRootKey]. This state has no
+  /// associated behavior, and it is typically safe to ignore its presence.
   factory StateTree(
-    StateKey rootKey, {
+    InitialChild initialChild, {
+    required List<StateConfig> children,
+  }) {
+    return StateTree._(_createRoot(
+      defaultRootKey,
+      (_) => DelegatingTreeState(),
+      initialChild,
+      children,
+    ));
+  }
+
+  /// Constructs a state tree with a root state identified by [rootKey].
+  ///
+  /// The state tree is composed of the states in the list of [children], and starts in the state
+  /// identified by the [initialChild].
+  ///
+  /// The behavior of the root state can be specified by providing [onMessage], [onEnter], and
+  /// [onExit] hander functions.
+  factory StateTree.root(
+    StateKey rootKey,
+    InitialChild initialChild, {
+    TransitionHandler? onEnter,
+    TransitionHandler? onExit,
+    MessageHandler? onMessage,
+    required List<StateConfig> children,
+  }) {
+    return StateTree._(_createRoot(
+      rootKey,
+      (_) => DelegatingTreeState(
+        onMessage: onMessage,
+        onEnter: onEnter,
+        onExit: onExit,
+      ),
+      initialChild,
+      children,
+    ));
+  }
+
+  static StateTree dataRoot<D>(
+    StateKey rootKey,
+    InitialData<D> initialData, {
     TransitionHandler? onEnter,
     TransitionHandler? onExit,
     MessageHandler? onMessage,
     required List<StateConfig> children,
     required InitialChild initialChild,
   }) {
-    RootNodeInfo? root;
-    root = RootNodeInfo(
+    return StateTree._(_createRoot(
       rootKey,
-      (_) => DelegatingTreeState(
-        onMessage ?? emptyMessageHandler,
-        onEnter ?? emptyTransitionHandler,
-        onEnter ?? emptyTransitionHandler,
+      (_) => DelegatingDataTreeState<D>(
+        initialData.call,
+        onMessage: onMessage,
+        onEnter: onEnter,
+        onExit: onExit,
       ),
-      children: children.map((e) => e.nodeInfo(root!)).toList(),
-      initialChild: initialChild.call,
-    );
-    return StateTree._(root);
+      initialChild,
+      children,
+    ));
   }
 
-  final RootNodeInfo info;
+  final RootNodeInfo _info;
 
   @override
-  RootNodeInfo createRootNodeInfo() => info;
+  RootNodeInfo createRootNodeInfo() => _info;
+
+  static RootNodeInfo _createRoot(
+    StateKey rootKey,
+    StateCreator createState,
+    InitialChild initialChild,
+    List<StateConfig> children,
+  ) {
+    var childNodes = <TreeNodeInfo>[];
+    var root = RootNodeInfo(
+      rootKey,
+      createState,
+      children: childNodes,
+      initialChild: initialChild.call,
+    );
+
+    childNodes.addAll(children.map((e) => e.nodeInfo(root)));
+
+    return root;
+  }
 }
 
 class State extends StateConfig {
@@ -46,7 +113,7 @@ class State extends StateConfig {
       this.initialChild,
       this.isFinal = false});
 
-  factory State.leaf(
+  factory State(
     StateKey key, {
     TransitionHandler? onEnter,
     TransitionHandler? onExit,
@@ -60,13 +127,13 @@ class State extends StateConfig {
         isFinal: isFinal);
   }
 
-  factory State.interior(
-    StateKey key, {
+  factory State.composite(
+    StateKey key,
+    InitialChild initialChild, {
     TransitionHandler? onEnter,
     TransitionHandler? onExit,
     MessageHandler? onMessage,
     required List<State> children,
-    required InitialChild initialChild,
   }) {
     return State._(key,
         onEnter: onEnter,
@@ -89,13 +156,13 @@ class State extends StateConfig {
     assert(children.isEmpty || initialChild != null);
 
     var treeState = DelegatingTreeState(
-      onMessage ?? emptyMessageHandler,
-      onEnter ?? emptyTransitionHandler,
-      onEnter ?? emptyTransitionHandler,
+      onMessage: onMessage,
+      onEnter: onEnter,
+      onExit: onExit,
     );
 
-    TreeNodeInfo? nodeInfo;
-    nodeInfo = children.isEmpty
+    var childNodes = <TreeNodeInfo>[];
+    var nodeInfo = children.isEmpty
         ? LeafNodeInfo(
             key,
             (_) => treeState,
@@ -106,9 +173,11 @@ class State extends StateConfig {
             key,
             (_) => treeState,
             parent: parent,
-            children: children.map((e) => e.nodeInfo(nodeInfo!)).toList(),
+            children: childNodes,
             initialChild: initialChild!.call,
           );
+
+    childNodes.addAll(children.map((e) => e.nodeInfo(nodeInfo)));
 
     return nodeInfo;
   }
@@ -126,8 +195,8 @@ class DataState<D> extends StateConfig {
     this.isFinal = false,
   });
 
-  factory DataState.leaf(
-    StateKey key,
+  factory DataState(
+    DataStateKey<D> key,
     InitialData<D> initialData, {
     TransitionHandler? onEnter,
     TransitionHandler? onExit,
@@ -144,8 +213,8 @@ class DataState<D> extends StateConfig {
     );
   }
 
-  factory DataState.interior(
-    StateKey key,
+  factory DataState.composite(
+    DataStateKey<D> key,
     InitialData<D> initialData, {
     TransitionHandler? onEnter,
     TransitionHandler? onExit,
@@ -164,7 +233,7 @@ class DataState<D> extends StateConfig {
     );
   }
 
-  final StateKey key;
+  final DataStateKey<D> key;
   final TransitionHandler? onEnter;
   final TransitionHandler? onExit;
   final MessageHandler? onMessage;
@@ -184,8 +253,8 @@ class DataState<D> extends StateConfig {
       onExit: onExit,
     );
 
-    TreeNodeInfo? nodeInfo;
-    nodeInfo = children.isEmpty
+    var childNodes = <TreeNodeInfo>[];
+    var nodeInfo = children.isEmpty
         ? LeafNodeInfo(
             key,
             (_) => treeState,
@@ -196,9 +265,11 @@ class DataState<D> extends StateConfig {
             key,
             (_) => treeState,
             parent: parent,
-            children: children.map((e) => e.nodeInfo(nodeInfo!)).toList(),
+            children: childNodes,
             initialChild: initialChild!.call,
           );
+
+    childNodes.addAll(children.map((e) => e.nodeInfo(nodeInfo)));
 
     return nodeInfo;
   }

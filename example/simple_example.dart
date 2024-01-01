@@ -1,6 +1,6 @@
 import 'package:tree_state_machine/build.dart';
+import 'package:tree_state_machine/delegate_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
-import 'package:tree_state_machine/declarative_builders.dart';
 
 //
 // State keys
@@ -27,52 +27,44 @@ class ToLowercase {
   final String text;
 }
 
-/// A flat (non-hierarchial) state tree illustrating simple branching and passing data between
-/// states.
-DeclarativeStateTreeBuilder simpleStateTree() {
-  var b = DeclarativeStateTreeBuilder(
-      initialChild: States.enterText, logName: 'simple');
-
-  b.state(States.enterText, (b) {
-    b.onMessage<ToUppercase>((b) =>
-        b.goTo(States.showUppercase, payload: (ctx) => ctx.message.text));
-  });
-
-  b.dataState<String>(
-    States.showUppercase,
-    InitialData.run((ctx) => (ctx.payload as String).toUpperCase()),
-    (b) {
-      b.onMessageValue(
-        Messages.finish,
-        (b) => b.goTo(States.finished, payload: (ctx) {
-          return ctx.data;
-        }),
-      );
-    },
-  );
-
-  b.finalDataState<String>(
-    States.finished,
-    InitialData.run((ctx) {
-      return ctx.payloadOrThrow<String>();
-    }),
-    emptyFinalState,
-  );
-
-  return b;
-}
+//
+// State tree
+//
+// A flat (non-hierarchial) state tree illustrating simple branching and passing data between
+// states.
+final simpleStateTree = StateTree(
+  InitialChild(States.enterText),
+  children: [
+    State(
+      States.enterText,
+      onMessage: (ctx) => switch (ctx.message) {
+        ToUppercase(text: var text) =>
+          ctx.goTo(States.showUppercase, payload: text),
+        _ => ctx.unhandled()
+      },
+    ),
+    DataState(
+      States.showUppercase,
+      InitialData.run((ctx) => (ctx.payload as String).toUpperCase()),
+      onMessage: (ctx) => ctx.message == Messages.finish
+          ? ctx.goTo(States.finished,
+              payload: ctx.dataValueOrThrow(States.showUppercase))
+          : ctx.unhandled(),
+    ),
+    DataState(
+      States.finished,
+      InitialData.run((ctx) => (ctx.payload as String)),
+      isFinal: true,
+    )
+  ],
+);
 
 Future<void> main() async {
-  var declBuilder = simpleStateTree();
-  var stateMachine = TreeStateMachine(declBuilder);
+  var stateMachine = TreeStateMachine(simpleStateTree);
   var currentState = await stateMachine.start();
   await currentState.post(ToUppercase('hi'));
   await currentState.post(Messages.finish);
   var uppercase = currentState.dataValue<String>();
   assert(uppercase == 'HI');
   print(uppercase);
-
-  var sb = StringBuffer();
-  declBuilder.format(sb, DotFormatter());
-  print(sb.toString());
 }

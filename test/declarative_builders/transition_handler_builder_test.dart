@@ -53,8 +53,8 @@ void main() {
           b.onMessage<Message>((b) => b.goTo(state2));
         });
         b.state(state2, (b) {
-          b.onEnter(
-              (b) => b.updateData<StateData>((ctx) => ctx.data..val = '1'));
+          b.onEnter((b) =>
+              b.updateData<StateData>(rootState, (ctx) => ctx.data..val = '1'));
         });
 
         var stateMachine = TreeStateMachine(b);
@@ -272,7 +272,7 @@ void main() {
         b.state(state2, emptyState, parent: state1);
         b.state(state3, (b) {
           b.onEnterFromChannel<String>(s3Channel, (b) {
-            b.updateData<StateData>((ctx) => ctx.data..val = ctx.context);
+            b.updateData(rootState, (ctx) => ctx.data..val = ctx.context);
           });
         });
 

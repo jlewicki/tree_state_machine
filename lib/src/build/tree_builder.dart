@@ -50,7 +50,7 @@ class StateTreeDefinitionError extends Error {
 /// // The state machine will call treeBuilder.build()
 /// var stateMachine = TreeStateMachine(treeBuilder);
 /// ```
-/// If [createBuildContext] is provided, it will be called each time [build] is called, and the
+/// If [_createBuildContext] is provided, it will be called each time [build] is called, and the
 /// resulting build context will be used during tree construction. This is typically not needed, but
 /// may be useful in advanced scenarios requiring access to the state tree as it is built.
 class StateTreeBuilder {
@@ -59,8 +59,8 @@ class StateTreeBuilder {
     this.treeBuildInfoProvider, {
     this.label,
     this.logName,
-    this.createBuildContext,
-  });
+    TreeBuildContext Function()? createBuildContext,
+  }) : _createBuildContext = createBuildContext;
 
   /// Describes how the root node of the state tree should be constructed when [build] is called.
   ///
@@ -78,7 +78,7 @@ class StateTreeBuilder {
   /// output.
   final String? logName;
 
-  final TreeBuildContext Function()? createBuildContext;
+  final TreeBuildContext Function()? _createBuildContext;
 
   /// Builds a state tree, and returns the root node of the tree.
   ///
@@ -86,7 +86,7 @@ class StateTreeBuilder {
   /// advanced scenarios requiring access to the state tree as it is built.
   TreeNode build([TreeBuildContext? buildContext]) {
     var buildContext_ =
-        buildContext ?? createBuildContext?.call() ?? TreeBuildContext();
+        buildContext ?? _createBuildContext?.call() ?? TreeBuildContext();
     var rootNodeInfo = treeBuildInfoProvider.createRootNodeInfo();
     return buildContext_.buildTree(rootNodeInfo);
   }
@@ -104,7 +104,7 @@ sealed class InitialChild {
 
   /// Constructs an [InitialChild] that will run the [getInitialChild] function when the state is
   /// entered in order to determine the initial child,
-  factory InitialChild.delegate(GetInitialChild getInitialChild) =>
+  factory InitialChild.run(GetInitialChild getInitialChild) =>
       InitialChildByDelegate._(getInitialChild);
 
   /// Returns the key of the child state that should be entered.

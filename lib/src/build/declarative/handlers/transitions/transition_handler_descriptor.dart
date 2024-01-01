@@ -76,6 +76,7 @@ class TransitionConditionDescriptor<C> {
       this.info, this.makeCondition, this.whenTrueDescriptor);
 
   static TransitionConditionDescriptor<C> withData<D, C>(
+    StateKey forState,
     TransitionConditionInfo info,
     FutureOr<bool> Function(TransitionHandlerContext<D, C>) condition,
     TransitionHandlerDescriptor<C> whenTrue,
@@ -83,7 +84,9 @@ class TransitionConditionDescriptor<C> {
     return TransitionConditionDescriptor<C>(
       info,
       (ctx) => (transCtx) {
-        var data = transCtx.dataValueOrThrow<D>();
+        var data = forState is DataStateKey<D>
+            ? transCtx.dataValueOrThrow(forState)
+            : null as D;
         var handlerCtx = TransitionHandlerContext<D, C>(transCtx, data, ctx);
         return condition(handlerCtx);
       },

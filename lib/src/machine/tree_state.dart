@@ -163,16 +163,21 @@ abstract class TreeState {
   void dispose() {}
 }
 
+/// A [TreeState] that delegates its message and transition handling behavior to external
+/// functions.
 class DelegatingTreeState implements TreeState {
   final MessageHandler _onMessage;
   final TransitionHandler _onEnter;
   final TransitionHandler _onExit;
   final Dispose _onDispose;
 
-  DelegatingTreeState(
-      this._onMessage, TransitionHandler? onEnter, TransitionHandler? onExit,
-      [Dispose? onDispose])
-      : _onEnter = onEnter ?? emptyTransitionAction,
+  DelegatingTreeState({
+    MessageHandler? onMessage,
+    TransitionHandler? onEnter,
+    TransitionHandler? onExit,
+    Dispose? onDispose,
+  })  : _onMessage = onMessage ?? emptyMessageHandler,
+        _onEnter = onEnter ?? emptyTransitionAction,
         _onExit = onExit ?? emptyTransitionAction,
         _onDispose = onDispose ?? emptyDispose;
 
@@ -213,13 +218,9 @@ abstract class DataTreeState<D> extends TreeState {
   D initialData(TransitionContext transCtx);
 }
 
+/// A [DataTreeState] that delegates its message and transition handling behavior to external
+/// functions.
 class DelegatingDataTreeState<D> extends DataTreeState<D> {
-  final D Function(TransitionContext) _initialData;
-  final MessageHandler _onMessage;
-  final TransitionHandler _onEnter;
-  final TransitionHandler _onExit;
-  final Dispose _onDispose;
-
   DelegatingDataTreeState(
     this._initialData, {
     MessageHandler? onMessage,
@@ -230,6 +231,12 @@ class DelegatingDataTreeState<D> extends DataTreeState<D> {
         _onEnter = onEnter ?? emptyTransitionHandler,
         _onExit = onExit ?? emptyTransitionHandler,
         _onDispose = onDispose ?? emptyDispose;
+
+  final D Function(TransitionContext) _initialData;
+  final MessageHandler _onMessage;
+  final TransitionHandler _onEnter;
+  final TransitionHandler _onExit;
+  final Dispose _onDispose;
 
   @override
   D initialData(TransitionContext transCtx) {
@@ -329,8 +336,7 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
         .asStream();
 
     nestedCurrentState = await machine.start();
-    transCtx
-        .data<NestedMachineData>()!
+    data!
         .update((current) => current.._nestedCurrentState = nestedCurrentState);
 
     // Post a future that will notify the message handler when the nested machine is done.
@@ -465,9 +471,9 @@ abstract class MessageContext {
   /// Posts a message that should be dispatched to the state machine asynchronously.
   void post(FutureOr<Object> message);
 
-  /// Gets the [DataValue] matching the type [D] and [key] from the current state, or one of
-  /// its ancestor states.
-  DataValue<D>? data<D>([DataStateKey<D>? key]);
+  /// Gets the [DataValue] for the active data state identified by [key], or `null` if there is no
+  /// such state.
+  DataValue<D>? data<D>(DataStateKey<D> key);
 
   /// Schedules a message to be dispatched to the state machine asynchronously.
   ///
@@ -625,7 +631,7 @@ abstract class TransitionContext {
   /// modified by the state machine.
   Map<String, Object> get metadata;
 
-  DataValue<D>? data<D>([DataStateKey<D>? key]);
+  DataValue<D>? data<D>(DataStateKey<D> key);
 
   /// Posts a message that should be sent to the end state of this transition, after the transition
   /// has completed.

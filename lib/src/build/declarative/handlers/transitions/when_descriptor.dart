@@ -30,6 +30,7 @@ TransitionHandlerDescriptor<C> makeWhenTransitionDescriptor<C>(
 }
 
 TransitionHandlerDescriptor<C> makeWhenWithContextDescriptor<D, C, C2>(
+  StateKey forState,
   FutureOr<C2> Function(TransitionHandlerContext<D, C> ctx) context,
   List<TransitionConditionDescriptor<C2>> conditions,
   FutureOr<C> Function(TransitionContext) makeContext,
@@ -45,7 +46,9 @@ TransitionHandlerDescriptor<C> makeWhenWithContextDescriptor<D, C, C2>(
     info,
     makeContext,
     (descrCtx) => (transCtx) {
-      var data = transCtx.dataValueOrThrow<D>();
+      var data = forState is DataStateKey<D>
+          ? transCtx.dataValueOrThrow(forState)
+          : null as D;
       var ctx = TransitionHandlerContext<D, C>(transCtx, data, descrCtx.ctx);
       return context(ctx).bind(
         (newCtx) => _runConditions<C2>(conditions.iterator, newCtx, transCtx),

@@ -59,22 +59,23 @@ DeclarativeStateTreeBuilder bugTrackerStateTree() {
 
   b.state(States.unassigned, (b) {
     b.onEnter((b) {
-      b.updateData<BugData>((ctx) => ctx.data..assignee = null);
+      b.updateData(States.root, (ctx) => ctx.data..assignee = null);
     });
   }, parent: States.open);
 
   b.state(States.assigned, (b) {
     b.onEnterFromChannel<String>(assignedChannel, (b) {
-      b.updateData<BugData>((ctx) => ctx.data..assignee = ctx.context);
+      b.updateData(States.root, (ctx) => ctx.data..assignee = ctx.context);
     });
-    b.onExitWithData<BugData>((b) {
+    b.onExitWithData(States.root, (b) {
       b.run((ctx) => sendEmailToAssignee(ctx.context, "You're off the hook."),
           label: 'send email to assignee');
     });
   }, parent: States.open);
 
   b.state(States.deferred, (b) {
-    b.onEnter((b) => b.updateData<BugData>(
+    b.onEnter((b) => b.updateData(
+          States.root,
           (ctx) => ctx.data..assignee = null,
           label: 'clear assignee',
         ));

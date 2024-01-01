@@ -60,7 +60,7 @@ DeclarativeStateTreeBuilder treeBuilder({
 
   var b = DeclarativeStateTreeBuilder.withRoot(
     r_key,
-    InitialChild.delegate(
+    InitialChild.run(
       (ctx) {
         initialChildCallback(r_key)(ctx);
         return r_a_key;
@@ -76,7 +76,7 @@ DeclarativeStateTreeBuilder treeBuilder({
     r_a_key,
     buildState(r_a_key),
     parent: r_key,
-    initialChild: InitialChild.delegate((ctx) {
+    initialChild: InitialChild.run((ctx) {
       initialChildCallback(r_a_key)(ctx);
       return r_a_a_key;
     }),
@@ -86,7 +86,7 @@ DeclarativeStateTreeBuilder treeBuilder({
     r_a_a_key,
     buildState(r_a_a_key),
     parent: r_a_key,
-    initialChild: InitialChild.delegate((ctx) {
+    initialChild: InitialChild.run((ctx) {
       initialChildCallback(r_a_a_key)(ctx);
       return r_a_a_2_key;
     }),
@@ -99,7 +99,7 @@ DeclarativeStateTreeBuilder treeBuilder({
     r_b_key,
     buildState(r_b_key),
     parent: r_key,
-    initialChild: InitialChild.delegate((ctx) {
+    initialChild: InitialChild.run((ctx) {
       initialChildCallback(r_b_key)(ctx);
       return r_b_1_key;
     }),
