@@ -9,23 +9,21 @@
 * Declarative state definitions with automated generation of state diagrams in DOT format 
 * Nested state machines
 
+## Overview
+The `tree_state_machine` library provides APIs for both defining a hierarchical tree of states, and creating state 
+machines that create and manage an instance of a state tree. The state machine can be used to dispatch messages to the current state for processing, and receiving notifications as state transitions occur.
+
 
 ## Getting Started
-The primary API for the working with a tree state machine is provided by the `tree_state_machine` library. The API for 
-defining state trees is provided by `tree_builders` library. Depending on how your application is structured, you will 
-need to import one or both of these libraries.
-```dart
-import 'package:tree_state_machine/declarative_builders.dart';
-import 'package:tree_state_machine/tree_state_machine.dart';
-```
-
-## Overview
-The `tree_state_machine` library provides APIs for both defining a hierarchcal tree of states, and creating state 
-machines that can instantiate one of those state trees and managing the current state. The state machine can be used to
-dispatch messages to the current state for processing, and receiving notifications as state transitions occur.
+The primary API for the working with a tree state machine is provided by the `tree_state_machine` library. A relatively simple API for defining state trees is provided by the `delegate_builders` library, though extension points are 
+provided for creating more sophisticated ones.
 
 The typical usage pattern is simular to the following:
 ```dart
+import 'package:tree_state_machine/delegate_builders.dart';
+import 'package:tree_state_machine/tree_state_machine.dart';
+
+
 // Define state keys that identify the states in the state tree
 sealed class States {
    static const state1 = StateKey('state1');
@@ -33,19 +31,27 @@ sealed class States {
 }
 
 // Define the state tree
-var treeBuilder = StateTreeBuilder(initialChild: States.state1);
-treeBuilder.state(States.state1, (state) {
-   state.onMessage<AMessage>((handler) => handler.goTo(States.state2));
-});
-treeBuilder.state(States.state2, emptyState);
+var stateTree = StateTree(
+   InitialChild(States.state1), 
+   children: [
+      State(
+         States.state1, 
+         onMessage: (MessageContext ctx) => ctx.message == 'go'
+            ? ctx.goTo(States.state2) 
+            : ctx.unhandled(),
+      ),
+      State(States.state2),
+   ],
+);
+
 
 // Create and start a state machine for the state tree
-var machine = TreeStateMachine(treeBuilder);
+var machine = TreeStateMachine(stateTree);
 var currentState = await machine.start();
 
 // Send a message to be processed by the current state, which may potentially
 // cause a transition to a different state
-await currentState.post(AMessage());
+await currentState.post('go');
 
 ```
 The following sections describe these steps in more detail.
@@ -68,42 +74,53 @@ sealed class States {
 }
 ```
 
-`StateTreeBuilder` is used to to declare the states in a state tree. There are several factories available to create a
-a `StateTreeBuilder`, but the simplest names the state that will initially be active when the state machine starts.
+The `StateTree` class represents a template for a state tree, and defines the states in the tree, and their hierarchical
+relationship. There are several factories available to create a `StateTree`, but the simplest lists the available child states (which themselves may have children), and names the state that will initially be active when the state machine starts.
 
 ```dart
-var treeBuilder = StateTreeBuilder(initialChild: States.unauthenticated);
+StateTree(
+   InitialChild(States.unauthenticated), 
+   children: [
+      // States go here
+   ],
+);
 ```
 
-### Defning States
-States are declared using the `StateTreeBuilder.state` method, passing a `StateKey` to identify the state, and a 
-callback that will be used to define how the state behaves.
+### Defining States
+States are declared using the `State` or `DataState` classes. These are created with a `StateKey` that identifies the state, and callbacks that will be used to define how the state behaves.  For example, an `onMessage` callback can 
+be provided to specify the message handling behavior of the state. 
 
 ```dart
-treeBuilder.state(States.unauthenticated, (stateBuilder) {
-   // Use state builder to define how the unauthenticated state behaves
-});
+State(
+   States.unauthenticated, 
+   onMessage: (MessageContext ctx) {
+      // Add message handling logic here
+      return ctx.unhandled();
+   },
+);
 ```
 
-See [Message Handlers](#Message-Handlers) to see how to use the state builder.
+See [Message Handlers](#Message-Handlers) for more details on writing message handlers.
 
 #### Child States
-A state can be defined as a child of another state by specifying `parent` when the state is declared. If a state does 
-not handle a message, the parent state will have an opportunity to handle it.  
+A state can be created with a collection of child states using the `State.composite` factory, so that the state becomes
+the parent of the the child states. If a child state is active, but does not handle a message, the parent state will 
+have an opportunity to handle it.  
 
-Once a state has been assigned a parent, that parent state must define which of its child states must be entered when 
-the parent is entered using `initialChild`.
+If a state has children, the state must define which of its child states must be entered when the parent is entered 
+using `InitialChild`.
 
 ```dart
-treeBuilder.state(States.splash, (stateBuilder) {
-   // Use state builder to define how the splash state behaves
-}, parent: States.unauthenticated);
-
-treeBuilder.state(States.unauthenticated, (stateBuilder) {
-   // Use state builder to define how the unauthenticated state behaves
-}, initialChild: InitialChild(States.splash));
+State.composite(
+   States.unauthenticated,
+   InitialChild(States.splash),
+   // Add callbacks to define how the unauthenticated state behaves
+   children: [
+     // Add callbacks to define how the splash state behaves
+     State(States.splash),
+   ] 
+);
 ```
-If a state declaration does not specify `initialChild`, that state is considered a leaf state in the state tree. 
 
 #### Data States
 States often require additional data to model their behavior. For example, a 'counting' state might need an integer 
@@ -120,17 +137,19 @@ class LoginData {
    String password = '';
    String errorMessage = '';
 }
+sealed class States {
+  // Data states are identified by DataStateKeys 
+  static const login = DataStateKey<LoginData>('login');
+}
 
-treeBuilder.dataState<LoginData>(
+DataState(
    States.login,
-   // The initial value for the state data when the state is entered. 
    InitialData(() => LoginData()),
-   (stateBuilder) {
-      // Use state builder to define how the login state behaves. The state has access 
-      // to a LoginData value while the state is active.
-   },
-   parent: States.unauthenticated,
-);
+   onMessage: (MessageContext ctx) {
+      var loginData = ctx.dataValue(States.login);
+      return ctx.unhandled();
+   }
+)
 ```
 See [Reading and writing state data](#Reading-and-writing-state-data) to learn how to read and write state data when 
 handling a message with a data state.
@@ -140,11 +159,16 @@ handling a message with a data state.
 States may be delared as final states. Once a final state has been entered, no further message processing or state 
 transitions will occur, and the state tree is considered ended, or complete. Note that a final state is always 
 considered a child of the root state, and may not have any child states.
+
 ```dart
-treeBuilder.finalState(States.lockedOut, (stateBuilder) {
-   // Use state builder to define behavior for the lockedOut state when 
-   // it is entered.
-});
+State.finalState(
+   States.lockedOut,
+   // Optional onEnter callback may be provided. onMessage and onExit are not available for final 
+   // states.
+   onEnter: (TransitionContext ctx) {
+      // Add onEnter logic here
+   }
+);
 ``` 
 
 #### Machine States
@@ -175,46 +199,54 @@ treeBuilder.machineState(
 );
 ```
 
-### Defining Message Handlers
+### Message Handlers
 The way a state responds to a message is defined by the `MessageHandler` function for the state. A message handler is 
 provided a `MessageContext` describing the message, and must return a `MessageResult` describing how the state responds
-to the message.
+to the message. 
+
 ```dart
 typedef MessageHandler = FutureOr<MessageResult> Function(MessageContext ctx);
 ```
 
-Message handlers are typically not defined directly. Instead `StateBuilder`, `MessageHandlerBuilder` and associated 
-types can be used to specify the handler in a declarative fashion. `MessageHandlerBuilder` has several methods, such as
-`goTo`, that correspond to different types of `MessageResult`. 
+Methods on the provided `MessageContext` can be used to create the desired message result. For example, `goTo()`, 
+`unhandled()`, or `stay()` 
 
-Note that any object can be a message, and message handlers can be declared by message type or message value. 
+Because a message handler returns a `FutureOr`, the handler implementation may be asynchronous if desired.  
+
+A message handler is provided with the `onMessage` callback when creating the state:
+
 ```dart
 class GoToLogin { }
 enum Messages { goToRegister }
 
-treeBuilder.state(States.unauthenticated, (sb) {
-  // When this state receives a message of type GoToLogin, go to the login 
-  // state
-  sb.onMessage<GoToLogin>((mhb) => mhb.goTo(States.login));
-  // When this state receives a goToRegister message value, go to the 
-  // registration state
-  sb.onMessageValue(Messages.goToRegister, (mhb) => mhb.goTo(States.registration));
-}, initialChild: InitialChild(States.splash));
+State(
+   States.unauthenticated,
+   onMessage: (MessageContext ctx) {
+      return switch(ctx.message) {
+         // When this state receives a message of type GoToLogin, go to the login 
+         // state
+         GoToLogin() => ctx.goTo(States.login),
+         // When this state receives a goToRegister message value, go to the 
+         // registration state
+         Messages.goToRegister => mhb.goTo(States.registration),
+         // Otherwise, the message is unhandled. An ancestor state can handle it instead.
+         _ => ctx.unhandled()
+      }; 
+   },
+);
 ```
 
-#### Message actions
-Often addition actions need to be taken when a state handles a message, in addition to transitioning to a different 
-state. These actions can be defined with `MessageActionBuilder` and associated types, and passed to the `action` 
-parameter of `goTo` and similar methods. These actions are run before `MessageResult` returned by the message handler
-is processed by the state machine. 
 
 #### Reading and writing state data
 A data state can access its associated state data. Additionally, any state can access the state data of an ancestor 
-data state. This data can be requested in several ways, but often `updateData` is used to read and update state data 
-when handling a message.
+data state. This data can be requested in several ways, but often `MessageContext.updateData` is used to read and update
+state data when handling a message.
 
 ```dart
-treeBuilder.state(States.credentialsRegistration, (b) {
+State(
+   States.credentialsRegistration, 
+   onMessageL (ctx) {
+      if (ctx.message case SubmitCredentials(email: var email, password: var password))
    b.onMessage<SubmitCredentials>((b) {
       b.goTo(States.demographicsRegistration,
          // Update the RegisterData state data owned by the parent 
@@ -229,15 +261,15 @@ treeBuilder.state(States.credentialsRegistration, (b) {
 }, parent: States.registration);
 ```
 
-### Defining Transition Handlers
+### Transition Handlers
 A state can receive notifications when it is entered or exited. These notifications are calls to `TransitionHandler`
 functions, and the handlers are passed a `TransitionContext` describing the transition that is occurring.
 ```dart
 typedef TransitionHandler = FutureOr<void> Function(TransitionContext ctx);
 ```
 
-Similar to message handlers, transition handlers are typically not defined directly. `StateBuilder` has methods such as 
-`onEnter` and `onExit` for declaring how these handlers should behave. 
+Because a transition handler returns a `FutureOr`, the handler implementation may be asynchronous if desired.  
+
 ```dart
 treeBuilder.state(States.authenticating, (b) {
    b.onEnter((b) {

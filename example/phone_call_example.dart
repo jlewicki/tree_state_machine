@@ -1,4 +1,3 @@
-import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/delegate_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
@@ -43,7 +42,7 @@ enum Messages {
 //
 final phoneCallStateTree = StateTree(
   InitialChild(States.offHook),
-  children: [
+  childStates: [
     State(
       States.offHook,
       onMessage: (ctx) => switch (ctx.message) {
@@ -84,7 +83,7 @@ final phoneCallStateTree = StateTree(
         }
         return ctx.unhandled();
       },
-      children: [
+      childStates: [
         State(States.talking),
         State(
           States.onHold,
@@ -96,7 +95,9 @@ final phoneCallStateTree = StateTree(
         ),
       ],
     ),
-    State(States.phoneDestroyed, isFinal: true),
+  ],
+  finalStates: [
+    FinalState(States.phoneDestroyed),
   ],
 );
 

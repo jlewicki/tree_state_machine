@@ -384,14 +384,12 @@ void main() {
           var buildTree = data_tree.treeBuilder(
             messageHandlers: {
               data_tree.r_a_a_1_key: (msgCtx) {
-                msgCtx.updateOrThrow(
-                  data_tree.r_a_a_1_key,
-                  (d) => d..counter = 10,
-                );
-                msgCtx.updateOrThrow<ImmutableData>(
-                  data_tree.r_a_key,
-                  (d) => ImmutableData(name: 'bob', price: d.price),
-                );
+                msgCtx
+                    .data(data_tree.r_a_a_1_key)
+                    .update((d) => d..counter = 10);
+                msgCtx
+                    .data(data_tree.r_a_key)
+                    .update((d) => ImmutableData(name: 'bob', price: d.price));
                 return msgCtx.goTo(data_tree.r_b_1_key, reenterTarget: true);
               },
             },

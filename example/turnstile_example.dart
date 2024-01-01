@@ -1,4 +1,3 @@
-import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/delegate_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
@@ -24,7 +23,7 @@ enum Messages {
 // A flat (non-hierarchial) state tree illustrating transitioning between states.
 final turnstileStateTree = StateTree(
   InitialChild(States.locked),
-  children: [
+  childStates: [
     State(
       States.locked,
       onMessage: (ctx) => ctx.message == Messages.insertCoin

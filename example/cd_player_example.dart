@@ -147,7 +147,8 @@ DeclarativeStateTreeBuilder cdPlayerStateTree() {
     b.onMessage<MoveTrack>((b) {
       b.when(
         (ctx) => ctx.messageContext
-            .dataValueOrThrow(States.busy)
+            .data(States.busy)
+            .value
             .canMoveTrack(ctx.message.trackCount),
         (b) {
           b.action(b.act.updateData(
@@ -177,7 +178,7 @@ DeclarativeStateTreeBuilder cdPlayerStateTree() {
 final Duration refreshDuration = Duration(seconds: 1);
 
 void _playTrack(MessageHandlerContext<Play, void, void> ctx) {
-  ctx.messageContext.dataOrThrow(States.busy).update((data) {
+  ctx.messageContext.data(States.busy).update((data) {
     var elapsed = data.elapsedTime + refreshDuration;
     var trackLength = data.cd.tracks[data.track].duration;
     if (elapsed >= trackLength) {

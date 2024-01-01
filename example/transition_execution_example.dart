@@ -1,4 +1,3 @@
-import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/delegate_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
@@ -47,7 +46,7 @@ final umlExampleStateTree = StateTree.root(
             )
           : ctx.unhandled(),
       onExit: (_) => b(),
-      children: [
+      childStates: [
         State(
           States.s11,
           onExit: (_) => a(),
@@ -58,7 +57,7 @@ final umlExampleStateTree = StateTree.root(
       States.s2,
       InitialChild.run(d),
       onEnter: (_) => c(),
-      children: [
+      childStates: [
         State(
           States.s21,
           onEnter: (_) => e(),

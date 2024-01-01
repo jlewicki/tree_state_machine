@@ -75,8 +75,9 @@ class MessageActionBuilder<M, D, C> {
     var info = MessageActionInfo(ActionType.updateData, null, D2, label);
     return MessageActionDescriptor(info, (ctx) {
       _log.fine(() => "State '$_forState' is updating data of type $D2");
-      var data = ctx.messageContext.dataOrThrow<D2>(forState);
-      data.update((current) => update(ctx, current));
+      ctx.messageContext
+          .data(forState)
+          .update((current) => update(ctx, current));
     });
   }
 
@@ -88,7 +89,7 @@ class MessageActionBuilder<M, D, C> {
     return MessageActionDescriptor(info, (ctx) {
       _log.fine(() => "State '$_forState' is updating data of type $D");
       var data = _forState is DataStateKey<D>
-          ? ctx.messageContext.dataOrThrow(_forState)
+          ? ctx.messageContext.data(_forState)
           : throw StateError(
               'Unable to find data value of type $D in active data states');
       data.update((current) => update(ctx));

@@ -157,10 +157,6 @@ sealed class InitialData<D> {
   ) {
     return InitialData.run((ctx) {
       var data = ctx.data(ancestorState);
-      if (data == null) {
-        throw StateError("Unable to determine initial data of type $D "
-            "because ancestor state '$ancestorState' is not an active state");
-      }
       return initialValue(data.value);
     });
   }

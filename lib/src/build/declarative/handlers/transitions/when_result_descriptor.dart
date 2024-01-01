@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:async/async.dart';
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
-import 'package:tree_state_machine/src/machine/extensions.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
 import './transition_handler_descriptor.dart';
@@ -33,7 +32,7 @@ TransitionHandlerDescriptor<C> makeWhenResultTransitionDescriptor<C, D, T>(
       makeContext,
       (descrCtx) => (transCtx) {
             var data = forState is DataStateKey<D>
-                ? transCtx.dataValueOrThrow(forState)
+                ? transCtx.data(forState).value
                 : null as D;
             var ctx =
                 TransitionHandlerContext<D, C>(transCtx, data, descrCtx.ctx);

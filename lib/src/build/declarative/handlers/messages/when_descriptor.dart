@@ -35,9 +35,8 @@ MessageHandlerDescriptor<C> makeWhenMessageDescriptor<M, D, C>(
     makeContext,
     (descrCtx) => (msgCtx) {
       var msg = msgCtx.messageAsOrThrow<M>();
-      var data = forState is DataStateKey<D>
-          ? msgCtx.dataValueOrThrow(forState)
-          : null as D;
+      var data =
+          forState is DataStateKey<D> ? msgCtx.data(forState).value : null as D;
       var handlerCtx =
           MessageHandlerContext<M, D, C>(msgCtx, msg, data, descrCtx.ctx);
       return _runConditions<M, D, C>(conditions.iterator, handlerCtx);
@@ -71,9 +70,8 @@ MessageHandlerDescriptor<C> makeWhenWithContextMessageDescriptor<M, D, C, C2>(
     makeContext,
     (descrCtx) => (msgCtx) {
       var msg = msgCtx.messageAsOrThrow<M>();
-      var data = forState is DataStateKey<D>
-          ? msgCtx.dataValueOrThrow(forState)
-          : null as D;
+      var data =
+          forState is DataStateKey<D> ? msgCtx.data(forState).value : null as D;
       var handlerCtx =
           MessageHandlerContext<M, D, C>(msgCtx, msg, data, descrCtx.ctx);
       return context(handlerCtx).bind((newCtx) {

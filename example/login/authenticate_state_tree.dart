@@ -221,7 +221,7 @@ Future<Result<AuthorizedUser>> _register(
   AuthService authService,
 ) async {
   var errorMessage = '';
-  var dataVal = msgCtx.dataOrThrow(States.registration);
+  var dataVal = msgCtx.data(States.registration);
   try {
     dataVal.update((_) => registerData
       ..isBusy = true

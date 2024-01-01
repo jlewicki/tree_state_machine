@@ -42,12 +42,12 @@ void main() {
         final buildTree = treeBuilder(
             createEntryHandler: (key) => (ctx) {
                   dataByKey[key] = key is DataStateKey<dynamic>
-                      ? ctx.data<dynamic>(key)?.value
+                      ? ctx.data<dynamic>(key).value
                       : null;
                 },
             createExitHandler: (key) => (ctx) {
                   key is DataStateKey<dynamic>
-                      ? ctx.data<dynamic>(key)?.value
+                      ? ctx.data<dynamic>(key).value
                       : null;
                 },
             messageHandlers: {

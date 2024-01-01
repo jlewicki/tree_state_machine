@@ -471,9 +471,10 @@ abstract class MessageContext {
   /// Posts a message that should be dispatched to the state machine asynchronously.
   void post(FutureOr<Object> message);
 
-  /// Gets the [DataValue] for the active data state identified by [key], or `null` if there is no
-  /// such state.
-  DataValue<D>? data<D>(DataStateKey<D> key);
+  /// Gets the [DataValue] for the active data state identified by [key].
+  ///
+  /// A [StateError] is thrown if [key] does not identify an active state.
+  DataValue<D> data<D>(DataStateKey<D> key);
 
   /// Schedules a message to be dispatched to the state machine asynchronously.
   ///
@@ -631,7 +632,10 @@ abstract class TransitionContext {
   /// modified by the state machine.
   Map<String, Object> get metadata;
 
-  DataValue<D>? data<D>(DataStateKey<D> key);
+  /// Gets the [DataValue] for the active data state identified by [key].
+  ///
+  /// A [StateError] is thrown if [key] does not identify an active state.
+  DataValue<D> data<D>(DataStateKey<D> key);
 
   /// Posts a message that should be sent to the end state of this transition, after the transition
   /// has completed.

@@ -1,5 +1,4 @@
 import 'package:logging/logging.dart';
-import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/delegate_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
@@ -25,14 +24,14 @@ final redTimeout = Duration(seconds: 5);
 
 final stoplightStateTree = StateTree(
   InitialChild(States.stopped),
-  children: [
+  childStates: [
     State.composite(
       States.running,
       InitialChild(States.green),
       onMessage: (ctx) => ctx.message == Messages.stop
           ? ctx.goTo(States.stopped)
           : ctx.unhandled(),
-      children: [
+      childStates: [
         State(
           States.green,
           onEnter: (ctx) =>

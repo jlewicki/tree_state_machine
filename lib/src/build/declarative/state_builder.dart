@@ -95,7 +95,7 @@ class EntryChannel<P> {
     return InitialData.run((transCtx) {
       try {
         return initialValue(
-          transCtx.dataValueOrThrow(ancestorKey),
+          transCtx.data(ancestorKey).value,
           transCtx.payloadOrThrow<P>(),
         );
       } catch (e) {
@@ -366,7 +366,7 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
     void Function(TransitionHandlerBuilder<D, D2>) build,
   ) {
     var builder = TransitionHandlerBuilder<D, D2>._(
-        key, _log, (transCtx) => transCtx.dataValueOrThrow(ancestorKey));
+        key, _log, (transCtx) => transCtx.data(ancestorKey).value);
     build(builder);
     _onEnter = builder._descriptor;
   }
@@ -435,7 +435,7 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
       void Function(MessageHandlerBuilder<M, D, D2> b) build) {
     var builder = MessageHandlerBuilder<M, D, D2>(
       key,
-      (msgCtx) => msgCtx.dataValueOrThrow(ancestorKey),
+      (msgCtx) => msgCtx.data(ancestorKey).value,
       _log,
       null,
     );
@@ -488,7 +488,7 @@ class StateBuilder<D> extends _StateBuilder implements EnterStateBuilder<D> {
     void Function(TransitionHandlerBuilder<D, D2>) build,
   ) {
     var builder = TransitionHandlerBuilder<D, D2>._(
-        key, _log, (transCtx) => transCtx.dataValueOrThrow(ancestorKey));
+        key, _log, (transCtx) => transCtx.data(ancestorKey).value);
     build(builder);
     _onExit = builder._descriptor;
   }

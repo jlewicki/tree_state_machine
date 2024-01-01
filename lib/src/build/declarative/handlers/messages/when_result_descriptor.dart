@@ -39,7 +39,7 @@ MessageHandlerDescriptor<C> makeWhenResultMessageDescriptor<M, D, C, T>(
       (descrCtx) => (msgCtx) {
             var msg = msgCtx.messageAsOrThrow<M>();
             var data = forState is DataStateKey<D>
-                ? msgCtx.dataValueOrThrow(forState)
+                ? msgCtx.data(forState).value
                 : null as D;
             var handlerCtx =
                 MessageHandlerContext<M, D, C>(msgCtx, msg, data, descrCtx.ctx);

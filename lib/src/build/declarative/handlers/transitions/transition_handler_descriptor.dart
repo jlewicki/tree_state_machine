@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:tree_state_machine/src/machine/tree_state.dart';
-import 'package:tree_state_machine/src/machine/extensions.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
 
@@ -85,7 +84,7 @@ class TransitionConditionDescriptor<C> {
       info,
       (ctx) => (transCtx) {
         var data = forState is DataStateKey<D>
-            ? transCtx.dataValueOrThrow(forState)
+            ? transCtx.data(forState).value
             : null as D;
         var handlerCtx = TransitionHandlerContext<D, C>(transCtx, data, ctx);
         return condition(handlerCtx);

@@ -1,4 +1,3 @@
-import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/delegate_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
@@ -34,7 +33,7 @@ class ToLowercase {
 // states.
 final simpleStateTree = StateTree(
   InitialChild(States.enterText),
-  children: [
+  childStates: [
     State(
       States.enterText,
       onMessage: (ctx) => switch (ctx.message) {
@@ -48,14 +47,15 @@ final simpleStateTree = StateTree(
       InitialData.run((ctx) => (ctx.payload as String).toUpperCase()),
       onMessage: (ctx) => ctx.message == Messages.finish
           ? ctx.goTo(States.finished,
-              payload: ctx.dataValueOrThrow(States.showUppercase))
+              payload: ctx.data(States.showUppercase).value)
           : ctx.unhandled(),
     ),
-    DataState(
+  ],
+  finalStates: [
+    FinalDataState(
       States.finished,
       InitialData.run((ctx) => (ctx.payload as String)),
-      isFinal: true,
-    )
+    ),
   ],
 );
 

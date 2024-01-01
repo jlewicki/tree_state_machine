@@ -15,7 +15,7 @@ void main() {
         final buildTree = treeBuilder(
           createMessageHandler: (key) => (ctx) {
             dataByKey[key] = key is DataStateKey<dynamic>
-                ? ctx.data<dynamic>(key)!.value
+                ? ctx.data<dynamic>(key).value
                 : null;
             return ctx.unhandled();
           },
@@ -36,7 +36,7 @@ void main() {
           createMessageHandler: (key) => (ctx) {
             // Look up data for ancestor state
             if (key == r_a_a_2_key || key == r_a_a_key) {
-              dataByKey[key] = ctx.data<dynamic>(r_a_key)!.value;
+              dataByKey[key] = ctx.data<dynamic>(r_a_key).value;
             }
 
             return ctx.unhandled();
@@ -50,44 +50,24 @@ void main() {
         expect(dataByKey[r_a_a_key], isA<ImmutableData>());
       });
 
-      // test('should return null if handling state has no data', () async {
-      //   final dataByKey = <StateKey, Object?>{};
-      //   final buildTree = tree.treeBuilder(
-      //     createMessageHandler: (key) => (ctx) {
-      //       dataByKey[key] = ctx.data<dynamic>()?.value;
-      //       return ctx.unhandled();
-      //     },
-      //   );
-      //   final machine = createMachine(buildTree);
-      //   await machine.enterInitialState();
-
-      //   await machine.processMessage(Object());
-
-      //   expect(dataByKey[r_a_a_2_key], isNull);
-      //   expect(dataByKey[r_a_a_key], isNull);
-      //   expect(dataByKey[r_a_key], isNull);
-      //   expect(dataByKey[r_key], isNull);
-      // });
-
-      test('should return null if descendant data is requested', () async {
+      test('should throw if descendant data is requested', () async {
         final dataByKey = <StateKey, Object?>{};
         final buildTree = treeBuilder(messageHandlers: {
           r_a_a_key: (ctx) {
-            dataByKey[r_a_a_key] = ctx.data<dynamic>(r_a_a_2_key)?.value;
+            try {
+              ctx.data<dynamic>(r_a_a_2_key).value;
+            } catch (e) {
+              dataByKey[r_a_a_key] = e;
+            }
             return ctx.unhandled();
           },
-          r_a_key: (ctx) {
-            dataByKey[r_a_key] = ctx.data<dynamic>(r_a_a_key)?.value;
-            return ctx.unhandled();
-          }
         });
 
         final machine = createMachine(buildTree);
         await machine.enterInitialState();
         await machine.processMessage(Object());
 
-        expect(dataByKey[r_a_a_key], isNull);
-        expect(dataByKey[r_a_key], isNull);
+        expect(dataByKey[r_a_a_key], isA<StateError>());
       });
 
       test('should throw whem updating after state is exited', () async {
@@ -115,8 +95,9 @@ void main() {
       test('should replace data in ancestor state', () async {
         final buildTree = treeBuilder(messageHandlers: {
           r_a_a_1_key: (ctx) {
-            ctx.updateOrThrow(
-                r_a_key, (_) => ImmutableData(name: 'Jim', price: 2));
+            ctx
+                .data(r_a_key)
+                .update((_) => ImmutableData(name: 'Jim', price: 2));
             return ctx.stay();
           }
         });
@@ -141,8 +122,9 @@ void main() {
           },
           messageHandlers: {
             r_a_1_key: (ctx) {
-              ctx.updateOrThrow<ImmutableData>(
-                  r_a_1_key, (_) => ImmutableData(name: 'Jim', price: 2));
+              ctx
+                  .data(r_a_1_key)
+                  .update((_) => ImmutableData(name: 'Jim', price: 2));
               return ctx.stay();
             }
           },
@@ -164,8 +146,9 @@ void main() {
       test('should replace data in ancestor state by key', () async {
         final buildTree = treeBuilder(messageHandlers: {
           r_a_1_key: (ctx) {
-            ctx.updateOrThrow(
-                r_a_key, (_) => ImmutableData(name: 'Jim', price: 2));
+            ctx
+                .data(r_a_key)
+                .update((_) => ImmutableData(name: 'Jim', price: 2));
             return ctx.stay();
           }
         });
@@ -183,7 +166,7 @@ void main() {
       test('should throw if provider for data type cannot be found', () async {
         final buildTree = treeBuilder(messageHandlers: {
           r_a_a_1_key: (ctx) {
-            ctx.updateOrThrow(r_b_2_key, (current) => current + 1);
+            ctx.data(r_b_2_key).update((current) => current + 1);
             return ctx.stay();
           }
         });
@@ -196,7 +179,7 @@ void main() {
       test('should throw if provider for key cannot be found', () async {
         final buildTree = treeBuilder(messageHandlers: {
           r_a_a_1_key: (ctx) {
-            ctx.updateOrThrow(r_a_a_2_key, (current) => current);
+            ctx.data(r_a_a_2_key).update((current) => current);
             return ctx.stay();
           }
         });

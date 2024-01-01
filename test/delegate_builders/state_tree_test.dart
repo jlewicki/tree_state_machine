@@ -18,7 +18,7 @@ void main() {
         State.composite(
           r_1,
           InitialChild(r_1_1),
-          children: [
+          childStates: [
             State(r_1_1),
             State(r_1_2),
           ],

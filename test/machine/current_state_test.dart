@@ -149,7 +149,7 @@ void main() {
           messageHandlers: {
             data_tree.r_a_a_2_key: (msgCtx) {
               msgCtx
-                  .data(data_tree.r_a_a_2_key)!
+                  .data(data_tree.r_a_a_2_key)
                   .update((current) => current..label = 'not cool man');
               return msgCtx.unhandled();
             }

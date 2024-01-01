@@ -399,9 +399,12 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
       : assert(receivingLeafNode.nodeType == NodeType.leaf);
 
   @override
-  DataValue<D>? data<D>(DataStateKey<D> key) {
+  DataValue<D> data<D>(DataStateKey<D> key) {
     assert(notifiedNodes.isNotEmpty);
-    return notifiedNodes.last.selfOrAncestorDataValue<D>(key);
+    var dataValue = notifiedNodes.last.selfOrAncestorDataValue<D>(key);
+    return dataValue ??
+        (throw StateError(
+            'Unable to retrieve data because state $key is not an active state'));
   }
 
   @override
@@ -552,8 +555,11 @@ class MachineTransitionContext
   StateKey get lca => _requestedTransition.lca;
 
   @override
-  DataValue<D>? data<D>(DataStateKey<D> key) {
-    return _currentNode.selfOrAncestorDataValue<D>(key);
+  DataValue<D> data<D>(DataStateKey<D> key) {
+    var dataValue = _currentNode.selfOrAncestorDataValue(key);
+    return dataValue ??
+        (throw StateError(
+            'Unable to retrieve data because state $key is not an active state'));
   }
 
   @override

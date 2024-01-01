@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
-import 'package:tree_state_machine/src/machine/extensions.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
 import './transition_handler_descriptor.dart';
 
@@ -20,7 +19,7 @@ TransitionHandlerDescriptor<C> makeUpdateDataDescriptor<C, D>(
       info,
       makeContext,
       (descrCtx) => (transCtx) {
-            var data = transCtx.dataOrThrow(forState);
+            var data = transCtx.data(forState);
             var ctx = TransitionHandlerContext<D, C>(
                 transCtx, data.value, descrCtx.ctx);
             data.update((d) => update(ctx));
