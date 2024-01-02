@@ -5,7 +5,8 @@
 /// tree to a `TreeStateMachine`.
 ///
 /// It is intended that applications will use libraries providing various higher-level APIs for
-/// defining state tree, and those libraries will work using the core types in this library.
+/// defining state tree, and those libraries will work using the core types in this library. A
+/// simple function-based API can be found in `delegate_builders` library.
 ///
 /// ```dart
 /// // Hypothetical class providing high-level API for defining a state tree

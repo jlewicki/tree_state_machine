@@ -221,18 +221,26 @@ abstract class DataTreeState<D> extends TreeState {
 /// A [DataTreeState] that delegates its message and transition handling behavior to external
 /// functions.
 class DelegatingDataTreeState<D> extends DataTreeState<D> {
+  /// Constructs a [DelegatingDataTreeState].
+  ///
+  /// An [initialData] function must be provided to indicate the initial data value for this data
+  /// state when it is entered.
+  ///
+  /// The other callbacks are optional, and may be provided to customize how the data state handles
+  /// messages and state transitions.
   DelegatingDataTreeState(
-    this._initialData, {
+    GetInitialData<D> initialData, {
     MessageHandler? onMessage,
     TransitionHandler? onEnter,
     TransitionHandler? onExit,
     Dispose? onDispose,
-  })  : _onMessage = onMessage ?? emptyMessageHandler,
+  })  : _initialData = initialData,
+        _onMessage = onMessage ?? emptyMessageHandler,
         _onEnter = onEnter ?? emptyTransitionHandler,
         _onExit = onExit ?? emptyTransitionHandler,
         _onDispose = onDispose ?? emptyDispose;
 
-  final D Function(TransitionContext) _initialData;
+  final GetInitialData<D> _initialData;
   final MessageHandler _onMessage;
   final TransitionHandler _onEnter;
   final TransitionHandler _onExit;
@@ -274,7 +282,7 @@ class NestedMachineData {
   }
 }
 
-/// Describes the initial state machine of a [DeclarativeStateTreeBuilder.machineState].
+/// Describes the initial state machine of a nested machine state.
 abstract class NestedMachine {
   /// Returns `true` if messages should be forwarded from a state machine to the nested state machine.
   bool get forwardMessages;
@@ -298,12 +306,14 @@ class NestedTreeStateMachineDoneMessage {}
 /// callback.
 class NestedMachineState extends DataTreeState<NestedMachineData> {
   final NestedMachine nestedMachine;
+  // TODO: change this to be MessageTransitionResult Function(MessageContext, CurrentState)
+  // to enforce that a state transition  must take place
   final MessageHandler Function(CurrentState nestedState) onDone;
   final bool Function(Transition transition)? isDone;
   final MessageHandler? _onDisposed;
   final whenDoneMessage = NestedTreeStateMachineDoneMessage();
   final whenDisposedMessage = Object();
-  final Logger _log;
+  final Logger? _log;
   CurrentState? nestedCurrentState;
 
   NestedMachineState(
@@ -350,7 +360,7 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
   FutureOr<MessageResult> onMessage(MessageContext msgCtx) async {
     // The nested state machine is done, so transition to the next state
     if (msgCtx.message == whenDoneMessage) {
-      _log.fine(
+      _log?.fine(
           "Nested state machine reached final state '${nestedCurrentState!.key}' and is done.");
       var handler = onDone(nestedCurrentState!);
       return handler(msgCtx);
@@ -358,7 +368,7 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
 
     // The nested state machine was disposed, so transition to the next state
     if (msgCtx.message == whenDisposedMessage) {
-      _log.fine("Nested state machine was disposed");
+      _log?.fine("Nested state machine was disposed");
       if (_onDisposed != null) {
         return _onDisposed(msgCtx);
       } else {
@@ -368,7 +378,7 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
 
     // Dispatch messages sent to parent state machine to the child state machine.
     if (nestedMachine.forwardMessages) {
-      _log.finer(
+      _log?.finer(
           'Forwarding message ${msgCtx.message} to nested state machine.');
       await nestedCurrentState!.post(msgCtx.message);
     }
@@ -380,6 +390,8 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
   @override
   FutureOr<void> onExit(TransitionContext transCtx) {
     if (nestedMachine.disposeMachineOnExit) {
+      _log?.fine(
+          "Disposing nested state machine on exit of nested machine state.");
       nestedCurrentState?.stateMachine.dispose();
     }
   }
@@ -440,7 +452,7 @@ abstract class MessageContext {
   /// Application-specific [metadata] can be provided, which will be used to populate
   /// [TransitionContext.metadata] for the transition. This metadata is not consumed by the
   /// framework, but might prove useful in at the application level.
-  MessageResult goTo(
+  TransitionMessageResult goTo(
     StateKey targetStateKey, {
     TransitionHandler? transitionAction,
     Object? payload,
@@ -462,7 +474,7 @@ abstract class MessageContext {
   /// If the calling state is a leaf state, only that state is re-entered. If the calling state is
   /// an interior state, all the states from the current leaf state to the calling interior state
   /// are re-entered.
-  MessageResult goToSelf({TransitionHandler? transitionAction});
+  TransitionMessageResult goToSelf({TransitionHandler? transitionAction});
 
   /// Returns a [MessageResult] indicating the message could not be handled by a state, and that
   /// its parent state should be given an opportunity to handle the message.
@@ -508,13 +520,18 @@ FutureOr<void> emptyTransitionAction(TransitionContext ctx) {}
 ///
 /// Instances of this class are created by calling methods on [MessageContext], for example
 /// [MessageContext.goTo].
-abstract class MessageResult {
+sealed class MessageResult {
   MessageResult._();
+}
+
+/// A [MessageResult] that indicates a state transition should occur.
+sealed class TransitionMessageResult extends MessageResult {
+  TransitionMessageResult._() : super._();
 }
 
 /// A [MessageResult] indicating that a message was sucessfully handled, and a transition to a new
 /// state should occur.
-class GoToResult extends MessageResult {
+class GoToResult extends TransitionMessageResult {
   /// Indicates the state to which the state machine should transition.
   final StateKey targetStateKey;
   final TransitionAction? transitionAction;
@@ -550,7 +567,7 @@ class InternalTransitionResult extends MessageResult {
 /// A [MessageResult] indicating that a message was sucessfully handled, and an self transition
 /// should occur. That is, the current state should remain the same, but the exit and entry handlers
 /// for the state should be called.
-class SelfTransitionResult extends MessageResult {
+class SelfTransitionResult extends TransitionMessageResult {
   final TransitionAction? transitionAction;
   SelfTransitionResult([this.transitionAction = emptyTransitionAction])
       : super._();

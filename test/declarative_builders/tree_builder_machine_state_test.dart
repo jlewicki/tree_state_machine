@@ -40,7 +40,7 @@ void main() {
         var sb = DeclarativeStateTreeBuilder(initialChild: stateNestedMachine);
         sb.machineState(
           stateNestedMachine,
-          InitialMachine.fromTree((_) => nestedSb.toTreeBuilder()),
+          InitialMachine.fromStateTree((_) => nestedSb),
           (b) {
             b.onMachineDone((b) => b.goTo(
                   state2,
@@ -228,7 +228,7 @@ void main() {
         var sb = DeclarativeStateTreeBuilder(initialChild: state1);
         sb.machineState(
           stateNestedMachine,
-          InitialMachine.fromTree((_) => nestedSb.toTreeBuilder()),
+          InitialMachine.fromStateTree((_) => nestedSb),
           (b) {
             b.onMachineDone((b) => b.goTo(state3));
           },

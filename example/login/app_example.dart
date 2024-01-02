@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:async/async.dart';
 import 'package:logging/logging.dart';
+import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'package:tree_state_machine/declarative_builders.dart';
 import 'authenticate_state_tree.dart' as auth;
@@ -63,13 +64,11 @@ DeclarativeStateTreeBuilder appStateTree(AuthService authService) {
 
   b.machineState(
     States.authenticate,
-    InitialMachine.fromTree(
-        (transCtx) => auth
-            .authenticateStateTree(
+    InitialMachine.fromStateTree(
+        (transCtx) => auth.authenticateStateTree(
               authService,
               initialState: transCtx.payload as StateKey,
-            )
-            .toTreeBuilder(),
+            ),
         label: 'Authenticate Machine'),
     (b) {
       b.onMachineDone((b) => b.enterChannel(

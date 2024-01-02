@@ -1,4 +1,7 @@
-import 'package:tree_state_machine/src/machine/tree_state.dart';
+import 'dart:async';
+
+import 'package:tree_state_machine/tree_state_machine.dart';
+import 'package:tree_state_machine/src/machine/utility.dart';
 import 'tree_build_context.dart';
 import 'tree_node.dart';
 import 'tree_node_info.dart';
@@ -187,4 +190,66 @@ final class InitialDataByDelegate<D> extends InitialData<D> {
 
   @override
   D call(TransitionContext transCtx) => initialData(transCtx);
+}
+
+/// A callable class that can produce the intial nested nested state machine for a machine state,
+/// when the machine state is entered.
+class InitialMachine implements NestedMachine {
+  InitialMachine._(
+    this._create,
+    this.disposeMachineOnExit,
+    this.forwardMessages,
+    this.label,
+  );
+
+  @override
+  final bool forwardMessages;
+  @override
+  final bool disposeMachineOnExit;
+  final String? label;
+  final FutureOr<TreeStateMachine> Function(TransitionContext) _create;
+
+  @override
+  FutureOr<TreeStateMachine> call(TransitionContext transCtx) =>
+      _create(transCtx);
+
+  /// Constructs an [InitialMachine] that will use the state machine produced by the [create]
+  /// function as the nested state machine.
+  ///
+  /// If [disposeOnExit] is true (the default), then the nested state machine will be disposed when
+  /// the machine state is exited.
+  ///
+  /// If [forwardMessages] is true (the default), then the machine state will forward any messages
+  /// that are dispatched to it to the nested state machine.
+  factory InitialMachine.fromMachine(
+    FutureOr<TreeStateMachine> Function(TransitionContext) create, {
+    bool disposeOnExit = true,
+    bool forwardMessages = true,
+    String? label,
+  }) {
+    return InitialMachine._(create, disposeOnExit, forwardMessages, label);
+  }
+
+  /// Constructs an [InitialMachine] that will create and start a nested state machine using the
+  /// [StateTreeBuildProvider] produced by the [create] function.
+  factory InitialMachine.fromStateTree(
+    FutureOr<StateTreeBuildProvider> Function(TransitionContext transCtx)
+        create, {
+    String? label,
+    String? logSuffix,
+  }) {
+    return InitialMachine._(
+      (ctx) {
+        return create(ctx).bind((treeBuilder) {
+          return TreeStateMachine(
+            treeBuilder,
+            logSuffix: logSuffix,
+          );
+        });
+      },
+      true,
+      true,
+      label,
+    );
+  }
 }

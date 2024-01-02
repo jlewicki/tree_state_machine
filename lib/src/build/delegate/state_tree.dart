@@ -2,8 +2,6 @@ import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 /// The construction protocol for tree states.
-///
-///
 abstract interface class StateConfig {
   /// Constructs a [TreeNodeInfo] representing the tree state, with the specified [parent] node.
   TreeNodeInfo nodeInfo(TreeNodeInfo parent);
@@ -52,7 +50,7 @@ class StateTree implements StateTreeBuildProvider {
   /// Constructs a state tree with a root state identified by [rootKey].
   ///
   /// {@template StateTree.children}
-  /// The state tree is composed of the states in the list of [children], and starts in the state
+  /// The state tree is composed of the states in the list of [childStates], and starts in the state
   /// identified by the [initialChild].
   /// {@endtemplate}
   ///
@@ -68,7 +66,7 @@ class StateTree implements StateTreeBuildProvider {
     TransitionHandler? onEnter,
     TransitionHandler? onExit,
     MessageHandler? onMessage,
-    required List<StateConfig> children,
+    required List<StateConfig> childStates,
     List<FinalStateConfig> finalStates = const [],
   }) {
     return StateTree._(_createRoot(
@@ -79,13 +77,13 @@ class StateTree implements StateTreeBuildProvider {
         onExit: onExit,
       ),
       initialChild,
-      children,
+      childStates,
       finalStates,
     ));
   }
 
-  /// Constructs a state tree with a root data state identified by [rootKey], starting with
-  /// [initialData].
+  /// Constructs a state tree with a root data state identified by [rootKey], starting with a state
+  /// data value provided by [initialData].
   ///
   /// {@macro StateTree.children}
   ///
@@ -99,7 +97,7 @@ class StateTree implements StateTreeBuildProvider {
     TransitionHandler? onEnter,
     TransitionHandler? onExit,
     MessageHandler? onMessage,
-    required List<StateConfig> children,
+    required List<StateConfig> childStates,
     List<FinalStateConfig> finalStates = const [],
   }) {
     return StateTree._(_createRoot(
@@ -111,7 +109,7 @@ class StateTree implements StateTreeBuildProvider {
         onExit: onExit,
       ),
       initialChild,
-      children,
+      childStates,
       finalStates,
     ));
   }

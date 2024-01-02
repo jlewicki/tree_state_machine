@@ -426,7 +426,7 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
   final Map<String, Object> metadata = {};
 
   @override
-  MessageResult goTo(
+  TransitionMessageResult goTo(
     StateKey targetStateKey, {
     TransitionHandler? transitionAction,
     Object? payload,
@@ -448,7 +448,7 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
   }
 
   @override
-  MessageResult goToSelf({TransitionHandler? transitionAction}) {
+  TransitionMessageResult goToSelf({TransitionHandler? transitionAction}) {
     _throwIfDisposed();
     return SelfTransitionResult(transitionAction);
   }

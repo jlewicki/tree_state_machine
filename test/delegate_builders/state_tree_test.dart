@@ -14,7 +14,7 @@ void main() {
     var tree = StateTree.root(
       rootState,
       InitialChild(r_1),
-      children: [
+      childStates: [
         State.composite(
           r_1,
           InitialChild(r_1_1),

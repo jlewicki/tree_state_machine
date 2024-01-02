@@ -563,63 +563,6 @@ class DeclarativeStateTreeBuilder implements StateTreeBuildProvider {
   }
 }
 
-/// Describes the initial state machine of a [DeclarativeStateTreeBuilder.machineState].
-class InitialMachine implements NestedMachine {
-  @override
-  final bool forwardMessages;
-  @override
-  final bool disposeMachineOnExit;
-  final String? label;
-  final FutureOr<TreeStateMachine> Function(TransitionContext) _create;
-
-  InitialMachine._(this._create, this.disposeMachineOnExit,
-      this.forwardMessages, this.label);
-
-  @override
-  FutureOr<TreeStateMachine> call(TransitionContext transCtx) =>
-      _create(transCtx);
-
-  /// Constructs an [InitialMachine] that will use the state machine produced by the [create]
-  /// function as the nested state machine.
-  ///
-  /// If [disposeOnExit] is true (the default), then the nested state machine will be disposed when
-  /// the [DeclarativeStateTreeBuilder.machineState] is exited.
-  ///
-  /// If [forwardMessages] is true (the default), then the [DeclarativeStateTreeBuilder.machineState] will
-  /// forward any messages that are dispatched to it to the nested state machine.
-  factory InitialMachine.fromMachine(
-    FutureOr<TreeStateMachine> Function(TransitionContext) create, {
-    bool disposeOnExit = true,
-    bool forwardMessages = true,
-    String? label,
-  }) {
-    return InitialMachine._(create, disposeOnExit, forwardMessages, label);
-  }
-
-  /// Constructs an [InitialMachine] that will create and start a nested state machine using the
-  /// [StateTreeBuilder] produced by the [create] function.
-  factory InitialMachine.fromTree(
-    // TODO: changte this to FutureOr<StateTreeBuildProvider>
-    FutureOr<StateTreeBuilder> Function(TransitionContext transCtx) create, {
-    String? label,
-    String? logSuffix,
-  }) {
-    return InitialMachine._(
-      (ctx) {
-        return create(ctx).bind((treeBuilder) {
-          return TreeStateMachine.withBuilder(
-            treeBuilder,
-            logSuffix: logSuffix,
-          );
-        });
-      },
-      true,
-      true,
-      label,
-    );
-  }
-}
-
 /// A state builder callback that adds no behavior to a state.
 void emptyState<D>(StateBuilder<D> builder) {}
 

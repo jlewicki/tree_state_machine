@@ -35,7 +35,7 @@ enum Messages { go }
 final umlExampleStateTree = StateTree.root(
   States.s,
   InitialChild(States.s1),
-  children: [
+  childStates: [
     State.composite(
       States.s1,
       InitialChild(States.s11),

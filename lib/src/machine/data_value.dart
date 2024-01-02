@@ -17,27 +17,29 @@ import 'package:tree_state_machine/tree_state_machine.dart';
 /// state.
 ///
 /// ```dart
-/// class MyData {
+/// class CounterData {
 ///   int counter;
 /// }
 ///
 /// class Increment { }
 ///
-/// var state1 = StateKey('state1');
-/// var treeBuilder = StateTreeBuilder(initialChild: state1);
+/// class States {
+///   static const dataState1 = DataStateKey<CounterData>('state1');
+/// }
 ///
-/// treeBuilder.dataState<MyData>(state1, (b) {
-///   b.runOnMessage((MessageContext msgCtx) {
-///     if (msgCtx.message is Increment) {
-///       // Get data value of type MyData from the message context
-///       var dataVal = msgCtx.data<MyData>();
+/// DataState(
+///   States.dataState1,
+///   InitialData(() => CounterData()),
+///   onMessage: (MessageContext ctx) {
+///     if (ctx.message is Increment) {
 ///       // Update the current state data value
-///       dataVal!.update((cur) => cur..counter += 1);
-///       return msgCtx.stay();
+///       ctx.data(States.dataState1).update((current) => current..counter += 1);
+///       return ctx.stay();
 ///     }
-///     return msgCtx.unhandled();
-///   });
-/// });
+///     return ctx.unhandled();
+///   },
+/// );
+///
 /// ```
 ///
 /// [DataValue] is typically created implicitly when constructing a state tree. Application code

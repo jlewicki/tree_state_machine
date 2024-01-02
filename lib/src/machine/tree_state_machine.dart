@@ -97,7 +97,7 @@ class TreeStateMachine {
   /// Constructs a state machine for the state tree defined by [treeBuildProvider].
   ///
   /// {@template TreeStateMachine.commonArgs}
-  /// If [logName] is provided, it will be used as a suffix in the name of the [Logger] that this
+  /// If [logSuffix] is provided, it will be used as a suffix in the name of the [Logger] that this
   /// state machine logs with. This can help disambiguate log messages if more than one state
   /// machine is running at the same time.
   ///
@@ -109,14 +109,14 @@ class TreeStateMachine {
   /// {@endtemplate}
   factory TreeStateMachine(
     StateTreeBuildProvider treeBuildProvider, {
-    String? logName,
+    String? logSuffix,
     String? label,
     PostMessageErrorPolicy postMessageErrorPolicy =
         PostMessageErrorPolicy.convertToFailedMessage,
   }) {
     return TreeStateMachine.withBuilder(
       StateTreeBuilder(treeBuildProvider),
-      logSuffix: logName,
+      logSuffix: logSuffix,
       label: label,
       postMessageErrorPolicy: postMessageErrorPolicy,
     );
