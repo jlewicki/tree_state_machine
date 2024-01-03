@@ -283,26 +283,27 @@ class MachineTreeStateData {
 
 /// Describes the initial state machine of a nested machine state.
 abstract class MachineTreeStateMachine {
-  /// Returns `true` if messages should be forwarded from a state machine to the nested state machine.
+  /// Returns `true` if messages should be forwarded from a state machine to the
+  /// nested state machine.
   bool get forwardMessages;
 
-  ///  Returns `true` if the nested state machine should be disposed when the
-  /// [DeclarativeStateTreeBuilder.machineState] is exited.
+  /// Returns `true` if the nested state machine should be disposed when the
+  /// machine state is exited.
   bool get disposeMachineOnExit;
 
   /// Creates a nested [TreeStateMachine].
   FutureOr<TreeStateMachine> call(TransitionContext transCtx);
 }
 
-/// The message that is sent to a state machine when a nested state machine has reached a final
-/// state.
+/// The message that is sent to a state machine when a nested state machine has
+/// reached a final state.
 class NestedTreeStateMachineDoneMessage {}
 
 /// A state that encapsulates a nested state machine
 ///
-/// When this state is entered, a nested state machine is created and started. When the nested
-/// machine completes, this state will transition to a successor state, as determined the [onDone]
-/// callback.
+/// When this state is entered, a nested state machine is created and started.
+/// When the nested machine completes, this state will transition to a successor
+/// state, as determined the [onDone] callback.
 class MachineTreeState extends DataTreeState<MachineTreeStateData> {
   final MachineTreeStateMachine nestedMachine;
   // TODO: change this to be MessageTransitionResult Function(MessageContext, CurrentState)
@@ -348,7 +349,8 @@ class MachineTreeState extends DataTreeState<MachineTreeStateData> {
     data!.update(
         (current) => current.._nestedCurrentState = machineCurrentState);
 
-    // Post a future that will notify the message handler when the nested machine is done.
+    // Post a future that will notify the message handler when the nested
+    // machine is done.
     var group = StreamGroup<Object>();
     group.add(done);
     group.add(disposed);
@@ -406,11 +408,12 @@ typedef Dispose = void Function();
 
 /// Provides information to a state about the message that is being processed.
 ///
-/// This context is provided as an argument to [TreeState.onMessage]. In addition to providing
-/// access to the [message] that is being processed, it has several methods that allow a message
-/// handler to indicate the result its processsing. For example, the handler can indicate that a
-/// state transition should occur by calling [goTo], or that message processing should be delegated
-/// to its parent state by calling [unhandled].
+/// This context is provided as an argument to [TreeState.onMessage]. In
+/// addition to providing access to the [message] that is being processed, it
+/// has several methods that allow a message handler to indicate the result its
+/// processsing. For example, the handler can indicate that a state transition
+/// should occur by calling [goTo], or that message processing should be
+/// delegated to its parent state by calling [unhandled].
 abstract class MessageContext {
   /// The message that is being processed by the state machine.
   Object get message;
@@ -420,37 +423,42 @@ abstract class MessageContext {
 
   /// Identifies the active state that is currently processing a message.
   ///
-  /// This may be an ancestor of [leafState], if the leaf state did not handle the message.
+  /// This may be an ancestor of [leafState], if the leaf state did not handle
+  /// the message.
   StateKey get handlingState;
 
-  /// The states that are currently active, starting at the active leaf state and ending at the
-  /// root.
+  /// The states that are currently active, starting at the active leaf state
+  /// and ending at the root.
   Iterable<StateKey> get activeStates;
 
   /// A map for storing application metadata.
   ///
-  /// This map may be useful for storing application-specific values that might need to shared across
-  /// various message handlers as a message is processed. This map will never be read or modified by
-  /// the state machine.
+  /// This map may be useful for storing application-specific values that might
+  /// need to shared across various message handlers as a message is processed.
+  /// This map will never be read or modified by the state machine.
   Map<String, Object> get metadata;
 
-  /// Returns a [MessageResult] indicating that a transition to the specified state should occur.
+  /// Returns a [MessageResult] indicating that a transition to the specified
+  /// state should occur.
   ///
-  /// A [transitionAction] may optionally be specified. This function that will be called during the
-  /// transition between states, after all states are exited, but before entering any new states.
+  /// A [transitionAction] may optionally be specified. This function that will
+  /// be called during the transition between states, after all states are
+  /// exited, but before entering any new states.
   ///
-  /// A [payload] may be optionally specified. This payload will be made available by
-  /// [TransitionContext.payload] to the states that are exited and entered during the state
-  /// transition, and can be used to provide additional application specific context describing
-  /// the transition.
+  /// A [payload] may be optionally specified. This payload will be made
+  /// available by [TransitionContext.payload] to the states that are exited and
+  /// entered during the state transition, and can be used to provide additional
+  /// application specific context describing the transition.
   ///
-  /// A [reenterTarget] flag may be optionally specified. If `true`, and the target state is an
-  /// active state, then the target state will be exited and entered, calling [TreeState.onExit] and
-  /// [TreeState.onEnter], during the transition.
+  /// A [reenterTarget] flag may be optionally specified. If `true`, and the
+  /// target state is an active state, then the target state will be exited and
+  /// entered, calling [TreeState.onExit] and [TreeState.onEnter], during the
+  /// transition.
   ///
-  /// Application-specific [metadata] can be provided, which will be used to populate
-  /// [TransitionContext.metadata] for the transition. This metadata is not consumed by the
-  /// framework, but might prove useful in at the application level.
+  /// Application-specific [metadata] can be provided, which will be used to
+  /// populate [TransitionContext.metadata] for the transition. This metadata is
+  /// not consumed by the framework, but might prove useful in at the
+  /// application level.
   TransitionMessageResult goTo(
     StateKey targetStateKey, {
     TransitionHandler? transitionAction,
@@ -687,9 +695,9 @@ abstract class TransitionContext {
 
 /// Describes a transition between states.
 ///
-/// Depending on usage, this may describe a transition that will take place (as with
-/// [TransitionContext.requestedTransition]), or a transition that has compeleted (as with
-/// [HandledMessage.transition]).
+/// Depending on usage, this may describe a transition that will take place (as
+/// with [TransitionContext.requestedTransition]), or a transition that has
+/// completed (as with [HandledMessage.transition]).
 class Transition {
   /// The starting leaf state of the transition.
   final StateKey from;
@@ -699,26 +707,29 @@ class Transition {
 
   /// The least common ancestor (LCA) state of the transition.
   ///
-  /// The LCA state is the parent state of the last state exited and the first state entered during
-  /// a transition, and consequently does not undergo a transition (that is, it is neither exited or
-  /// entered).
+  /// The LCA state is the parent state of the last state exited and the first
+  /// state entered during a transition, and consequently does not undergo a
+  /// transition (that is, it is neither exited or entered).
   final StateKey lca;
 
-  /// Complete list of states participating in the transition, comprised of the exiting states
-  /// followed by the entering states.
+  /// Complete list of states participating in the transition, comprised of the
+  /// exiting states followed by the entering states.
   ///
-  /// The first state in the list is [from], and the last state in the list is [to].
+  /// The first state in the list is [from], and the last state in the list is
+  /// [to].
   late final List<StateKey> path =
       List.unmodifiable(exitPath.followedBy(entryPath));
 
   /// The exiting states for this transition.
   ///
-  /// The order of the states in the list reflects the order of exit for the states.
+  /// The order of the states in the list reflects the order of exit for the
+  /// states.
   final List<StateKey> exitPath;
 
   /// The entering states for this transition.
   ///
-  /// The order of the states in the list reflects the order of entry for the states.
+  /// The order of the states in the list reflects the order of entry for the
+  /// states.
   final List<StateKey> entryPath;
 
   ///
@@ -732,12 +743,13 @@ class Transition {
         isToFinalState = isToFinalState ?? false;
 }
 
-//==================================================================================================
+//==============================================================================
 //
 // Processing results
 //
 
-/// Base class for types describing how a message was processed by a state machine.
+/// Base class for types describing how a message was processed by a state
+/// machine.
 ///
 /// Pattern-match on subclasses to obtain additional information.
 sealed class ProcessedMessage {
@@ -761,27 +773,30 @@ final class HandledMessage extends ProcessedMessage {
 
   /// The state that handled the message.
   ///
-  /// This state might be different from [receivingState], if receiving state returned
-  /// [MessageContext.unhandled] and delegated handling to an ancestor state.
+  /// This state might be different from [receivingState], if receiving state
+  /// returned [MessageContext.unhandled] and delegated handling to an ancestor
+  /// state.
   final StateKey handlingState;
 
-  /// Returns a [Transition] describing the state transition that took place as a result of
-  /// processing the message, or `null` if there was no transition.
+  /// Returns a [Transition] describing the state transition that took place as
+  /// a result of processing the message, or `null` if there was no transition.
   final Transition? transition;
 }
 
-/// A [ProcessedMessage] indicating that none of the active states in the state machine recognized
-/// the message.
+/// A [ProcessedMessage] indicating that none of the active states in the state
+/// machine recognized the message.
 final class UnhandledMessage extends ProcessedMessage {
   const UnhandledMessage(
       super.message, super.receivingState, this.notifiedStates)
       : super._();
 
-  /// The collection of states that were notified of, but did not handle, the message.
+  /// The collection of states that were notified of, but did not handle, the
+  /// message.
   final Iterable<StateKey> notifiedStates;
 }
 
-/// A [ProcessedMessage] indicating an error was thrown while processing a message.
+/// A [ProcessedMessage] indicating an error was thrown while processing a
+/// message.
 final class FailedMessage extends ProcessedMessage {
   const FailedMessage(
       super.message, super.receivingState, this.error, this.stackTrace)
@@ -794,14 +809,14 @@ final class FailedMessage extends ProcessedMessage {
   final StackTrace stackTrace;
 }
 
-//==================================================================================================
+//==============================================================================
 //
 // Codecs
 //
 /// Provides serialization and deserialization methods for a data state.
 ///
-/// These codecs are executed when [TreeStateMachine.loadFrom] or [TreeStateMachine.saveTo] is
-/// called.
+/// These codecs are executed when [TreeStateMachine.loadFrom] or
+/// [TreeStateMachine.saveTo] is called.
 class StateDataCodec<D> {
   final Object? Function(D?) _encode;
   final D? Function(Object?) _decode;
@@ -822,17 +837,19 @@ class StateDataCodec<D> {
   D? deserialize(Object? serialized) => _decode(serialized);
 }
 
-//==================================================================================================
+//==============================================================================
 //
 // Filters
 //
 
-/// A function that is called to intercept the message handler of a state in a state tree.
+/// A function that is called to intercept the message handler of a state in a
+/// state tree.
 ///
-/// If a state has an associated message filter, that filter will be called in lieu of the message
-/// handler for the state. In addition to the message context, the filter is passed a [next]
-/// function, that when called will call any remaining message filters for the state, followed by
-/// calling the message handler for the state itself.
+/// If a state has an associated message filter, that filter will be called in
+/// lieu of the message handler for the state. In addition to the message
+/// context, the filter is passed a [next] function, that when called will call
+/// any remaining message filters for the state, followed by calling the message
+/// handler for the state itself.
 ///
 /// ```dart
 /// var log = Logger();
@@ -847,12 +864,14 @@ typedef MessageFilter = Future<MessageResult> Function(
   Future<MessageResult> Function() next,
 );
 
-/// A function that is called to intercept a transition handler of a state in a state tree.
+/// A function that is called to intercept a transition handler of a state in a
+/// state tree.
 ///
-/// If a state has an associated onEntry or onExit transition filter, that filter will be called in
-/// lieu of the transition handler for the state. In addition to the transition context, the filter
-/// is passed a [next] function, that when called will call any remaining transition filters for the
-/// state, followed by calling the transition handler for the state itself.
+/// If a state has an associated onEntry or onExit transition filter, that
+/// filter will be called in lieu of the transition handler for the state. In
+/// addition to the transition context, the filter is passed a [next] function,
+/// that when called will call any remaining transition filters for the state,
+/// followed by calling the transition handler for the state itself.
 ///
 ///  ```dart
 /// var log = Logger();
@@ -867,8 +886,9 @@ typedef TransitionFilter = Future<void> Function(
   Future<void> Function() next,
 );
 
-/// A set of filter methods that can be associated with one or more states in a state tree, to
-/// intercept and potentianlly extend the message and transition handlers of the states.
+/// A set of filter methods that can be associated with one or more states in a
+/// state tree, to intercept and potentianlly extend the message and transition
+/// handlers of the states.
 class TreeStateFilter {
   TreeStateFilter({
     this.name,
@@ -880,15 +900,15 @@ class TreeStateFilter {
   /// Optional user-friendly name of this filter
   final String? name;
 
-  /// The [MessageFilter] that is called to intercept the message handler of the state being
-  /// filtered.
+  /// The [MessageFilter] that is called to intercept the message handler of the
+  /// state being filtered.
   final MessageFilter? onMessage;
 
-  /// The [TransitionFilter] that is called to intercept the onEnter handler of the state being
-  /// filtered.
+  /// The [TransitionFilter] that is called to intercept the onEnter handler of
+  /// the state being filtered.
   final TransitionFilter? onEnter;
 
-  /// The [TransitionFilter] that is called to intercept the onExit handler of the state being
-  /// filtered.
+  /// The [TransitionFilter] that is called to intercept the onExit handler of
+  /// the state being filtered.
   final TransitionFilter? onExit;
 }
