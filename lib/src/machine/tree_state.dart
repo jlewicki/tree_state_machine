@@ -2,11 +2,10 @@ import 'dart:async';
 
 import 'package:async/async.dart';
 import 'package:logging/logging.dart';
-import 'package:tree_state_machine/src/machine/data_value.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
-//==================================================================================================
+//==============================================================================
 //
 // Keys
 //
@@ -15,7 +14,7 @@ import 'package:tree_state_machine/tree_state_machine.dart';
 ///
 /// Keys must be unique within a tree of states.
 sealed class StateKey {
-  /// Construct a [StateKey] with the specifed name.
+  /// Construct a [StateKey] with the specifed [name].
   ///
   /// The name must be unique within a state tree.
   const factory StateKey(String name) = _ValueKey<String>;
@@ -28,10 +27,13 @@ sealed class StateKey {
 /// is useful for documentation purposes, making the association between a data
 /// state and its data type more obvious.
 ///
-/// Keys must be unique within a tree of states. Note however that [DataStateKey]
-/// incorporates the type [D] into it's identity, so different [DataStateKey]s may
-/// share the same name as long as [D] differs.
+/// Keys must be unique within a tree of states. Note however that
+/// [DataStateKey] incorporates the type [D] into it's identity, so different
+/// [DataStateKey]s may share the same name as long as [D] differs.
 class DataStateKey<D> extends _ValueKey<(Type, String)> implements StateKey {
+  /// Constructs a [DataStateKey] with the specified [name].
+  ///
+  /// The name must be unique within a state tree.
   const DataStateKey(String name) : super((D, name));
 
   @override
@@ -39,9 +41,6 @@ class DataStateKey<D> extends _ValueKey<(Type, String)> implements StateKey {
     var (type, name) = _value;
     return "$name<$type>";
   }
-
-  ClosableDataValue<D> createDataValue(D initialValue) =>
-      ClosableDataValue<D>(initialValue);
 }
 
 class _ValueKey<T> implements StateKey {
@@ -70,7 +69,7 @@ class _ValueKey<T> implements StateKey {
 /// Identifies the stopped state in a state tree.
 const stoppedStateKey = StateKey('<!Stopped!>');
 
-//==================================================================================================
+//==============================================================================
 //
 // States
 //
@@ -80,22 +79,24 @@ const stoppedStateKey = StateKey('<!Stopped!>');
 /// The function is passed the [StateKey] that identifies the new state.
 typedef StateCreator = TreeState Function(StateKey key);
 
-/// Type of functions that are called when a state transition occurs within a state machine.
+/// Type of functions that are called when a state transition occurs within a
+/// state machine.
 ///
-/// Each state in the state machine has two associated [TransitionHandler]s. One is called by the
-/// state machine each time the state is entered, and the other is called each time the state is
-/// exited.
+/// Each state in the state machine has two associated [TransitionHandler]s. One
+/// is called by the state machine each time the state is entered, and the other
+/// is called each time the state is exited.
 typedef TransitionHandler = FutureOr<void> Function(TransitionContext ctx);
 
 /// Type of functions that process messages sent to a state machine.
 ///
-/// Each state in the state machine has an associated [MessageHandler], and the state machine calls
-/// this handler when the state is active and a message is sent to the machine.
+/// Each state in the state machine has an associated [MessageHandler], and the
+/// state machine calls this handler when the state is active and a message is
+/// sent to the machine.
 ///
-/// The handler accepts a [MessageContext] describing the message that was sent, and returns
-/// (possibly asynchronously) a [MessageResult] describing how the state processed the message. The
-/// [MessageResult] is created by calling methods on the [MessageContext], such as
-/// [MessageContext.goTo].
+/// The handler accepts a [MessageContext] describing the message that was sent,
+/// and returns (possibly asynchronously) a [MessageResult] describing how the
+/// state processed the message. The [MessageResult] is created by calling
+/// methods on the [MessageContext], such as [MessageContext.goTo].
 typedef MessageHandler = FutureOr<MessageResult> Function(MessageContext ctx);
 
 /// A [TransitionHandler] that returns immediately.
@@ -108,68 +109,82 @@ FutureOr<MessageResult> emptyMessageHandler(MessageContext msgCtx) =>
 /// An empty disposal function.
 void emptyDispose() {}
 
-/// Type of functions that select a child state to initially enter, when a parent state is entered.
+/// Type of functions that select a child state to initially enter, when a
+/// parent state is entered.
 ///
-/// The function is passed a [TransitionContext] that describes the transition that is currently
-/// taking place.
+/// The function is passed a [TransitionContext] that describes the transition
+/// that is currently taking place.
 typedef GetInitialChild = StateKey Function(TransitionContext ctx);
 
-/// Type of functions that creates the initial data value for a data state, when that state is
-/// entered.
+/// Type of functions that creates the initial data value for a data state, when
+/// that state is entered.
 ///
-/// The function is passed a [TransitionContext] that describes the transition that is currently
-/// taking place.
+/// The function is passed a [TransitionContext] that describes the transition
+/// that is currently taking place.
 typedef GetInitialData<D> = D Function(TransitionContext ctx);
 
 /// An individual state within a tree state machine.
 ///
-/// A tree state is defined by its behavior in response to messages, represented by the [onMessage]
-/// override. This method is called when the state is an active state within a state machine and a
-/// message is sent to the machine for processing. The [onMessage] override returns a
-/// [MessageResult] indicating if the message was handled, and if a state transition should occur.
+/// A tree state is defined by its behavior in response to messages, represented
+/// by the [onMessage] override. This method is called when the state is an
+/// active state within a state machine and a message is sent to the machine for
+/// processing. The [onMessage] override returns a [MessageResult] indicating if
+/// the message was handled, and if a state transition should occur.
 ///
-/// In addition, [onEnter] and [onExit] can be overriden to perform initialization or establish
-/// invariants that must hold while the state is active.
+/// In addition, [onEnter] and [onExit] can be overriden to perform
+/// initialization or establish invariants that must hold while the state is
+/// active.
+///
+/// Depending on the API used to create a state tree, this class might not be
+/// used directly by an application. For example, if the `delegate_builders`
+/// library is used, the `State` class is used to indirectly define a
+/// [TreeState].
 abstract class TreeState {
   /// Processes a message that has been sent to this state.
   ///
-  /// The [MessageContext] argument describes the message that was sent. Subclasses can inspect this
-  /// message and trigger state transitions by calling various methods on this context, such as
+  /// The [MessageContext] argument describes the message that was sent.
+  /// Subclasses can inspect this message and trigger state transitions by
+  /// calling various methods on this context, such as
   /// [MessageContext.goTo].
   ///
-  /// If the state does not recognize the message, it can call [MessageContext.unhandled]. The state
-  /// machine will then call [onMessage] on the parent state of this state, giving it an opportunity
-  /// to handle the message.
+  /// If the state does not recognize the message, it can call
+  /// [MessageContext.unhandled]. The state machine will then call [onMessage]
+  /// on the parent state of this state, giving it an opportunity to handle the
+  /// message.
   FutureOr<MessageResult> onMessage(MessageContext msgCtx);
 
   /// Called when this state is being entered during a state transition.
   ///
-  /// Note that this method should be idempotent. It is possible, if unlikely, that when recovering
-  /// from an error condition this method might be called more than once without a corresponding
-  /// call to [onExit].
+  /// Note that this method should be idempotent. It is possible, if unlikely,
+  /// that when recovering from an error condition this method might be called
+  /// more than once without a corresponding call to [onExit].
   FutureOr<void> onEnter(TransitionContext transCtx);
 
   /// Called when this state is being exited during a state transition.
   ///
   /// Subclasses can overide to dispose of resources or execute cleanup logic.
   ///
-  /// Note that this method should be idempotent. It is possible, if unlikely, that when recovering
-  /// from an error condition this method might be called more than once without a corresponding
-  /// call to [onEnter].
+  /// Note that this method should be idempotent. It is possible, if unlikely,
+  /// that when recovering from an error condition this method might be called
+  /// more than once without a corresponding call to [onEnter].
   FutureOr<void> onExit(TransitionContext transCtx);
 
   /// Optional function to call when the state machine is being disposed.
   void dispose() {}
 }
 
-/// A [TreeState] that delegates its message and transition handling behavior to external
-/// functions.
+/// A [TreeState] that delegates its message and transition handling behavior to
+/// external functions.
 class DelegatingTreeState implements TreeState {
   final MessageHandler _onMessage;
   final TransitionHandler _onEnter;
   final TransitionHandler _onExit;
   final Dispose _onDispose;
 
+  /// Constructs a [DelegatingTreeState].
+  ///
+  /// The callbacks are optional, and may be provided to customize how the data
+  /// state handles messages and state transitions.
   DelegatingTreeState({
     MessageHandler? onMessage,
     TransitionHandler? onEnter,
@@ -198,18 +213,26 @@ typedef DataInitializer = ReadOnlyRef<DataValue<D>?> Function<D>();
 
 /// A tree state with an associated data value of type [D].
 ///
-/// The [data] property provides access to a [DataValue] that encapsulates to the current state
-/// data, as well as providing change notifications in the form of a [Stream]. This [DataValue]
-/// is recreated each time she state is entered.
+/// The [data] property provides access to a [DataValue] that encapsulates to
+/// the current state data, as well as providing change notifications in the
+/// form of a [Stream]. This [DataValue] is recreated each time she state is
+/// entered.
+///
+/// Depending on the API used to create a state tree, this class might not be
+/// used directly by an application. For example, if the `delegate_builders`
+/// library is used, the `DataState` class is used to indirectly define a
+/// [DataTreeState].
 abstract class DataTreeState<D> extends TreeState {
   ReadOnlyRef<DataValue<D>?>? _dataRef;
 
-  /// The data value associated with this state. Returns `null` when the state is not active.
+  /// The data value associated with this state. Returns `null` when the state
+  /// is not active.
   DataValue<D>? get data => _dataRef?.value;
 
   /// Called when the data value for this tree state should be initialized.
   ///
-  /// This will be called by the framework, and is not intended for use by application code.
+  /// This will be called by the framework, and is not intended for use by
+  /// application code.
   void initializeData(DataInitializer initializer) {
     _dataRef = initializer<D>();
   }
@@ -217,16 +240,16 @@ abstract class DataTreeState<D> extends TreeState {
   D initialData(TransitionContext transCtx);
 }
 
-/// A [DataTreeState] that delegates its message and transition handling behavior to external
-/// functions.
+/// A [DataTreeState] that delegates its message and transition handling
+/// behavior to external functions.
 class DelegatingDataTreeState<D> extends DataTreeState<D> {
   /// Constructs a [DelegatingDataTreeState].
   ///
-  /// An [initialData] function must be provided to indicate the initial data value for this data
-  /// state when it is entered.
+  /// An [initialData] function must be provided to indicate the initial data
+  /// value for this data state when it is entered.
   ///
-  /// The other callbacks are optional, and may be provided to customize how the data state handles
-  /// messages and state transitions.
+  /// The other callbacks are optional, and may be provided to customize how the
+  /// data state handles messages and state transitions.
   DelegatingDataTreeState(
     GetInitialData<D> initialData, {
     MessageHandler? onMessage,
@@ -270,7 +293,7 @@ class DelegatingDataTreeState<D> extends DataTreeState<D> {
   }
 }
 
-/// State data for a nested state machine state.
+/// State data for a [MachineTreeState] that manages a nested state machine.
 class MachineTreeStateData {
   CurrentState? _nestedCurrentState;
 
@@ -297,21 +320,27 @@ abstract class MachineTreeStateMachine {
 
 /// The message that is sent to a state machine when a nested state machine has
 /// reached a final state.
-class NestedTreeStateMachineDoneMessage {}
+class _NestedTreeStateMachineDoneMessage {}
 
 /// A state that encapsulates a nested state machine
 ///
 /// When this state is entered, a nested state machine is created and started.
 /// When the nested machine completes, this state will transition to a successor
 /// state, as determined the [onDone] callback.
-class MachineTreeState extends DataTreeState<MachineTreeStateData> {
+///
+/// Depending on the API used to create a state tree, this class might not be
+/// used directly by an application. For example, if the `delegate_builders`
+/// library is used, the `MachineState` class is used to indirectly define a
+/// [MachineTreeState].
+final class MachineTreeState extends DataTreeState<MachineTreeStateData> {
   final MachineTreeStateMachine nestedMachine;
-  // TODO: change this to be MessageTransitionResult Function(MessageContext, CurrentState)
+  // TODO: change this to be
+  // MessageTransitionResult Function(MessageContext, CurrentState)
   // to enforce that a state transition  must take place
   final MessageHandler Function(CurrentState nestedState) onDone;
   final bool Function(Transition transition)? isDone;
   final MessageHandler? _onDisposed;
-  final whenDoneMessage = NestedTreeStateMachineDoneMessage();
+  final whenDoneMessage = _NestedTreeStateMachineDoneMessage();
   final whenDisposedMessage = Object();
   final Logger? _log;
   CurrentState? machineCurrentState;
@@ -398,7 +427,7 @@ class MachineTreeState extends DataTreeState<MachineTreeStateData> {
   }
 }
 
-//==================================================================================================
+//==============================================================================
 //
 // Messages
 //
@@ -467,27 +496,30 @@ abstract class MessageContext {
     Map<String, Object> metadata = const {},
   });
 
-  /// Returns a [MessageResult] indicating that an internal transition should occur.
+  /// Returns a [MessageResult] indicating that an internal transition should
+  /// occur.
   ///
-  /// An internal transition means that the current state will not change, and no entry and exit
-  /// handlers will be called.
+  /// An internal transition means that the current state will not change, and
+  /// no entry and exit handlers will be called.
   MessageResult stay();
 
   /// Returns a [MessageResult] indicating that a self-transition should occur.
   ///
-  /// A self-transition means that the state that calls this method is exited and re-entered,
-  /// calling the handler functions for the state.
+  /// A self-transition means that the state that calls this method is exited
+  /// and re-entered, calling the handler functions for the state.
   ///
-  /// If the calling state is a leaf state, only that state is re-entered. If the calling state is
-  /// an interior state, all the states from the current leaf state to the calling interior state
-  /// are re-entered.
+  /// If the calling state is a leaf state, only that state is re-entered. If
+  /// the calling state is an interior state, all the states from the current
+  /// leaf state to the calling interior state are re-entered.
   TransitionMessageResult goToSelf({TransitionHandler? transitionAction});
 
-  /// Returns a [MessageResult] indicating the message could not be handled by a state, and that
-  /// its parent state should be given an opportunity to handle the message.
+  /// Returns a [MessageResult] indicating the message could not be handled by a
+  /// state, and that its parent state should be given an opportunity to handle
+  /// the message.
   MessageResult unhandled();
 
-  /// Posts a message that should be dispatched to the state machine asynchronously.
+  /// Posts a message that should be dispatched to the state machine
+  /// asynchronously.
   void post(FutureOr<Object> message);
 
   /// Gets the [DataValue] for the active data state identified by [key].
@@ -497,19 +529,22 @@ abstract class MessageContext {
 
   /// Schedules a message to be dispatched to the state machine asynchronously.
   ///
-  /// The time at which the message is sent is indicated by the [duration] argument. If not
-  /// specified, it will be sent as soon as possible (but still asynchronously).
+  /// The time at which the message is sent is indicated by the [duration]
+  /// argument. If not specified, it will be sent as soon as possible (but still
+  /// asynchronously).
   ///
-  /// If [periodic] is true, then messages will be dispatched repeatedly, at intervals specified by
-  /// [duration]. Note that a [Timer] is used in the underlying implemention. Refer to
-  /// [Timer.periodic] for further details regarding scheduling. Note that the [message] function
-  /// will be evaluated a each interval.
+  /// If [periodic] is true, then messages will be dispatched repeatedly, at
+  /// intervals specified by [duration]. Note that a [Timer] is used in the
+  /// underlying implemention. Refer to [Timer.periodic] for further details
+  /// regarding scheduling. Note that the [message] function will be evaluated
+  /// at each interval.
   ///
-  /// This scheduling is only valid while the state that calls this method is active. If a state
-  /// transition occurs and the state is exited, the scheduling is automatically cancelled.
+  /// This scheduling is only valid while the state that calls this method is
+  /// active. If a state transition occurs and the state is exited, the
+  /// scheduling is automatically cancelled.
   ///
-  /// The returned [Dispose] can be used to cancel the scheduled messaging (periodic or
-  /// otherwise).
+  /// The returned [Dispose] can be used to cancel the scheduled messaging
+  /// (periodic or otherwise).
   Dispose schedule(
     Object Function() message, {
     Duration duration = const Duration(),
@@ -525,8 +560,8 @@ FutureOr<void> emptyTransitionAction(TransitionContext ctx) {}
 
 /// Base class for describing the results of processing a state machine message.
 ///
-/// Instances of this class are created by calling methods on [MessageContext], for example
-/// [MessageContext.goTo].
+/// Instances of this class are created by calling methods on [MessageContext],
+/// for example [MessageContext.goTo].
 sealed class MessageResult {
   MessageResult._();
 }
@@ -536,8 +571,8 @@ sealed class TransitionMessageResult extends MessageResult {
   TransitionMessageResult._() : super._();
 }
 
-/// A [MessageResult] indicating that a message was sucessfully handled, and a transition to a new
-/// state should occur.
+/// A [MessageResult] indicating that a message was sucessfully handled, and a
+/// transition to a new state should occur.
 class GoToResult extends TransitionMessageResult {
   /// Indicates the state to which the state machine should transition.
   final StateKey targetStateKey;
@@ -555,12 +590,15 @@ class GoToResult extends TransitionMessageResult {
 
   @override
   String toString() {
-    return "GoToResult(targetState: '$targetStateKey'${payload != null ? ', payload: ${payload!}' : ''}${reenterTarget ? ', reenterTarget: true' : ''})";
+    return "GoToResult(targetState: "
+        "'$targetStateKey'${payload != null ? ', payload: ${payload!}' : ''}"
+        "${reenterTarget ? ', reenterTarget: true' : ''})";
   }
 }
 
-/// A [MessageResult] indicating that a message was successfully handled, and an internal transition
-/// should occur. That is, the current state should remain the same.
+/// A [MessageResult] indicating that a message was successfully handled, and an
+/// internal transition should occur. That is, the current state should remain
+/// the same.
 class InternalTransitionResult extends MessageResult {
   InternalTransitionResult._() : super._();
   static final InternalTransitionResult value = InternalTransitionResult._();
@@ -571,9 +609,9 @@ class InternalTransitionResult extends MessageResult {
   }
 }
 
-/// A [MessageResult] indicating that a message was sucessfully handled, and an self transition
-/// should occur. That is, the current state should remain the same, but the exit and entry handlers
-/// for the state should be called.
+/// A [MessageResult] indicating that a message was sucessfully handled, and a
+/// self transition should occur. That is, the current state should remain the
+/// same, but the exit and entry handlers for the state should be called.
 class SelfTransitionResult extends TransitionMessageResult {
   final TransitionAction? transitionAction;
   SelfTransitionResult([this.transitionAction = emptyTransitionAction])
@@ -585,13 +623,15 @@ class SelfTransitionResult extends TransitionMessageResult {
   }
 }
 
-/// A [MessageResult] indicating that a state machine is being stopped by application code.
+/// A [MessageResult] indicating that a state machine is being stopped by
+/// application code.
 class StopResult extends MessageResult {
   StopResult._() : super._();
   static final StopResult value = StopResult._();
 }
 
-/// A [MessageResult] indicating that a state did not recognize or handle a message.
+/// A [MessageResult] indicating that a state did not recognize or handle a
+/// message.
 class UnhandledResult extends MessageResult {
   UnhandledResult._() : super._();
   factory UnhandledResult() {
@@ -605,31 +645,34 @@ class UnhandledResult extends MessageResult {
   }
 }
 
-//==================================================================================================
+//==============================================================================
 //
 // Transitions
 //
 
-/// Describes a transition between states that is occuring in a tree state machine.
+/// Describes a transition between states that is occuring in a tree state
+/// machine.
 abstract class TransitionContext {
   /// The path of states describing the transition path that was requested.
   ///
-  /// Note that if a transition to a non-leaf state was requested, (that is, [Transition.to] of the
-  /// requested transition refers to a non-leaf state), then when the transition completes, the
-  /// current state will not be [Transition.to], but instead be a descendant state. This descendant
-  /// is determined by following the initial child path starting at [Transition.to].
+  /// Note that if a transition to a non-leaf state was requested, (that is,
+  /// [Transition.to] of the requested transition refers to a non-leaf state),
+  /// then when the transition completes, the current state will not be
+  /// [Transition.to], but instead be a descendant state. This descendant is
+  /// determined by following the initial child path starting at
+  /// [Transition.to].
   Transition get requestedTransition;
 
   /// The states that have been entered during this transition.
   ///
-  /// Because this transition may not yet be complete, there may be additional states that will be
-  /// entered.
+  /// Because this transition may not yet be complete, there may be additional
+  /// states that will be entered.
   Iterable<StateKey> get entered;
 
   /// The states that have been exited during this transition.
   ///
-  /// Because this transition may not yet be complete, there may be additional states that will be
-  /// entered.
+  /// Because this transition may not yet be complete, there may be additional
+  /// states that will be exited.
   Iterable<StateKey> get exited;
 
   /// Identifies the active state that is currently handling the transition.
@@ -637,23 +680,24 @@ abstract class TransitionContext {
 
   /// The least common ancestor (LCA) state of the transition.
   ///
-  /// The LCA state is the parent state of the last state exited and the first state entered during
-  /// a transition, and consequently does not undergo a transition (that is, it is neither exited or
-  /// entered).
+  /// The LCA state is the parent state of the last state exited and the first
+  /// state entered during a transition, and consequently does not undergo a
+  /// transition (that is, it is neither exited or entered).
   StateKey get lca;
 
   /// The optional payload for this transition.
   ///
-  /// When a state transition is initiated with [MessageContext.goTo], the caller may provide an
-  /// optional payload value that provides further context for the transition to the target state.
-  /// This property makes this payload accessible during the transition.
+  /// When a state transition is initiated with [MessageContext.goTo], the
+  /// caller may provide an optional payload value that provides further context
+  /// for the transition to the target state. This property makes this payload
+  /// accessible to transition handlers during the transition.
   Object? get payload;
 
   /// A map for storing application metadata.
   ///
-  /// This map may be useful for storing application-specific values that might need to shared across
-  /// various transition handlers as a transition is processed. This map will never be read or
-  /// modified by the state machine.
+  /// This map may be useful for storing application-specific values that might
+  /// need to shared across various transition handlers as a transition is
+  /// processed. This map will never be read or modified by the state machine.
   Map<String, Object> get metadata;
 
   /// Gets the [DataValue] for the active data state identified by [key].
@@ -661,31 +705,33 @@ abstract class TransitionContext {
   /// A [StateError] is thrown if [key] does not identify an active state.
   DataValue<D> data<D>(DataStateKey<D> key);
 
-  /// Posts a message that should be sent to the end state of this transition, after the transition
-  /// has completed.
+  /// Posts a message that should be sent to the end state of this transition,
+  /// after the transition has completed.
   ///
-  /// If [message] is a future, the value produced by the future will be posted when the future
-  /// completes.
+  /// If [message] is a future, the value produced by the future will be posted
+  /// when the future completes.
   void post(FutureOr<Object> message);
 
   /// Schedules a message to be dispatched to the state machine asynchronously.
   ///
-  /// The time at which the message is sent is indicated by the [duration] argument. If not
-  /// specified, it will be sent as soon as possible (but still asynchronously).  If [schedule] is
-  /// called when entering a state, the state (and any of its descendants) will be fully entered
-  /// before the message is processed.
+  /// The time at which the message is sent is indicated by the [duration]
+  /// argument. If not specified, it will be sent as soon as possible (but still
+  /// asynchronously).  If [schedule] is called when entering a state, the state
+  /// (and any of its descendants) will be fully entered before the message is
+  /// processed.
   ///
-  /// If [periodic] is true, then messages will be dispatched repeatedly, at intervals specified by
-  /// [duration]. Note that a [Timer] is used in the underlying implemention. Refer to
-  /// [Timer.periodic] for further details regarding scheduling.
+  /// If [periodic] is true, then messages will be dispatched repeatedly, at
+  /// intervals specified by [duration]. Note that a [Timer] is used in the
+  /// underlying implemention. Refer to [Timer.periodic] for further details
+  /// regarding scheduling.
   ///
-  /// This scheduling is only valid while the state that calls this method is active. If a state
-  /// transition occurs and the state is exited, the scheduling is automatically cancelled.
-  /// Therefore it is typically only meaningful to schedule a message when entering a state, not
-  /// when exiting.
+  /// This scheduling is only valid while the state that calls this method is
+  /// active. If a state transition occurs and the state is exited, the
+  /// scheduling is automatically cancelled. Therefore it is typically only
+  /// meaningful to schedule a message when entering a state, not when exiting.
   ///
-  /// The returned [Dispose] can be used to cancel the scheduled messaging (periodic or
-  /// otherwise).
+  /// The returned [Dispose] can be used to cancel the scheduled messaging
+  /// (periodic or otherwise).
   Dispose schedule(
     Object Function() message, {
     Duration duration = const Duration(),
