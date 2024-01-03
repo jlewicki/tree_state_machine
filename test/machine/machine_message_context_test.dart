@@ -70,7 +70,7 @@ void main() {
         expect(dataByKey[r_a_a_key], isA<StateError>());
       });
 
-      test('should throw whem updating after state is exited', () async {
+      test('should throw when updating after state is exited', () async {
         DataValue<LeafData2>? dataVal;
         var buildTree = treeBuilder(
           initialDataValues: {r_a_a_2_key: () => LeafData2()..label = 'cool'},
@@ -86,8 +86,10 @@ void main() {
         await machine.processMessage(Object());
 
         expect(dataVal, isNotNull);
-        expect(() => dataVal!.update((current) => current..label = 'not cool'),
-            throwsStateError);
+        expect(
+          () => dataVal!.update((current) => current..label = 'not cool'),
+          throwsStateError,
+        );
       });
     });
 

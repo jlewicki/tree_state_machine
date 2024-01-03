@@ -1,8 +1,8 @@
 import 'package:test/test.dart';
 import 'package:tree_state_machine/build.dart';
+import 'package:tree_state_machine/delegate_builders.dart';
 import 'package:tree_state_machine/src/build/tree_node.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
-import 'package:tree_state_machine/declarative_builders.dart';
 
 void main() {
   group('TreeBuildContext', () {
@@ -11,19 +11,33 @@ void main() {
     var leafState1 = StateKey("leaf1");
     var leafState2 = StateKey("leaf2");
 
-    var treeBuilder = DeclarativeStateTreeBuilder.withRoot(
+    // var treeBuilder = DeclarativeStateTreeBuilder.withRoot(
+    //   rootState,
+    //   InitialChild(interiorState),
+    //   emptyState,
+    // )
+    //   ..state(
+    //     interiorState,
+    //     emptyState,
+    //     parent: rootState,
+    //     initialChild: InitialChild(leafState1),
+    //   )
+    //   ..state(leafState1, emptyState, parent: interiorState)
+    //   ..state(leafState2, emptyState, parent: interiorState);
+    var treeBuilder = StateTree.root(
       rootState,
       InitialChild(interiorState),
-      emptyState,
-    )
-      ..state(
-        interiorState,
-        emptyState,
-        parent: rootState,
-        initialChild: InitialChild(leafState1),
-      )
-      ..state(leafState1, emptyState, parent: interiorState)
-      ..state(leafState2, emptyState, parent: interiorState);
+      childStates: [
+        State.composite(
+          interiorState,
+          InitialChild(leafState1),
+          childStates: [
+            State(leafState1),
+            State(leafState2),
+          ],
+        ),
+      ],
+    );
 
     group('transformer', () {
       var filter1 = TreeStateFilter(name: 'Filter1');

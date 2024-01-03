@@ -2,6 +2,7 @@
 - Significant reorganization of builder classes (again). Added `delegate_builders` library.
 - Require a `DataStateKey` when accessing state data. Lookups by type alone are no longer supported.
 - `MessageContext.data` and `TransitionContext.data` no longer can return a null value.
+- Remove `declarative_builders` library. It will be moved to a `tree_state_builders` library.
 
 ## 3.0.0-dev.9
 - Change type of `key` parameter of `DeclarativeStateTreeBuilder.machineState` to `DataStateKey<NestedMachineData>`

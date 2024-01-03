@@ -6,11 +6,11 @@ import 'dart:convert';
 import 'package:async/async.dart';
 import 'package:test/test.dart';
 import 'package:tree_state_machine/build.dart';
+import 'package:tree_state_machine/delegate_builders.dart';
 import 'package:tree_state_machine/src/machine/extensions.dart';
 import 'package:tree_state_machine/src/machine/lifecycle.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/tree_state_machine.dart';
-import 'package:tree_state_machine/declarative_builders.dart';
 import 'fixture/state_data.dart';
 import 'fixture/tree.dart' as tree;
 import 'fixture/data_tree.dart' as data_tree;
@@ -401,21 +401,16 @@ void main() {
         var encoded = await _save(sm);
 
         // Define another tree that shares keys but has a different shape
-        var otherTreeBuilder = DeclarativeStateTreeBuilder.withRoot(
+        var otherTreeBuilder = StateTree.root(
           tree.r_b_key,
           InitialChild(tree.r_key),
-          emptyState,
-        );
-        otherTreeBuilder.state(
-          tree.r_key,
-          emptyState,
-          parent: tree.r_b_key,
-          initialChild: InitialChild(tree.r_b_1_key),
-        );
-        otherTreeBuilder.state(
-          tree.r_b_1_key,
-          emptyState,
-          parent: tree.r_key,
+          childStates: [
+            State.composite(
+              tree.r_key,
+              InitialChild(tree.r_b_1_key),
+              childStates: [State(tree.r_b_1_key)],
+            )
+          ],
         );
 
         sm = TreeStateMachine(otherTreeBuilder);
@@ -431,15 +426,14 @@ void main() {
         var encoded = await _save(sm);
 
         // Define another tree that shares keys but has a different shape
-        var otherTreeBuilder = DeclarativeStateTreeBuilder.withRoot(
+        var otherTreeBuilder = StateTree.root(
           tree.r_b_key,
           InitialChild(tree.r_b_1_key),
-          emptyState,
-        );
-        otherTreeBuilder.state(
-          tree.r_b_1_key,
-          emptyState,
-          parent: tree.r_b_key,
+          childStates: [
+            State(
+              tree.r_b_1_key,
+            )
+          ],
         );
 
         sm = TreeStateMachine(otherTreeBuilder);
@@ -451,12 +445,14 @@ void main() {
     group('start', () {
       test('should start in initial state', () async {
         var r_a_1_key = StateKey('r_a_1');
-        var treeBuilder =
-            DeclarativeStateTreeBuilder(initialChild: tree.r_b_key)
-              ..state(tree.r_a_key, emptyState,
-                  initialChild: InitialChild(r_a_1_key))
-              ..state(r_a_1_key, emptyState, parent: tree.r_a_key)
-              ..state(tree.r_b_key, emptyState);
+
+        var treeBuilder = StateTree(
+          InitialChild(tree.r_b_key),
+          childStates: [
+            State(r_a_1_key),
+            State(tree.r_b_key),
+          ],
+        );
         var sm = TreeStateMachine(treeBuilder);
         var cur = await sm.start();
         expect(cur.key, equals(tree.r_b_key));
@@ -464,9 +460,10 @@ void main() {
 
       test('should cause isStarting to return true before future completes',
           () async {
-        var treeBuilder =
-            DeclarativeStateTreeBuilder(initialChild: tree.r_a_key)
-              ..state(tree.r_a_key, emptyState);
+        var treeBuilder = StateTree(
+          InitialChild(tree.r_a_key),
+          childStates: [State(tree.r_a_key)],
+        );
         var sm = TreeStateMachine(treeBuilder);
         var future = sm.start();
         expect(sm.lifecycle.isStarting, isTrue);
@@ -476,9 +473,10 @@ void main() {
       });
 
       test('should cause currentState have value when started', () async {
-        var treeBuilder =
-            DeclarativeStateTreeBuilder(initialChild: tree.r_a_key)
-              ..state(tree.r_a_key, emptyState);
+        var treeBuilder = StateTree(
+          InitialChild(tree.r_a_key),
+          childStates: [State(tree.r_a_key)],
+        );
         var sm = TreeStateMachine(treeBuilder);
         var future = sm.start();
         expect(sm.currentState, isNull);

@@ -22,6 +22,8 @@ class DataState<D> implements StateConfig {
     TransitionHandler? onEnter,
     TransitionHandler? onExit,
     MessageHandler? onMessage,
+    StateDataCodec<D>? codec,
+    List<TreeStateFilter> filters = const [],
   }) =>
       DataState._((parent) {
         return LeafNodeInfo(
@@ -34,6 +36,8 @@ class DataState<D> implements StateConfig {
           ),
           parent: parent,
           isFinalState: false,
+          dataCodec: codec,
+          filters: filters,
         );
       });
 
@@ -51,7 +55,9 @@ class DataState<D> implements StateConfig {
     TransitionHandler? onEnter,
     TransitionHandler? onExit,
     MessageHandler? onMessage,
-    required List<State> childStates,
+    required List<StateConfig> childStates,
+    StateDataCodec<D>? codec,
+    List<TreeStateFilter> filters = const [],
   }) =>
       DataState._((parent) {
         var childNodes = <TreeNodeInfo>[];
@@ -66,6 +72,8 @@ class DataState<D> implements StateConfig {
           parent: parent,
           initialChild: initialChild.call,
           children: childNodes,
+          dataCodec: codec,
+          filters: filters,
         );
 
         childNodes.addAll(childStates.map((e) => e.nodeInfo(nodeInfo)));
@@ -97,6 +105,7 @@ class FinalDataState<D> implements FinalStateConfig {
     DataStateKey<D> key,
     InitialData<D> initialData, {
     TransitionHandler? onEnter,
+    StateDataCodec<D>? codec,
   }) =>
       FinalDataState._((parent) {
         return LeafNodeInfo(
@@ -104,6 +113,7 @@ class FinalDataState<D> implements FinalStateConfig {
           (_) => DelegatingDataTreeState<D>(initialData.call, onEnter: onEnter),
           parent: parent,
           isFinalState: true,
+          dataCodec: codec,
         );
       });
 

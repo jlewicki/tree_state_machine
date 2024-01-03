@@ -16,7 +16,8 @@ typedef AuthorizedUser = auth.AuthorizedUser;
 class States {
   static final unauthenticated = StateKey('unauthenticated');
   static final splash = StateKey('splash');
-  static final authenticate = DataStateKey<NestedMachineData>('authenticate');
+  static final authenticate =
+      DataStateKey<MachineTreeStateData>('authenticate');
   static final authenticated = DataStateKey<AuthorizedUser>('authenticated');
   static final userHome = StateKey('userHome');
 }

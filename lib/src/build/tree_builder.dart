@@ -114,8 +114,13 @@ sealed class InitialChild {
   StateKey call(TransitionContext transCtx);
 }
 
+/// An [InitialChild] that selects the child state to enter based on a [StateKey].
 final class InitialChildByKey extends InitialChild {
+  /// Constructs an [InitialChildByKey] that will select [initialChild] as the intial child state
+  /// to enter.
   InitialChildByKey._(this.initialChild) : super._();
+
+  /// Identifies the state that should intitially be entered when a parent state is entered.
   final StateKey initialChild;
 
   @override
@@ -194,7 +199,7 @@ final class InitialDataByDelegate<D> extends InitialData<D> {
 
 /// A callable class that can produce the intial nested nested state machine for a machine state,
 /// when the machine state is entered.
-class InitialMachine implements NestedMachine {
+class InitialMachine implements MachineTreeStateMachine {
   InitialMachine._(
     this._create,
     this.disposeMachineOnExit,

@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/delegate_builders.dart';
-import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 /// A state in a state tree.
@@ -26,6 +25,7 @@ class State implements StateConfig {
     TransitionHandler? onEnter,
     TransitionHandler? onExit,
     MessageHandler? onMessage,
+    List<TreeStateFilter> filters = const [],
   }) =>
       State._((parent) {
         return LeafNodeInfo(
@@ -37,6 +37,7 @@ class State implements StateConfig {
           ),
           parent: parent,
           isFinalState: false,
+          filters: filters,
         );
       });
 
@@ -55,7 +56,8 @@ class State implements StateConfig {
     TransitionHandler? onEnter,
     TransitionHandler? onExit,
     MessageHandler? onMessage,
-    required List<State> childStates,
+    required List<StateConfig> childStates,
+    List<TreeStateFilter> filters = const [],
   }) =>
       State._((parent) {
         var childNodes = <TreeNodeInfo>[];
@@ -69,6 +71,7 @@ class State implements StateConfig {
           parent: parent,
           initialChild: initialChild.call,
           children: childNodes,
+          filters: filters,
         );
 
         childNodes.addAll(childStates.map((e) => e.nodeInfo(nodeInfo)));
@@ -122,24 +125,21 @@ class FinalState implements FinalStateConfig {
 ///
 /// Upon completion, the `onMachineDone` callback is called to determine the
 /// next state to transition to.
-///
 class MachineState implements StateConfig {
   MachineState._(this._nodeInfo);
 
   /// Constructs a machine state, identified by [key].
   ///
-  /// When this state is entered, [initialMachine] will be called to obtain the
-  /// nested state machine for this state.
+  /// When this state is entered, a nested state machine that is produced by
+  /// [initialMachine] will be started. By default any messages dispatched to
+  /// this state will forwarded to the nested state machine for processing
   ///
-  /// The [onMachineDone] callback will be called when the nested state machine
-  /// has finished, and the return value indicates which state to transition to
-  /// now that that nested machine is done.
-  ///
-  /// If a [isMachineDone] callback is provided, it will be called for each
-  /// transition that occurs within the nested state machine.  If the callback
-  /// returns `true`, the state machine is considered 'done', even if the
-  /// transition was not to a final state. This allows the [MachineState] to
-  /// provide an early exit from the nested state machine if desired.
+  /// No transitions from this state will occur until the nested state machine
+  /// reaches a completion state. By default, any final state is considered a
+  /// completion state, but non-final states can also be completion states by
+  /// providing an [isMachineDone] callback. This function will be called for
+  /// each transition to a non-final state in the nested machine, and if `true`
+  /// is returned, the nested state machine will be considered to have completed.
   ///
   /// If a [onMachineDisposed] callback is provided, it will be called if the
   /// nested state machine is disposed, and in a similar manner to
@@ -147,9 +147,18 @@ class MachineState implements StateConfig {
   /// now that the nested machine is disposed. Note that this will typically
   /// only be called if [initialMachine] returns an existing state machine, and
   /// that machine is disposed 'out of band' by the application.
+
+  /// The machine state carries a state data value of [MachineTreeStateData].
+  /// This value can be obtained in the same ways as other state data, for
+  /// example using [CurrentState.dataValue].
+  ///
+  /// A machine state is always a leaf state. It can be declared as a child
+  /// state, however all messages will be handled by the machine state until
+  /// the nested state machine has completed, and as such the parent state will
+  /// not recieve any unhandled messages from the child machine state.
   ///
   factory MachineState(
-    DataStateKey<NestedMachineData> key,
+    DataStateKey<MachineTreeStateData> key,
     InitialMachine initialMachine, {
     required MachineDoneHandler onMachineDone,
     bool Function(Transition)? isMachineDone,
@@ -158,7 +167,7 @@ class MachineState implements StateConfig {
       MachineState._((parent) {
         return LeafNodeInfo(
           key,
-          (_) => NestedMachineState(
+          (_) => MachineTreeState(
             initialMachine,
             (currentMachineState) =>
                 (msgCtx) => onMachineDone(msgCtx, currentMachineState),

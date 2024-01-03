@@ -6,7 +6,6 @@ import 'package:tree_state_machine/async.dart';
 import 'package:tree_state_machine/src/build/tree_node.dart';
 import 'package:tree_state_machine/src/machine/initial_state_data.dart';
 import 'package:tree_state_machine/src/machine/machine.dart';
-import 'package:tree_state_machine/declarative_builders.dart';
 import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 

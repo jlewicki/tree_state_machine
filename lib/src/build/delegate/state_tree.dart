@@ -44,6 +44,8 @@ class StateTree implements StateTreeBuildProvider {
       initialChild,
       childStates,
       finalStates,
+      null,
+      null,
     ));
   }
 
@@ -68,6 +70,7 @@ class StateTree implements StateTreeBuildProvider {
     MessageHandler? onMessage,
     required List<StateConfig> childStates,
     List<FinalStateConfig> finalStates = const [],
+    List<TreeStateFilter>? filters,
   }) {
     return StateTree._(_createRoot(
       rootKey,
@@ -79,6 +82,8 @@ class StateTree implements StateTreeBuildProvider {
       initialChild,
       childStates,
       finalStates,
+      null,
+      filters,
     ));
   }
 
@@ -99,19 +104,22 @@ class StateTree implements StateTreeBuildProvider {
     MessageHandler? onMessage,
     required List<StateConfig> childStates,
     List<FinalStateConfig> finalStates = const [],
+    StateDataCodec<D>? codec,
+    List<TreeStateFilter>? filters,
   }) {
     return StateTree._(_createRoot(
-      rootKey,
-      (_) => DelegatingDataTreeState<D>(
-        initialData.call,
-        onMessage: onMessage,
-        onEnter: onEnter,
-        onExit: onExit,
-      ),
-      initialChild,
-      childStates,
-      finalStates,
-    ));
+        rootKey,
+        (_) => DelegatingDataTreeState<D>(
+              initialData.call,
+              onMessage: onMessage,
+              onEnter: onEnter,
+              onExit: onExit,
+            ),
+        initialChild,
+        childStates,
+        finalStates,
+        codec,
+        filters));
   }
 
   final RootNodeInfo _info;
@@ -125,6 +133,8 @@ class StateTree implements StateTreeBuildProvider {
     InitialChild initialChild,
     List<StateConfig> children,
     List<FinalStateConfig> finalStates,
+    StateDataCodec<dynamic>? codec,
+    List<TreeStateFilter>? filters,
   ) {
     var childNodes = <TreeNodeInfo>[];
     var root = RootNodeInfo(
@@ -132,6 +142,8 @@ class StateTree implements StateTreeBuildProvider {
       createState,
       children: childNodes,
       initialChild: initialChild.call,
+      dataCodec: codec,
+      filters: filters ?? const [],
     );
 
     childNodes.addAll(children

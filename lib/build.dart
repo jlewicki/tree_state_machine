@@ -32,7 +32,6 @@ export 'src/build/tree_build_context.dart';
 export 'src/build/tree_builder.dart'
     hide
         InitialChildByDelegate,
-        InitialChildByKey,
         InitialDataByDelegate,
         InitialDataByValue,
         InitialDataByFactory;

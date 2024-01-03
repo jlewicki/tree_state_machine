@@ -4,7 +4,8 @@ import 'package:tree_state_machine/delegate_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 class States {
-  static const machineState = DataStateKey<NestedMachineData>('nestedMachine');
+  static const machineState =
+      DataStateKey<MachineTreeStateData>('nestedMachine');
   static const state1 = DataStateKey<StateData>('state1');
   static const nestedState1 = StateKey('nestedState1');
   static const nestedState2 = DataStateKey<StateData>('nestedState2');

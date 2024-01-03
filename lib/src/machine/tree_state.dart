@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:async/async.dart';
 import 'package:logging/logging.dart';
-import 'package:tree_state_machine/declarative_builders.dart';
 import 'package:tree_state_machine/src/machine/data_value.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
@@ -272,7 +271,7 @@ class DelegatingDataTreeState<D> extends DataTreeState<D> {
 }
 
 /// State data for a nested state machine state.
-class NestedMachineData {
+class MachineTreeStateData {
   CurrentState? _nestedCurrentState;
 
   /// The [CurrentState] of the nested state machine.
@@ -283,7 +282,7 @@ class NestedMachineData {
 }
 
 /// Describes the initial state machine of a nested machine state.
-abstract class NestedMachine {
+abstract class MachineTreeStateMachine {
   /// Returns `true` if messages should be forwarded from a state machine to the nested state machine.
   bool get forwardMessages;
 
@@ -304,8 +303,8 @@ class NestedTreeStateMachineDoneMessage {}
 /// When this state is entered, a nested state machine is created and started. When the nested
 /// machine completes, this state will transition to a successor state, as determined the [onDone]
 /// callback.
-class NestedMachineState extends DataTreeState<NestedMachineData> {
-  final NestedMachine nestedMachine;
+class MachineTreeState extends DataTreeState<MachineTreeStateData> {
+  final MachineTreeStateMachine nestedMachine;
   // TODO: change this to be MessageTransitionResult Function(MessageContext, CurrentState)
   // to enforce that a state transition  must take place
   final MessageHandler Function(CurrentState nestedState) onDone;
@@ -314,9 +313,9 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
   final whenDoneMessage = NestedTreeStateMachineDoneMessage();
   final whenDisposedMessage = Object();
   final Logger? _log;
-  CurrentState? nestedCurrentState;
+  CurrentState? machineCurrentState;
 
-  NestedMachineState(
+  MachineTreeState(
     this.nestedMachine,
     this.onDone,
     this._log,
@@ -325,8 +324,8 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
   );
 
   @override
-  NestedMachineData initialData(TransitionContext transCtx) {
-    return NestedMachineData();
+  MachineTreeStateData initialData(TransitionContext transCtx) {
+    return MachineTreeStateData();
   }
 
   @override
@@ -345,9 +344,9 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
         .then((_) => whenDisposedMessage)
         .asStream();
 
-    nestedCurrentState = await machine.start();
-    data!
-        .update((current) => current.._nestedCurrentState = nestedCurrentState);
+    machineCurrentState = await machine.start();
+    data!.update(
+        (current) => current.._nestedCurrentState = machineCurrentState);
 
     // Post a future that will notify the message handler when the nested machine is done.
     var group = StreamGroup<Object>();
@@ -361,8 +360,8 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
     // The nested state machine is done, so transition to the next state
     if (msgCtx.message == whenDoneMessage) {
       _log?.fine(
-          "Nested state machine reached final state '${nestedCurrentState!.key}' and is done.");
-      var handler = onDone(nestedCurrentState!);
+          "Nested state machine reached final state '${machineCurrentState!.key}' and is done.");
+      var handler = onDone(machineCurrentState!);
       return handler(msgCtx);
     }
 
@@ -380,7 +379,7 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
     if (nestedMachine.forwardMessages) {
       _log?.finer(
           'Forwarding message ${msgCtx.message} to nested state machine.');
-      await nestedCurrentState!.post(msgCtx.message);
+      await machineCurrentState!.post(msgCtx.message);
     }
 
     // The nested machine is still running, so stay in this state
@@ -392,7 +391,7 @@ class NestedMachineState extends DataTreeState<NestedMachineData> {
     if (nestedMachine.disposeMachineOnExit) {
       _log?.fine(
           "Disposing nested state machine on exit of nested machine state.");
-      nestedCurrentState?.stateMachine.dispose();
+      machineCurrentState?.stateMachine.dispose();
     }
   }
 }

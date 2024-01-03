@@ -6,7 +6,6 @@ export 'src/machine/tree_state.dart'
     hide
         GoToResult,
         InternalTransitionResult,
-        NestedMachineState,
         SelfTransitionResult,
         StopResult,
         UnhandledResult,

@@ -1,8 +1,7 @@
 // ignore_for_file: constant_identifier_names
 
-import 'package:tree_state_machine/build.dart';
+import 'package:tree_state_machine/delegate_builders.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
-import 'package:tree_state_machine/declarative_builders.dart';
 
 const r_key = StateKey('r');
 const r_a_key = StateKey('r_a');
@@ -16,7 +15,7 @@ const r_X_key = StateKey('r_X');
 
 final initialStateKey = r_a_a_2_key;
 
-DeclarativeStateTreeBuilder treeBuilder({
+StateTree treeBuilder({
   String? name,
   TransitionHandler Function(StateKey key)? createEntryHandler,
   TransitionHandler Function(StateKey key)? createExitHandler,
@@ -38,18 +37,33 @@ DeclarativeStateTreeBuilder treeBuilder({
   final exitHandlers_ = exitHandlers ?? {};
   final initialChildCallbacks_ = initialChildCallbacks ?? {};
 
-  void Function(StateBuilder<void>) buildState(StateKey key) {
-    return (b) {
-      b.handleOnMessage(messageHandlers_[key] ?? createMessageHandler_(key));
-      b.handleOnEnter(entryHandlers_[key] ?? createEntryHandler_(key));
-      b.handleOnExit(exitHandlers_[key] ?? createExitHandler_(key));
-    };
+  MessageHandler messageHandler_(StateKey key) {
+    return messageHandlers_[key] ?? createMessageHandler_(key);
   }
 
-  void Function(EnterStateBuilder<void>) buildFinalState(StateKey key) {
-    return (b) {
-      b.handleOnEnter(entryHandlers_[key] ?? createEntryHandler_(key));
-    };
+  TransitionHandler entryHandler_(StateKey key) {
+    return entryHandlers_[key] ?? createEntryHandler_(key);
+  }
+
+  TransitionHandler exitHandler_(StateKey key) {
+    return exitHandlers_[key] ?? createExitHandler_(key);
+  }
+
+  State buildState(
+    StateKey key, {
+    InitialChild? initialChild,
+    List<StateConfig>? childStates,
+  }) {
+    return initialChild != null
+        ? State.composite(key, initialChild,
+            onEnter: entryHandler_(key),
+            onMessage: messageHandler_(key),
+            onExit: exitHandler_(key),
+            childStates: childStates!)
+        : State(key,
+            onEnter: entryHandler_(key),
+            onMessage: messageHandler_(key),
+            onExit: exitHandler_(key));
   }
 
   void Function(TransitionContext) initialChildCallback(StateKey key) =>
@@ -58,55 +72,56 @@ DeclarativeStateTreeBuilder treeBuilder({
           ? createInitialChildCallback(key)
           : (_) {});
 
-  var b = DeclarativeStateTreeBuilder.withRoot(
-    r_key,
-    InitialChild.run(
-      (ctx) {
-        initialChildCallback(r_key)(ctx);
-        return r_a_key;
-      },
-    ),
-    buildState(r_key),
-    label: name,
-  );
-
-  b.finalState(r_X_key, buildFinalState(r_X_key));
-
-  b.state(
-    r_a_key,
-    buildState(r_a_key),
-    parent: r_key,
-    initialChild: InitialChild.run((ctx) {
-      initialChildCallback(r_a_key)(ctx);
-      return r_a_a_key;
-    }),
-  );
-
-  b.state(
-    r_a_a_key,
-    buildState(r_a_a_key),
-    parent: r_a_key,
-    initialChild: InitialChild.run((ctx) {
-      initialChildCallback(r_a_a_key)(ctx);
-      return r_a_a_2_key;
-    }),
-  );
-
-  b.state(r_a_a_1_key, buildState(r_a_a_1_key), parent: r_a_a_key);
-  b.state(r_a_a_2_key, buildState(r_a_a_2_key), parent: r_a_a_key);
-
-  b.state(
-    r_b_key,
-    buildState(r_b_key),
-    parent: r_key,
-    initialChild: InitialChild.run((ctx) {
-      initialChildCallback(r_b_key)(ctx);
-      return r_b_1_key;
-    }),
-  );
-
-  b.state(r_b_1_key, buildState(r_b_1_key), parent: r_b_key);
-  b.state(r_b_2_key, buildState(r_b_2_key), parent: r_b_key);
-
-  return b;
+  return StateTree.root(r_key, InitialChild.run(
+    (ctx) {
+      initialChildCallback(r_key)(ctx);
+      return r_a_key;
+    },
+  ),
+      onEnter: entryHandler_(r_key),
+      onMessage: messageHandler_(r_key),
+      onExit: exitHandler_(r_key),
+      childStates: [
+        buildState(
+          r_a_key,
+          initialChild: InitialChild.run(
+            (ctx) {
+              initialChildCallback(r_a_key)(ctx);
+              return r_a_a_key;
+            },
+          ),
+          childStates: [
+            buildState(
+              r_a_a_key,
+              initialChild: InitialChild.run((ctx) {
+                initialChildCallback(r_a_a_key)(ctx);
+                return r_a_a_2_key;
+              }),
+              childStates: [
+                buildState(r_a_a_1_key),
+                buildState(r_a_a_2_key),
+              ],
+            ),
+          ],
+        ),
+        buildState(
+          r_b_key,
+          initialChild: InitialChild.run(
+            (ctx) {
+              initialChildCallback(r_b_key)(ctx);
+              return r_b_1_key;
+            },
+          ),
+          childStates: [
+            buildState(r_b_1_key),
+            buildState(r_b_2_key),
+          ],
+        ),
+      ],
+      finalStates: [
+        FinalState(
+          r_X_key,
+          onEnter: entryHandler_(r_X_key),
+        )
+      ]);
 }
