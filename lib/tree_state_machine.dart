@@ -1,7 +1,11 @@
 /// Provides support for executing hierarchical state machines.
 library tree_state_machine;
 
+export 'src/machine/data_value.dart' hide ClosableDataValue, VoidDataValue;
 export 'src/machine/extensions.dart';
+export 'src/machine/initial_state_data.dart';
+export 'src/machine/lifecycle.dart' show LifecycleState;
+export 'src/machine/machine.dart' show StateMachineError;
 export 'src/machine/tree_state.dart'
     hide
         GoToResult,
@@ -10,11 +14,9 @@ export 'src/machine/tree_state.dart'
         StopResult,
         UnhandledResult,
         DataInitializer;
-export 'src/machine/data_value.dart' hide ClosableDataValue, VoidDataValue;
 export 'src/machine/tree_state_machine.dart'
     hide TestableTreeStateMachine, EncodableState, EncodableTree;
-export 'src/machine/machine.dart' show StateMachineError;
-export 'src/machine/lifecycle.dart' show LifecycleState;
+
 
 // To publish:
 // dart pub publish --dry-run

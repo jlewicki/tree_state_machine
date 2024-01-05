@@ -10,17 +10,19 @@
 * Nested state machines
 
 ## Overview
-The `tree_state_machine` library provides APIs for both defining a hierarchical tree of states, and creating state 
-machines that create and manage an instance of a state tree. The state machine can be used to dispatch messages to the 
-current state for processing, and receiving notifications as state transitions occur.
+The `tree_state_machine` package provides APIs for defining a hierarchical tree of states, and creating state 
+machines that can manage an instance of a state tree. The state machine can be used to dispatch messages to the 
+current state for processing, and receive notifications as state transitions occur.
 
+Refer to [UML state machines](https://en.wikipedia.org/wiki/UML_state_machine) for further conceptual
+background on hierarchical state machines. 
 
 ## Getting Started
 The primary API for the working with a tree state machine is provided by the `tree_state_machine` library. A relatively 
 simple API for defining state trees is provided by the `delegate_builders` library, though extension points are 
-provided for creating more sophisticated ones.
+provided in the `build` library for creating more sophisticated ones.
 
-The typical usage pattern is simular to the following:
+A typical usage looks like the following:
 ```dart
 import 'package:tree_state_machine/delegate_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
@@ -35,7 +37,7 @@ sealed class States {
 // Define the state tree
 var stateTree = StateTree(
    InitialChild(States.state1), 
-   children: [
+   childStates: [
       State(
          States.state1, 
          onMessage: (MessageContext ctx) => ctx.message == 'go'
@@ -45,7 +47,6 @@ var stateTree = StateTree(
       State(States.state2),
    ],
 );
-
 
 // Create and start a state machine for the state tree
 var machine = TreeStateMachine(stateTree);
@@ -84,7 +85,7 @@ starts.
 ```dart
 StateTree(
    InitialChild(States.unauthenticated), 
-   children: [
+   childStates: [
       // States go here
    ],
 );
@@ -112,17 +113,15 @@ A state can be created with a collection of child states using the `State.compos
 the parent of the the child states. If a child state is active, but does not handle a message, the parent state will 
 have an opportunity to handle it.  
 
-If a state has children, it must define which of its child states must be entered when the parent is entered 
+If a state has children, it must specify which of its child states to be enter when the parent is entered 
 using `InitialChild`.
 
 ```dart
 State.composite(
    States.unauthenticated,
    InitialChild(States.splash),
-   // Add callbacks to define how the unauthenticated state behaves
    children: [
-     // Add callbacks to define how the splash state behaves
-     State(States.splash),
+      State(States.splash),
    ] 
 );
 ```
@@ -151,7 +150,9 @@ DataState(
    States.login,
    InitialData(() => LoginData()),
    onMessage: (MessageContext ctx) {
-      var loginData = ctx.dataValue(States.login);
+      // Usde the MessageContext.data method to retrieve the current state 
+      // data for a data state.   
+      var loginData = ctx.data(States.login).value;
       return ctx.unhandled();
    }
 )
@@ -171,8 +172,8 @@ StateTree(
    finalStates: [
       FinalState(
          States.lockedOut,
-         // Optional onEnter callback may be provided. onMessage and onExit are not available for final 
-         // states.
+         // An optional onEnter callback may be provided. onMessage and onExit are not
+         // available for final states.
          onEnter: (TransitionContext ctx) {
             // Add onEnter logic here
          }
@@ -182,27 +183,30 @@ StateTree(
 ``` 
 
 #### Machine States
-Existing state trees or state machines can be composed with a state tree builder as a machine state. A machine state
-is a leaf state, and when it is entered a nested state machine will be started. The machine state will forward any 
-messages to the nested state machine, and will remain the current state until the nested state machine reaches a final 
-state. When it does so, the machine state will invoke a callback to determine the next state to transition to.
+Existing state trees or state machines can be composed with a state tree using a machine state. A machine state
+is a leaf state, and when it is entered an inner state machine will be started. The machine state will forward any 
+messages from the outer state machine to the inner, and will remain the current state of the outer state machine until
+the inner reaches a final state. When it does so, the machine state will invoke a callback to determine the 
+next state for the outer state machine to transition to.
 
 ```dart
 
-StateTree nestedStateTree() {
+StateTree innerStateTree() {
    return StateTree(
       // ...define a state tree
    );
 }
 
-final nestedMachineState = StateKey('nestedMachine');
+final aMachineState = StateKey('machineState');
 final otherState = StateKey('otherState');
 
 MachineState(
-   nestedMachineState, 
-   // A nested state machine will be created from this state tree
-   InitialMachine.fromStateTree((TrannsactionContect ctx) => nestedStateTree()),
-   onMachineDone: (MessageContext ctx, CurrentState currentNestedState) =>
+   aMachineState, 
+   // A nested state machine will be created from the state tree
+   InitialMachine.fromStateTree((TransactionContext ctx) => innerStateTree()),
+   onMachineDone: (MessageContext ctx, CurrentState currentInnerState) =>
+      // The inner state machine has completed, so determine the next state of the outer 
+      // state machine. 
       ctx.goTo(otherState),
 );
 ```
@@ -246,17 +250,26 @@ State(
 
 
 #### Reading and writing state data
-A data state can access its associated state data. Additionally, any state can access the state data of an ancestor 
-data state. This data can be requested in several ways, but often `MessageContext.updateData` is used to read and update
-state data when handling a message.
+A data state can access its associated state data. Additionally, any state can access the state data
+of an ancestor data state. 
+
+State data is stored in a `DataValue<D>` instance. A `DataValue` provides access to the current 
+state data value with the `value` property. The `DataValue` for a data state can be requested using
+the `MessageContext.data` and `TransitionContext.data` methods.
+
+A `DataValue` is also a `Stream`, and therefore can be used to observe changes to the state data 
+over time.  This is not typically used in a message handler, but `DataValue`s are also accessible
+from a `TreeStateMachine`, and the change notifications can prove useful at the application level.  
+
+The `DataValue.update` method can be use to update the current value, which will cause the associated
+`Stream` to emit a new value.
 
 ```dart
 State(
    States.credentialsRegistration, 
    onMessage: (ctx) {
       if (ctx.message case SubmitCredentials(email: var email, password: var password)) {
-         // Update the RegisterData state data owned by the parent 
-         // Registration state. 
+         // Update the RegisterData state data owned by an ancestor Register state. 
          ctx.data(States.register).update((RegisterData data) => data
             ..email = email
             ..password = password);
@@ -273,6 +286,9 @@ functions, and the handlers are passed a `TransitionContext` describing the tran
 ```dart
 typedef TransitionHandler = FutureOr<void> Function(TransitionContext ctx);
 ```
+
+The `TransitionContext` provides information about the transition, including the full state path of the
+transition (exiting states followed by entering states).
 
 Because a transition handler returns a `FutureOr`, the handler implementation may be asynchronous if desired.  
 

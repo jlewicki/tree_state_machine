@@ -21,7 +21,7 @@ interface class InitialStateDataBuilder {
 typedef BuildInitialData = void Function(InitialStateDataBuilder builder);
 
 /// Provides initial data values for data states when a state machine is first started by calling
-/// [TreeStateMachine.startWith].
+/// [TreeStateMachine.start].
 class InitialStateData {
   /// Constructs an [InitialStateData] with a [build] function. The function is called as part of
   /// the constructor, and it can be used to specify the initial data values for one or more
