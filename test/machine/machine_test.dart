@@ -3,7 +3,6 @@
 import 'dart:async';
 
 import 'package:test/test.dart';
-import 'package:tree_state_machine/src/machine/initial_state_data.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'fixture/fixture_util.dart';
 import 'fixture/flat_tree.dart' as flat_tree;
