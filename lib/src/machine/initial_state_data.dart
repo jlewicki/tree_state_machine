@@ -24,7 +24,7 @@ typedef BuildInitialData = void Function(InitialStateDataBuilder builder);
 /// [TreeStateMachine.start].
 class InitialStateData {
   /// Constructs an [InitialStateData] with a [build] function. The function is called as part of
-  /// the constructor, and it can be used to specify the initial data values for one or more
+  /// this constructor, and it can be used to specify the initial data values for one or more
   /// data states.
   InitialStateData(BuildInitialData build) {
     build(InitialStateDataBuilder(_initialData));
