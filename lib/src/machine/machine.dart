@@ -30,8 +30,6 @@ class Machine {
     var log = Logger(
         'tree_state_machine.Machine${logName != null ? '.$logName' : ''}');
 
-    //var machineRoot = MachineNode(rootNode, log);
-    //var machineNodes = <StateKey, TreeNode>{};
     var nodesByKey = <StateKey, TreeNode>{};
     for (var node in rootNode.selfAndDescendants()) {
       nodesByKey[node.key] = node;
