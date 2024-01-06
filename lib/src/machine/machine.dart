@@ -604,20 +604,15 @@ class MachineTransitionContext
     _enteredNodes.add(node);
     _machine._log.fine("Entering state '${node.key}'");
 
-    TransitionHandler onEnterWithIntializeData(TreeState state) {
-      assert(initialData == null || node.resources.nodeData != null);
-      return (transCtx) {
-        if (node.resources.nodeData != null) {
-          node.resources.nodeData!.initalizeData(transCtx, initialData);
-        }
-        return state.onEnter(transCtx);
-      };
+    assert(initialData == null || node.resources.nodeData != null);
+    if (node.resources.nodeData != null) {
+      node.resources.nodeData!.initalizeData(this, initialData);
     }
 
     return _runTransitionHandlers(
       node,
       (filter) => filter.onEnter,
-      (state) => onEnterWithIntializeData(state),
+      (state) => state.onEnter,
     );
   }
 
@@ -627,21 +622,15 @@ class MachineTransitionContext
     _machine._node(node.key).resources.cancelTimers();
     _machine._log.fine("Exiting state '${node.key}'");
 
-    TransitionHandler onExitWithClearData(TreeState state) {
-      return (transCtx) {
-        return state.onExit(transCtx).bind((_) {
-          if (node.resources.nodeData != null) {
-            node.resources.nodeData!.clearData();
-          }
-        });
-      };
-    }
-
     return _runTransitionHandlers(
       node,
       (filter) => filter.onExit,
-      (state) => onExitWithClearData(state),
-    );
+      (state) => state.onExit,
+    ).bind((_) {
+      if (node.resources.nodeData != null) {
+        node.resources.nodeData!.clearData();
+      }
+    });
   }
 
   FutureOr<void> _runTransitionHandlers(
