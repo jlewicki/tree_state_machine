@@ -5,8 +5,8 @@ import 'tree_node.dart';
 /// Function that can augment a [TreeNodeInfo] using the provided [NodeInfoBuilder].
 typedef ExtendNodeInfo = void Function(NodeInfoBuilder);
 
-/// Provides contextual information while a state tree is being constructed, and factory methods for
-/// creating tree nodes.
+/// Provides contextual information while a state tree is being constructed, and
+/// factory methods for creating tree nodes.
 ///
 /// This is a low-level feature and will not be needed by most applications.
 class TreeBuildContext {
@@ -34,16 +34,16 @@ class TreeBuildContext {
 
   final bool _addStoppedState;
 
-  /// If provided, this function is called each time this context builds a tree node. The function
-  /// is provided the [NodeInfoBuilder] that can be used to augment the existing
-  /// [TreeNodeInfo] before it is used to construct a node.
+  /// If provided, this function is called each time this context builds a tree
+  /// node. The function is provided the [NodeInfoBuilder] that can be used to
+  /// augment the existing [TreeNodeInfo] before it is used to construct a node.
   ///
-  /// This is a low-level feature inteded to support general purpose extensions, and will not
-  /// typically be used.
+  /// This is a low-level feature inteded to support general purpose extensions,
+  /// and will not typically be used.
   ExtendNodeInfo? extendNodes;
 
-  /// Creates a root [TreeNode] that is fully populated with its descendant nodes, based on the
-  /// description provided by [rootInfo].
+  /// Creates a root [TreeNode] that is fully populated with its descendant
+  /// nodes, based on the description provided by [rootInfo].
   TreeNode buildTree(RootNodeInfo rootInfo) {
     return _buildNode(rootInfo);
   }
@@ -183,7 +183,8 @@ class TreeBuildContext {
   }
 }
 
-/// Provides methods for augmenting a [TreeNodeInfo] value with additional information.
+/// Provides methods for augmenting a [TreeNodeInfo] value with additional
+/// information.
 class NodeInfoBuilder {
   /// Constructs a [NodeInfoBuilder].
   NodeInfoBuilder(this.nodeBuildInfo, this._metadata, this._filters);
