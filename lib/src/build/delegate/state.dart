@@ -20,6 +20,12 @@ class State implements StateConfig {
   /// [onEnter], and [onExit]
   /// handler functions.
   /// {@endtemplate}
+  ///
+  /// {@template State.filters}
+  /// A list of [filters] can be provided in order to intercept the message and
+  /// transition handlers of the state. The filters will be applied to the
+  /// state in the order in which they appear in the list.
+  /// {@endtemplate}
   factory State(
     StateKey key, {
     TransitionHandler? onEnter,
@@ -50,6 +56,8 @@ class State implements StateConfig {
   /// {@endtemplate}
   ///
   /// {@macro State.handlers}
+  ///
+  /// {@macro State.filters}
   factory State.composite(
     StateKey key,
     InitialChild initialChild, {

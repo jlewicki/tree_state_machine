@@ -52,16 +52,22 @@ class StateTree implements StateTreeBuildProvider {
   /// Constructs a state tree with a root state identified by [rootKey].
   ///
   /// {@template StateTree.children}
-  /// The state tree is composed of the states in the list of [childStates], and starts in the state
-  /// identified by the [initialChild].
+  /// The state tree is composed of the states in the list of [childStates], and
+  /// starts in the state identified by the [initialChild].
   /// {@endtemplate}
   ///
   /// {@template StateTree.handlers}
-  /// The behavior of the root state can be customized by providing [onMessage], [onEnter], and
-  /// [onExit] handler functions.
+  /// The behavior of the root state can be customized by providing [onMessage],
+  /// [onEnter], and [onExit] handler functions.
   /// {@endtemplate}
   ///
   /// {@macro StateTree.finalStates}
+  ///
+  /// {@template StateTree.filters}
+  /// A list of [filters] can be provided in order to intercept the message and
+  /// transition handlers of the root state. The filters will be applied to the
+  /// state in the order in which they appear in the list.
+  /// {@endtemplate}
   factory StateTree.root(
     StateKey rootKey,
     InitialChild initialChild, {
@@ -95,6 +101,8 @@ class StateTree implements StateTreeBuildProvider {
   /// {@macro StateTree.handlers}
   ///
   /// {@macro StateTree.finalStates}
+  ///
+  /// {@macro StateTree.filters}
   static StateTree dataRoot<D>(
     DataStateKey<D> rootKey,
     InitialData<D> initialData,

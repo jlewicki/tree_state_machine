@@ -16,6 +16,8 @@ class DataState<D> implements StateConfig {
   /// {@endtemplate}
   ///
   /// {@macro State.handlers}
+  ///
+  /// {@macro State.filters}
   factory DataState(
     DataStateKey<D> key,
     InitialData<D> initialData, {
@@ -48,6 +50,8 @@ class DataState<D> implements StateConfig {
   /// {@macro State.childStates}
   ///
   /// {@macro State.handlers}
+  ///
+  /// {@macro State.filters}
   factory DataState.composite(
     DataStateKey<D> key,
     InitialData<D> initialData,
