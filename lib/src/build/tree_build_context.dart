@@ -1,4 +1,4 @@
-import 'package:tree_state_machine/src/machine/tree_state.dart';
+import 'package:tree_state_machine/tree_state_machine.dart';
 import 'tree_node_info.dart';
 import 'tree_node.dart';
 

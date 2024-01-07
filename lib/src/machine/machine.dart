@@ -3,11 +3,9 @@ import 'package:collection/collection.dart';
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/build.dart';
 import 'package:tree_state_machine/src/build/tree_node.dart';
-import 'package:tree_state_machine/src/machine/data_value.dart';
-import 'package:tree_state_machine/src/machine/initial_state_data.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
-import 'package:tree_state_machine/src/machine/tree_state_machine.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
+import 'package:tree_state_machine/tree_state_machine.dart';
 
 /// Provides methods for processing messages and performing state transitions.
 ///
@@ -373,11 +371,6 @@ class Machine {
     }
     return machineNode;
   }
-
-  // TreeNode _treeNode(StateKey key) {
-  //   final machineNode = _node(key);
-  //   return machineNode.treeNode;
-  // }
 }
 
 class MachineMessageContext with DisposableMixin implements MessageContext {
@@ -500,7 +493,7 @@ class MachineMessageContext with DisposableMixin implements MessageContext {
         }
 
         var msgFilter = filters[currentFilterIndex++].onMessage;
-        return msgFilter != null ? msgFilter.call(this, run) : run();
+        return msgFilter.call(this, run);
       }
 
       return run();
@@ -635,7 +628,7 @@ class MachineTransitionContext
 
   FutureOr<void> _runTransitionHandlers(
     TreeNode node,
-    TransitionFilter? Function(TreeStateFilter) getFilter,
+    TransitionFilter Function(TreeStateFilter) getFilter,
     TransitionHandler Function(TreeState) getHandler,
   ) {
     var handler = getHandler(node.state);
@@ -651,7 +644,7 @@ class MachineTransitionContext
           return result is Future<void> ? result : Future<void>.value();
         }
         var transFilter = getFilter(filters[currentFilterIndex++]);
-        return transFilter != null ? transFilter.call(this, run) : run();
+        return transFilter.call(this, run);
       }
 
       return run();
@@ -768,32 +761,6 @@ mixin DisposableMixin {
     }
   }
 }
-
-/// Keeps track of resources associated with a tree node.
-// class MachineNode {
-//   final TreeNode treeNode;
-//   final List<Timer> _timers = [];
-//   final Logger _log;
-//   MachineNode(this.treeNode, this._log);
-
-//   void addTimer(Timer timer) {
-//     _timers.add(timer);
-//   }
-
-//   void cancelTimers() {
-//     if (_timers.isNotEmpty) {
-//       _log.fine("Canceling timers for state '${treeNode.key}'");
-//       for (final timer in _timers) {
-//         timer.cancel();
-//       }
-//     }
-//   }
-
-//   void dispose() {
-//     cancelTimers();
-//     treeNode.dispose();
-//   }
-// }
 
 final stopMessage = Object();
 

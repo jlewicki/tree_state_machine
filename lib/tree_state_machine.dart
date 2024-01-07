@@ -14,6 +14,7 @@ export 'src/machine/tree_state.dart'
         StopResult,
         UnhandledResult,
         DataInitializer;
+export 'src/machine/tree_state_filter.dart';
 export 'src/machine/tree_state_machine.dart'
     hide TestableTreeStateMachine, EncodableState, EncodableTree;
 
