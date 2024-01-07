@@ -44,7 +44,7 @@ typedef TransitionFilter = Future<void> Function(
   Future<void> Function() next,
 );
 
-/// /// A set of filter methods that can be associated with a state in a state tree,
+/// A set of filter methods that can be associated with a state in a state tree,
 /// to intercept and potentially extend the message and transition handlers of
 /// the state.
 ///
