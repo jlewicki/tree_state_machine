@@ -197,7 +197,8 @@ StateTree innerStateTree() {
    );
 }
 
-final aMachineState = StateKey('machineState');
+// Machine states need to be identified by MachineStateKey
+final aMachineState = MachineStateKey('machineState');
 final otherState = StateKey('otherState');
 
 MachineState(
