@@ -166,7 +166,7 @@ class MachineState implements StateConfig {
   /// not recieve any unhandled messages from the child machine state.
   ///
   factory MachineState(
-    DataStateKey<MachineTreeStateData> key,
+    MachineStateKey key,
     InitialMachine initialMachine, {
     required MachineDoneHandler onMachineDone,
     bool Function(Transition)? isMachineDone,

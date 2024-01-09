@@ -43,6 +43,16 @@ class DataStateKey<D> extends _ValueKey<(Type, String)> implements StateKey {
   }
 }
 
+/// An identifier for a machine state.
+///
+/// A machine state is a data state, with associated state state of type
+/// [MachineTreeStateData], whose lifecycle is controlled by a nested state
+/// machine. Information about the nested state machine is accessible from the
+/// [MachineTreeStateData] value of the machine state.
+class MachineStateKey extends DataStateKey<MachineTreeStateData> {
+  const MachineStateKey(super.name);
+}
+
 class _ValueKey<T> implements StateKey {
   final T _value;
   const _ValueKey(this._value);
@@ -887,4 +897,3 @@ class StateDataCodec<D> {
 //
 // Filters
 //
-

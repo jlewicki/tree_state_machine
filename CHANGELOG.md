@@ -1,3 +1,7 @@
+## 3.0.0-dev.12
+- Adjust `TreeStateFilter` to make it easier to extend.
+- Add `MachineStateKey` to identify machine states.
+
 ## 3.0.0-dev.11
 - Expose `InitialStateData`
 
