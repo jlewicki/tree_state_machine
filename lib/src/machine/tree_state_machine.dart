@@ -523,7 +523,7 @@ class TreeStateMachine {
     ProcessedMessage result;
     final receivingState = _machine.currentLeaf!.key;
 
-    void raiseEvents(ProcessedMessage result) {
+    void emitEvents(ProcessedMessage result) {
       _processedMessages.add(result);
       if (result is HandledMessage) {
         if (result.transition != null) {
@@ -534,14 +534,14 @@ class TreeStateMachine {
 
     try {
       result = await _machine.processMessage(queuedMessage.message);
-      raiseEvents(result);
+      emitEvents(result);
     } catch (ex, stack) {
       _log.warning(
           "Error occurred when processing message '${queuedMessage.message}'",
           ex,
           stack);
       result = FailedMessage(queuedMessage.message, receivingState, ex, stack);
-      raiseEvents(result);
+      emitEvents(result);
 
       // StateMachineErrors should always be re-thrown, since they represent a
       // fatal error in the machine implementation.
@@ -559,7 +559,7 @@ class TreeStateMachine {
     // Add the message to the stream processor, which includes a buffering
     // mechanism. That ensures messages will be processed in-order, when
     // messages are sent to the state machine without waiting for earlier
-    //messages to be procesed.
+    // messages to be procesed.
     final completer = Completer<ProcessedMessage>();
     _messageQueue.add(_QueuedMessage(message, completer));
     return completer.future;

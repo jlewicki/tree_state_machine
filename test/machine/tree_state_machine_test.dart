@@ -69,7 +69,7 @@ void main() {
         expect(msgProcessed.message, same(msg));
       });
 
-      test('should return FailedMessage if error is thrown in message handler',
+      test('should emit FailedMessage if error is thrown in message handler',
           () async {
         final ex = Exception('oops');
         final sm = TreeStateMachine(tree.treeBuilder(messageHandlers: {

@@ -50,10 +50,11 @@ class Machine {
   ///
   /// Returns a future yielding a [MachineTransitionContext] that describes the states that were
   /// entered.
-  Future<Transition> enterInitialState(
-      [StateKey? initialState,
-      InitialStateData? initialData,
-      Object? payload]) {
+  Future<Transition> enterInitialState([
+    StateKey? initialState,
+    InitialStateData? initialData,
+    Object? payload,
+  ]) {
     final initialNode = initialState != null ? nodes[initialState] : rootNode;
     if (initialNode == null) {
       throw ArgumentError.value(
@@ -66,8 +67,10 @@ class Machine {
     return _doTransition(path, initialStateData: initialData, payload: payload);
   }
 
-  Future<ProcessedMessage> processMessage(Object message,
-      [StateKey? initialState]) async {
+  Future<ProcessedMessage> processMessage(
+    Object message, [
+    StateKey? initialState,
+  ]) async {
     _log.fine('Processing message $message');
 
     if (_currentLeafNode == null) {
