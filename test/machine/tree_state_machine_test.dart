@@ -90,9 +90,14 @@ void main() {
       test('should emit FailedMessage if error is thrown in entry handler',
           () async {
         final ex = Exception('oops');
-        final sm = TreeStateMachine(tree.treeBuilder(messageHandlers: {
-          tree.r_a_a_2_key: (ctx) => throw ex,
-        }));
+        final sm = TreeStateMachine(tree.treeBuilder(
+          messageHandlers: {
+            tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_b_1_key),
+          },
+          entryHandlers: {
+            tree.r_b_key: (ctx) => throw ex,
+          },
+        ));
         var currentState = await sm.start();
 
         final errorsQ = StreamQueue(sm.failedMessages);
