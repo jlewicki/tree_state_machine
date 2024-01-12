@@ -30,8 +30,8 @@ class TreeNode {
   /// The [TreeState] for this node.
   TreeState get state => resources.state;
 
-  /// The [DataValue] of the [DataTreeState] for this node, or `null` if [state] is not a
-  /// [DataTreeState].
+  /// The [DataValue] of the [DataTreeState] for this node, or `null` if [state]
+  /// is not a [DataTreeState].
   DataValue<dynamic>? get data => resources.nodeData?.data;
 
   bool get isFinal =>
@@ -42,8 +42,8 @@ class TreeNode {
   }
 }
 
-/// Manages the [DataValue] that is associated with a [TreeNode] whose [TreeNode.state] is a
-/// [DataTreeState].
+/// Manages the [DataValue] that is associated with a [TreeNode] whose
+/// [TreeNode.state] is a [DataTreeState].
 class TreeNodeDataValue {
   TreeNodeDataValue(this._dataState);
 
@@ -51,8 +51,8 @@ class TreeNodeDataValue {
 
   Ref<ClosableDataValue<dynamic>?>? _dataValueRef;
 
-  /// The current [DataValue] for this [TreeNodeDataValue], or `null` if the associated data
-  /// state is not active
+  /// The current [DataValue] for this [TreeNodeDataValue], or `null` if the
+  /// associated data state is not active
   DataValue<dynamic>? get data => _dataValueRef?.value;
 
   void initalizeData(TransitionContext transCtx, [Object? initialData]) {
@@ -117,7 +117,8 @@ class TreeNodeResources {
 }
 
 extension TreeNodeNavigationExtensions on TreeNode {
-  /// Returns the root ancestor node of this node, or this node itself if it is a root node.
+  /// Returns the root ancestor node of this node, or this node itself if it is
+  /// a root node.
   RootNodeInfo root() {
     return selfAndAncestors().firstWhere((e) => e is RootNodeInfo)
         as RootNodeInfo;
@@ -130,6 +131,12 @@ extension TreeNodeNavigationExtensions on TreeNode {
       yield nextAncestor;
       nextAncestor = nextAncestor.parent;
     }
+  }
+
+  /// Returns a value indicating if [node] is a self-or-ancestor node of this
+  /// node.
+  bool isSelfOrAncestor(TreeNode node) {
+    return selfAndAncestors().contains(node);
   }
 
   /// Lazily-computes the self-and-ancestor nodes of this node.
@@ -146,7 +153,8 @@ extension TreeNodeNavigationExtensions on TreeNode {
     }
   }
 
-  /// Lazily-computes the self-and-descendant nodes of this node, in depth first order
+  /// Lazily-computes the self-and-descendant nodes of this node, in depth first
+  /// order
   Iterable<TreeNode> selfAndDescendants() sync* {
     yield this;
     yield* descendants();
@@ -183,8 +191,9 @@ extension TreeNodeNavigationExtensions on TreeNode {
     DataStateKey<D> key, {
     bool throwIfNotFound = false,
   }) {
-    // If requested type was Object, then we can't meaningfully search by type. So we can only
-    // search by key, and if no key was specified, then we assume the current leaf.
+    // If requested type was Object, then we can't meaningfully search by type.
+    // So we can only search by key, and if no key was specified, then we assume
+    //the current leaf.
     var node = selfOrAncestorWithKey(key);
     var dataValue = node?.data;
     if (dataValue != null) {

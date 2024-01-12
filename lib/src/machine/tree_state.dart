@@ -499,7 +499,7 @@ abstract class MessageContext {
   /// not consumed by the framework, but might prove useful in at the
   /// application level.
   TransitionMessageResult goTo(
-    StateKey targetStateKey, {
+    StateKey targetState, {
     TransitionHandler? transitionAction,
     Object? payload,
     bool reenterTarget = false,
@@ -722,6 +722,30 @@ abstract class TransitionContext {
   /// when the future completes.
   void post(FutureOr<Object> message);
 
+  /// Redirects a transition to a different state when running an entry handler.
+  ///
+  /// This method may be used to prevent entry to the calling state if some
+  /// precondition for entering a state has not been met. For example, if a
+  /// state represents the presence of an authenticated user of an application,
+  /// but the identity of the user cannot be established for some reason, the
+  /// state could redirect the user to a state representing an anonymous user.
+  ///
+  /// Note that this method has no effect if called when running an exit
+  /// handler.
+  ///
+  /// Because there might be multiple redirects, (or infinite, if a redirect
+  /// loop occurs) during a transition, a [RedirectError] is thrown if the
+  /// number of redirects exceeds the `redirectLimit` provided when the
+  /// [TreeStateMachine] was created.
+  ///
+  /// A [RedirectError] is thrown if [targetState] is a descendant state of the
+  /// calling state.
+  void redirectTo(
+    StateKey targetState, {
+    Object? payload,
+    Map<String, Object> metadata = const {},
+  });
+
   /// Schedules a message to be dispatched to the state machine asynchronously.
   ///
   /// The time at which the message is sent is indicated by the [duration]
@@ -893,7 +917,14 @@ class StateDataCodec<D> {
   D? deserialize(Object? serialized) => _decode(serialized);
 }
 
-//==============================================================================
-//
-// Filters
-//
+/// Error thrown when [TransitionContext.redirectTo] is called, but the redirect
+/// cannot be fulfilled (for example, if a maximum number of redirects is
+/// exceeded).
+class RedirectError extends Error {
+  /// Constructs a [RedirectError], with a [message] describing the reason
+  /// for the error.
+  RedirectError(this.message);
+
+  /// A message describing the reason for this error.
+  final String message;
+}

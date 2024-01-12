@@ -123,12 +123,14 @@ class TreeStateMachine {
     String? label,
     PostMessageErrorPolicy postMessageErrorPolicy =
         PostMessageErrorPolicy.convertToFailedMessage,
+    int redirectLimit = 5,
   }) {
     return TreeStateMachine.withBuilder(
       StateTreeBuilder(treeBuildProvider),
       logSuffix: logSuffix,
       label: label,
       postMessageErrorPolicy: postMessageErrorPolicy,
+      redirectLimit: redirectLimit,
     );
   }
 
@@ -144,6 +146,7 @@ class TreeStateMachine {
     String? label,
     PostMessageErrorPolicy postMessageErrorPolicy =
         PostMessageErrorPolicy.convertToFailedMessage,
+    int redirectLimit = 5,
   }) {
     logSuffix = logSuffix ?? treeBuilder.logName;
     TreeStateMachine? treeMachine;
@@ -153,6 +156,7 @@ class TreeStateMachine {
       rootNode,
       (message) => treeMachine!._queueMessage(message),
       logName: logSuffix,
+      redirectLimit: redirectLimit,
     );
 
     var logSuffix_ = logSuffix != null ? '.$logSuffix' : '';
@@ -749,6 +753,7 @@ class TestableTreeStateMachine extends TreeStateMachine {
     PostMessageErrorPolicy failedMessagePolicy =
         PostMessageErrorPolicy.convertToFailedMessage,
     String? label,
+    int redirectLimit = 5,
   }) {
     TreeStateMachine? treeMachine;
     var buildCtx = TreeBuildContext();
@@ -756,14 +761,11 @@ class TestableTreeStateMachine extends TreeStateMachine {
     var machine = Machine(
       rootNode,
       (message) => treeMachine!._queueMessage(message),
+      redirectLimit: redirectLimit,
     );
     var log = Logger('tree_state_machine.TestableTreeStateMachine');
     return treeMachine = TestableTreeStateMachine._(
-      machine,
-      failedMessagePolicy,
-      log,
-      label ?? '',
-    );
+        machine, failedMessagePolicy, log, label ?? '');
   }
 
   /// Gets the internal machine for testing purposes

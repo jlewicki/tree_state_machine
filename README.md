@@ -303,6 +303,28 @@ State(
    },
 );
 ```
+#### Redirects
+A state may have certain preconditions that need to be satisfied in order to enter the state 
+successfully. For example, if a state represents the presence of an authenticated user, an access 
+or identity token may be required to identify the user. If for some reason the token cannot be 
+obtained, it is not meaningful to enter this state.
+
+To handle this case, an entry transition handler can call `TransitionContext.redirectTo` on order
+to redirect the transition to a different destination. So for example when a auth token cannot be
+obtained, the handler for the authenticated state might redirect to a state representing an 
+anonymous user. 
+
+```dart
+State(
+   States.authenticated, 
+   onEnter: (TransitionContext ctx) {    
+      var token = getAccessToken();
+      if (token == null) {
+         ctx.redirectTo(States.unauthenticated);
+      }
+   },
+);
+```
 
 ## State Machines
 ### Creating a state machine

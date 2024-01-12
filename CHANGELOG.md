@@ -1,3 +1,6 @@
+## 3.0.0-dev.13
+- Add `TransitionContext.redirectTo`.
+
 ## 3.0.0-dev.12
 - Adjust `TreeStateFilter` to make it easier to extend.
 - Add `MachineStateKey` to identify machine states.
