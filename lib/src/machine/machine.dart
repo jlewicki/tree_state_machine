@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:js_util';
 import 'package:collection/collection.dart';
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/build.dart';
