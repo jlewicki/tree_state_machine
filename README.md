@@ -442,3 +442,7 @@ Logger.root.onRecord.listen((record) {
    print('${record.level.name}: ${record.time}: ${record.message}');
 });
 ```
+
+## Further References
+* The [`tree_state_router`](https://pub.dev/packages/tree_state_router) package, for declarative 
+routing in Flutter apps based on a `TreeStateMachine`.
