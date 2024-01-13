@@ -77,15 +77,16 @@ class DataValue<T> extends StreamView<T> implements ValueStream<T> {
   @override
   AsyncError get error => _subject.error;
 
-  /// Calls the [update] function with the current data value, and updates the current value with
-  /// the returned value.
+  /// Calls the [update] function with the current data value, updates the current value with
+  /// the result, then returns the update value.
   ///
   /// This will result in a new value being published to any listeners of this stream, even if the
   /// update function returns the some object instance it as passed.
-  void update(T Function(T current) update) {
+  T update(T Function(T current) update) {
     try {
       var newValue = update(_subject.value);
       _subject.add(newValue);
+      return newValue;
     } on StateError catch (_) {
       throw StateError(
           'Cannot update value after DataValue is done. Has the state for this data value exited?');
