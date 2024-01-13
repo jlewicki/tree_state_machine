@@ -573,7 +573,7 @@ class TreeStateMachine {
     return keys
         .map((key) {
           var treeNode = _machine.nodes[key];
-          return treeNode?.key is DataStateKey
+          return treeNode?.key is DataStateKey && treeNode?.data != null
               ? _StateDataValue(treeNode!.key as DataStateKey, treeNode.data!)
               : null;
         })

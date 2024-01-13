@@ -154,13 +154,29 @@ DataState(
    States.login,
    InitialData(() => LoginData()),
    onMessage: (MessageContext ctx) {
-      // Usde the MessageContext.data method to retrieve the current state 
+      // Use the MessageContext.data method to retrieve the current state 
       // data for a data state.   
       var loginData = ctx.data(States.login).value;
       return ctx.unhandled();
    }
-)
+);
 ```
+
+The previous example illustates creating inital data when the initial value is known at design time.
+Occasionly it may be necessary to defer creation until runtime, when the data state is being 
+entered. For example, the data may need to incorporate values obtained from the `payload` of the
+`TransitionContext`.  To handle this, use the `InitialData.run` factory:
+
+```dart
+DataState(
+   States.login,
+   InitialData.run((TransitionContext transCtx) {
+      var userInfo = transCtx.payload as SavedUserInfo;
+      return LoginData()..email = userInfo.email;
+   }),
+);
+```
+
 
 See [Reading and writing state data](#Reading-and-writing-state-data) to learn how to read and write
 state data when handling a message with a data state.
@@ -322,18 +338,40 @@ To handle this case, an entry transition handler can call `TransitionContext.red
 to redirect the transition to a different destination. So for example when a auth token cannot be
 obtained, the handler for the authenticated state might redirect to a state representing an 
 anonymous user. 
-
+  
 ```dart
 State(
    States.authenticated, 
-   onEnter: (TransitionContext ctx) {    
+   onEnter: (TransitionContext transCtx) {    
       var token = getAccessToken();
       if (token == null) {
-         ctx.redirectTo(States.unauthenticated);
+         transCtx.redirectTo(States.unauthenticated);
       }
    },
 );
 ```
+
+An additonal subtlety can occur when creating intial state data for a data state, when the data 
+requires additional contextual information during creation. Because the initial data will be 
+created before the `onEnter` handler is called, it may be necessary to call `redirectTo` at the 
+time the state data is initialized. For example:
+
+```dart
+DataState<AuthenticatedUser>(
+   States.authenticated, 
+   InitialData.run((TransitionContext transCtx) {    
+      var token = getAccessToken();
+      if (token == null) {
+         ctx.redirectTo(States.unauthenticated);
+         // It is permissible to return null, but only when redirectTo is 
+         // also called
+         return null;
+      }
+      return AuthenticatedUser.fromToken(token);
+   },
+);
+```
+
 
 ## State Machines
 ### Creating a state machine

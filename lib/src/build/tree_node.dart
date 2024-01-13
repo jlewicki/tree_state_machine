@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:collection/collection.dart';
 import 'package:logging/logging.dart';
+import 'package:tree_state_machine/build.dart';
+import 'package:tree_state_machine/src/machine/machine.dart';
 import 'package:tree_state_machine/src/machine/tree_state.dart';
 import 'package:tree_state_machine/src/machine/data_value.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
-
-import 'tree_node_info.dart';
 
 enum NodeType { root, interior, leaf }
 
@@ -57,10 +57,23 @@ class TreeNodeDataValue {
 
   void initalizeData(TransitionContext transCtx, [Object? initialData]) {
     _dataState.initializeData(<D>() {
-      var initialData_ = initialData ?? _dataState.initialData(transCtx);
       assert(initialData == null || initialData is D);
+      var initialData_ = initialData ?? _dataState.initialData(transCtx);
+      if (initialData_ == null &&
+          !(transCtx as MachineTransitionContext).hasRedirect) {
+        var msg =
+            "Initial data for state '${transCtx.handlingState}' returned null. "
+            "Null return values are only permitted if "
+            "TransitionContext.redirectTo is also called when computing the "
+            "initial data value.";
+        throw StateTreeDefinitionError(msg);
+      }
       assert(_dataValueRef == null);
-      var ref = Ref(ClosableDataValue<D>(initialData_ as D));
+      var ref = Ref(ClosableDataValue<D>.lazy(() =>
+          // This will throw if initialData_ is null, but that will only occur
+          // if a direct is also requested, in which case this function will
+          // not be executed.
+          initialData_ as D));
       _dataValueRef = ref;
       return ref;
     });

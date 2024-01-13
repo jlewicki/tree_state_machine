@@ -166,7 +166,7 @@ sealed class InitialData<D> {
   /// Creates an [InitialData] that will call the [create] function, passing the
   /// [TransitionContext] for the transition in progress, to obtain the initial
   /// data value. The function is called each time the data state is entered.
-  factory InitialData.run(GetInitialData<D> getInitialData) {
+  factory InitialData.run(GetInitialData<D?> getInitialData) {
     return InitialDataByDelegate._(getInitialData);
   }
 
@@ -181,7 +181,7 @@ sealed class InitialData<D> {
   }
 
   /// Creates the initial data value.
-  D call(TransitionContext transCtx);
+  D? call(TransitionContext transCtx);
 }
 
 final class InitialDataByValue<D> extends InitialData<D> {
@@ -202,10 +202,10 @@ final class InitialDataByFactory<D> extends InitialData<D> {
 
 final class InitialDataByDelegate<D> extends InitialData<D> {
   InitialDataByDelegate._(this.initialData) : super._();
-  final GetInitialData<D> initialData;
+  final GetInitialData<D?> initialData;
 
   @override
-  D call(TransitionContext transCtx) => initialData(transCtx);
+  D? call(TransitionContext transCtx) => initialData(transCtx);
 }
 
 /// A callable class that can produce the initial nested nested state machine for

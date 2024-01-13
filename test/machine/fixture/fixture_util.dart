@@ -10,3 +10,4 @@ Machine createMachine(StateTreeBuildProvider builder, {int redirectLimit = 5}) {
 }
 
 final throwsRedirectError = throwsA(isA<RedirectError>());
+final throwsStateTreeDefinitionError = throwsA(isA<StateTreeDefinitionError>());

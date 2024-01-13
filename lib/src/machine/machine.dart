@@ -598,6 +598,8 @@ class MachineTransitionContext
   GoToResult? _redirectResult;
   int _redirectCount = 0;
 
+  bool get hasRedirect => _redirectResult != null;
+
   @override
   final Object? payload;
 

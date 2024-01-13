@@ -401,6 +401,78 @@ void main() {
           expect(machine.nodes[data_tree.r_a_a_1_key]!.data, isNull);
           expect(machine.nodes[data_tree.r_a_key]!.data, isNull);
         });
+
+        test('should initialize state data when entering state', () async {
+          var initData = {
+            data_tree.r_key: SpecialDataD(),
+            data_tree.r_a_key: ImmutableData(name: 'hi', price: 123),
+            data_tree.r_a_a_key: LeafDataBase(),
+            data_tree.r_a_a_2_key: LeafData2(),
+          };
+
+          var dataValues = <StateKey, dynamic>{};
+          TransitionHandler storeData(DataStateKey<dynamic> key) {
+            return (ctx) => dataValues[key] = ctx.data(key).value;
+          }
+
+          var buildTree = data_tree.treeBuilder(
+            initialDataValues: {
+              data_tree.r_key: () => initData[data_tree.r_key]!,
+              data_tree.r_a_key: () => initData[data_tree.r_a_key]!,
+              data_tree.r_a_a_key: () => initData[data_tree.r_a_a_key]!,
+              data_tree.r_a_a_2_key: () => initData[data_tree.r_a_a_2_key]!,
+            },
+            entryHandlers: {
+              data_tree.r_key: storeData(data_tree.r_key),
+              data_tree.r_a_key: storeData(data_tree.r_a_key),
+              data_tree.r_a_a_key: storeData(data_tree.r_a_a_key),
+              data_tree.r_a_a_2_key: storeData(data_tree.r_a_a_2_key),
+            },
+          );
+          final machine = createMachine(buildTree);
+          await machine.enterInitialState();
+
+          expect(dataValues[data_tree.r_key], initData[data_tree.r_key]);
+          expect(dataValues[data_tree.r_a_key], initData[data_tree.r_a_key]);
+          expect(
+              dataValues[data_tree.r_a_a_key], initData[data_tree.r_a_a_key]);
+          expect(dataValues[data_tree.r_a_a_2_key],
+              initData[data_tree.r_a_a_2_key]);
+        });
+      });
+
+      test('should throw if initial state data is null without redirect',
+          () async {
+        var buildTree = data_tree.treeBuilder(
+          createInitialDataValues: (key) {
+            return key == data_tree.r_a_key
+                ? (transCtx) {
+                    return null;
+                  }
+                : null;
+          },
+        );
+        final machine = createMachine(buildTree);
+        expect(
+          () async => await machine.enterInitialState(),
+          throwsStateTreeDefinitionError,
+        );
+      });
+
+      test('should allow null initial state data when redirecting', () async {
+        var buildTree = data_tree.treeBuilder(
+          createInitialDataValues: (key) {
+            return key == data_tree.r_a_key
+                ? (transCtx) {
+                    transCtx.redirectTo(data_tree.r_b_key);
+                    return null;
+                  }
+                : null;
+          },
+        );
+        final machine = createMachine(buildTree);
+        var initTransition = await machine.enterInitialState();
+        expect(initTransition.to, data_tree.r_b_1_key);
       });
 
       group('UnhandledResult', () {

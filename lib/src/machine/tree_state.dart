@@ -247,7 +247,7 @@ abstract class DataTreeState<D> extends TreeState {
     _dataRef = initializer<D>();
   }
 
-  D initialData(TransitionContext transCtx);
+  D? initialData(TransitionContext transCtx);
 }
 
 /// A [DataTreeState] that delegates its message and transition handling
@@ -261,7 +261,7 @@ class DelegatingDataTreeState<D> extends DataTreeState<D> {
   /// The other callbacks are optional, and may be provided to customize how the
   /// data state handles messages and state transitions.
   DelegatingDataTreeState(
-    GetInitialData<D> initialData, {
+    GetInitialData<D?> initialData, {
     MessageHandler? onMessage,
     TransitionHandler? onEnter,
     TransitionHandler? onExit,
@@ -272,14 +272,14 @@ class DelegatingDataTreeState<D> extends DataTreeState<D> {
         _onExit = onExit ?? emptyTransitionHandler,
         _onDispose = onDispose ?? emptyDispose;
 
-  final GetInitialData<D> _initialData;
+  final GetInitialData<D?> _initialData;
   final MessageHandler _onMessage;
   final TransitionHandler _onEnter;
   final TransitionHandler _onExit;
   final Dispose _onDispose;
 
   @override
-  D initialData(TransitionContext transCtx) {
+  D? initialData(TransitionContext transCtx) {
     return _initialData(transCtx);
   }
 
