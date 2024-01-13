@@ -156,16 +156,35 @@ sealed class InitialData<D> {
     return InitialDataByFactory(create);
   }
 
-  /// Creates an [InitialData] that will call the [create] function to obtain
-  /// the initial data value. The function is called each time the data state is
-  /// entered.
+  /// Creates an [InitialData] uses the specified [value] as the initial data
+  /// value.
   factory InitialData.value(D value) {
     return InitialDataByValue(value);
   }
 
-  /// Creates an [InitialData] that will call the [create] function, passing the
-  /// [TransitionContext] for the transition in progress, to obtain the initial
-  /// data value. The function is called each time the data state is entered.
+  /// Creates an [InitialData] that will call the [getInitialData] function,
+  /// passing the [TransitionContext] for the transition in progress, to obtain
+  /// the initial data value. The function is called each time the data state is
+  /// entered.
+  ///
+  /// If a precondition cannot be met in order to create the initial data,
+  /// [TransitionContext.redirectTo] may be called, and `null` returned.
+  ///
+  /// ```dart
+  /// DataState<AuthenticatedUser>(
+  ///   States.authenticated,
+  ///   InitialData.run((TransitionContext transCtx) {
+  ///      var token = getAccessToken();
+  ///      if (token == null) {
+  ///         ctx.redirectTo(States.unauthenticated);
+  ///         // It is permissible to return null, but only when redirectTo is
+  ///         // also called
+  ///         return null;
+  ///      }
+  ///      return AuthenticatedUser.fromToken(token);
+  ///   },
+  /// );
+  /// ```
   factory InitialData.run(GetInitialData<D?> getInitialData) {
     return InitialDataByDelegate._(getInitialData);
   }
