@@ -1,5 +1,7 @@
 ## 3.0.0-dev.13
 - Add `TransitionContext.redirectTo`.
+- Change default `PostMessageErrorPolicy` to `rethrowError`.
+- Adjust logging and add `TreeStateMachine.enableDeveloperLogging`.
 
 ## 3.0.0-dev.12
 - Adjust `TreeStateFilter` to make it easier to extend.

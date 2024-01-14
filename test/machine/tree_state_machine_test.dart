@@ -27,7 +27,6 @@ void main() {
 
         await currentState.post(Object());
 
-        //expect(sm.currentState, isNotNull);
         expect(currentState.key, equals(tree.r_a_a_1_key));
       });
 
@@ -72,9 +71,14 @@ void main() {
       test('should emit FailedMessage if error is thrown in message handler',
           () async {
         final ex = Exception('oops');
-        final sm = TreeStateMachine(tree.treeBuilder(messageHandlers: {
-          tree.r_a_a_2_key: (ctx) => throw ex,
-        }));
+        final sm = TreeStateMachine(
+          tree.treeBuilder(
+            messageHandlers: {
+              tree.r_a_a_2_key: (ctx) => throw ex,
+            },
+          ),
+          postMessageErrorPolicy: PostMessageErrorPolicy.convertToFailedMessage,
+        );
         var currentState = await sm.start();
 
         final message = Object();
@@ -90,14 +94,17 @@ void main() {
       test('should emit FailedMessage if error is thrown in entry handler',
           () async {
         final ex = Exception('oops');
-        final sm = TreeStateMachine(tree.treeBuilder(
-          messageHandlers: {
-            tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_b_1_key),
-          },
-          entryHandlers: {
-            tree.r_b_key: (ctx) => throw ex,
-          },
-        ));
+        final sm = TreeStateMachine(
+          tree.treeBuilder(
+            messageHandlers: {
+              tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_b_1_key),
+            },
+            entryHandlers: {
+              tree.r_b_key: (ctx) => throw ex,
+            },
+          ),
+          postMessageErrorPolicy: PostMessageErrorPolicy.convertToFailedMessage,
+        );
         var currentState = await sm.start();
 
         final errorsQ = StreamQueue(sm.failedMessages);
@@ -119,14 +126,17 @@ void main() {
       test('should emit FailedMessage if error is thrown in exit handler',
           () async {
         final ex = Exception('oops');
-        final sm = TreeStateMachine(tree.treeBuilder(
-          messageHandlers: {
-            tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_b_1_key),
-          },
-          exitHandlers: {
-            tree.r_a_key: (ctx) => throw ex,
-          },
-        ));
+        final sm = TreeStateMachine(
+          tree.treeBuilder(
+            messageHandlers: {
+              tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_b_1_key),
+            },
+            exitHandlers: {
+              tree.r_a_key: (ctx) => throw ex,
+            },
+          ),
+          postMessageErrorPolicy: PostMessageErrorPolicy.convertToFailedMessage,
+        );
         var currentState = await sm.start();
 
         final errorsQ = StreamQueue(sm.failedMessages);
@@ -149,14 +159,17 @@ void main() {
           'should emit FailedMessage if exception is thrown in onEnter handler',
           () async {
         final ex = Exception('oops');
-        final sm = TreeStateMachine(tree.treeBuilder(
-          messageHandlers: {
-            tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_b_1_key),
-          },
-          entryHandlers: {
-            tree.r_b_key: (ctx) => throw ex,
-          },
-        ));
+        final sm = TreeStateMachine(
+          tree.treeBuilder(
+            messageHandlers: {
+              tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_b_1_key),
+            },
+            entryHandlers: {
+              tree.r_b_key: (ctx) => throw ex,
+            },
+          ),
+          postMessageErrorPolicy: PostMessageErrorPolicy.convertToFailedMessage,
+        );
         var currentState = await sm.start();
 
         final errorsQ = StreamQueue(sm.failedMessages);
@@ -178,9 +191,12 @@ void main() {
       test('should keep current state if error is thrown in message handler',
           () async {
         final ex = Exception('oops');
-        final sm = TreeStateMachine(tree.treeBuilder(messageHandlers: {
-          tree.r_a_a_2_key: (ctx) => throw ex,
-        }));
+        final sm = TreeStateMachine(
+          tree.treeBuilder(messageHandlers: {
+            tree.r_a_a_2_key: (ctx) => throw ex,
+          }),
+          postMessageErrorPolicy: PostMessageErrorPolicy.convertToFailedMessage,
+        );
         var currentState = await sm.start();
 
         final message = Object();
@@ -196,14 +212,17 @@ void main() {
       test('should keep current state if error is thrown in transition handler',
           () async {
         final ex = Exception('oops');
-        final sm = TreeStateMachine(tree.treeBuilder(
-          messageHandlers: {
-            tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_b_1_key),
-          },
-          entryHandlers: {
-            tree.r_b_key: (ctx) => throw ex,
-          },
-        ));
+        final sm = TreeStateMachine(
+          tree.treeBuilder(
+            messageHandlers: {
+              tree.r_a_a_2_key: (ctx) => ctx.goTo(tree.r_b_1_key),
+            },
+            entryHandlers: {
+              tree.r_b_key: (ctx) => throw ex,
+            },
+          ),
+          postMessageErrorPolicy: PostMessageErrorPolicy.convertToFailedMessage,
+        );
         var currentState = await sm.start();
 
         final message = Object();

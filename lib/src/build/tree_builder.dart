@@ -66,7 +66,6 @@ class StateTreeBuilder {
   /// Constructs a [StateTreeBuilder].
   StateTreeBuilder(
     this.treeBuildInfoProvider, {
-    this.label,
     this.logName,
     TreeBuildContext Function()? createBuildContext,
   }) : _createBuildContext = createBuildContext;
@@ -77,9 +76,6 @@ class StateTreeBuilder {
   /// Because this [RootNodeInfo] also describes how its descendants should be
   /// built, it provides a complete description of a state tree.
   final StateTreeBuildProvider treeBuildInfoProvider;
-
-  /// An optional descriptive label for the state tree, for diagnostic purposes.
-  final String? label;
 
   /// An optional name for the state tree that to be used as the suffix of the
   /// logger name used when logging messages.
@@ -279,7 +275,7 @@ class InitialMachine implements MachineTreeStateMachine {
         return create(ctx).bind((treeBuilder) {
           return TreeStateMachine(
             treeBuilder,
-            logSuffix: logSuffix,
+            logName: logSuffix,
           );
         });
       },

@@ -72,7 +72,10 @@ final class RootNodeInfo extends CompositeNodeInfo {
     super.dataCodec,
     super.filters,
     super.metadata,
+    this.logName,
   });
+
+  final String? logName;
 }
 
 /// Provides a description of how an interior node of a state tree should be

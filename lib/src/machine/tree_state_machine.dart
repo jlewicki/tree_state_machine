@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/async.dart';
@@ -74,17 +75,13 @@ import 'utility.dart';
 ///  * [State Machine Diagrams](https://www.uml-diagrams.org/state-machine-diagrams.html),
 ///    for further description of UML state machine diagrams.
 class TreeStateMachine {
-  final Machine _machine;
-  final _lifecycle = Lifecycle();
-  final _transitions = StreamController<Transition>.broadcast();
-  final _processedMessages = StreamController<ProcessedMessage>.broadcast();
-  final _messageQueue = StreamController<_QueuedMessage>.broadcast();
-  final _dataStreams = <_DataStreamKey, ValueSubject<dynamic>>{};
-  final PostMessageErrorPolicy _errorPolicy;
-  final Logger _log;
-  CurrentState? _currentState;
-
-  TreeStateMachine._(this._machine, this._errorPolicy, this._log, this.label) {
+  TreeStateMachine._(
+    this._machine,
+    this._errorPolicy,
+    this._log,
+    this.label,
+    bool enableDiagnosticLogging,
+  ) : _logListener = _LogListener(_log, enableDiagnosticLogging) {
     _messageQueue.stream.listen(_onMessage);
 
     // Listen to states that are entered
@@ -105,32 +102,45 @@ class TreeStateMachine {
   /// [treeBuildProvider].
   ///
   /// {@template TreeStateMachine.commonArgs}
-  /// If [logSuffix] is provided, it will be used as a suffix in the name of the
-  /// [Logger] that this state machine logs with. This can help disambiguate log
+  /// [postMessageErrorPolicy] can be used to control how the future returned by
+  /// [CurrentState.post] behaves when an error occurs while processing the
+  /// posted message.
+  ///
+  /// [redirectLimit] can be used to indicate the maximum number of calls to
+  /// [TransitionContext.redirectTo] can occur during a single transition. This
+  /// can be useful in preventing infinite redirect loops.
+  ///
+  /// If [developerLoggingEnabled] is `true`, the state machine will write all
+  /// log output to the Developer [log]. Note that an application must first
+  /// set [hierarchicalLoggingEnabled] to `true` for this to take effect. The
+  /// parent logger for developer output is named `TreeStateMachine`.
+  ///
+  /// If [logName] is provided, it will be used as the name of a child [Logger]
+  /// that this state machine logs with. For example, if [logName] is
+  /// `Stoplight`, then the full name of the logger used by this state machine
+  /// would be `TreeStateMachine.Stoplight`.  This can help disambiguate log
   /// messages if more than one state machine is running at the same time.
   ///
   /// A [label] can be optionally be provided for the this machine. This will
   /// not be used by the state machine, but may be useful for diagnostic
   /// purposes.
-  ///
-  /// [postMessageErrorPolicy] can be used to control how the future returned by
-  /// [CurrentState.post] behaves when an error occurs while processing the
-  /// posted message.
   /// {@endtemplate}
   factory TreeStateMachine(
     StateTreeBuildProvider treeBuildProvider, {
-    String? logSuffix,
-    String? label,
     PostMessageErrorPolicy postMessageErrorPolicy =
-        PostMessageErrorPolicy.convertToFailedMessage,
+        PostMessageErrorPolicy.rethrowError,
     int redirectLimit = 5,
+    String? logName,
+    bool developerLoggingEnabled = false,
+    String? label,
   }) {
     return TreeStateMachine.withBuilder(
       StateTreeBuilder(treeBuildProvider),
-      logSuffix: logSuffix,
+      logName: logName,
       label: label,
       postMessageErrorPolicy: postMessageErrorPolicy,
       redirectLimit: redirectLimit,
+      developerLoggingEnabled: developerLoggingEnabled,
     );
   }
 
@@ -142,37 +152,58 @@ class TreeStateMachine {
   /// {@macro TreeStateMachine.commonArgs}
   factory TreeStateMachine.withBuilder(
     StateTreeBuilder treeBuilder, {
-    String? logSuffix,
-    String? label,
     PostMessageErrorPolicy postMessageErrorPolicy =
-        PostMessageErrorPolicy.convertToFailedMessage,
+        PostMessageErrorPolicy.rethrowError,
     int redirectLimit = 5,
+    bool developerLoggingEnabled = false,
+    String? logName,
+    String? label,
   }) {
-    logSuffix = logSuffix ?? treeBuilder.logName;
-    TreeStateMachine? treeMachine;
+    logName = logName ?? treeBuilder.logName;
+
+    var logger = Logger(
+      'TreeStateMachine${logName != null ? '.$logName' : ''}',
+    );
+
+    if (hierarchicalLoggingEnabled) {
+      logger.level = developerLoggingEnabled ? Level.ALL : Level.OFF;
+    }
 
     var rootNode = treeBuilder.build();
+    TreeStateMachine? treeMachine;
     var machine = Machine(
       rootNode,
       (message) => treeMachine!._queueMessage(message),
-      logName: logSuffix,
+      logger: logger,
       redirectLimit: redirectLimit,
     );
 
-    var logSuffix_ = logSuffix != null ? '.$logSuffix' : '';
     return treeMachine = TreeStateMachine._(
       machine,
       postMessageErrorPolicy,
-      Logger(
-        'tree_state_machine.TreeStateMachine$logSuffix_',
-      ),
+      logger,
       label ?? '',
+      developerLoggingEnabled,
     );
   }
+
+  final Machine _machine;
+  final _lifecycle = Lifecycle();
+  final _transitions = StreamController<Transition>.broadcast();
+  final _processedMessages = StreamController<ProcessedMessage>.broadcast();
+  final _messageQueue = StreamController<_QueuedMessage>.broadcast();
+  final _dataStreams = <_DataStreamKey, ValueSubject<dynamic>>{};
+  final PostMessageErrorPolicy _errorPolicy;
+  final Logger _log;
+  final _LogListener _logListener;
+  CurrentState? _currentState;
 
   /// A [label] naming this state machine. This is not used by the state
   /// machine, but may be useful for diagnostic purposes.
   final String label;
+
+  /// The full name of the [Logger] used by this state machine
+  String get loggerName => _log.fullName;
 
   /// The current state of this state machine.
   ///
@@ -332,6 +363,7 @@ class TreeStateMachine {
   /// It is safe to call this method more than once.
   void dispose() {
     _lifecycle.dispose(() {
+      _logListener.dispose();
       _transitions.close();
       _processedMessages.close();
       _messageQueue.close();
@@ -582,6 +614,42 @@ class TreeStateMachine {
   }
 }
 
+class _LogListener {
+  _LogListener(this._logger, bool enable) {
+    _setEnabled(enable);
+  }
+
+  final Logger _logger;
+  StreamSubscription<LogRecord>? _subscription;
+
+  bool get enabled => _subscription != null;
+
+  void dispose() {
+    _subscription?.cancel();
+    _subscription = null;
+  }
+
+  void _setEnabled(bool enabled) {
+    _subscription?.cancel();
+    if (enabled) {
+      _subscription = _logger.onRecord.listen((rec) {
+        log(
+          rec.message,
+          time: rec.time,
+          sequenceNumber: rec.sequenceNumber,
+          level: rec.level.value,
+          name: rec.loggerName,
+          zone: rec.zone,
+          error: rec.error,
+          stackTrace: rec.stackTrace,
+        );
+      });
+    } else {
+      _subscription = null;
+    }
+  }
+}
+
 /// Describes how the future returned by [CurrentState.post] behaves when an
 /// error occurs while a state processes the posted message.
 enum PostMessageErrorPolicy {
@@ -745,8 +813,12 @@ typedef _DataStreamKey = (DataStateKey<dynamic>? key, Type);
 
 class TestableTreeStateMachine extends TreeStateMachine {
   TestableTreeStateMachine._(
-      super.machine, super.failedMessagePolicy, super.log, super.label)
-      : super._();
+    super.machine,
+    super.failedMessagePolicy,
+    super.log,
+    super.label,
+    super._enableDiagnosticLogging,
+  ) : super._();
 
   factory TestableTreeStateMachine(
     StateTreeBuildProvider treeBuilder, {
@@ -755,6 +827,7 @@ class TestableTreeStateMachine extends TreeStateMachine {
     String? label,
     int redirectLimit = 5,
   }) {
+    var log = Logger('TestableTreeStateMachine');
     TreeStateMachine? treeMachine;
     var buildCtx = TreeBuildContext();
     var rootNode = StateTreeBuilder(treeBuilder).build(buildCtx);
@@ -762,10 +835,11 @@ class TestableTreeStateMachine extends TreeStateMachine {
       rootNode,
       (message) => treeMachine!._queueMessage(message),
       redirectLimit: redirectLimit,
+      logger: log,
     );
-    var log = Logger('tree_state_machine.TestableTreeStateMachine');
+
     return treeMachine = TestableTreeStateMachine._(
-        machine, failedMessagePolicy, log, label ?? '');
+        machine, failedMessagePolicy, log, label ?? '', false);
   }
 
   /// Gets the internal machine for testing purposes

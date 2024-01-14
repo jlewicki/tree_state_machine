@@ -37,15 +37,17 @@ class StateTree implements StateTreeBuildProvider {
     InitialChild initialChild, {
     required List<StateConfig> childStates,
     List<FinalStateConfig> finalStates = const [],
+    String? logName,
   }) {
     return StateTree._(_createRoot(
-      defaultRootKey,
-      (_) => DelegatingTreeState(),
-      initialChild,
-      childStates,
-      finalStates,
-      null,
-      null,
+      rootKey: defaultRootKey,
+      createState: (_) => DelegatingTreeState(),
+      initialChild: initialChild,
+      children: childStates,
+      finalStates: finalStates,
+      codec: null,
+      filters: null,
+      logName: logName,
     ));
   }
 
@@ -77,19 +79,21 @@ class StateTree implements StateTreeBuildProvider {
     required List<StateConfig> childStates,
     List<FinalStateConfig> finalStates = const [],
     List<TreeStateFilter>? filters,
+    String? logName,
   }) {
     return StateTree._(_createRoot(
-      rootKey,
-      (_) => DelegatingTreeState(
+      rootKey: rootKey,
+      createState: (_) => DelegatingTreeState(
         onMessage: onMessage,
         onEnter: onEnter,
         onExit: onExit,
       ),
-      initialChild,
-      childStates,
-      finalStates,
-      null,
-      filters,
+      initialChild: initialChild,
+      children: childStates,
+      finalStates: finalStates,
+      codec: null,
+      filters: filters,
+      logName: logName,
     ));
   }
 
@@ -114,20 +118,23 @@ class StateTree implements StateTreeBuildProvider {
     List<FinalStateConfig> finalStates = const [],
     StateDataCodec<D>? codec,
     List<TreeStateFilter>? filters,
+    String? logName,
   }) {
     return StateTree._(_createRoot(
-        rootKey,
-        (_) => DelegatingDataTreeState<D>(
-              initialData.call,
-              onMessage: onMessage,
-              onEnter: onEnter,
-              onExit: onExit,
-            ),
-        initialChild,
-        childStates,
-        finalStates,
-        codec,
-        filters));
+      rootKey: rootKey,
+      createState: (_) => DelegatingDataTreeState<D>(
+        initialData.call,
+        onMessage: onMessage,
+        onEnter: onEnter,
+        onExit: onExit,
+      ),
+      initialChild: initialChild,
+      children: childStates,
+      finalStates: finalStates,
+      codec: codec,
+      filters: filters,
+      logName: logName,
+    ));
   }
 
   final RootNodeInfo _info;
@@ -135,15 +142,16 @@ class StateTree implements StateTreeBuildProvider {
   @override
   RootNodeInfo createRootNodeInfo() => _info;
 
-  static RootNodeInfo _createRoot(
-    StateKey rootKey,
-    StateCreator createState,
-    InitialChild initialChild,
-    List<StateConfig> children,
-    List<FinalStateConfig> finalStates,
-    StateDataCodec<dynamic>? codec,
-    List<TreeStateFilter>? filters,
-  ) {
+  static RootNodeInfo _createRoot({
+    required StateKey rootKey,
+    required StateCreator createState,
+    required InitialChild initialChild,
+    required List<StateConfig> children,
+    required List<FinalStateConfig> finalStates,
+    required StateDataCodec<dynamic>? codec,
+    required List<TreeStateFilter>? filters,
+    required String? logName,
+  }) {
     var childNodes = <TreeNodeInfo>[];
     var root = RootNodeInfo(
       rootKey,
@@ -152,6 +160,7 @@ class StateTree implements StateTreeBuildProvider {
       initialChild: initialChild.call,
       dataCodec: codec,
       filters: filters ?? const [],
+      logName: logName,
     );
 
     childNodes.addAll(children

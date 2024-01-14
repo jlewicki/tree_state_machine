@@ -18,23 +18,20 @@ class Machine {
     this._queueMessage,
     this._log,
     this._redirectLimit,
-  );
+  ) : assert(_redirectLimit > 0, 'redirectLimit must be greater than 0.');
 
   factory Machine(
     TreeNode rootNode,
     void Function(Object message) queueMessage, {
-    String? logName,
+    required Logger logger,
     int redirectLimit = 5,
   }) {
-    var log = Logger(
-        'tree_state_machine.Machine${logName != null ? '.$logName' : ''}');
-
     var nodesByKey = <StateKey, TreeNode>{};
     for (var node in rootNode.selfAndDescendants()) {
       nodesByKey[node.key] = node;
     }
 
-    return Machine._(rootNode, nodesByKey, queueMessage, log, redirectLimit);
+    return Machine._(rootNode, nodesByKey, queueMessage, logger, redirectLimit);
   }
 
   final TreeNode rootNode;
@@ -43,6 +40,9 @@ class Machine {
   final Logger _log;
   final int _redirectLimit;
   TreeNode? _currentLeafNode;
+
+  /// The full name of the [Logger] used by this machine
+  String get loggerName => _log.fullName;
 
   /// The current leaf node for the state machine. Messages will be dispatched
   /// to the [TreeNode.state] of this node for processing.

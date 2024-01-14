@@ -432,7 +432,13 @@ when defining a state tree. This is called an 'external stop'.
    ```
 
 ### State machine logging
-The `tree_state_machine` packages logs diagnostic messages using the Dart SDK `logging` package. An
+The `tree_state_machine` package logs diagnostic messages using the Dart SDK `logging` package. 
+
+In order to view this output in the Dart developer console: 
+* Set `hierarchicalLoggingEnabled` from the `logging` package to `true` before creating a state
+machine
+* Set `developerLoggingEnabled` to `true` when creating the state machine.
+
 application can enable `logging` output to view the messages. If hierarchical logging is enabled, 
 all logging is peformed under a parent logger named `tree_state_machine`.
 ```dart
