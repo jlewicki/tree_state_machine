@@ -81,7 +81,7 @@ class TreeStateMachine {
     this._log,
     this.label,
     bool enableDiagnosticLogging,
-  ) : _logListener = _LogListener(_log, enableDiagnosticLogging) {
+  ) : _logListener = LogListener(_log, enableDiagnosticLogging) {
     _messageQueue.stream.listen(_onMessage);
 
     // Listen to states that are entered
@@ -195,7 +195,7 @@ class TreeStateMachine {
   final _dataStreams = <_DataStreamKey, ValueSubject<dynamic>>{};
   final PostMessageErrorPolicy _errorPolicy;
   final Logger _log;
-  final _LogListener _logListener;
+  final LogListener _logListener;
   CurrentState? _currentState;
 
   /// A [label] naming this state machine. This is not used by the state
@@ -292,6 +292,10 @@ class TreeStateMachine {
   /// If no initial state is specified, the state machine will follow the
   /// initial child path starting from the root until a leaf state is reached.
   ///
+  /// If [withPayload] is provided, it will be used as the
+  /// [TransitionContext.payload] for the initial transition to the starting
+  /// state of the state machine.
+  ///
   /// [withData] may be used to specify initial state data values for any data
   /// states that are entered while starting the state machine. It is not
   /// necessary for the [withData] function to specify a data value for every
@@ -314,12 +318,12 @@ class TreeStateMachine {
   Future<CurrentState> start({
     StateKey? at,
     BuildInitialData? withData,
-    Object? initialPayload,
+    Object? withPayload,
   }) async {
     await _lifecycle.start(() async {
       var initData = withData != null ? InitialStateData(withData) : null;
-      final transition =
-          await _machine.enterInitialState(at, initData, initialPayload);
+      var transition =
+          await _machine.enterInitialState(at, initData, withPayload);
       _currentState = CurrentState._(this);
       _transitions.add(transition);
       return transition;
@@ -611,42 +615,6 @@ class TreeStateMachine {
         })
         .where((stateDataVal) => stateDataVal != null)
         .cast<_StateDataValue>();
-  }
-}
-
-class _LogListener {
-  _LogListener(this._logger, bool enable) {
-    _setEnabled(enable);
-  }
-
-  final Logger _logger;
-  StreamSubscription<LogRecord>? _subscription;
-
-  bool get enabled => _subscription != null;
-
-  void dispose() {
-    _subscription?.cancel();
-    _subscription = null;
-  }
-
-  void _setEnabled(bool enabled) {
-    _subscription?.cancel();
-    if (enabled) {
-      _subscription = _logger.onRecord.listen((rec) {
-        log(
-          rec.message,
-          time: rec.time,
-          sequenceNumber: rec.sequenceNumber,
-          level: rec.level.value,
-          name: rec.loggerName,
-          zone: rec.zone,
-          error: rec.error,
-          stackTrace: rec.stackTrace,
-        );
-      });
-    } else {
-      _subscription = null;
-    }
   }
 }
 

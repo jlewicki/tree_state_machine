@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:developer';
+
+import 'package:logging/logging.dart';
 
 //==================================================================================================
 //
@@ -160,5 +163,41 @@ extension FutureOrExtensions<T> on FutureOr<T> {
   FutureOr<R> bind<R>(FutureOrBinder<T, R> binder) {
     var futureOr = this;
     return futureOr is Future<T> ? futureOr.then(binder) : binder(futureOr);
+  }
+}
+
+class LogListener {
+  LogListener(this._logger, bool enable) {
+    _setEnabled(enable);
+  }
+
+  final Logger _logger;
+  StreamSubscription<LogRecord>? _subscription;
+
+  bool get enabled => _subscription != null;
+
+  void dispose() {
+    _subscription?.cancel();
+    _subscription = null;
+  }
+
+  void _setEnabled(bool enabled) {
+    _subscription?.cancel();
+    if (enabled) {
+      _subscription = _logger.onRecord.listen((rec) {
+        log(
+          rec.message,
+          time: rec.time,
+          sequenceNumber: rec.sequenceNumber,
+          level: rec.level.value,
+          name: rec.loggerName,
+          zone: rec.zone,
+          error: rec.error,
+          stackTrace: rec.stackTrace,
+        );
+      });
+    } else {
+      _subscription = null;
+    }
   }
 }
