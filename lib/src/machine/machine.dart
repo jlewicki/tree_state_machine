@@ -259,6 +259,7 @@ class Machine {
       metadata: Map.from(initialMetdadata),
     );
 
+    // TODO: Can we bind instead of await here?
     await _runTransition(path, transCtx, initialStateData, transitionAction);
 
     final transition = transCtx.toTransition();
@@ -299,7 +300,6 @@ class Machine {
       _currentLeafNode = nodes[node.key]!;
     }
 
-    // TODO: why await here, instead of bind()?
     return _runTransitionHandlers(
       transCtx,
       exitHandlers.followedBy(
