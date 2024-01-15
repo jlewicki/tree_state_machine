@@ -350,14 +350,15 @@ class Machine {
     GoToResult redirect,
     InitialStateData? initialStateData,
   ) {
-    _log.fine(() => "Entry handler for '${transCtx._currentNode}' requested "
-        "redirect to '${redirect.targetStateKey}'");
+    _log.fine(
+        () => "Entry handler for '${transCtx._currentNode.key}' requested "
+            "redirect to '${redirect.targetStateKey}'");
 
     var targetNode = _node(redirect.targetStateKey);
     if (targetNode.isSelfOrAncestor(transCtx.currentNode)) {
       throw RedirectError(
           "Requested redirect target '${redirect.targetStateKey}' is a "
-          "descendant state of '${transCtx.currentNode}'");
+          "descendant state of '${transCtx.currentNode.key}'");
     }
 
     // Entry handler for state aborted the entry with a redirect, so
