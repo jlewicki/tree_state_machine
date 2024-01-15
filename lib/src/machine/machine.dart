@@ -134,6 +134,15 @@ class Machine {
   ) async {
     // convert to ADT?
     if (result is GoToResult) {
+      if (result.targetStateKey == currentLeaf!.key && !result.reenterTarget) {
+        // Handle case where go to explicitly targets the current state. In this
+        // case just stay in the current state (as if MessageContext.stay() was
+        // called)
+        return _handleInternalTransition(
+          InternalTransitionResult.value,
+          msgCtx,
+        );
+      }
       return _handleGoTo(result, msgCtx);
     } else if (result is UnhandledResult) {
       return _handleUnhandled(msgCtx);

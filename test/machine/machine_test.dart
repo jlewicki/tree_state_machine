@@ -439,6 +439,39 @@ void main() {
           expect(dataValues[data_tree.r_a_a_2_key],
               initData[data_tree.r_a_a_2_key]);
         });
+
+        test('should stay in current state if target is current state.',
+            () async {
+          final buildTree = treeBuilder(messageHandlers: {
+            r_a_a_2_key: (msgCtx) => msgCtx.goTo(r_a_a_2_key),
+          });
+          final machine = createMachine(buildTree);
+
+          final msgProcessed = await machine.processMessage(Object());
+          expect(msgProcessed, isA<HandledMessage>());
+          expect(machine.currentLeaf!.key, r_a_a_2_key);
+        });
+
+        test('should stay in current state if target is current state.',
+            () async {
+          var exited = false;
+          var entered = false;
+          final buildTree = treeBuilder(
+            messageHandlers: {
+              r_a_a_2_key: (msgCtx) =>
+                  msgCtx.goTo(r_a_a_2_key, reenterTarget: true),
+            },
+            entryHandlers: {r_a_a_2_key: (transCtx) => entered = true},
+            exitHandlers: {r_a_a_2_key: (transCtx) => exited = true},
+          );
+          final machine = createMachine(buildTree);
+
+          final msgProcessed = await machine.processMessage(Object());
+          expect(msgProcessed, isA<HandledMessage>());
+          expect(machine.currentLeaf!.key, r_a_a_2_key);
+          expect(exited, true);
+          expect(entered, true);
+        });
       });
 
       test('should throw if initial state data is null without redirect',

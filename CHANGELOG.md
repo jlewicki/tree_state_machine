@@ -2,6 +2,7 @@
 - Add `TransitionContext.redirectTo`.
 - Change default `PostMessageErrorPolicy` to `rethrowError`.
 - Adjust logging and add `TreeStateMachine.enableDeveloperLogging`.
+- Fix error when the destination of `MessageContext.goTo` is the current leaf state. 
 
 ## 3.0.0-dev.12
 - Adjust `TreeStateFilter` to make it easier to extend.
