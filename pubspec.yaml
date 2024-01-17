@@ -1,6 +1,6 @@
 name: tree_state_machine
 description: Define and run hierarchical state machines in Dart and Flutter.
-version: 3.0.0-dev.13
+version: 3.0.0-dev.14
 homepage: https://github.com/jlewicki/tree_state_machine
 
 environment:
