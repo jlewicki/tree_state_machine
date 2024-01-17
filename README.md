@@ -6,7 +6,7 @@
 * Hierarchical state trees
 * Asynchronous message processing
 * Stream based event notifications
-* Declarative state definitions with automated generation of state diagrams in DOT format 
+* Declarative state definitions 
 * Nested state machines
 
 ## Overview
