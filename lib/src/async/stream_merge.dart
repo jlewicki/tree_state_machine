@@ -2,13 +2,14 @@ import 'dart:async';
 
 /// A stream that combines multiple streams into one by merging their events.
 ///
-/// Each time one of the input streams emits a value, this stream will the same
-/// value, potentially interleaving values from the different streams.
+/// Each time one of the input streams emits a value, this stream will emit the
+/// same value, potentially interleaving values emitted from the different
+/// streams.
 ///
-/// The combined stream will emit an error when any of the input streams emits
+/// This combined stream will emit an error when any of the input streams emits
 /// an error.
 ///
-/// The combined stream will complete when all of the input streams have
+/// This combined stream will complete when all of the input streams have
 /// completed.
 class StreamMerge<T> extends Stream<T> {
   StreamMerge(Iterable<Stream<T>> streams) : _streams = streams;

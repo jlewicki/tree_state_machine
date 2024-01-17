@@ -2,14 +2,16 @@ import 'dart:async';
 
 /// A stream that combines the latest values of other streams.
 ///
-/// Each time one of the input streams emits a value, this stream will emit a list containing the
-/// most recently emitted value values from each input stream. The emitted lists have the same
-/// ordering as the iterable passed to [StreamCombineLatest.new].
+/// Each time one of the input streams emits a value, this stream will emit a
+/// list containing the most recently emitted value values from each input
+/// stream. The emitted lists have the same ordering as the iterable passed to
+/// [StreamCombineLatest.new].
 ///
-/// Note that the combined stream will not emit a value until all of the input streams have emitted
-/// at least one value.
+/// Note that the combined stream will not emit a value until all of the input
+/// streams have emitted at least one value.
 ///
-/// The combined stream will complete as soon as any of the input streams is completed.
+/// The combined stream will complete as soon as any of the input streams is
+/// completed.
 class StreamCombineLatest<T> extends Stream<List<T>> {
   StreamCombineLatest(Iterable<Stream<T>> streams) : _streams = streams;
 
