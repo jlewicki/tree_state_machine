@@ -88,10 +88,7 @@ class TreeStateMachine {
     _transitions.stream
         .expand((t) => _mapStateDataValues(t.entryPath))
         .listen((sdv) {
-      var keyByStateKey = (sdv.stateKey, sdv.dataValue.dataType);
-      var keyByDataType = (null, sdv.dataValue.dataType);
-      var dataStream =
-          _dataStreams[keyByStateKey] ?? _dataStreams[keyByDataType];
+      var dataStream = _dataStreams[sdv.stateKey];
       if (dataStream != null) {
         dataStream.addStream(sdv.dataValue);
       }
@@ -192,7 +189,7 @@ class TreeStateMachine {
   final _transitions = StreamController<Transition>.broadcast();
   final _processedMessages = StreamController<ProcessedMessage>.broadcast();
   final _messageQueue = StreamController<_QueuedMessage>.broadcast();
-  final _dataStreams = <_DataStreamKey, ValueSubject<dynamic>>{};
+  final _dataStreams = <DataStateKey<dynamic>, ValueSubject<dynamic>>{};
   final PostMessageErrorPolicy _errorPolicy;
   final Logger _log;
   final LogListener _logListener;
@@ -387,6 +384,7 @@ class TreeStateMachine {
         for (var dataStream in _dataStreams.values) {
           dataStream.close();
         }
+        _dataStreams.clear();
       });
     });
   }
@@ -400,21 +398,21 @@ class TreeStateMachine {
   /// Note that this stream does not complete until this state machine is
   /// disposed. The stream will continue to emit values if the data tree state
   /// is exited, and then re-entered.
-  ValueStream<D> dataStream<D>([DataStateKey<D>? key]) {
+  ValueStream<D> dataStream<D>(DataStateKey<D> key) {
     _lifecycle.throwIfDisposed();
 
-    _DataStreamKey streamKey = (key, D);
-    var dataStream = _dataStreams[streamKey];
+    var dataStream = _dataStreams[key];
     if (dataStream == null) {
       // We don't have as datastream yet for this data type/key, so create a new
-      // one
-      dataStream = ValueSubject<D>();
-      _dataStreams[streamKey] = dataStream;
+      // one. Ask the key to create it, because it should know the specific D
+      // to use (and D in this method invocation might be potentially be 'dynamic')
+      dataStream = key.createDataStream();
+      _dataStreams[key] = dataStream;
       if (_currentState != null) {
         for (var sdv in _mapStateDataValues(_currentState!.activeStates)) {
           // If the requested data type/key match one of the current active
           // states, pipe the notifications from the active state through the
-          //data stream.
+          // data stream.
           if (sdv.stateKey == key || sdv.dataValue.dataType == D) {
             dataStream.addStream(sdv.dataValue as ValueStream<D>);
           }
@@ -773,11 +771,6 @@ class _StateDataValue {
   final DataValue<dynamic> dataValue;
   _StateDataValue(this.stateKey, this.dataValue);
 }
-
-// Composite key for data streams.  If key is null, that means calling code
-// requested a data string by state data type, omitting the key of a specific
-// state.
-typedef _DataStreamKey = (DataStateKey<dynamic>? key, Type);
 
 class TestableTreeStateMachine extends TreeStateMachine {
   TestableTreeStateMachine._(

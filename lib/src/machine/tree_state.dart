@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:async/async.dart';
 import 'package:logging/logging.dart';
+import 'package:tree_state_machine/async.dart';
 import 'package:tree_state_machine/src/machine/utility.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
@@ -35,6 +36,14 @@ class DataStateKey<D> extends _ValueKey<(Type, String)> implements StateKey {
   ///
   /// The name must be unique within a state tree.
   const DataStateKey(String name) : super((D, name));
+
+  /// The type of stata data associated with this key.
+  Type get dataType => _value.$1;
+
+  /// Creates a new [ValueSubject].
+  ///
+  /// This is infrastructure and typically not used by application code.
+  ValueSubject<D> createDataStream() => ValueSubject<D>();
 
   @override
   String toString() {

@@ -1,3 +1,9 @@
+## 3.0.0-dev.14
+- Add `StreamMerge`.
+- Fix bug with `TreeStateMachine.dataStream` when the callsite specificies `dynamic` for `D`, but
+  the provided `DataStateKey` is not `dynamic`. 
+
+
 ## 3.0.0-dev.13
 - Add `TransitionContext.redirectTo`.
 - Change default `PostMessageErrorPolicy` to `rethrowError`.
