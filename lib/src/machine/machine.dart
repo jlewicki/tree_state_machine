@@ -643,8 +643,15 @@ class MachineTransitionContext
   TreeNode get currentNode => _currentNode;
 
   Transition toTransition() {
-    return Transition(_requestedTransition.from, _currentNode.key, lca, exited,
-        entered, _enteredNodes[_enteredNodes.length - 1].isFinal);
+    return Transition(
+      _requestedTransition.from,
+      _currentNode.key,
+      lca,
+      exited,
+      entered,
+      Map.unmodifiable(metadata),
+      _enteredNodes[_enteredNodes.length - 1].isFinal,
+    );
   }
 
   @override
@@ -764,59 +771,15 @@ class MachineTransitionContext
 }
 
 class MachineTransition implements Transition {
-  /// The starting leaf state of the path.
-  final TreeNode fromNode;
-
-  /// The final state of the path.
-  ///
-  /// This may be either a leaf or non-leaf state.
-  final TreeNode toNode;
-
-  /// The states that will be entered as the path is traversed.
-  final List<TreeNode> enteringNodes;
-
-  /// The states that will be exited as the path is traversed.
-  final List<TreeNode> exitingNodes;
-
-  /// The path of nodes to traverse, starting at [from] and ending at [to].
-  late final List<TreeNode> nodePath =
-      List<TreeNode>.unmodifiable(exitingNodes.followedBy(enteringNodes));
-
-  final TreeNode lcaNode;
-
-  @override
-  late final List<StateKey> entryPath =
-      enteringNodes.map((n) => n.key).toList();
-
-  @override
-  late final List<StateKey> exitPath = exitingNodes.map((n) => n.key).toList();
-
-  @override
-  late final StateKey from = fromNode.key;
-
-  @override
-  late final StateKey to = toNode.key;
-
-  @override
-  StateKey get lca => lcaNode.key;
-
-  @override
-  late final List<StateKey> path = nodePath.map((n) => n.key).toList();
-
-  @override
-  bool get isToFinalState => switch (toNode.info) {
-        LeafNodeInfo(isFinalState: true) => true,
-        _ => false
-      };
-
-  /// Constructs a [TransitionPath] instance.
+  /// Constructs a [MachineTransition] instance.
   MachineTransition._(
     this.fromNode,
     this.toNode,
     this.lcaNode,
     Iterable<TreeNode> exitingNodes,
     Iterable<TreeNode> enteringNodes,
-  )   : exitingNodes = List.unmodifiable(exitingNodes),
+  )   : metadata = const {},
+        exitingNodes = List.unmodifiable(exitingNodes),
         enteringNodes = List.unmodifiable(enteringNodes);
 
   factory MachineTransition.between(TreeNode from, TreeNode to,
@@ -857,6 +820,54 @@ class MachineTransition implements Transition {
     final entering = to.selfAndAncestors().toList().reversed.toList();
     return MachineTransition._(root, to, root, exiting, entering);
   }
+
+  /// The starting leaf state of the path.
+  final TreeNode fromNode;
+
+  /// The final state of the path.
+  ///
+  /// This may be either a leaf or non-leaf state.
+  final TreeNode toNode;
+
+  /// The states that will be entered as the path is traversed.
+  final List<TreeNode> enteringNodes;
+
+  /// The states that will be exited as the path is traversed.
+  final List<TreeNode> exitingNodes;
+
+  /// The path of nodes to traverse, starting at [from] and ending at [to].
+  late final List<TreeNode> nodePath =
+      List<TreeNode>.unmodifiable(exitingNodes.followedBy(enteringNodes));
+
+  final TreeNode lcaNode;
+
+  @override
+  final Map<String, Object> metadata;
+
+  @override
+  late final List<StateKey> entryPath =
+      enteringNodes.map((n) => n.key).toList();
+
+  @override
+  late final List<StateKey> exitPath = exitingNodes.map((n) => n.key).toList();
+
+  @override
+  late final StateKey from = fromNode.key;
+
+  @override
+  late final StateKey to = toNode.key;
+
+  @override
+  StateKey get lca => lcaNode.key;
+
+  @override
+  late final List<StateKey> path = nodePath.map((n) => n.key).toList();
+
+  @override
+  bool get isToFinalState => switch (toNode.info) {
+        LeafNodeInfo(isFinalState: true) => true,
+        _ => false
+      };
 }
 
 mixin DisposableMixin {

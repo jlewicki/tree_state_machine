@@ -788,6 +788,19 @@ abstract class TransitionContext {
 /// with [TransitionContext.requestedTransition]), or a transition that has
 /// completed (as with [HandledMessage.transition]).
 class Transition {
+  /// Constructs a [Transition].
+  Transition(
+    this.from,
+    this.to,
+    this.lca,
+    Iterable<StateKey> exitPath,
+    Iterable<StateKey> entryPath,
+    this.metadata, [
+    bool? isToFinalState = false,
+  ])  : exitPath = List.unmodifiable(exitPath),
+        entryPath = List.unmodifiable(entryPath),
+        isToFinalState = isToFinalState ?? false;
+
   /// The starting leaf state of the transition.
   final StateKey from;
 
@@ -821,15 +834,11 @@ class Transition {
   /// states.
   final List<StateKey> entryPath;
 
-  ///
+  /// Indicates if the destination state of this transition is a final state.
   final bool isToFinalState;
 
-  Transition(this.from, this.to, this.lca, Iterable<StateKey> exitPath,
-      Iterable<StateKey> entryPath,
-      [bool? isToFinalState = false])
-      : exitPath = List.unmodifiable(exitPath),
-        entryPath = List.unmodifiable(entryPath),
-        isToFinalState = isToFinalState ?? false;
+  /// Unmodifiable map of metadata, copied from [TransitionContext.metadata].
+  final Map<String, Object> metadata;
 }
 
 //==============================================================================
