@@ -733,7 +733,7 @@ abstract class TransitionContext {
 
   /// Redirects a transition to a different state when running an entry handler.
   ///
-  /// This method may be used to prevent entry to the calling state if some
+  /// This method may be used to prevent entry to the handling state if some
   /// precondition for entering a state has not been met. For example, if a
   /// state represents the presence of an authenticated user of an application,
   /// but the identity of the user cannot be established for some reason, the

@@ -104,8 +104,8 @@ class TreeStateMachine {
   /// posted message.
   ///
   /// [redirectLimit] can be used to indicate the maximum number of calls to
-  /// [TransitionContext.redirectTo] can occur during a single transition. This
-  /// can be useful in preventing infinite redirect loops.
+  /// [TransitionContext.redirectTo] that can occur during a single transition.
+  /// This can be useful in preventing infinite redirect loops.
   ///
   /// If [developerLoggingEnabled] is `true`, the state machine will write all
   /// log output to the Developer [log]. Note that an application must first
