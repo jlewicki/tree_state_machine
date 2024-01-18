@@ -18,7 +18,6 @@ export 'src/machine/tree_state_filter.dart';
 export 'src/machine/tree_state_machine.dart'
     hide TestableTreeStateMachine, EncodableState, EncodableTree;
 
-
 // To publish:
 // dart pub publish --dry-run
 // git tag -a vX.X.X -m "Publish vX.X.X"

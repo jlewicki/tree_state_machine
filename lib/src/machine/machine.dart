@@ -354,13 +354,6 @@ class Machine {
         () => "Entry handler for '${transCtx._currentNode.key}' requested "
             "redirect to '${redirect.targetStateKey}'");
 
-    var targetNode = _node(redirect.targetStateKey);
-    if (targetNode.isSelfOrAncestor(transCtx.currentNode)) {
-      throw RedirectError(
-          "Requested redirect target '${redirect.targetStateKey}' is a "
-          "descendant state of '${transCtx.currentNode.key}'");
-    }
-
     // Entry handler for state aborted the entry with a redirect, so
     // compute path to the new target and follow that path instead.
     var newPath = MachineTransition.between(
@@ -608,7 +601,8 @@ class MachineTransitionContext
   GoToResult? _redirectResult;
   int _redirectCount = 0;
 
-  bool get hasRedirect => _redirectResult != null;
+  @override
+  bool get hasRedirect => _redirectCount > 0;
 
   @override
   final Object? payload;
@@ -650,7 +644,8 @@ class MachineTransitionContext
       exited,
       entered,
       Map.unmodifiable(metadata),
-      _enteredNodes[_enteredNodes.length - 1].isFinal,
+      isToFinalState: _enteredNodes[_enteredNodes.length - 1].isFinal,
+      isRedirect: _redirectCount > 0,
     );
   }
 
@@ -668,6 +663,12 @@ class MachineTransitionContext
   }) {
     // Redirects are only supported during an onEnter transition
     if (isEntering) {
+      var targetNode = _machine._node(to);
+      if (targetNode.isSelfOrAncestor(_currentNode)) {
+        throw RedirectError("Requested redirect target '$to' is a "
+            "descendant state of '${_currentNode.key}'");
+      }
+
       _redirectCount++;
       if (_redirectCount > _machine._redirectLimit) {
         throw RedirectError(
@@ -703,7 +704,7 @@ class MachineTransitionContext
   FutureOr<GoToResult?> tryEnter(TreeNode node, [Object? initialData]) {
     _currentNode = node;
     _enteredNodes.add(node);
-    _machine._log.fine("Entering state '${node.key}'");
+    _machine._log.fine(() => "Entering state '${node.key}'");
 
     assert(initialData == null || node.resources.nodeData != null);
     if (node.resources.nodeData != null) {
@@ -717,7 +718,6 @@ class MachineTransitionContext
     ).bind((_) {
       var redirect = _redirectResult;
       _redirectResult = null;
-      ++_redirectCount;
       return redirect;
     });
   }
@@ -729,7 +729,7 @@ class MachineTransitionContext
     _currentNode = node;
     _exitedNodes.add(node);
     _machine._node(node.key).resources.cancelTimers();
-    _machine._log.fine("Exiting state '${node.key}'");
+    _machine._log.fine(() => "Exiting state '${node.key}'");
 
     return _runTransitionHandlers(
       node,
@@ -868,6 +868,9 @@ class MachineTransition implements Transition {
         LeafNodeInfo(isFinalState: true) => true,
         _ => false
       };
+
+  @override
+  bool get isRedirect => false;
 }
 
 mixin DisposableMixin {

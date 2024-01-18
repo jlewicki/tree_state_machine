@@ -719,6 +719,9 @@ abstract class TransitionContext {
   /// processed. This map will never be read or modified by the state machine.
   Map<String, Object> get metadata;
 
+  /// Indicates if [redirectTo] has been called.
+  bool get hasRedirect;
+
   /// Gets the [DataValue] for the active data state identified by [key].
   ///
   /// A [StateError] is thrown if [key] does not identify an active state.
@@ -795,11 +798,11 @@ class Transition {
     this.lca,
     Iterable<StateKey> exitPath,
     Iterable<StateKey> entryPath,
-    this.metadata, [
-    bool? isToFinalState = false,
-  ])  : exitPath = List.unmodifiable(exitPath),
-        entryPath = List.unmodifiable(entryPath),
-        isToFinalState = isToFinalState ?? false;
+    this.metadata, {
+    this.isToFinalState = false,
+    this.isRedirect = false,
+  })  : exitPath = List.unmodifiable(exitPath),
+        entryPath = List.unmodifiable(entryPath);
 
   /// The starting leaf state of the transition.
   final StateKey from;
@@ -836,6 +839,10 @@ class Transition {
 
   /// Indicates if the destination state of this transition is a final state.
   final bool isToFinalState;
+
+  /// Indicates if a call to [TransitionContext.redirectTo] took place during
+  /// this transition.
+  final bool isRedirect;
 
   /// Unmodifiable map of metadata, copied from [TransitionContext.metadata].
   final Map<String, Object> metadata;

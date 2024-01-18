@@ -275,9 +275,17 @@ void main() {
     group('redirect', () {
       test('should follow redirect', () async {
         var msg = Object();
+        var exitedRedirectState = false;
+        var exitHasRedirect = false;
         var stateTree = treeBuilder(
           entryHandlers: {
             r_b_key: (ctx) => ctx.redirectTo(r_a_key),
+          },
+          exitHandlers: {
+            r_b_key: (ctx) {
+              exitedRedirectState = true;
+              exitHasRedirect = ctx.hasRedirect;
+            }
           },
           messageHandlers: {
             r_a_a_1_key: (ctx) {
@@ -294,6 +302,8 @@ void main() {
         expect(result, isA<HandledMessage>());
         var handled = result as HandledMessage;
         expect(handled.transition!.to, r_a_a_2_key);
+        expect(exitedRedirectState, true);
+        expect(exitHasRedirect, true);
         expect(
             ListEquality<StateKey>().equals(
               handled.transition!.path,
