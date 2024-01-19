@@ -8,6 +8,10 @@ import 'package:tree_state_machine/tree_state_machine.dart';
 ///
 /// The state can be a leaf or composite state, depending on which factory is
 /// used to construct the state.
+///
+/// {@category Message Handlers}
+/// {@category Transition Handlers}
+/// {@category State Trees}
 class State implements StateConfig {
   State._(this._nodeInfo);
 

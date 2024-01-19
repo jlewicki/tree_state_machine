@@ -74,6 +74,9 @@ import 'utility.dart';
 ///    for background information on UML (hierarchical) state machines.
 ///  * [State Machine Diagrams](https://www.uml-diagrams.org/state-machine-diagrams.html),
 ///    for further description of UML state machine diagrams.
+///
+/// {@category Getting Started}
+/// {@category State Machines}
 class TreeStateMachine {
   TreeStateMachine._(
     this._machine,

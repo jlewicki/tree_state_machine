@@ -1,0 +1,24 @@
+dartdoc:
+  categories:
+    "Getting Started":
+      markdown: doc/getting-started.md
+    "Message Handlers":
+      markdown: doc/message-handlers.md
+    "Transition Handlers":
+      markdown: doc/transition-handlers.md
+    "State Trees":
+      markdown: doc/state-trees.md
+    "State Machines":
+      markdown: doc/state-machines.md
+  categoryOrder:
+    - "Getting Started"
+    - "State Trees"
+    - "Message Handlers"
+    - "Transition Handlers"
+    - "State Machines"
+  showUndocumentedCategories: true
+  includeExternal: 
+    - lib/delegate_builders.dart
+  ignore:
+    - broken-link
+    - missing-from-search-index

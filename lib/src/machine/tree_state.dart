@@ -14,6 +14,8 @@ import 'package:tree_state_machine/tree_state_machine.dart';
 /// An identifier for a state within a tree state machine.
 ///
 /// Keys must be unique within a tree of states.
+///
+/// {@category Getting Started}
 sealed class StateKey {
   /// Construct a [StateKey] with the specifed [name].
   ///
@@ -31,6 +33,8 @@ sealed class StateKey {
 /// Keys must be unique within a tree of states. Note however that
 /// [DataStateKey] incorporates the type [D] into it's identity, so different
 /// [DataStateKey]s may share the same name as long as [D] differs.
+///
+/// {@category Getting Started}
 class DataStateKey<D> extends _ValueKey<(Type, String)> implements StateKey {
   /// Constructs a [DataStateKey] with the specified [name].
   ///
@@ -104,6 +108,8 @@ typedef StateCreator = TreeState Function(StateKey key);
 /// Each state in the state machine has two associated [TransitionHandler]s. One
 /// is called by the state machine each time the state is entered, and the other
 /// is called each time the state is exited.
+///
+/// {@category Transition Handlers}
 typedef TransitionHandler = FutureOr<void> Function(TransitionContext ctx);
 
 /// Type of functions that process messages sent to a state machine.
@@ -116,6 +122,8 @@ typedef TransitionHandler = FutureOr<void> Function(TransitionContext ctx);
 /// and returns (possibly asynchronously) a [MessageResult] describing how the
 /// state processed the message. The [MessageResult] is created by calling
 /// methods on the [MessageContext], such as [MessageContext.goTo].
+///
+/// {@category Message Handlers}
 typedef MessageHandler = FutureOr<MessageResult> Function(MessageContext ctx);
 
 /// A [TransitionHandler] that returns immediately.
@@ -462,6 +470,8 @@ typedef Dispose = void Function();
 /// processsing. For example, the handler can indicate that a state transition
 /// should occur by calling [goTo], or that message processing should be
 /// delegated to its parent state by calling [unhandled].
+///
+/// {@category Message Handlers}
 abstract class MessageContext {
   /// The message that is being processed by the state machine.
   Object get message;
@@ -671,6 +681,8 @@ class UnhandledResult extends MessageResult {
 
 /// Describes a transition between states that is occuring in a tree state
 /// machine.
+///
+/// {@category Transition Handlers}
 abstract class TransitionContext {
   /// The path of states describing the transition path that was requested.
   ///

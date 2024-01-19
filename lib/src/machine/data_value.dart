@@ -44,6 +44,8 @@ import 'package:tree_state_machine/tree_state_machine.dart';
 ///
 /// [DataValue] is typically created implicitly when constructing a state tree. Application code
 /// will usually not need to create a [DataValue] directly.
+///
+/// {@category Message Handlers}
 class DataValue<T> extends StreamView<T> implements ValueStream<T> {
   ValueSubject<T> _subject;
 

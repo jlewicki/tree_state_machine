@@ -19,6 +19,9 @@ abstract interface class FinalStateConfig {
 const StateKey defaultRootKey = StateKey('<!StateTree.RootState!>');
 
 /// Defines a state tree that can be used in conjunction with a [TreeStateMachine].
+///
+/// {@category Getting Started}
+/// {@category State Trees}
 class StateTree implements StateTreeBuildProvider {
   StateTree._(this._info);
 

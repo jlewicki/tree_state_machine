@@ -3,16 +3,21 @@ import 'package:tree_state_machine/delegate_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 /// A data state with associated state data of type [D].
+///
+/// {@category Message Handlers}
+/// {@category Transition Handlers}
+/// {@category State Trees}
 class DataState<D> implements StateConfig {
   DataState._(this._nodeInfo);
 
-  /// Constructs a leaf data state identified by [key], with associated state data of type [D].
+  /// Constructs a leaf data state identified by [key], with associated state
+  /// data of type [D].
   ///
   /// A leaf state does not contain any child states.
   ///
   /// {@template DataState.initialData}
-  /// When the data state is entered, [initialData] will be used to determine the initial value
-  /// for the associated state data.
+  /// When the data state is entered, [initialData] will be used to determine
+  /// the initial value for the associated state data.
   /// {@endtemplate}
   ///
   /// {@macro State.handlers}
@@ -43,7 +48,8 @@ class DataState<D> implements StateConfig {
         );
       });
 
-  /// Constructs a composite data state identified by [key], with associated state data of type [D].
+  /// Constructs a composite data state identified by [key], with associated
+  /// state data of type [D].
   ///
   /// {@macro DataState.initialData}
   ///
@@ -103,8 +109,8 @@ class FinalDataState<D> implements FinalStateConfig {
   ///
   /// {@macro DataState.initialData}
   ///
-  /// The behavior of the state when it is entered can be customized by providing an [onEnter]
-  /// function.
+  /// The behavior of the state when it is entered can be customized by
+  /// providing an [onEnter] function.
   factory FinalDataState(
     DataStateKey<D> key,
     InitialData<D> initialData, {
