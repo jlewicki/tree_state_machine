@@ -1,13 +1,11 @@
 // ignore_for_file: non_constant_identifier_names
 
 import 'dart:async';
-
 import 'package:test/test.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'fixture/fixture_util.dart';
 import 'fixture/data_tree.dart';
 import 'fixture/state_data.dart';
-import 'fixture/tree.dart' as tree;
 
 void main() {
   group('MachineMessageContext', () {
@@ -16,7 +14,9 @@ void main() {
         final dataByKey = <StateKey, dynamic>{};
         final buildTree = treeBuilder(
           createMessageHandler: (key) => (ctx) {
-            dataByKey[key] = ctx.data(key)!.value;
+            dataByKey[key] = key is DataStateKey<dynamic>
+                ? ctx.data<dynamic>(key).value
+                : null;
             return ctx.unhandled();
           },
         );
@@ -36,7 +36,7 @@ void main() {
           createMessageHandler: (key) => (ctx) {
             // Look up data for ancestor state
             if (key == r_a_a_2_key || key == r_a_a_key) {
-              dataByKey[key] = ctx.data(r_a_key)!.value;
+              dataByKey[key] = ctx.data<dynamic>(r_a_key).value;
             }
 
             return ctx.unhandled();
@@ -50,53 +50,33 @@ void main() {
         expect(dataByKey[r_a_a_key], isA<ImmutableData>());
       });
 
-      test('should return null if handling state has no data', () async {
-        final dataByKey = <StateKey, Object?>{};
-        final buildTree = tree.treeBuilder(
-          createMessageHandler: (key) => (ctx) {
-            dataByKey[key] = ctx.data()?.value;
-            return ctx.unhandled();
-          },
-        );
-        final machine = createMachine(buildTree);
-        await machine.enterInitialState();
-
-        await machine.processMessage(Object());
-
-        expect(dataByKey[r_a_a_2_key], isNull);
-        expect(dataByKey[r_a_a_key], isNull);
-        expect(dataByKey[r_a_key], isNull);
-        expect(dataByKey[r_key], isNull);
-      });
-
-      test('should return null if descendant data is requested', () async {
+      test('should throw if descendant data is requested', () async {
         final dataByKey = <StateKey, Object?>{};
         final buildTree = treeBuilder(messageHandlers: {
           r_a_a_key: (ctx) {
-            dataByKey[r_a_a_key] = ctx.data(r_a_a_2_key)?.value;
+            try {
+              ctx.data<dynamic>(r_a_a_2_key).value;
+            } catch (e) {
+              dataByKey[r_a_a_key] = e;
+            }
             return ctx.unhandled();
           },
-          r_a_key: (ctx) {
-            dataByKey[r_a_key] = ctx.data(r_a_a_key)?.value;
-            return ctx.unhandled();
-          }
         });
 
         final machine = createMachine(buildTree);
         await machine.enterInitialState();
         await machine.processMessage(Object());
 
-        expect(dataByKey[r_a_a_key], isNull);
-        expect(dataByKey[r_a_key], isNull);
+        expect(dataByKey[r_a_a_key], isA<StateError>());
       });
 
-      test('should throw whem updating after state is exited', () async {
+      test('should throw when updating after state is exited', () async {
         DataValue<LeafData2>? dataVal;
         var buildTree = treeBuilder(
           initialDataValues: {r_a_a_2_key: () => LeafData2()..label = 'cool'},
           messageHandlers: {
             r_a_a_2_key: (msgCtx) {
-              dataVal = msgCtx.data<LeafData2>();
+              dataVal = msgCtx.data(r_a_a_2_key);
               return msgCtx.goTo(r_a_a_1_key);
             },
           },
@@ -106,7 +86,10 @@ void main() {
         await machine.processMessage(Object());
 
         expect(dataVal, isNotNull);
-        expect(() => dataVal!.update((current) => current..label = 'not cool'), throwsStateError);
+        expect(
+          () => dataVal!.update((current) => current..label = 'not cool'),
+          throwsStateError,
+        );
       });
     });
 
@@ -114,9 +97,9 @@ void main() {
       test('should replace data in ancestor state', () async {
         final buildTree = treeBuilder(messageHandlers: {
           r_a_a_1_key: (ctx) {
-            ctx.updateOrThrow<ImmutableData>((_) => ImmutableData((b) => b
-              ..name = 'Jim'
-              ..price = 2));
+            ctx
+                .data(r_a_key)
+                .update((_) => ImmutableData(name: 'Jim', price: 2));
             return ctx.stay();
           }
         });
@@ -125,18 +108,14 @@ void main() {
 
         await machine.processMessage(Object());
 
-        var data = machine.nodes[r_a_key]!.treeNode.data as DataValue<ImmutableData>;
+        var data = machine.nodes[r_a_key]!.data as DataValue<ImmutableData>;
         expect(data.value.name, equals('Jim'));
         expect(data.value.price, equals(2));
       });
 
       test('should replace data in closest state', () async {
-        final r_a_data = ImmutableData((b) => b
-          ..name = 'John'
-          ..price = 10);
-        final r_a_1_data = ImmutableData((b) => b
-          ..name = 'Pete'
-          ..price = 5);
+        final r_a_data = ImmutableData(name: 'John', price: 10);
+        final r_a_1_data = ImmutableData(name: 'Pete', price: 5);
 
         final buildTree = treeBuilder(
           initialDataValues: {
@@ -145,9 +124,9 @@ void main() {
           },
           messageHandlers: {
             r_a_1_key: (ctx) {
-              ctx.updateOrThrow<ImmutableData>((_) => ImmutableData((b) => b
-                ..name = 'Jim'
-                ..price = 2));
+              ctx
+                  .data(r_a_1_key)
+                  .update((_) => ImmutableData(name: 'Jim', price: 2));
               return ctx.stay();
             }
           },
@@ -157,22 +136,21 @@ void main() {
 
         await machine.processMessage(Object());
 
-        var data = machine.nodes[r_a_1_key]!.treeNode.data as DataValue<ImmutableData>;
+        var data = machine.nodes[r_a_1_key]!.data as DataValue<ImmutableData>;
         expect(data.value.name, equals('Jim'));
         expect(data.value.price, equals(2));
 
-        var ancestorData = machine.nodes[r_a_key]!.treeNode.data as DataValue<ImmutableData>;
+        var ancestorData =
+            machine.nodes[r_a_key]!.data as DataValue<ImmutableData>;
         expect(ancestorData.value, same(r_a_data));
       });
 
       test('should replace data in ancestor state by key', () async {
         final buildTree = treeBuilder(messageHandlers: {
           r_a_1_key: (ctx) {
-            ctx.updateOrThrow<ImmutableData>(
-                (_) => ImmutableData((b) => b
-                  ..name = 'Jim'
-                  ..price = 2),
-                key: r_a_key);
+            ctx
+                .data(r_a_key)
+                .update((_) => ImmutableData(name: 'Jim', price: 2));
             return ctx.stay();
           }
         });
@@ -181,7 +159,8 @@ void main() {
 
         await machine.processMessage(Object());
 
-        var ancestorData = machine.nodes[r_a_key]!.treeNode.data as DataValue<ImmutableData>;
+        var ancestorData =
+            machine.nodes[r_a_key]!.data as DataValue<ImmutableData>;
         expect(ancestorData.value.name, equals('Jim'));
         expect(ancestorData.value.price, equals(2));
       });
@@ -189,7 +168,7 @@ void main() {
       test('should throw if provider for data type cannot be found', () async {
         final buildTree = treeBuilder(messageHandlers: {
           r_a_a_1_key: (ctx) {
-            ctx.updateOrThrow<String>((current) => current.toUpperCase());
+            ctx.data(r_b_2_key).update((current) => current + 1);
             return ctx.stay();
           }
         });
@@ -202,7 +181,7 @@ void main() {
       test('should throw if provider for key cannot be found', () async {
         final buildTree = treeBuilder(messageHandlers: {
           r_a_a_1_key: (ctx) {
-            ctx.updateOrThrow<ImmutableData>((current) => current, key: r_a_a_2_key);
+            ctx.data(r_a_a_2_key).update((current) => current);
             return ctx.stay();
           }
         });
@@ -215,7 +194,7 @@ void main() {
 
     group('post', () {
       test('Should send message', () async {
-        final completer = Completer();
+        final completer = Completer<void>();
         var receivedMessage = false;
         final msg = Object();
         final msgToPost = Object();
@@ -243,7 +222,7 @@ void main() {
 
     group('schedule', () {
       test('should post message immediately when duration is 0', () async {
-        final completer = Completer();
+        final completer = Completer<void>();
         var receivedMessage = false;
         final scheduleMsg = Object();
         final scheduledMsg = Object();
@@ -272,7 +251,7 @@ void main() {
       });
 
       test('should post messages when periodic is true', () async {
-        final completer = Completer();
+        final completer = Completer<void>();
         var receiveCount = 0;
         Dispose? dispose;
         final scheduleMsg = Object();
@@ -308,7 +287,7 @@ void main() {
       });
 
       test('should be canceled when dispose function is called', () async {
-        final completer = Completer();
+        final completer = Completer<void>();
         var receiveCount = 0;
         Dispose? dispose;
         final scheduleMsg = Object();
@@ -330,7 +309,8 @@ void main() {
                 receiveCount++;
                 if (receiveCount == 3) {
                   dispose!();
-                  ctx.schedule(() => completionMsg, duration: Duration(milliseconds: 30));
+                  ctx.schedule(() => completionMsg,
+                      duration: Duration(milliseconds: 30));
                 }
               } else if (identical(ctx.message, completionMsg)) {
                 completer.complete();
@@ -348,7 +328,7 @@ void main() {
       });
 
       test('should be canceled when scheduling state is exited', () async {
-        final completer = Completer();
+        final completer = Completer<void>();
         var receiveCount = 0;
         final scheduleMsg = Object();
         final scheduledMsg = Object();

@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:test/test.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 import 'fixture/fixture_util.dart';
@@ -40,10 +41,14 @@ void main() {
         final dataByKey = <StateKey, Object?>{};
         final buildTree = treeBuilder(
             createEntryHandler: (key) => (ctx) {
-                  dataByKey[key] = ctx.data(key)?.value;
+                  dataByKey[key] = key is DataStateKey<dynamic>
+                      ? ctx.data<dynamic>(key).value
+                      : null;
                 },
             createExitHandler: (key) => (ctx) {
-                  dataByKey[key] = ctx.data(key)?.value;
+                  key is DataStateKey<dynamic>
+                      ? ctx.data<dynamic>(key).value
+                      : null;
                 },
             messageHandlers: {
               r_b_1_key: (ctx) => ctx.goTo(r_a_a_2_key),
@@ -61,8 +66,9 @@ void main() {
     });
 
     group('post', () {
-      test('Should send message to end state when transition completes', () async {
-        final completer = Completer();
+      test('Should send message to end state when transition completes',
+          () async {
+        final completer = Completer<void>();
         var receivedMessage = false;
         final msg = Object();
         final buildTree = treeBuilder(
@@ -86,8 +92,9 @@ void main() {
         expect(receivedMessage, isTrue);
       });
 
-      test('Should send messages to end state if called more than once', () async {
-        final completer = Completer();
+      test('Should send messages to end state if called more than once',
+          () async {
+        final completer = Completer<void>();
         var receivedMessage1 = false;
         var receivedMessage2 = false;
         final msg1 = Object();
@@ -137,7 +144,7 @@ void main() {
 
     group('schedule', () {
       test('should post messages when periodic is true', () async {
-        final completer = Completer();
+        final completer = Completer<void>();
         var receiveCount = 0;
         Dispose? dispose;
         final scheduledMsg = Object();
@@ -172,7 +179,7 @@ void main() {
       });
 
       test('should be canceled when dispose function is called', () async {
-        final completer = Completer();
+        final completer = Completer<void>();
         var receiveCount = 0;
         Dispose? dispose;
         final scheduledMsg = Object();
@@ -193,7 +200,8 @@ void main() {
                 receiveCount++;
                 if (receiveCount == 3) {
                   dispose!();
-                  ctx.schedule(() => completionMsg, duration: Duration(milliseconds: 30));
+                  ctx.schedule(() => completionMsg,
+                      duration: Duration(milliseconds: 30));
                 }
               } else if (identical(ctx.message, completionMsg)) {
                 completer.complete();
@@ -211,7 +219,7 @@ void main() {
       });
 
       test('should be canceled when scheduling state is exited', () async {
-        final completer = Completer();
+        final completer = Completer<void>();
         var receiveCount = 0;
         final scheduledMsg = Object();
         final completionMsg = Object();
@@ -261,6 +269,123 @@ void main() {
 
         expect(receiveCount, equals(3));
         expect(machine.currentLeaf!.key, equals(r_b_1_key));
+      });
+    });
+
+    group('redirect', () {
+      test('should follow redirect', () async {
+        var msg = Object();
+        var exitedRedirectState = false;
+        var exitHasRedirect = false;
+        var stateTree = treeBuilder(
+          entryHandlers: {
+            r_b_key: (ctx) => ctx.redirectTo(r_a_key),
+          },
+          exitHandlers: {
+            r_b_key: (ctx) {
+              exitedRedirectState = true;
+              exitHasRedirect = ctx.hasRedirect;
+            }
+          },
+          messageHandlers: {
+            r_a_a_1_key: (ctx) {
+              if (identical(msg, ctx.message)) {
+                return ctx.goTo(r_b_key);
+              }
+              return ctx.unhandled();
+            },
+          },
+        );
+        final machine = createMachine(stateTree, redirectLimit: 1);
+        await machine.enterInitialState(r_a_a_1_key);
+        var result = await machine.processMessage(msg);
+        expect(result, isA<HandledMessage>());
+        var handled = result as HandledMessage;
+        expect(handled.transition!.to, r_a_a_2_key);
+        expect(exitedRedirectState, true);
+        expect(exitHasRedirect, true);
+        expect(
+            ListEquality<StateKey>().equals(
+              handled.transition!.path,
+              [
+                r_a_a_1_key,
+                r_a_a_key,
+                r_a_key,
+                r_b_key,
+                r_b_key,
+                r_a_key,
+                r_a_a_key,
+                r_a_a_2_key
+              ],
+            ),
+            isTrue);
+      });
+
+      test('should throw if redirectLimit exceeded', () async {
+        var msg = Object();
+        var stateTree = treeBuilder(
+          entryHandlers: {
+            r_b_key: (ctx) => ctx.redirectTo(r_a_key),
+            r_a_a_2_key: (ctx) => ctx.redirectTo(r_b_key),
+          },
+          messageHandlers: {
+            r_a_a_1_key: (ctx) {
+              if (identical(msg, ctx.message)) {
+                return ctx.goTo(r_b_key);
+              }
+              return ctx.unhandled();
+            },
+          },
+        );
+
+        final machine = createMachine(stateTree, redirectLimit: 1);
+        await machine.enterInitialState(r_a_a_1_key);
+        expect(() => machine.processMessage(msg), throwsRedirectError);
+      });
+
+      test('should throw if redirecting to descendant state', () async {
+        var msg = Object();
+        var stateTree = treeBuilder(
+          entryHandlers: {
+            r_b_key: (ctx) => ctx.redirectTo(r_b_1_key),
+          },
+          messageHandlers: {
+            r_a_a_1_key: (ctx) {
+              if (identical(msg, ctx.message)) {
+                return ctx.goTo(r_b_key);
+              }
+              return ctx.unhandled();
+            },
+          },
+        );
+
+        final machine = createMachine(stateTree, redirectLimit: 1);
+        await machine.enterInitialState(r_a_a_1_key);
+        expect(() => machine.processMessage(msg), throwsRedirectError);
+      });
+
+      test('should have no effect if called by exit handler', () async {
+        var msg = Object();
+        var stateTree = treeBuilder(
+          exitHandlers: {
+            r_a_a_key: (ctx) => ctx.redirectTo(r_c_key),
+          },
+          messageHandlers: {
+            r_a_a_1_key: (ctx) {
+              if (identical(msg, ctx.message)) {
+                return ctx.goTo(r_b_key);
+              }
+              return ctx.unhandled();
+            },
+          },
+        );
+
+        final machine = createMachine(stateTree);
+        await machine.enterInitialState(r_a_a_1_key);
+        var result = await machine.processMessage(msg);
+        expect(result, isA<HandledMessage>());
+        var handled = result as HandledMessage;
+        expect(handled.transition!.to, r_b_1_key);
       });
     });
   });

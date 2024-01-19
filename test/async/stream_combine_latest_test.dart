@@ -6,7 +6,34 @@ import 'package:tree_state_machine/async.dart';
 void main() {
   group('StreamCombineLatest', () {
     group('listen', () {
-      test('should emit latest items whem all streams have emitted a value', () async {
+      test('should emit latest items', () async {
+        Stream<int> createStream(List<int> vals) async* {
+          for (var val in vals) {
+            yield val;
+          }
+        }
+
+        var s1 = createStream([3, 1, 2]);
+        var s2 = createStream([2, 2]);
+        var s3 = createStream([1, 3]);
+
+        var combined = StreamCombineLatest([s1, s2, s3]);
+
+        List<(int, int, int)>? emittedValues = [];
+
+        var completer = Completer<void>();
+        combined.listen(
+          (values) => emittedValues.add((values[0], values[1], values[2])),
+          onDone: () => completer.complete(),
+        );
+
+        await completer.future;
+
+        expect(emittedValues, isNotNull);
+        expect(emittedValues, containsAllInOrder([(3, 2, 1), ((1, 2, 3))]));
+      });
+
+      test('should not emit until all streams have emitted a value', () async {
         var s1 = StreamController<int>.broadcast();
         var s2 = StreamController<int>.broadcast();
         var s3 = StreamController<int>.broadcast();
@@ -29,7 +56,7 @@ void main() {
           s3.add(1);
         });
 
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future<void>.delayed(Duration(milliseconds: 100));
 
         expect(emittedValues, isNotNull);
         expect(emittedValues, containsAllInOrder([3, 2, 1]));
@@ -44,7 +71,10 @@ void main() {
         List<int>? emittedValues;
         Object? error;
 
-        combined.listen((values) => emittedValues = values, onError: (err) => error = err);
+        combined.listen(
+          (values) => emittedValues = values,
+          onError: (Object? err) => error = err,
+        );
 
         Timer(Duration(milliseconds: 25), () {
           expect(emittedValues, isNull);
@@ -63,14 +93,15 @@ void main() {
           s3.add(1);
         });
 
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future<void>.delayed(Duration(milliseconds: 100));
 
         expect(emittedValues, isNotNull);
         expect(emittedValues, containsAllInOrder([3, 2, 1]));
         expect(error, equals('oops'));
       });
 
-      test('should cancel immediately when a stream emits error and cancelOnError is true',
+      test(
+          'should cancel immediately when a stream emits error and cancelOnError is true',
           () async {
         var s1 = StreamController<int>.broadcast();
         var s2 = StreamController<int>.broadcast();
@@ -103,7 +134,7 @@ void main() {
           s3.add(1);
         });
 
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future<void>.delayed(Duration(milliseconds: 100));
 
         expect(emittedValues, isNull);
         expect(error, equals('oops'));
@@ -137,7 +168,7 @@ void main() {
           s3.add(1);
         });
 
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future<void>.delayed(Duration(milliseconds: 100));
 
         expect(emittedValues, isNull);
         expect(isDone, isTrue);

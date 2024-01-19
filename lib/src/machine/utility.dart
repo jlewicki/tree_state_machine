@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:developer';
+
+import 'package:logging/logging.dart';
 
 //==================================================================================================
 //
@@ -11,12 +14,12 @@ class TypeLiteral<T> {
   Type get type => T;
 }
 
-bool isTypeOf<ThisType, OfType>() => _Instance<ThisType>() is _Instance<OfType>;
+bool isTypeOf<ThisType, OfType>() => _Phantom<ThisType>() is _Phantom<OfType>;
 
 bool isTypeOfExact<ThisType, OfType>() =>
     TypeLiteral<ThisType>().type == TypeLiteral<OfType>().type;
 
-class _Instance<T> {}
+class _Phantom<T> {}
 
 /// Returns `true` if [value] is a member of an enumeration.
 bool isEnumValue(Object value) {
@@ -45,7 +48,7 @@ String describeEnum(Object enumEntry) {
 
 class DisposedError extends StateError {
   /// Constructs a [DisposedError] with an optional error message.
-  DisposedError([String message = 'This object has been disposed']) : super(message);
+  DisposedError([super.message = 'This object has been disposed']);
 }
 
 //==================================================================================================
@@ -82,6 +85,15 @@ class Lazy<T> {
       _value = (_value as _Evaluated<T>).deferred;
     }
   }
+
+  /// Returns a [Lazy] that when evaluated will apply the [convert] function to the value of this
+  /// lazy.
+  Lazy<R> map<R>(R Function(T) convert) {
+    return Lazy<R>(() {
+      var next = convert(value);
+      return next;
+    });
+  }
 }
 
 class MutableLazy<T> extends Lazy<T> {
@@ -89,7 +101,7 @@ class MutableLazy<T> extends Lazy<T> {
   ///
   /// [evaluator] will be used to evaluate the instance of T when the [value] property is first
   /// read.
-  MutableLazy(T Function() evaluator) : super(evaluator);
+  MutableLazy(super.evaluator);
 
   set value(T value) {
     if (hasValue) {
@@ -100,15 +112,15 @@ class MutableLazy<T> extends Lazy<T> {
   }
 }
 
-abstract class _LazyValue<T> {}
+sealed class _LazyValue<T> {}
 
-class _Deferred<T> implements _LazyValue<T> {
+final class _Deferred<T> implements _LazyValue<T> {
   final T Function() evaluator;
   _Deferred(this.evaluator);
   _Evaluated<T> eval() => _Evaluated(evaluator(), this);
 }
 
-class _Evaluated<T> implements _LazyValue<T> {
+final class _Evaluated<T> implements _LazyValue<T> {
   T value;
   final _Deferred<T> deferred;
   _Evaluated(this.value, this.deferred);
@@ -118,7 +130,13 @@ class _Evaluated<T> implements _LazyValue<T> {
 //
 // Ref
 //
-class Ref<T> {
+
+abstract class ReadOnlyRef<T> {
+  T get value;
+}
+
+class Ref<T> implements ReadOnlyRef<T> {
+  @override
   T value;
   Ref(this.value);
 }
@@ -145,5 +163,41 @@ extension FutureOrExtensions<T> on FutureOr<T> {
   FutureOr<R> bind<R>(FutureOrBinder<T, R> binder) {
     var futureOr = this;
     return futureOr is Future<T> ? futureOr.then(binder) : binder(futureOr);
+  }
+}
+
+class LogListener {
+  LogListener(this._logger, bool enable) {
+    _setEnabled(enable);
+  }
+
+  final Logger _logger;
+  StreamSubscription<LogRecord>? _subscription;
+
+  bool get enabled => _subscription != null;
+
+  void dispose() {
+    _subscription?.cancel();
+    _subscription = null;
+  }
+
+  void _setEnabled(bool enabled) {
+    _subscription?.cancel();
+    if (enabled) {
+      _subscription = _logger.onRecord.listen((rec) {
+        log(
+          rec.message,
+          time: rec.time,
+          sequenceNumber: rec.sequenceNumber,
+          level: rec.level.value,
+          name: rec.loggerName,
+          zone: rec.zone,
+          error: rec.error,
+          stackTrace: rec.stackTrace,
+        );
+      });
+    } else {
+      _subscription = null;
+    }
   }
 }

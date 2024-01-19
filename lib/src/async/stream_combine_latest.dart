@@ -2,14 +2,16 @@ import 'dart:async';
 
 /// A stream that combines the latest values of other streams.
 ///
-/// Each time one of the input streams emits a value, this stream will emit a list containing the
-/// most recently emitted value values from each input stream. The emitted lists have the same
-/// ordering as the iterable passed to [new StreamCombineLatest].
+/// Each time one of the input streams emits a value, this stream will emit a
+/// list containing the most recently emitted value values from each input
+/// stream. The emitted lists have the same ordering as the iterable passed to
+/// [StreamCombineLatest.new].
 ///
-/// Note that the combined stream will not emit a value until all of the input streams have emitted
-/// at least one value.
+/// Note that the combined stream will not emit a value until all of the input
+/// streams have emitted at least one value.
 ///
-/// The combined stream will complete as soon as any of the input streams is completed.
+/// The combined stream will complete as soon as any of the input streams is
+/// completed.
 class StreamCombineLatest<T> extends Stream<List<T>> {
   StreamCombineLatest(Iterable<Stream<T>> streams) : _streams = streams;
 
@@ -22,22 +24,22 @@ class StreamCombineLatest<T> extends Stream<List<T>> {
     void Function()? onDone,
     bool? cancelOnError,
   }) {
-    var _cancelOnError = identical(true, cancelOnError);
+    var cancelOnError_ = identical(true, cancelOnError);
     var subscriptions = <StreamSubscription<T>>[];
     var allEmitted = false;
     late StreamController<List<T>> controller;
     late List<T?> currentValues;
     late List<bool> hasEmitted;
 
-    void _onDone() {
+    void onDone_() {
       for (var i = 0; i < subscriptions.length; i++) {
         subscriptions[i].cancel();
       }
       controller.close();
     }
 
-    void _onError(Object error, StackTrace stackTrace) {
-      if (_cancelOnError) {
+    void onError_(Object error, StackTrace stackTrace) {
+      if (cancelOnError_) {
         for (var i = 0; i < subscriptions.length; i++) {
           subscriptions[i].cancel();
         }
@@ -45,7 +47,7 @@ class StreamCombineLatest<T> extends Stream<List<T>> {
       controller.addError(error, stackTrace);
     }
 
-    void _onData(int index, T data) {
+    void onData_(int index, T data) {
       currentValues[index] = data;
       hasEmitted[index] = true;
       if (!allEmitted) {
@@ -63,9 +65,9 @@ class StreamCombineLatest<T> extends Stream<List<T>> {
       for (var stream in _streams) {
         var index = subscriptions.length;
         subscriptions.add(stream.listen(
-          (data) => _onData(index, data),
-          onError: _onError,
-          onDone: _onDone,
+          (data) => onData_(index, data),
+          onError: onError_,
+          onDone: onDone_,
           cancelOnError: cancelOnError,
         ));
       }
