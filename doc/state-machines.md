@@ -35,7 +35,7 @@ what occurred by pattern matching on its subclases `HandledMessge`, `UnhandledMe
 
 ## State machine streams
 In addition to inspecting the results of `post` to learn about how a message was processed, it is 
-also possible to  subscribe to several stream properties of `TreeStateMachine`:
+also possible to subscribe to several stream properties of `TreeStateMachine`:
 
 * `processedMessages` yields an event for every message that is processed by the tree, whether or 
 not the message was handled successfully, and whether or not a transition occurred as a result of 
@@ -44,6 +44,32 @@ the message.
 successfully handled. Note that the HandledMessage event is also emitted on the processedMessages 
 stream.
 * `transitions` yields an event each time a transition between states occurs.
+
+### Data streams
+Both `TreeStateMachine` and `CurrentState` have a `dataStream` method. This returns a `ValueStream`
+for a data state, allowing an application to observe changes to state data over time. 
+
+```dart
+// Observe changes to state data for the 'register' data state. 
+var subscription = await stateMachine
+   .dataStream(States.register)
+   .listen((RegisterData data) {
+      print(data.email);
+   });
+```
+
+
+While both methods can return a stream, the differ slightly in their use:
+
+* `CurrentState.dataStream` returns a stream for an *active* data state. If the requested state is 
+not active, `null` is returned.  Additionally, the returned stream will complete when the state is 
+no longer active (in other words, after the `onExit` notification for the state).
+* `TreeStateMachine.dataStream` returns a stream, regardless of whether the requested data state is
+active or not. This can be usedful for observing state data over the full lifetime of the state 
+machine. A consequence of this is that the stream will does not complete unless the state machine is
+stopped, so it may necessary for an app to explicitly cancel a subscription, depending on the 
+circumstances. 
+
 
 ## Ending a state machine
 A state machine can end in two ways.
