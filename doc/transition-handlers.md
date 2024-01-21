@@ -13,6 +13,10 @@ to state data of the handling state (or its ancestors).
 Because a transition handler returns a `FutureOr`, the handler implementation may be asynchronous if
 desired.  
 
+
+Provide an `onEnter` or `onExit` callback when defining a state to specify a transition handler. 
+If `null`, the state will just ignore any transition notifications.  
+
 ```dart
 State(
    States.authenticating, 

@@ -12,7 +12,8 @@ example, `goTo()`, `unhandled()`, or `stay()`
 Because a message handler returns a `FutureOr`, the handler implementation may be asynchronous if 
 desired.  
 
-A message handler is provided with the `onMessage` callback when creating the state:
+Provide an `onMessage` callback when defining a state to specify the message handler. If `null`, 
+the state will simply forward all messages it recieves to its parent.  
 
 ```dart
 class GoToLogin { }
@@ -37,12 +38,12 @@ State(
 
 
 ## Reading and writing state data
-A data state can access its associated state data. Additionally, any state can access the state data
-of an ancestor data state. 
+State data can be accessed in a message handler using the `MessageContext.data` method. A data state
+can access its associated state data, and any state can access the state data of an ancestor data 
+state. Note that only state data for *active* states can be retrieved, otherwise an error is thrown.
 
 State data is stored in a `DataValue<D>` instance. A `DataValue` provides access to the current 
-state data value with the `value` property. The `DataValue` for a data state can be requested using
-the `MessageContext.data` and `TransitionContext.data` methods.
+state data value with the `value` property. 
 
 A `DataValue` is also a `Stream`, and therefore can be used to observe changes to the state data 
 over time.  This is not typically used in a message handler, but `DataValue`s are also accessible
