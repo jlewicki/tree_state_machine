@@ -59,7 +59,7 @@ var subscription = await stateMachine
 ```
 
 
-While both methods can return a stream, the differ slightly in their use:
+While both methods can return a stream, they differ slightly in their use:
 
 * `CurrentState.dataStream` returns a stream for an *active* data state. If the requested state is 
 not active, `null` is returned.  Additionally, the returned stream will complete when the state is 
