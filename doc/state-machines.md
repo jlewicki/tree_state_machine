@@ -51,7 +51,7 @@ for a data state, allowing an application to observe changes to state data over 
 
 ```dart
 // Observe changes to state data for the 'register' data state. 
-var subscription = await stateMachine
+var subscription = stateMachine
    .dataStream(States.register)
    .listen((RegisterData data) {
       print(data.email);
@@ -65,9 +65,9 @@ While both methods can return a stream, they differ slightly in their use:
 not active, `null` is returned.  Additionally, the returned stream will complete when the state is 
 no longer active (in other words, after the `onExit` notification for the state).
 * `TreeStateMachine.dataStream` returns a stream, regardless of whether the requested data state is
-active or not. This can be usedful for observing state data over the full lifetime of the state 
-machine. A consequence of this is that the stream will does not complete unless the state machine is
-stopped, so it may necessary for an app to explicitly cancel a subscription, depending on the 
+active or not. This can be useful for observing state data over the full lifetime of the state 
+machine. A consequence of this is that the stream will not complete unless the state machine is
+stopped, so it may be necessary for an app to explicitly cancel the subscription, depending on the 
 circumstances. 
 
 
