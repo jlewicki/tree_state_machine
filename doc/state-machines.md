@@ -91,4 +91,4 @@ order to view this output in the Dart developer console:
 
 * Set `hierarchicalLoggingEnabled` from the `logging` package to `true` before creating a state
 machine
-* Set `developerLoggingEnabled` to `true` when creating the state machine.
+* Set `enableDeveloperLogging` to `true` when creating the state machine.

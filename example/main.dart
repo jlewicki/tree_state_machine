@@ -78,7 +78,7 @@ Future<void> main() async {
 
   var stateMachine = TreeStateMachine(
     stoplightStateTree,
-    developerLoggingEnabled: true,
+    enableDeveloperLogging: true,
     logName: 'Stoplight',
   );
   var currentState = await stateMachine.start();

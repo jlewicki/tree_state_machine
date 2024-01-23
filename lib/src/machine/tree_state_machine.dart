@@ -83,8 +83,8 @@ class TreeStateMachine {
     this._errorPolicy,
     this._log,
     this.label,
-    bool enableDiagnosticLogging,
-  ) : _logListener = LogListener(_log, enableDiagnosticLogging) {
+    bool enableDeveloperLogging,
+  ) : _logListener = LogListener(_log, enableDeveloperLogging) {
     _messageQueue.stream.listen(_onMessage);
 
     // Listen to states that are entered
@@ -110,7 +110,7 @@ class TreeStateMachine {
   /// [TransitionContext.redirectTo] that can occur during a single transition.
   /// This can be useful in preventing infinite redirect loops.
   ///
-  /// If [developerLoggingEnabled] is `true`, the state machine will write all
+  /// If [enableDeveloperLogging] is `true`, the state machine will write all
   /// log output to the Developer [log]. Note that an application must first
   /// set [hierarchicalLoggingEnabled] to `true` for this to take effect. The
   /// parent logger for developer output is named `TreeStateMachine`.
@@ -131,7 +131,7 @@ class TreeStateMachine {
         PostMessageErrorPolicy.rethrowError,
     int redirectLimit = 5,
     String? logName,
-    bool developerLoggingEnabled = false,
+    bool enableDeveloperLogging = false,
     String? label,
   }) {
     return TreeStateMachine.withBuilder(
@@ -140,7 +140,7 @@ class TreeStateMachine {
       label: label,
       postMessageErrorPolicy: postMessageErrorPolicy,
       redirectLimit: redirectLimit,
-      developerLoggingEnabled: developerLoggingEnabled,
+      enableDeveloperLogging: enableDeveloperLogging,
     );
   }
 
@@ -155,7 +155,7 @@ class TreeStateMachine {
     PostMessageErrorPolicy postMessageErrorPolicy =
         PostMessageErrorPolicy.rethrowError,
     int redirectLimit = 5,
-    bool developerLoggingEnabled = false,
+    bool enableDeveloperLogging = false,
     String? logName,
     String? label,
   }) {
@@ -166,7 +166,7 @@ class TreeStateMachine {
     );
 
     if (hierarchicalLoggingEnabled) {
-      logger.level = developerLoggingEnabled ? Level.ALL : Level.OFF;
+      logger.level = enableDeveloperLogging ? Level.ALL : Level.OFF;
     }
 
     var rootNode = treeBuilder.build();
@@ -183,7 +183,7 @@ class TreeStateMachine {
       postMessageErrorPolicy,
       logger,
       label ?? '',
-      developerLoggingEnabled,
+      enableDeveloperLogging,
     );
   }
 

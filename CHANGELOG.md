@@ -1,3 +1,7 @@
+## 3.0.1
+- Rename `TreeStateMachine.developerLoggingEnabled` -> `TreeStateMachine.enableDeveloperLogging` 
+(which was meant to be in 3.0.0 :( ) 
+
 ## 3.0.0
 - Upgrade to Dart3 SDK
 - Added `TransitionContext.redirectTo`.
