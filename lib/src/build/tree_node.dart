@@ -55,6 +55,8 @@ class TreeNodeDataValue {
   /// associated data state is not active
   DataValue<dynamic>? get data => _dataValueRef?.value;
 
+  // TODO: consider making this return FutureOr<void> to support initializing
+  // state data asynchronously
   void initalizeData(TransitionContext transCtx, [Object? initialData]) {
     _dataState.initializeData(<D>() {
       assert(initialData == null || initialData is D);
