@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:async/async.dart';
 import 'package:logging/logging.dart';
 import 'package:tree_state_machine/async.dart';
-import 'package:tree_state_machine/src/machine/utility.dart';
+import 'package:tree_state_machine/src/machine/data_value.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
 //==============================================================================
@@ -48,6 +48,12 @@ class DataStateKey<D> extends _ValueKey<(Type, String)> implements StateKey {
   ///
   /// This is infrastructure and typically not used by application code.
   ValueSubject<D> createDataStream() => ValueSubject<D>();
+
+  // /// Creates a new [Ref] containing a [DataValue].
+  // ///
+  // /// This is infrastructure and typically not used by application code.
+  // Ref<ClosableDataValue<D>?> createDataValueRef(dynamic initValue) =>
+  //     Ref(ClosableDataValue<D>.lazy(() => initValue as D));
 
   @override
   String toString() {
@@ -148,7 +154,7 @@ typedef GetInitialChild = StateKey Function(TransitionContext ctx);
 ///
 /// The function is passed a [TransitionContext] that describes the transition
 /// that is currently taking place.
-typedef GetInitialData<D> = D Function(TransitionContext ctx);
+typedef GetInitialData<D> = FutureOr<D> Function(TransitionContext ctx);
 
 /// An individual state within a tree state machine.
 ///
@@ -236,8 +242,6 @@ class DelegatingTreeState implements TreeState {
   void dispose() => _onDispose();
 }
 
-typedef DataInitializer = ReadOnlyRef<DataValue<D>?> Function<D>();
-
 /// A tree state with an associated data value of type [D].
 ///
 /// The [data] property provides access to a [DataValue] that encapsulates to
@@ -250,21 +254,29 @@ typedef DataInitializer = ReadOnlyRef<DataValue<D>?> Function<D>();
 /// library is used, the `DataState` class is used to indirectly define a
 /// [DataTreeState].
 abstract class DataTreeState<D> extends TreeState {
-  ReadOnlyRef<DataValue<D>?>? _dataRef;
+  DataValue<D>? _dataValue;
 
   /// The data value associated with this state. Returns `null` when the state
   /// is not active.
-  DataValue<D>? get data => _dataRef?.value;
+  DataValue<D>? get data => _dataValue;
+
+  /// Returns the initial data value for this data state.
+  ///
+  /// This is called when this data state is being entered. Subclasses must
+  /// override and return an appropriate value that will be the initial data
+  /// value for this state
+  FutureOr<D?> initialData(TransitionContext transCtx);
 
   /// Called when the data value for this tree state should be initialized.
   ///
   /// This will be called by the framework, and is not intended for use by
   /// application code.
-  void initializeData(DataInitializer initializer) {
-    _dataRef = initializer<D>();
+  ClosableDataValue<D> initializeData(dynamic initData) {
+    assert(initData is D?);
+    var dataValue = ClosableDataValue<D>.lazy(() => initData as D);
+    _dataValue = dataValue;
+    return dataValue;
   }
-
-  D? initialData(TransitionContext transCtx);
 }
 
 /// A [DataTreeState] that delegates its message and transition handling
@@ -296,7 +308,7 @@ class DelegatingDataTreeState<D> extends DataTreeState<D> {
   final Dispose _onDispose;
 
   @override
-  D? initialData(TransitionContext transCtx) {
+  FutureOr<D?> initialData(TransitionContext transCtx) {
     return _initialData(transCtx);
   }
 

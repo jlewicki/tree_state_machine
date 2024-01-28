@@ -14,6 +14,7 @@ class TreeNode {
   TreeNode(this.info, {required this.parent, required List<TreeNode> children})
       : children = UnmodifiableListView(children),
         resources = TreeNodeResources(info.key, info.createState);
+
   final TreeNodeInfo info;
   final TreeNode? parent;
   final List<TreeNode> children;
@@ -48,21 +49,33 @@ class TreeNodeDataValue {
   TreeNodeDataValue(this._dataState);
 
   final DataTreeState<dynamic> _dataState;
-
-  Ref<ClosableDataValue<dynamic>?>? _dataValueRef;
+  ClosableDataValue<dynamic>? _dataValue;
 
   /// The current [DataValue] for this [TreeNodeDataValue], or `null` if the
   /// associated data state is not active
-  DataValue<dynamic>? get data => _dataValueRef?.value;
+  DataValue<dynamic>? get data => _dataValue;
 
-  // TODO: consider making this return FutureOr<void> to support initializing
-  // state data asynchronously
-  void initalizeData(TransitionContext transCtx, [Object? initialData]) {
-    _dataState.initializeData(<D>() {
-      assert(initialData == null || initialData is D);
-      var initialData_ = initialData ?? _dataState.initialData(transCtx);
-      if (initialData_ == null &&
-          !(transCtx as MachineTransitionContext).hasRedirect) {
+  FutureOr<void> initalizeData(
+    TransitionContext transCtx, [
+    Object? initialData,
+  ]) {
+    var initialData_ = initialData ?? _dataState.initialData(transCtx);
+    return initialData_.bind((initialData) {
+      assert(_dataValue == null);
+      _validateInitialData(transCtx, initialData);
+      _dataValue = _dataState.initializeData(initialData);
+    });
+  }
+
+  void clearData() {
+    _dataValue?.close();
+    _dataValue = null;
+  }
+
+  void _validateInitialData(TransitionContext transCtx, dynamic initialData) {
+    if (initialData == null) {
+      var hasRedirect = (transCtx as MachineTransitionContext).hasRedirect;
+      if (!hasRedirect) {
         var msg =
             "Initial data for state '${transCtx.handlingState}' returned null. "
             "Null return values are only permitted if "
@@ -70,20 +83,7 @@ class TreeNodeDataValue {
             "initial data value.";
         throw StateTreeDefinitionError(msg);
       }
-      assert(_dataValueRef == null);
-      var ref = Ref(ClosableDataValue<D>.lazy(() =>
-          // This will throw if initialData_ is null, but that will only occur
-          // if a direct is also requested, in which case this function will
-          // not be executed.
-          initialData_ as D));
-      _dataValueRef = ref;
-      return ref;
-    });
-  }
-
-  void clearData() {
-    _dataValueRef?.value?.close();
-    _dataValueRef = null;
+    }
   }
 }
 

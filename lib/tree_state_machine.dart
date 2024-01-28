@@ -12,8 +12,7 @@ export 'src/machine/tree_state.dart'
         InternalTransitionResult,
         SelfTransitionResult,
         StopResult,
-        UnhandledResult,
-        DataInitializer;
+        UnhandledResult;
 export 'src/machine/tree_state_filter.dart';
 export 'src/machine/tree_state_machine.dart'
     hide TestableTreeStateMachine, EncodableState, EncodableTree;

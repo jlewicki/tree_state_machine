@@ -415,11 +415,17 @@ void main() {
             return (ctx) => dataValues[key] = ctx.data(key).value;
           }
 
+          var r_Completer = Completer<SpecialDataD>();
+          r_Completer.complete(initData[data_tree.r_key]! as SpecialDataD);
+          var r_a_a_Completer = Completer<LeafDataBase>();
+          r_a_a_Completer
+              .complete(initData[data_tree.r_a_a_key]! as LeafDataBase);
+
           var buildTree = data_tree.treeBuilder(
             initialDataValues: {
-              data_tree.r_key: () => initData[data_tree.r_key]!,
+              data_tree.r_key: () => r_Completer.future,
               data_tree.r_a_key: () => initData[data_tree.r_a_key]!,
-              data_tree.r_a_a_key: () => initData[data_tree.r_a_a_key]!,
+              data_tree.r_a_a_key: () => r_a_a_Completer.future,
               data_tree.r_a_a_2_key: () => initData[data_tree.r_a_a_2_key]!,
             },
             entryHandlers: {

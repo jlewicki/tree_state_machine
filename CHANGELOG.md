@@ -1,3 +1,6 @@
+## 3.1.0
+- Changed return type of `GetInitialData<D>` to `FutureOr<D>`, to allow async initial data.
+
 ## 3.0.1
 - Rename `TreeStateMachine.developerLoggingEnabled` -> `TreeStateMachine.enableDeveloperLogging` 
 (which was meant to be in 3.0.0 :( ) 

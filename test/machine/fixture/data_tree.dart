@@ -1,5 +1,7 @@
 // ignore_for_file: constant_identifier_names, non_constant_identifier_names
 
+import 'dart:async';
+
 import 'package:tree_state_machine/delegate_builders.dart';
 import 'package:tree_state_machine/tree_state_machine.dart';
 
@@ -24,13 +26,13 @@ StateTree treeBuilder({
   TransitionHandler Function(StateKey key)? createEntryHandler,
   TransitionHandler Function(StateKey key)? createExitHandler,
   MessageHandler Function(StateKey key)? createMessageHandler,
-  Object? Function(TransitionContext ctx)? Function(StateKey key)?
+  FutureOr<Object?> Function(TransitionContext ctx)? Function(StateKey key)?
       createInitialDataValues,
   Map<StateKey, TransitionHandler>? entryHandlers,
   Map<StateKey, MessageHandler>? messageHandlers,
   Map<StateKey, TransitionHandler>? exitHandlers,
   Map<StateKey, List<TreeStateFilter>>? filters,
-  Map<StateKey, Object Function()>? initialDataValues,
+  Map<StateKey, FutureOr<Object> Function()>? initialDataValues,
 }) {
   final createEntryHandler_ =
       createEntryHandler ?? (_) => emptyTransitionHandler;
@@ -48,11 +50,11 @@ StateTree treeBuilder({
       if (createInitialDataValues != null) {
         var creator = createInitialDataValues(key);
         if (creator != null) {
-          return creator.call(transCtx) as D?;
+          return creator.call(transCtx) as FutureOr<D?>;
         }
       }
       if (initialDataValueCreators[key] != null) {
-        return initialDataValueCreators[key]!() as D;
+        return initialDataValueCreators[key]!() as FutureOr<D>;
       }
       return defaultValue;
     };

@@ -707,15 +707,17 @@ class MachineTransitionContext
     _machine._log.fine(() => "Entering state '${node.key}'");
 
     assert(initialData == null || node.resources.nodeData != null);
-    if (node.resources.nodeData != null) {
-      node.resources.nodeData!.initalizeData(this, initialData);
-    }
 
-    return _runTransitionHandlers(
-      node,
-      (filter) => filter.onEnter,
-      (state) => state.onEnter,
-    ).bind((_) {
+    var nodeData = node.resources.nodeData;
+    // Make sure to coalesce against 1 (an arbitrary non-null value) so that
+    // bind does not get short-circuited.
+    return (nodeData?.initalizeData(this, initialData) ?? 1).bind((_) {
+      return _runTransitionHandlers(
+        node,
+        (filter) => filter.onEnter,
+        (state) => state.onEnter,
+      );
+    }).bind((_) {
       var redirect = _redirectResult;
       _redirectResult = null;
       return redirect;

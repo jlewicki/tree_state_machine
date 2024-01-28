@@ -196,7 +196,7 @@ sealed class InitialData<D> {
   }
 
   /// Creates the initial data value.
-  D? call(TransitionContext transCtx);
+  FutureOr<D?> call(TransitionContext transCtx);
 }
 
 final class InitialDataByValue<D> extends InitialData<D> {
@@ -220,7 +220,7 @@ final class InitialDataByDelegate<D> extends InitialData<D> {
   final GetInitialData<D?> initialData;
 
   @override
-  D? call(TransitionContext transCtx) => initialData(transCtx);
+  FutureOr<D?> call(TransitionContext transCtx) => initialData(transCtx);
 }
 
 /// A callable class that can produce the initial nested nested state machine for
